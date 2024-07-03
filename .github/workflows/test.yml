@@ -17,5 +17,5 @@ jobs:
         uses: actions/checkout@v4
       - name: clippy
         run: cargo clippy --release -- -D warnings
-      - name: clippy
+      - name: test
         run: cargo test --release
