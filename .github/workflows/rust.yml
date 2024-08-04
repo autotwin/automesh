@@ -1,7 +1,9 @@
 name: Rust
 on:
   pull_request:
-    branches: [main, libexodus]
+    branches: main
+  push:
+    branches: libexodus
   release:
     types: published
 env:
