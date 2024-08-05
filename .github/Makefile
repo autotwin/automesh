@@ -2,9 +2,8 @@ SHELL := /bin/bash
 
 exodus:
 	rm -fr seacas/ && \
-	git clone --depth 1 https://github.com/sandialabs/seacas.git --single-branch --branch=master && \
+	git clone --depth 1 https://github.com/sandialabs/seacas.git --single-branch --branch v2024-07-10 && \
 	cd seacas/ && \
-	git reset --hard 049a054ee0e1c1107336d5996136314f57ddbe2a && \
 	export ACCESS=`pwd` && \
 	cd TPL/hdf5/ && \
 	wget https://github.com/HDFGroup/hdf5/releases/download/hdf5_1.14.4.3/hdf5-1.14.4-3.tar.gz && \
