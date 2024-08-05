@@ -1,6 +1,9 @@
 SHELL := /bin/bash
 
 exodus:
+	cd ../ && \
+	mkdir -p target && \
+	cd target && \
 	rm -fr seacas/ && \
 	git clone --depth 1 https://github.com/sandialabs/seacas.git --single-branch --branch v2024-07-10 && \
 	cd seacas/ && \
