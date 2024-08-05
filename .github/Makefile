@@ -19,7 +19,11 @@ exodus:
 	mkdir build/ && \
 	cd build/ && \
 	bash ../../runcmake.sh && \
+	make && \
+	make install && \
 	cd ../../../../ && \
 	mkdir build/ && \
 	cd build/ && \
-	../cmake-exodus
+	../cmake-exodus && \
+	make && \
+	make install
