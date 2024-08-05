@@ -47,8 +47,8 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions-rs/toolchain@v1
       with:
-        toolchain: 1.79.0
         default: true
+        toolchain: stable
     - uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
