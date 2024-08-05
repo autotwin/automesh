@@ -1,7 +1,6 @@
 SHELL := /bin/bash
 
 exodus:
-	cd ../ && \
 	mkdir -p target && \
 	cd target && \
 	rm -fr seacas/ && \

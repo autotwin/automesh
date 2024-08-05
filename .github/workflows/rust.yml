@@ -29,7 +29,9 @@ jobs:
           default: true
           toolchain: ${{ matrix.toolchain }}
       - name: exodus
-        run: cd .github/ && make exodus && cd ../
+        run: |
+          make exodus
+          LD_LIBRARY_PATH=target/seacas/lib/ cargo run -F exodus -q -- -i tests/input/f.npy -o foo.exo | true
       - name: build
         run: cargo build
       - name: clippy

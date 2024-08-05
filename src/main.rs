@@ -54,7 +54,20 @@ struct Args {
     ztranslate: f64,
 }
 
+#[cfg(feature = "exodus")]
+extern "C" {
+    fn ex_close(exoid: i32) -> i32;
+}
+
 fn main() {
+    #[cfg(feature = "exodus")]
+    let a = unsafe {
+        let b = ex_close(0);
+        b
+    };
+    #[cfg(feature = "exodus")]
+    println!("{:?}", a);
+
     let args = Args::parse();
     if args.xscale <= 0.0 {
         panic!("Need to specify xscale > 0.")
