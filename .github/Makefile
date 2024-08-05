@@ -20,4 +20,6 @@ exodus:
 	cd build/ && \
 	bash ../../runcmake.sh && \
 	cd ../../../../ && \
-	./cmake-exodus
+	mkdir build/ && \
+	cd build/ && \
+	../cmake-exodus
