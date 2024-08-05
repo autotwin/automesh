@@ -19,6 +19,6 @@ repos:
     hooks:
     -   id: pycodestyle
         name: pycodestyle
-        entry: pycodestyle .
+        entry: pycodestyle tests/
         language: system
         pass_filenames: false

@@ -22,8 +22,6 @@ Cargo.lock
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
 
-.github/seacas/
-
 **.whl
 *.vscode
 **__pycache__
