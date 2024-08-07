@@ -56,17 +56,25 @@ struct Args {
 
 #[cfg(feature = "exodus")]
 extern "C" {
+    // int ex_create_int(const char *path, int cmode, int *comp_ws, int *io_ws, int run_version)
+    fn ex_create_int(path: i32, cmode: i32, comp_ws: i32, io_ws: i32, run_version: i32) -> i32;
     fn ex_close(exoid: i32) -> i32;
 }
 
 fn main() {
     #[cfg(feature = "exodus")]
-    let a = unsafe {
-        let b = ex_close(0);
-        b
-    };
-    #[cfg(feature = "exodus")]
-    println!("{:?}", a);
+    {
+        let a = unsafe {
+            let b = ex_create_int(0, 0, 0, 0, 900);
+            b
+        };
+        println!("{:?}", a);
+        let c = unsafe {
+            let d = ex_close(0);
+            d
+        };
+        println!("{:?}", c);
+    }
 
     let args = Args::parse();
     if args.xscale <= 0.0 {
