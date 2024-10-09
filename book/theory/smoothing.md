@@ -125,9 +125,7 @@ Figure: Classification of nodes into categories of surface nodes $\mathbb{A}$, i
 
 ### Chen Example
 
-Chen[^Chen_2010] used medical image voxel data to create a structured hexahedral mesh.   They noded that the approach generated a mesh with "jagged edges on mesh surface and material interfaces," which can cause numerical artifacts.  
-
-Chen used hierarchical Taubin mesh smoothing for eight (8) iterations, with $\lambda = 0.6307$ and $\mu = -0.6732$ to smooth the outer and inner surfaces of the mesh.
+Chen[^Chen_2010] used medical image voxel data to create a structured hexahedral mesh.   They noded that the approach generated a mesh with "jagged edges on mesh surface and material interfaces," which can cause numerical artifacts.  To help reduce numerical artifacts, Chen used hierarchical Taubin mesh smoothing for eight (8) iterations, with $\lambda = 0.6307$ and $\mu = -0.6732$ to smooth the outer and inner surfaces of the mesh.
 
 ## References
 

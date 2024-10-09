@@ -122,7 +122,11 @@ Set up reference to the Sculpt binary,
 alias sculpt='/Applications/Cubit-16.14/Cubit.app/Contents/MacOS/sculpt'
 ```
 
-Convert `.npy` files to `.spn` files
+Convert `.npy` files to `.spn` files (see temporary development, https://github.com/hovey/rustschool/tree/main/npy2spn, to be migrated to `automesh` soon as part of the `clap` extension feature, https://github.com/autotwin/automesh/issues/117)
+
+```sh
+alias npy2spn='/Users/chovey/rustschool/npy2spn/target/release/npy2spn'
+```
 
 Run Sculpt
 
