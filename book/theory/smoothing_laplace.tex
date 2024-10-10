@@ -1,10 +1,10 @@
 \documentclass[11pt, oneside]{article}   	% use "amsart" instead of "article" for AMSLaTeX format
 \usepackage{geometry}                		% See geometry.pdf to learn the layout options. There are lots.
-\geometry{letterpaper}                   		% ... or a4paper or a5paper or ... 
+\geometry{letterpaper}                   		% ... or a4paper or a5paper or ...
 %\geometry{landscape}                		% Activate for rotated page geometry
 %\usepackage[parfill]{parskip}    		% Activate to begin paragraphs with an empty line rather than an indent
 \usepackage{graphicx}				% Use pdf, png, jpg, or eps§ with pdflatex; use eps in DVI mode
-								% TeX will automatically convert eps --> pdf in pdflatex		
+								% TeX will automatically convert eps --> pdf in pdflatex
 \usepackage{amssymb}
 
 % % listings begin
@@ -54,15 +54,15 @@
 % \lstinputlisting{|\string"git archive --remote=https://git@github.com/hovey/include.git v0.0.1 include/hmath_descendant.tex 2>/dev/null | tar --extract --file - --to-stdout\string"}
 
 
-Let the subject node have a current configuration located at 
+Let the subject node have a current configuration located at
 point $\vp \in \realnsd$ have coordinates relative to origin $O$
 of
-$(x)$ in 1D, 
-$(x, y)$ in 2D, 
+$(x)$ in 1D,
+$(x, y)$ in 2D,
 and $(x, y, z)$ in 3D.
 The subject point connects to $n$ neighbor points
 $\vq_i$ for $i \in [1, n]$ though $n$ edges.
-In Fig.~\ref{fig:node_p}, for example, the point $\vp$ connects for four 
+In Fig.~\ref{fig:node_p}, for example, the point $\vp$ connects for four
 neighbors.
 
 \begin{figure}[htb]
@@ -96,17 +96,17 @@ neighbors.
 
   \end{center}
 
-  \caption{Subject node with current configuration at $\vp$ with edge 
+  \caption{Subject node with current configuration at $\vp$ with edge
   connections (dotted lines)
   to neighbor nodes $\vq_i$
   with $i \in [1, n]$ (without loss of generality,
-  the specific example of $n = 4$ is shown). 
+  the specific example of $n = 4$ is shown).
   The average position of all neighbors of $\vp$
-  is denoted $\bar{\vq}$, and the gap $\Delta \vp$ (dashed line) 
+  is denoted $\bar{\vq}$, and the gap $\Delta \vp$ (dashed line)
   originates at $\vp$ and terminates at $\bar{\vq}$.}
-\label{fig:node_p} % label must come after caption 
+\label{fig:node_p} % label must come after caption
 \end{figure}
-Let $\bar{\vq}$ denote the average position of all neighbors of $\vp$ and be 
+Let $\bar{\vq}$ denote the average position of all neighbors of $\vp$ and be
 defined as
 \be
   \bar{\vq} \coloneqq \frac{1}{n} \sum_{i=1}^n \vq_i.
@@ -116,7 +116,7 @@ terminating at $\bar{\vq}$, such that
 \be
  \Delta \vp \coloneqq \bar{\vq} - \vp, \;\;\; \mbox{since} \;\;\; \vp + \Delta \vp = \bar{\vq}.
 \ee
-Let $\lambda \in \realplus \subset (0, 1)$ be a scaling factor for the 
+Let $\lambda \in \realplus \subset (0, 1)$ be a scaling factor for the
 gap $\Delta \vp$.  Then we seek to iteratively update the position of $\vp^{(k)}$ at the
 $k^{\mbox{\tiny th}}$ iteration by an amount $\lambda \Delta \vp^{(k)}$ to $\vp^{(k+1)}$ as
 \begin{align}
@@ -125,12 +125,12 @@ $k^{\mbox{\tiny th}}$ iteration by an amount $\lambda \Delta \vp^{(k)}$ to $\vp^
 \end{align}
 We typically select $\lambda < 1$ to avoid overshoot of the update.  Following
 are two iterations for $\lambda = 0.1$ and initial positions $\vp = 1.5$ and
-$\bar{\vq} = 0.5$ (given two neighbors, one at 0.0 and one at 1.0, that 
+$\bar{\vq} = 0.5$ (given two neighbors, one at 0.0 and one at 1.0, that
 never move), a simple 1D example:
 
 \begin{table}[htb]
   \caption{Two iteration update of a 1D example.}
-  \label{tab:update_example} % label must come after caption 
+  \label{tab:update_example} % label must come after caption
   \centering
   \begin{tabular}{c|c|c|l|l}
     $k$ & $\bar{\vq}$ & $\vp^{(k)}$ & $\Delta \vp^{(k)} = \bar{\vq} - \vp^{(k)}$ & $\lambda \Delta \vp^{(k)}$ \\
@@ -160,7 +160,7 @@ never move), a simple 1D example:
       \node[shape=circle,draw=black] (j) at (6,1) {$\vq_{\mathbb{A}}$};
       \node[shape=circle,draw=black] (k) at (6.424,0) {$\vq_{\mathbb{B}}$};
       \node[shape=circle,draw=black] (l) at (6,-1) {$\vq_{\mathbb{C}}$};
-  
+
       \path (a) edge (b);
       \path [dashed](a) edge node[align=center] {$\otimes$} (c);
       \path [dashed](a) edge node[align=center] {$\otimes$} (d);
@@ -177,12 +177,12 @@ never move), a simple 1D example:
   \end{center}
 
   \caption{Hierarchical classification of nodes based on categories of surface $\mathbb{A}$, interface $\mathbb{B}$, and interior $\mathbb{C}$.}
-\label{fig:hierarchy} % label must come after caption 
+\label{fig:hierarchy} % label must come after caption
 \end{figure}
 
 % \begin{figure}[htb]
 %   \begin{center}
-% 
+%
 %     \begin{tikzpicture}[
 %     roundnode/.style={circle, draw=green!60, fill=green!5, very thick, minimum size=7mm},
 %     squarednode/.style={rectangle, draw=red!60, fill=red!5, very thick, minimum size=5mm},
@@ -193,7 +193,7 @@ never move), a simple 1D example:
 %     \node[roundnode] (left)  [left=of center]  {$\vq_2$};
 %     \node[roundnode] (lower) [below=of center] {$\vq_i$};
 %     \node[roundnode] (right) [right=of center] {$\vq_{n}$};
-%     
+%
 %     %Lines
 %     \draw[-] (center.north) -- (upper.south);
 %     \draw[-] (center.west) -- (left.east);
@@ -202,11 +202,11 @@ never move), a simple 1D example:
 %     % \draw[-] (upper.south) -- (center.north);
 %     % \draw[-] (right.south) .. controls +(down:7mm) and +(right:7mm) .. (lower.east);
 %     \end{tikzpicture}
-% 
+%
 %   \end{center}
-% 
+%
 %   \caption{Subject node $\vp$ with edge connections to neighbor nodes $\vq_i$ with $i \in [1, n]$.}
-% \label{fig:single_node} % label must come after caption 
+% \label{fig:single_node} % label must come after caption
 % \end{figure}
 
 
@@ -214,4 +214,3 @@ never move), a simple 1D example:
 
 
 \end{document}
-
