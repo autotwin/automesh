@@ -60,13 +60,13 @@ automesh -i spheres_resolution_2.npy \
 --xscale 0.5 --yscale 0.5 --yzscale 0.5 \
 --xtranslate -12 --ytranslate -12 --ztranslate -12
 
-automesh -i spheres_resolution_3.npy 
+automesh -i spheres_resolution_3.npy
 -o spheres_resolution_3.inp \
 -x 96 -y 96 -z 96 \
 --xscale 0.25 --yscale 0.25 --zscale 0.25 \
 --xtranslate -12 --ytranslate -12 --ztranslate -12
 
-automesh -i spheres_resolution_4.npy 
+automesh -i spheres_resolution_4.npy
 -o spheres_resolution_4.inp \
 -x 240 -y 240 -z 240 \
 --xscale 0.1 --yscale 0.1 --zscale 0.1 \
@@ -93,11 +93,11 @@ Cubit is used for the visualizations with the following recipe:
 
 ```sh
 reset
-import abaqus  "/Users/chovey/autotwin/automesh/book/examples/spheres_cont/spheres_resolution_1.inp" 
+import abaqus  "/Users/chovey/autotwin/automesh/book/examples/spheres_cont/spheres_resolution_1.inp"
 
 set exodus netcdf4 off
 set large exodus file on
-export mesh "/Users/chovey/autotwin/automesh/book/examples/spheres_cont/spheres_resolution_1.g"  overwrite 
+export mesh "/Users/chovey/autotwin/automesh/book/examples/spheres_cont/spheres_resolution_1.g"  overwrite
 
 reset
 import mesh "/Users/chovey/autotwin/automesh/book/examples/spheres_cont/spheres_resolution_1.g" lite
@@ -168,14 +168,14 @@ sculpt --num_procs 1 --input_spn "spheres_resolution_1.spn" \
 sculpt --num_procs 1 --input_spn "spheres_resolution_2.spn" \
 -x 48 -y 48 -z 48 \
 --xscale 0.5 --yscale 0.5 --zscale 0.5 \
---xtranslate -12 --ytranslate -12 --ztranslate -12 
---spn_xyz_order 5 
+--xtranslate -12 --ytranslate -12 --ztranslate -12
+--spn_xyz_order 5
 --stair 1
 ```
 
 ```sh
 sculpt --num_procs 1 --input_spn "spheres_resolution_3.spn" \
--x 96 -y 96 -z 96 
+-x 96 -y 96 -z 96
 --xscale 0.25 --yscale 0.25 --zscale 0.25 \
 --xtranslate -12 --ytranslate -12 --ztranslate -12 \
 --spn_xyz_order 5 \
@@ -193,7 +193,7 @@ sculpt --num_procs 1 --input_spn "spheres_resolution_4.spn" \
 
 test | `nelx` | lines | time `automesh` | time Sculpt | speed up multiple
 :---: | ---: | ---: | ---: | ---: | :---:
-1 |  24 |     13,824 | 3.24s   |  1.101862s | 
-2 |  48 |    110,592 | 15.2s   |  3.246166s | 
-3 |  96 |    884,736 | 13.5m   | 24.414653s | 
-4 | 240 | 13,824,000 | no data | 449.339395s | n/a 
+1 |  24 |     13,824 | 3.24s   |  1.101862s | 3x
+2 |  48 |    110,592 | 15.2s   |  3.246166s | 4.7x
+3 |  96 |    884,736 | 13.5m   | 24.414653s | 33x
+4 | 240 | 13,824,000 | no data | 449.339395s | n/a

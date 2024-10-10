@@ -2,13 +2,13 @@
 
 Both Laplacian smoothing and Taubin smoothing[^Taubin_1995a] [^Taubin_1995b] are smoothing operations that adjust the positions of the nodes in a finite element mesh.
 
-Laplacian smoothing, based on the Laplacian operator, computes the average position of a point's neighbors and moves the point toward the average.  This reduces high-frequency noise, but can result in a loss of shape and detail, with overall shrinkage.  
+Laplacian smoothing, based on the Laplacian operator, computes the average position of a point's neighbors and moves the point toward the average.  This reduces high-frequency noise, but can result in a loss of shape and detail, with overall shrinkage.
 
 Taubin smoothing is an extension of Laplacian smoothing that seeks to overcome the shrinkage drawback associated with the Laplacian approach.   Taubin is a two-pass approach.  The first pass smooths the mesh.  The second pass re-expands the mesh.
 
 ## Laplacian Smoothing
 
-Consider a subject node with position $\boldsymbol{p} = \boldsymbol{p}(x, y, z)$.  The subject node connects to $n$ neighbor points $\boldsymbol{q}_i$ for $i \in [1, n]$ through $n$ edges. 
+Consider a subject node with position $\boldsymbol{p} = \boldsymbol{p}(x, y, z)$.  The subject node connects to $n$ neighbor points $\boldsymbol{q}_i$ for $i \in [1, n]$ through $n$ edges.
 
 For concereteness, consider a node with four neighbors, shown in the figure below.
 
@@ -26,7 +26,7 @@ $$ \Delta\boldsymbol{p} := \bar{\boldsymbol{q}} - \boldsymbol{p}. $$
 
 Let $\lambda \in \mathbb{R}^+$ be the positive scaling factor for the gap $\Delta\boldsymbol{p}$.
 
-Since 
+Since
 
 $$ \bar{\boldsymbol{q}} = \boldsymbol{p} + \lambda\Delta\boldsymbol{p} \hspace{0.5cm} \rm{when} \hspace{0.5cm} \lambda = 1, $$
 
@@ -41,7 +41,7 @@ with
 
 $$ \Delta\boldsymbol{p}^{(k)} = \bar{\boldsymbol{q}}^{(k)} - \boldsymbol{p}^{(k)}. $$
 
-Thus 
+Thus
 
 $$ \boldsymbol{p}^{(k+1)} := \boldsymbol{p}^{(k)} + \lambda \left( \Delta\boldsymbol{p}^{(k)}\right), $$
 
@@ -51,7 +51,7 @@ and finally
 
 $$ \boxed{\boldsymbol{p}^{(k+1)} := \boldsymbol{p}^{(k)} + \lambda \left( \frac{1}{n} \sum_{i=1}^n \boldsymbol{q}_i^{(k)} - \boldsymbol{p}^{(k)} \right).} $$
 
-> The formulation above, based on the average position of the neighbors, is a special case of the more generalized presentation of Laplace smoothing, wherein a normalized weighting factor, $w_i$, is used: 
+> The formulation above, based on the average position of the neighbors, is a special case of the more generalized presentation of Laplace smoothing, wherein a normalized weighting factor, $w_i$, is used:
 
 $$ \boldsymbol{p}^{(k+1)} := \boldsymbol{p}^{(k)} + \lambda \sum_{i=1}^n w_i \left( \boldsymbol{q}_i^{(k)} - \boldsymbol{p}^{(k)} \right). $$
 

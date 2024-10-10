@@ -4,6 +4,20 @@
 
 *In order of most recent to least recent.*
 
+## 2024-10-10
+
+Touch base
+
+* `letter_f_3d.npy` file updates (?)
+* `clap`
+* smoothing
+* timing
+
+## 2024-10-09
+
+No interval meeting today due to travel.
+
+
 ## 2024-10-02
 
 * CLI
@@ -21,7 +35,7 @@
   * Node connectivity to output file? No.
   * Node classification for hierarchical smoothing (surface, interfaced, interior)
   * Algorithm
-* High-res spheres https://autotwin.github.io/automesh/examples/spheres_cont/index.html 
+* High-res spheres https://autotwin.github.io/automesh/examples/spheres_cont/index.html
   * Compare to Sculpt with a single processor
 
 ## 2024-09-25
