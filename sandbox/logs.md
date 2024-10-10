@@ -4,6 +4,26 @@
 
 *In order of most recent to least recent.*
 
+## 2024-10-10
+
+Touch base
+
+* `letter_f_3d.npy` file updates (?)
+  * Chad to take a lap and revisit
+* `clap`
+  * works well, but code is a bit W.E.T.
+  * possible default to meshing
+  * MRB prefers explicit, CBH also prefers explicit
+  * still need to update the tests
+* smoothing
+  * implementation to come
+* timing - take up tomorrow
+
+## 2024-10-09
+
+No interval meeting today due to travel.
+
+
 ## 2024-10-02
 
 * CLI
@@ -21,7 +41,7 @@
   * Node connectivity to output file? No.
   * Node classification for hierarchical smoothing (surface, interfaced, interior)
   * Algorithm
-* High-res spheres https://autotwin.github.io/automesh/examples/spheres_cont/index.html 
+* High-res spheres https://autotwin.github.io/automesh/examples/spheres_cont/index.html
   * Compare to Sculpt with a single processor
 
 ## 2024-09-25
