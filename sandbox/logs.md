@@ -9,9 +9,15 @@
 Touch base
 
 * `letter_f_3d.npy` file updates (?)
+  * Chad to take a lap and revisit
 * `clap`
+  * works well, but code is a bit W.E.T.
+  * possible default to meshing
+  * MRB prefers explicit, CBH also prefers explicit
+  * still need to update the tests
 * smoothing
-* timing
+  * implementation to come
+* timing - take up tomorrow
 
 ## 2024-10-09
 
