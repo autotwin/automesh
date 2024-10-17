@@ -2,7 +2,7 @@
 Example:
 --------
 source ~/autotwin/automesh/.venv/bin/activate
-cd ~/autotwin/automesh/sandbox
+cd ~/autotwin/automesh/book/examples/smooothing
 python smoothing_figures.py
 """
 
@@ -81,7 +81,7 @@ neighbors: Neighbors = (
 
 SCALE_LAMBDA: Final[float] = 0.3  # lambda parameter for Laplace smoothing
 SCALE_MU: Final[float] = -0.33  # mu parameter for Taubin smoothing
-NUM_ITERS: Final[int] = 30  # number of smoothing iterations
+NUM_ITERS: Final[int] = 1  # number of smoothing iterations
 ALGO: Final = SmoothingAlgorithm.LAPLACE
 
 # Visualization
@@ -95,7 +95,6 @@ ax2 = fig.add_subplot(1, 2, 2, projection="3d")  # r1, c2, 2nd subplot
 
 el, az, roll = 63, -110, 0
 cmap = plt.get_cmap(name="tab10")
-# NUM_COLORS = len(spheres)
 NUM_COLORS = 10
 VOXEL_ALPHA: Final[float] = 0.9
 LINE_ALPHA: Final[float] = 0.5
@@ -105,7 +104,7 @@ lightsource = LightSource(azdeg=325, altdeg=45)  # azimuth, elevation
 # lightsource = LightSource(azdeg=325, altdeg=90)  # azimuth, elevation
 # OUTPUT_DIR: Final[Path] = Path(__file__).parent
 DPI: Final[int] = 300  # resolution, dots per inch
-SHOW: Final[bool] = False  # turn to True to show the figure on screen
+SHOW: Final[bool] = True  # turn to True to show the figure on screen
 SAVE: Final[bool] = False  # turn to True to save .png and .npy files
 
 # output_png_short = ex.file_stem + ".png"

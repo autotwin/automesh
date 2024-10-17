@@ -6,7 +6,7 @@ Example:
     source .venv/bin/activate.csh   # for c shell
     source .venv/bin/activate.fish  # for fish shell
     .\.venv\Scripts\activate        # for powershell
-    cd sandbox
+    cd ~/autotwin/automesh/book/examples/smooothing
     python -m pytest smoothing_test.py
 Reference: DoubleX unit test
     https://autotwin.github.io/automesh/examples/unit_tests/index.html#double-x
@@ -14,10 +14,10 @@ Reference: DoubleX unit test
 
 from typing import Final
 
-# import smoothing as sm
-# import smoothing_types as ty
-import sandbox.smoothing as sm
-import sandbox.smoothing_types as ty
+import smoothing as sm
+import smoothing_types as ty
+# import sandbox.smoothing as sm
+# import sandbox.smoothing_types as ty
 
 # Type alias for functional style methods
 # https://docs.python.org/3/library/typing.html#type-aliases

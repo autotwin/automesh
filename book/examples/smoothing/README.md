@@ -32,7 +32,8 @@ node | `x` | `y` | `z` | `->` |  |  | dof
 11 | 1.0 | 1.0 | 1.0 | | 31 | 32 | 33
 12 | 2.0 | 1.0 | 1.0 | | 34 | 35 | 36
 
-Table. The *neighborhoods table*. A node, with its neighbors, is considered a single neighborhood.  The table has twelve neighborhoods.
+Table. The *neighborhoods table*. A node, with its neighbors, is considered a single neighborhood.
+The table has twelve neighborhoods.
 
 node | node neighbors
 :---: | :---:
@@ -49,7 +50,14 @@ node | node neighbors
 11 | 5, 8, 10, 12
 12 | 6, 9, 11
 
-## All Free
+## All Free Degrees of Freedom
+
+To illustrate the effects of smoothing, we use
+
+* [`smoothing_figures.py`](smoothing_figures.py),
+* [`smoothing_test.py`](smoothing_test.py),
+* [`smoothing_types.py`](smoothing_types.py), and
+* [`smoothing.py`](smoothing.py).
 
 Following is a test where all degrees of freedom are and
 hierarchical smoothing is `OFF`.
@@ -135,3 +143,79 @@ A known drawback of Laplace smoothing is that it can fail to preserve volumes.  
 ![free_laplace_iter_100.gif](free_laplace_iter_100.gif)
 
 Figure: Two element test problem (left) original configuration, (right) subject to `[1, 2, 3, 4, 5, 10, 20, 30, 100` iterations of Laplace smoothing.  Animation created with [Ezgif](https://ezgif.com/).
+
+## Hierarchical Degrees of Freedom
+
+We demonstrate hierarchical smoothing by prescribing
+
+* `FREE_EXTERIOR` for all three degrees of freedom of nodes `1, 4, 7, 10`,
+* `FREE_INTERFACE` for all three degrees of freedom of nodes `2, 5, 8, 11`, and
+* `FREE_INTERIOR` for all three degrees of freedom of nodes `3, 6, 9, 12`.
+
+The `DofSet` table appears as:
+
+```python
+class DofType(Enum):
+    """All degrees of freedom must belong to one, and only one, of the
+    following smoothing categories.
+    """
+
+    PRESCRIBED_HOMOGENEOUS = 0
+    PRESCRIBED_INHOMOGENEOUS = 1
+    FREE_EXTERIOR = 2
+    FREE_INTERFACE = 3
+    FREE_INTERIOR = 4
+```
+
+```python
+dofset: DofSet = (
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+)
+```
+
+### Iteration `1`
+
+Table: The smoothed configuration `(x, y, z)` after one iteration of hierarchical Laplace smoothing.
+
+node | `x` | `y` | `z`
+:---: | :--- | :--- | :---
+1 | A | B | C
+
+![hierarchical_laplace_iter_1.png](hierarchical_laplace_iter_1.png)
+
+Figure: Two element test problem (left) original configuration, (right) subject to two iterations of
+hierarchical Laplace smoothing.
+
+### Iteration `2`
+
+node | `x` | `y` | `z`
+:---: | :--- | :--- | :---
+1  | a | b | c
+
+![hierarhical_laplace_iter_2.png](hierarchical_laplace_iter_2.png)
+
+Figure: Two element test problem (left) original configuration, (right) subject to two iterations of
+hierarchical Laplace smoothing.
+
+### Iteration `100`
+
+![hierarchical_laplace_iter_100.gif](hierarchical_laplace_iter_100.gif)
+
+Figure: Two element test problem (left) original configuration, (right) subject to
+`[1, 2, 3, 4, 5, 10, 20, 30, 100` iterations of hierarchical Laplace smoothing.
+Animation created with [Ezgif](https://ezgif.com/).
+
+## Prescribed Degreed of Freedom
+
+To come.
