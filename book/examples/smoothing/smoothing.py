@@ -162,14 +162,22 @@ def edge_pairs(hexes: Hexes):
 
 
 def hierarchical_neighborhoods(
-    neighborhoods: Neighborhoods, dotset: DofSet
+    neighborhoods: Neighborhoods, dofset: DofSet
 ) -> Neighborhoods:
     """Given a table of neighborhoods and a hierarchical dofset,
     return the possibly-edited table of neighborhoods according
     the hierarchy."""
 
-    neighborhoods_new = neighborhoods
+    ## nns is the new neighborhoods
+    nns = ()
 
     # edit the neighbors_new
+    breakpoint()
 
-    return neighborhoods_new
+    for node, nn in enumerate(neighborhoods):
+        print(f"Processing node {node+1} with neighborhood {nn}")
+        node_dofs = dofset[node]
+        nei_dofs = [dofset[nei-1] for nei in nn]  # zero-index accoommodation
+        bb = 4
+
+    return nns

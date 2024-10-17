@@ -16,6 +16,7 @@ from typing import Final
 
 import smoothing as sm
 import smoothing_types as ty
+
 # import sandbox.smoothing as sm
 # import sandbox.smoothing_types as ty
 
@@ -298,4 +299,56 @@ def test_hierarchical_neighborhoods():
     freedom dofset table, test that the returned neighborhoods table is
     correctly calculated.
     """
-    given: Neighborhoods
+    given_dofset: DofSet = (
+        (2, 2, 2),
+        (3, 3, 3),
+        (4, 4, 4),
+        (2, 2, 2),
+        (3, 3, 3),
+        (4, 4, 4),
+        (2, 2, 2),
+        (3, 3, 3),
+        (4, 4, 4),
+        (2, 2, 2),
+        (3, 3, 3),
+        (4, 4, 4),
+    )
+
+    # given non-hierarchical neighborhoods
+    non_hierarchical: Neighborhoods = (
+        (2, 4, 7),
+        (1, 3, 5, 8),
+        (2, 6, 9),
+        (1, 5, 10),
+        (2, 4, 6, 11),
+        (3, 5, 12),
+        (1, 8, 10),
+        (2, 7, 9, 11),
+        (3, 8, 12),
+        (4, 7, 11),
+        (5, 8, 10, 12),
+        (6, 9, 11),
+    )
+
+    # the known hierarchichal neighborhoods
+    gold: Neighborhoods = (
+        (4, 7),
+        (1, 5, 8),
+        (2, 6, 9),
+        (1, 10),
+        (2, 4, 11),
+        (3, 5, 12),
+        (1, 10),
+        (2, 7, 11),
+        (3, 8, 12),
+        (4, 7),
+        (5, 8, 10),
+        (6, 9, 11),
+    )
+
+    found_neighborhoods = sm.hierarchical_neighborhoods(
+        neighborhoods=non_hierarchical, dofset=given_dofset
+    )
+
+    assert found_neighborhoods == gold
+    aa = 4
