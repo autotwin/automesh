@@ -161,3 +161,17 @@ def edge_pairs(ees: Elements):
         # breakpoint()
 
     return tuple(sorted(set(pairs)))
+
+
+def hierarchical_neighborhoods(
+    neighbors: Neighbors, dotset: DofSet
+) -> Neighbors:
+    """Given a table of neighborhoods and a hierarchical dofset,
+    return the possibly-edited table of neighborhoods according
+    the hierarchy."""
+
+    neighbors_new = neighbors
+
+    # edit the neighbors_new
+
+    return neighbors_new

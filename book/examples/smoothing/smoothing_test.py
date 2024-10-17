@@ -291,3 +291,11 @@ def test_edge_pairs():
         (11, 12),
     )
     assert found == gold
+
+
+def test_hierarchical_neighborhoods():
+    """Given a neighborhoods table based on connectivity, and a degree of
+    freedom dofset table, test that the returned neighborhoods table is
+    correctly calculated.
+    """
+    given: Neighbors

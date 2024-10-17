@@ -44,7 +44,8 @@ vertices: Vertices = (
     Vertex(2.0, 1.0, 1.0),
 )
 
-dofset: DofSet = (
+# all free degrees of freedom
+dofset_ex1: DofSet = (
     (4, 4, 4),
     (4, 4, 4),
     (4, 4, 4),
@@ -58,6 +59,25 @@ dofset: DofSet = (
     (4, 4, 4),
     (4, 4, 4),
 )
+
+# hierarchical degrees of freedom
+dofset_ex2: DofSet = (
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+    (2, 2, 2),
+    (3, 3, 3),
+    (4, 4, 4),
+)
+
+# dofset = dofset_ex1
+dofset = dofset_ex2
 
 elements: Elements = (
     (1, 2, 5, 4, 7, 8, 11, 10),
@@ -102,15 +122,9 @@ LINE_ALPHA: Final[float] = 0.5
 colors = cmap(np.linspace(0, 1, NUM_COLORS))
 lightsource = LightSource(azdeg=325, altdeg=45)  # azimuth, elevation
 # lightsource = LightSource(azdeg=325, altdeg=90)  # azimuth, elevation
-# OUTPUT_DIR: Final[Path] = Path(__file__).parent
 DPI: Final[int] = 300  # resolution, dots per inch
 SHOW: Final[bool] = True  # turn to True to show the figure on screen
 SAVE: Final[bool] = False  # turn to True to save .png and .npy files
-
-# output_png_short = ex.file_stem + ".png"
-# output_png: Path = (
-#     Path(output_dir).expanduser().joinpath(output_png_short)
-# )
 
 nx, ny, nz = 2, 1, 1
 nzp, nyp, nxp = nz + 1, ny + 1, nx + 1

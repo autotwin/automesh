@@ -16,7 +16,7 @@ Vertices = tuple[Vertex, ...]
 Element = tuple[int, int, int, int, int, int, int, int]  # only hex elements
 Elements = tuple[Element, ...]
 Dof = tuple[int, int, int]
-DofSet = tuple[Dof, ...]  # analong to a SideSet or a NodeSet
+DofSet = tuple[Dof, ...]  # analog to a SideSet or a NodeSet
 Neighbor = tuple[int, ...]
 Neighbors = tuple[Neighbor, ...]
 
