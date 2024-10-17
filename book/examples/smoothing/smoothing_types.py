@@ -13,12 +13,12 @@ class Vertex(NamedTuple):
 
 
 Vertices = tuple[Vertex, ...]
-Element = tuple[int, int, int, int, int, int, int, int]  # only hex elements
-Elements = tuple[Element, ...]
+Hex = tuple[int, int, int, int, int, int, int, int]  # only hex elements
+Hexes = tuple[Hex, ...]
 Dof = tuple[int, int, int]
 DofSet = tuple[Dof, ...]  # analog to a SideSet or a NodeSet
-Neighbor = tuple[int, ...]
-Neighbors = tuple[Neighbor, ...]
+Neighbors = tuple[int, ...]
+Neighborhoods = tuple[Neighbors, ...]
 
 
 class DofType(Enum):

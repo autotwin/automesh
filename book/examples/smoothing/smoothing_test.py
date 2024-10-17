@@ -22,8 +22,8 @@ import smoothing_types as ty
 # Type alias for functional style methods
 # https://docs.python.org/3/library/typing.html#type-aliases
 DofSet = ty.DofSet
-Elements = ty.Elements
-Neighbors = ty.Neighbors
+Hexes = ty.Hexes
+Neighborhoods = ty.Neighborhoods
 Vertex = ty.Vertex
 Vertices = ty.Vertices
 SmoothingAlgorithm = ty.SmoothingAlgorithm
@@ -52,7 +52,7 @@ def test_add():
 
 
 def test_subtract():
-    """Unit test for the subtraction of Vertex v2 from Vertex v1."""
+    """Unit test for the subtraction of Vertex v2 from Vertex v1, (v1-v2)."""
     v1 = Vertex(x=1.0, y=2.0, z=3.0)
     v2 = Vertex(x=4.0, y=7.0, z=1.0)
     vv = sm.subtract(v1=v1, v2=v2)
@@ -98,7 +98,7 @@ def test_laplace_smoothing():
         Vertex(2.0, 1.0, 1.0),
     )
 
-    nn: Neighbors = (
+    nn: Neighborhoods = (
         (2, 4, 7),
         (1, 3, 5, 8),
         (2, 6, 9),
@@ -186,7 +186,7 @@ def test_laplace_smoothing():
 
 # def test_taubin_smoothing(
 #     vv: Vertices,
-#     nn: Neighbors,
+#     nn: Neighborhoods,
 #     ds: DofSet,
 #     sf_lambda: float,
 #     sf_mu: float
@@ -263,11 +263,11 @@ def test_pair_ordered():
 
 def test_edge_pairs():
     """Units test to assure edge pairs are computed correctly."""
-    elements = (
+    hexes = (
         (1, 2, 5, 4, 7, 8, 11, 10),
         (2, 3, 6, 5, 8, 9, 12, 11),
     )
-    found = sm.edge_pairs(ees=elements)
+    found = sm.edge_pairs(hexes=hexes)
     gold = (
         (1, 2),
         (1, 4),
@@ -298,4 +298,4 @@ def test_hierarchical_neighborhoods():
     freedom dofset table, test that the returned neighborhoods table is
     correctly calculated.
     """
-    given: Neighbors
+    given: Neighborhoods

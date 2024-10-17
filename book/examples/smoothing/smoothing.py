@@ -8,8 +8,8 @@ import smoothing_types as ty
 # Type alias for functional style methods
 # https://docs.python.org/3/library/typing.html#type-aliases
 DofSet = ty.DofSet
-Elements = ty.Elements
-Neighbors = ty.Neighbors
+Hexes = ty.Hexes
+Neighborhoods = ty.Neighborhoods
 Vertex = ty.Vertex
 Vertices = ty.Vertices
 SmoothingAlgorithm = ty.SmoothingAlgorithm
@@ -63,7 +63,7 @@ def xyz(v1: Vertex) -> tuple[float, float, float]:
 
 def smooth(
     vv: Vertices,
-    nn: Neighbors,
+    nn: Neighborhoods,
     ds: DofSet,
     sf: float,
     num_iters: int,
@@ -136,24 +136,22 @@ def pair_ordered(ab: tuple[tuple[int, int], ...]) -> tuple:
     return result
 
 
-def edge_pairs(ees: Elements):
+def edge_pairs(hexes: Hexes):
     """Returns all the line pairs from element connectivity, for use
     with drawing edges of elements."""
 
-    # almost perfect with collecting unique pairs, but there are some
-    # overlapping pairs, not a big dealbptt
     pairs = ()
-    for ee in ees:
-        # bottom_face = tuple(sorted(list(zip(ee[0:4], ee[1:4] + (ee[0],)))))
-        bottom_face = pair_ordered(tuple(zip(ee[0:4], ee[1:4] + (ee[0],))))
-        # top_face = tuple(list(zip(ee[4:8], ee[5:8] + (ee[4],))))
-        top_face = pair_ordered(tuple(zip(ee[4:8], ee[5:8] + (ee[4],))))
+    for hh in hexes:
+        # bottom_face = tuple(sorted(list(zip(hh[0:4], hh[1:4] + (hh[0],)))))
+        bottom_face = pair_ordered(tuple(zip(hh[0:4], hh[1:4] + (hh[0],))))
+        # top_face = tuple(list(zip(hh[4:8], hh[5:8] + (hh[4],))))
+        top_face = pair_ordered(tuple(zip(hh[4:8], hh[5:8] + (hh[4],))))
         verticals = pair_ordered(
             (
-                (ee[0], ee[4]),
-                (ee[1], ee[5]),
-                (ee[2], ee[6]),
-                (ee[3], ee[7]),
+                (hh[0], hh[4]),
+                (hh[1], hh[5]),
+                (hh[2], hh[6]),
+                (hh[3], hh[7]),
             )
         )
         t3 = bottom_face + top_face + verticals
@@ -164,14 +162,14 @@ def edge_pairs(ees: Elements):
 
 
 def hierarchical_neighborhoods(
-    neighbors: Neighbors, dotset: DofSet
-) -> Neighbors:
+    neighborhoods: Neighborhoods, dotset: DofSet
+) -> Neighborhoods:
     """Given a table of neighborhoods and a hierarchical dofset,
     return the possibly-edited table of neighborhoods according
     the hierarchy."""
 
-    neighbors_new = neighbors
+    neighborhoods_new = neighborhoods
 
     # edit the neighbors_new
 
-    return neighbors_new
+    return neighborhoods_new

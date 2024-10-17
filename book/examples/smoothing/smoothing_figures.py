@@ -21,8 +21,8 @@ import smoothing_types as ty
 # Type alias for functional style methods
 # https://docs.python.org/3/library/typing.html#type-aliases
 DofSet = ty.DofSet
-Elements = ty.Elements
-Neighbors = ty.Neighbors
+Hexes = ty.Hexes
+Neighborhoods = ty.Neighborhoods
 Vertex = ty.Vertex
 Vertices = ty.Vertices
 SmoothingAlgorithm = ty.SmoothingAlgorithm
@@ -79,12 +79,12 @@ dofset_ex2: DofSet = (
 # dofset = dofset_ex1
 dofset = dofset_ex2
 
-elements: Elements = (
+elements: Hexes = (
     (1, 2, 5, 4, 7, 8, 11, 10),
     (2, 3, 6, 5, 8, 9, 12, 11),
 )
 
-neighbors: Neighbors = (
+neighborhoods: Neighborhoods = (
     (2, 4, 7),
     (1, 3, 5, 8),
     (2, 6, 9),
@@ -131,7 +131,7 @@ nzp, nyp, nxp = nz + 1, ny + 1, nx + 1
 
 vertices_laplace = sm.smooth(
     vv=vertices,
-    nn=neighbors,
+    nn=neighborhoods,
     ds=dofset,
     sf=SCALE_LAMBDA,
     num_iters=NUM_ITERS,
