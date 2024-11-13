@@ -14,6 +14,7 @@
   - [Hierarchical Laplace](smoothing/laplace_hierarchical.md)
   - [Taubin](smoothing/taubin.md)
   - [Python visualization](smoothing/python_visualization.md)
+- [Dualization](dualization/README.md)
 
 # Reference Guide
 
