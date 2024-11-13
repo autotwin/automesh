@@ -39,12 +39,18 @@ maturin develop --features python --extras dev
 pytest
 ```
 
+## Build a '.whl` file release
+
+```sh
+maturin build --release --features python
+```
+
 ## Lint the Source Code
 
 ```sh
 cargo clippy --features python
 
-pycodestyle --exclude=.venv,book,docs .
+pycodestyle --exclude=.venv .  # exclude the .venv folder
 ```
 
 ## Build and Open the API Documentation
