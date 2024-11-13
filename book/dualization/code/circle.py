@@ -30,9 +30,10 @@ plt.ylim(-12, 12)
 # plt.axhline(0, color="black", linewidth=0.5, ls="--")
 # plt.axvline(0, color="black", linewidth=0.5, ls="--")
 plt.gca().set_aspect("equal", adjustable="box")
-plt.title(
-    f"Circle Boundary from {N_PTS} Points, Radius {RADIUS}, Centered at {center}"
-)
+
+ss = f"Circle Boundary from {N_PTS} Points, "
+ss += f"Radius {RADIUS}, Centered at {center}"
+plt.title(ss)
 plt.xlabel("x")
 plt.ylabel("y")
 plt.grid()
