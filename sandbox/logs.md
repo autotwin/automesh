@@ -4,11 +4,29 @@
 
 *In order of most recent to least recent.*
 
+## 2024-11-13
+
+* stuck on local macOS
+  * vtk, depends on xz, which depends on a homebrew version of liblzma
+  * how to proceed, as it is holding up use in recon3d
+* x,y,z versus z,y,x ordering, reference Polonsky
+  * need to determine if the adapter goes into automesh or into client side (e.g., recon3d)
+* Taubin smoothing semantic
+  * 1 cycle = 2 iterations, cycle contains both smoothing and inflating iterations
+* How to get a dualized sphere mesh
+* Dualization papers
+  * Marechal 2009
+  * Livesu 2021
+* #todo
+  * MRB
+    * Ask Marco if he will provide us dualized meshes of voxelized spheres
+    * Investigate data structure for octree in Rust
+  * CBH
+    * Work with Andrew to determine where the xyz versus zyx adapter should live
+    * Integrate automesh v0.2.4 into recon3d
+    * Work with Anu for the IMECE slides
+
 ## 2024-11-07
-
-### IO
-
-#### mdbook items
 
 * convert
   * spn -> npy
