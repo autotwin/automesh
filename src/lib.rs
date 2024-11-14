@@ -13,6 +13,7 @@
 mod py;
 
 mod fem;
+mod tree;
 mod voxel;
 
 pub use fem::{FiniteElements, Smoothing};
