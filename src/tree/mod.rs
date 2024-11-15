@@ -1,17 +1,14 @@
 // Reference:
 // https://github.com/sandialabs/sibl/blob/master/geo/src/ptg/quadtree.py
 
-
 #[cfg(test)]
 pub mod test;
 
-
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Point2D {
     pub x: f64,
     pub y: f64,
 }
-
 
 #[derive(Debug)]
 pub struct Cell2D {
@@ -19,7 +16,6 @@ pub struct Cell2D {
     width: f64,
     height: f64,
 }
-
 
 impl Cell2D {
     // Method to determine if the cell contains a Point2D
@@ -30,7 +26,6 @@ impl Cell2D {
         point.y < self.origin.y + self.height
     }
 }
-
 
 #[derive(Debug)]
 pub struct QuadTree {
@@ -60,13 +55,57 @@ impl QuadTree {
         }
     }
 
+    // Insert a point into the QuadTree
+    pub fn insert(&mut self, point: Point2D) -> bool {
+        // Check that the point is within the cell
+        if !self.cell.contains(&point) {
+            return false;  // Point is not contained in the cell
+        }
+
+        // The point is within the cell bounds, so push to self points
+        self.points.push(point.clone());
+
+        // If the maximum level has been reached, do not subdivide
+        if self.level == self.level_max {
+            return true;
+        }
+    
+        // If the cell is not divded, subdivide it
+        if !self.divided {
+            self.subdivide();
+        }
+    
+        // Try to insert the point into one of the children
+        if let Some(sw) = &mut self.sw {
+            if sw.insert(point.clone()) {
+                return true;
+            }
+        }
+        if let Some(se) = &mut self.se {
+            if se.insert(point.clone()) {
+                return true;
+            }
+        }
+        if let Some(nw) = &mut self.nw {
+            if nw.insert(point.clone()) {
+                return true;
+            }
+        }
+        if let Some(ne) = &mut self.ne {
+            if ne.insert(point.clone()) {
+                return true;
+            }
+        }
+
+        false  // # shouldn't reach this point
+    }
+
     // Subdivide the cell into four children cells
     fn subdivide(&mut self) {
         // Check if cell is already divided, of the maximum number
         // of levels has been reached
         if self.divided || self.level == self.level_max { 
             return;  // already subdivided or no more levels to subdivide
-
         }
 
         self.divided = true;  // mark this parent QuadTree as divided
