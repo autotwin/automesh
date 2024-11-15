@@ -70,7 +70,7 @@ impl QuadTree {
             return true;
         }
     
-        // If the cell is not divded, subdivide it
+        // If the cell is not divided, subdivide it
         if !self.divided {
             self.subdivide();
         }
@@ -166,14 +166,4 @@ impl QuadTree {
 
 
     }
-}
-
-
-pub fn reverse(input: &str) -> String {
-    // input.chars() converts a string slice into an iterator of its
-    // characters, which is important because it handles Unicode
-    // charcters correctly.
-    // .rev() reverses the order of the characters in the iterator
-    // .collect() collects all the characters back into a String
-    input.chars().rev().collect()
 }
