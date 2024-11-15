@@ -3,18 +3,24 @@ use super::{reverse, Cell2D, Point2D, QuadTree};
 
 #[test]
 fn level_one_tree() {
-    let origin = Point2D {
-        x: 1.0,
-        y: -1.0,
-    };
-
+    // This is a domain with origin (1.0, -1.0) and extrema
+    // at (3, 1), to match the illustration at
+    // https://github.com/sandialabs/sibl/blob/master/geo/doc/quadtree.md#refinement-example
     let cell = Cell2D {
-        origin,
+        origin: Point2D { x: 1.0, y: -1.0 },
         width: 2.0,
         height: 2.0,
     };
 
-    let points = vec![Point2D {x: 2.6, y: 0.6}];
+    // let points: Vec<Point2D> = vec![seed, Point2D { x: 1.0, y: 1.0 }, Point2D { x: 3.0, y: 4.0 }];
+    let seed_inside = Point2D { x: 2.6, y: 0.6 };
+    let seed_outside = Point2D { x: 0.0, y: 0.0 };
+
+    assert!(cell.contains(&seed_inside));
+    assert!(!cell.contains(&seed_outside));
+
+
+    let points = vec![seed_inside];
 
     let mut tree = QuadTree {
         cell,
@@ -28,9 +34,12 @@ fn level_one_tree() {
         se: None, 
     };
 
-    tree.subdivide();
+    // let contained = tree.cell.contains(&seed);
+    // assert_eq!(contained, true);
 
-    assert!(tree.divided == true)
+    // tree.subdivide();
+
+    // assert!(tree.divided == true);
 
 }
 

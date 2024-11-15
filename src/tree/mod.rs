@@ -22,7 +22,8 @@ pub struct Cell2D {
 
 
 impl Cell2D {
-    fn contains(&self, point: Point2D) -> bool {
+    // Method to determine if the cell contains a Point2D
+    fn contains(&self, point: &Point2D) -> bool {
         point.x >= self.origin.x &&
         point.x < self.origin.x + self.width &&
         point.y >= self.origin.y &&
@@ -45,7 +46,7 @@ pub struct QuadTree {
 }
 
 impl QuadTree {
-    fn new(cell: Cell2D, level: usize, level_max: usize) -> Self {
+    pub fn new(cell: Cell2D, level: usize, level_max: usize) -> Self {
         QuadTree {
             cell,
             level,
@@ -59,6 +60,7 @@ impl QuadTree {
         }
     }
 
+    // Subdivide the cell into four children cells
     fn subdivide(&mut self) {
         // Check if cell is already divided, of the maximum number
         // of levels has been reached
@@ -67,6 +69,9 @@ impl QuadTree {
 
         }
 
+        self.divided = true;  // mark this parent QuadTree as divided
+
+        // create origins and dimensions for Cell2D parts of children
         let x = self.cell.origin.x;
         let y = self.cell.origin.y;
         let width = self.cell.width / 2.0;
@@ -79,7 +84,7 @@ impl QuadTree {
                     width,
                     height,
                 },
-                self.level + 1,
+                self.level + 1,  // children are next higher level
                 self.level_max,
             )
         ));
@@ -91,7 +96,7 @@ impl QuadTree {
                     width,
                     height
                 },
-                self.level + 1,
+                self.level + 1,  // children are next higher level
                 self.level_max,
             )
         ));
@@ -103,7 +108,7 @@ impl QuadTree {
                     width,
                     height
                 },
-                self.level + 1,
+                self.level + 1,  // children are next higher level
                 self.level_max,
             )
         ));
@@ -115,7 +120,7 @@ impl QuadTree {
                     width,
                     height
                 },
-                self.level + 1,
+                self.level + 1,  // children are next higher level
                 self.level_max,
             )
         ));
