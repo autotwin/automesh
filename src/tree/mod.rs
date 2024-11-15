@@ -1,3 +1,7 @@
+// Reference:
+// https://github.com/sandialabs/sibl/blob/master/geo/src/ptg/quadtree.py
+
+
 #[cfg(test)]
 pub mod test;
 
@@ -30,7 +34,8 @@ impl Cell2D {
 #[derive(Debug)]
 pub struct QuadTree {
     cell: Cell2D,
-    capacity: usize,
+    level: usize,
+    level_max: usize,
     points: Vec<Point2D>,
     divided: bool,
     nw: Option<Box<QuadTree>>,  // northwest
@@ -40,10 +45,11 @@ pub struct QuadTree {
 }
 
 impl QuadTree {
-    fn new(cell: Cell2D, capacity: usize) -> Self {
+    fn new(cell: Cell2D, level: usize, level_max: usize) -> Self {
         QuadTree {
             cell,
-            capacity,
+            level,
+            level_max,
             points: Vec::new(),
             divided: false,
             nw: None,
@@ -54,6 +60,13 @@ impl QuadTree {
     }
 
     fn subdivide(&mut self) {
+        // Check if cell is already divided, of the maximum number
+        // of levels has been reached
+        if self.divided || self.level == self.level_max { 
+            return;  // already subdivided or no more levels to subdivide
+
+        }
+
         let x = self.cell.origin.x;
         let y = self.cell.origin.y;
         let width = self.cell.width / 2.0;
@@ -64,9 +77,10 @@ impl QuadTree {
                 Cell2D {
                     origin: Point2D { x, y: y + height },
                     width,
-                    height
+                    height,
                 },
-                self.capacity,
+                self.level + 1,
+                self.level_max,
             )
         ));
 
@@ -77,7 +91,8 @@ impl QuadTree {
                     width,
                     height
                 },
-                self.capacity,
+                self.level + 1,
+                self.level_max,
             )
         ));
 
@@ -88,7 +103,8 @@ impl QuadTree {
                     width,
                     height
                 },
-                self.capacity,
+                self.level + 1,
+                self.level_max,
             )
         ));
 
@@ -99,12 +115,14 @@ impl QuadTree {
                     width,
                     height
                 },
-                self.capacity,
+                self.level + 1,
+                self.level_max,
             )
         ));
 
     }
 }
+
 
 pub fn reverse(input: &str) -> String {
     // input.chars() converts a string slice into an iterator of its

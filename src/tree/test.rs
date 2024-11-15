@@ -1,5 +1,39 @@
 // use reverse_string::*;
-use super::reverse;
+use super::{reverse, Cell2D, Point2D, QuadTree};
+
+#[test]
+fn level_one_tree() {
+    let origin = Point2D {
+        x: 1.0,
+        y: -1.0,
+    };
+
+    let cell = Cell2D {
+        origin,
+        width: 2.0,
+        height: 2.0,
+    };
+
+    let points = vec![Point2D {x: 2.6, y: 0.6}];
+
+    let mut tree = QuadTree {
+        cell,
+        level: 0,
+        level_max: 1,
+        points,
+        divided: false,
+        nw: None,
+        ne: None,
+        sw: None,
+        se: None, 
+    };
+
+    tree.subdivide();
+
+    assert!(tree.divided == true)
+
+}
+
 
 #[test]
 fn an_empty_string() {
