@@ -19,25 +19,42 @@ fn level_one_tree() {
     assert!(cell.contains(&seed_inside));
     assert!(!cell.contains(&seed_outside));
 
-
-    let points = vec![seed_inside];
+    // let points = vec![seed_inside];
 
     let mut tree = QuadTree {
         cell,
         level: 0,
         level_max: 1,
-        points,
+        points: Vec::new(),
         divided: false,
-        nw: None,
-        ne: None,
         sw: None,
         se: None, 
+        nw: None,
+        ne: None,
     };
 
-    // let contained = tree.cell.contains(&seed);
-    // assert_eq!(contained, true);
+    // The initial state of the tree is undivided, with no children
+    assert!(!tree.divided, "QuadTree should not be divided yet.");
+    assert!(tree.sw.is_none(), "Southwest QuadTree should be None before subdivision.");
+    assert!(tree.se.is_none(), "Southeast QuadTree should be None before subdivision.");
+    assert!(tree.nw.is_none(), "Northwest QuadTree should be None before subdivision.");
+    assert!(tree.ne.is_none(), "Northeast QuadTree should be None before subdivision.");
 
-    // tree.subdivide();
+    if tree.cell.contains(&seed_inside) {
+        tree.subdivide();
+        assert!(tree.divided, "QuadTree should be divided since its cell domain contains the seed.");
+
+        assert!(tree.sw.is_some(), "Southwest QuadTree should exist.");
+        assert!(tree.se.is_some(), "Southeast QuadTree should exist.");
+        assert!(tree.nw.is_some(), "Northwest QuadTree should exist.");
+        assert!(tree.ne.is_some(), "Northwest QuadTree should exist.");
+
+        assert!(tree.sw.unwrap().level == 1, "Southwest QuadTree should be at level 1.");
+        assert!(tree.se.unwrap().level == 1, "Southeast QuadTree should be at level 1.");
+        assert!(tree.nw.unwrap().level == 1, "Northwest QuadTree should be at level 1.");
+        assert!(tree.ne.unwrap().level == 1, "Northweast QuadTree should be at level 1.");
+
+    }
 
     // assert!(tree.divided == true);
 

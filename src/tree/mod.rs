@@ -39,10 +39,10 @@ pub struct QuadTree {
     level_max: usize,
     points: Vec<Point2D>,
     divided: bool,
-    nw: Option<Box<QuadTree>>,  // northwest
-    ne: Option<Box<QuadTree>>,  // northeast
-    sw: Option<Box<QuadTree>>,  // southwest
-    se: Option<Box<QuadTree>>,  // southeast
+    sw: Option<Box<QuadTree>>,  // southwest, index (i: 0, j:0)
+    se: Option<Box<QuadTree>>,  // southeast, index (i: 1, j:0)
+    nw: Option<Box<QuadTree>>,  // northwest, index (i: 0, j:1)
+    ne: Option<Box<QuadTree>>,  // northeast, index (i: 1, j:1)
 }
 
 impl QuadTree {
@@ -53,10 +53,10 @@ impl QuadTree {
             level_max,
             points: Vec::new(),
             divided: false,
+            se: None,
+            sw: None,
             nw: None,
             ne: None,
-            sw: None,
-            se: None,
         }
     }
 
@@ -76,6 +76,30 @@ impl QuadTree {
         let y = self.cell.origin.y;
         let width = self.cell.width / 2.0;
         let height = self.cell.height / 2.0;
+
+        self.sw = Some(Box::new(
+            QuadTree::new(
+                Cell2D {
+                    origin: Point2D { x, y },
+                    width,
+                    height
+                },
+                self.level + 1,  // children are next higher level
+                self.level_max,
+            )
+        ));
+
+        self.se = Some(Box::new(
+            QuadTree::new(
+                Cell2D {
+                    origin: Point2D { x: x + width, y },
+                    width,
+                    height
+                },
+                self.level + 1,  // children are next higher level
+                self.level_max,
+            )
+        ));
 
         self.nw = Some(Box::new(
             QuadTree::new(
@@ -101,29 +125,6 @@ impl QuadTree {
             )
         ));
 
-        self.sw = Some(Box::new(
-            QuadTree::new(
-                Cell2D {
-                    origin: Point2D { x, y },
-                    width,
-                    height
-                },
-                self.level + 1,  // children are next higher level
-                self.level_max,
-            )
-        ));
-
-        self.se = Some(Box::new(
-            QuadTree::new(
-                Cell2D {
-                    origin: Point2D { x: x + width, y },
-                    width,
-                    height
-                },
-                self.level + 1,  // children are next higher level
-                self.level_max,
-            )
-        ));
 
     }
 }
