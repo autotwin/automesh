@@ -46,14 +46,42 @@ fn level_one_tree() {
 }
 
 #[test]
-fn level_two_tree() {
-    // This is a domain with origin (1.0, -1.0) and extrema
-    // at (3, 1), to match the illustration at
-    // https://github.com/sandialabs/sibl/blob/master/geo/doc/quadtree.md#refinement-example
+fn tree_level_1() {
+    // Prints to the terminal the Python code needed to visualize
+    // the QuadTree.  Use `cargo test -- --nocapture` to collect the
+    // Python code for plotting the QuadTree
     let cell = Cell2D {
         origin: Point2D { x: 1.0, y: -1.0 },
         width: 2.0,
         height: 2.0,
+    };
+
+    let seed = Point2D { x: 2.6, y: 0.6 };
+    assert!(cell.contains(&seed));
+
+    let mut tree = QuadTree::new(cell, 0, 1);  // start level 0 up to 1
+    tree.insert(seed);
+    let show = true;
+    let save = false;
+    let filename = "tree_level_1.py";
+    let _ = tree.pyplot(show, save, filename);
+}
+
+
+#[test]
+fn tree_level_2() {
+    // This is a domain with origin (1.0, -1.0) and extrema
+    // at (3, 1), to match the illustration at
+    // https://github.com/sandialabs/sibl/blob/master/geo/doc/quadtree.md#refinement-example
+    let (width, height) = (2.0, 2.0);
+    println!("\n**** *** width: {}, height: {}\n *********", width, height);
+    let (x0, y0) = (1.0, -1.0) ;
+    let (x1, y1) = (x0 + width, y0 + height);
+
+    let cell = Cell2D {
+        origin: Point2D { x: x0, y: y0 },
+        width,
+        height
     };
 
     let seed = Point2D { x: 2.6, y: 0.6 };

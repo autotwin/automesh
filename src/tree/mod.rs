@@ -1,6 +1,10 @@
 // Reference:
 // https://github.com/sandialabs/sibl/blob/master/geo/src/ptg/quadtree.py
 
+use std::fs::File;
+use std::env;
+use std::io::{self, Write};
+
 #[cfg(test)]
 pub mod test;
 
@@ -166,4 +170,56 @@ impl QuadTree {
 
 
     }
+
+    pub fn pyplot(&self, show: bool, save: bool, filename: &str) -> io::Result<()> {
+        let mut script = r#"
+# This module, tree/mod.rs::pyplot, plots the
+# QuadTree as a collection of square patches.
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+
+def main():
+    print("Hello, World!")
+
+if __name__ == "__main__":
+    main()
+
+"#.to_string(); // Convert the raw string literal to a String
+
+        // if show {
+        //     script.push_str("SHOW: bool = TRUE\n");
+        // } else {
+        //     script.push_str("SHOW: bool = FALSE\n");
+        // }
+
+        // if save {
+        //     script.push_str("SAVE: bool = TRUE\n");
+        // } else {
+        //     script.push_str("SAVE: bool = FALSE\n");
+        // }
+        
+        // Get the current working directory
+        let cwd = env::current_dir()?;
+        
+        // Create the full path for the file
+        let full_path = cwd.join(filename);
+        
+        // Create or open the file
+        let mut file = File::create(&full_path)?;
+
+        // Write the Python script contents to the file
+        file.write_all(script.as_bytes())?;
+
+        // Print the full path to the terminal
+        println!("Created Python script: {:?}", full_path);
+
+        println!("-----------------------------------");
+        println!("Python script created successfully!");
+        println!("-----------------------------------");
+
+        Ok(())
+
+    }
+
 }
