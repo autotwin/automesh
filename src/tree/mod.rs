@@ -172,32 +172,73 @@ impl QuadTree {
     }
 
     pub fn pyplot(&self, show: bool, save: bool, filename: &str) -> io::Result<()> {
-        let mut script = r#"
-# This module, tree/mod.rs::pyplot, plots the
+        let header = r#"# This module, tree/mod.rs::pyplot, plots the
 # QuadTree as a collection of square patches.
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
+
+"#.to_string();  // Convert the raw string literal to a String
+
+        let draw_cell = r#"def draw_cell(ax, x, y, width, height):
+    """Draw a cell as a patch."""
+    ax.add_patch(
+        patches.Rectangle(
+            (x, y),
+            width,
+            height,
+            edgecolor="red",
+            facecolor="green",
+            alpha=0.5,
+            fill=True,
+        )
+    )
+        "#.to_string();  // Convert the raw string literal to a String
+
+        let main = r#"
 def main():
     print("Hello, World!")
 
-if __name__ == "__main__":
-    main()
+    fig, ax = plt.subplots()
 
-"#.to_string(); // Convert the raw string literal to a String
+    # Set limits for the plot
+    ax.set_xlim(0, 800)
+    ax.set_ylim(0, 800)
 
-        // if show {
-        //     script.push_str("SHOW: bool = TRUE\n");
-        // } else {
-        //     script.push_str("SHOW: bool = FALSE\n");
-        // }
+    # Draw some rectangles (representing quadtree nodes)
+    draw_cell(ax, 100, 100, 200, 200)  # Rectangle 1
+    draw_cell(ax, 300, 300, 150, 150)  # Rectangle 2
+    draw_cell(ax, 500, 100, 100, 300)  # Rectangle 3
 
-        // if save {
-        //     script.push_str("SAVE: bool = TRUE\n");
-        // } else {
-        //     script.push_str("SAVE: bool = FALSE\n");
-        // }
+    # Set aspect of the plot to be equal
+    ax.set_aspect("equal", adjustable="box")
+
+    # Show the plot
+    plt.title("Quadtree Visualization")
+    plt.xlabel("x-axis")
+    plt.ylabel("y-axis")
+"#.to_string();  // Convert the raw string literal to a String
+
+        // Build the script with show and save options
+        let show_option = if show { "\n    SHOW = True" } else { "\n    SHOW = False" };
+        let save_option = if save { "\n    SAVE = True" } else { "\n    SAVE = False" };
+
+        let show_save = r#"
+
+    if SHOW:
+        plt.show()
+
+    if SAVE:
+        bb = "quadtree.png"
+        fig.savefig(bb, dpi=300)
+        print(f"Saved: {bb}")
+        "#.to_string(); 
+
+        let footer = "\n\nif __name__ == '__main__':\n    main()\n";
+
+        // Collect the pieces into the script
+        let script = format!("{}{}{}{}{}{}{}", header, draw_cell, main, show_option, save_option, show_save, footer);
         
         // Get the current working directory
         let cwd = env::current_dir()?;

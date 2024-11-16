@@ -2,7 +2,7 @@
 use super::{Cell2D, Point2D, QuadTree};
 
 #[test]
-fn level_one_tree() {
+fn tree_level_1() {
     // This is a domain with origin (1.0, -1.0) and extrema
     // at (3, 1), to match the illustration at
     // https://github.com/sandialabs/sibl/blob/master/geo/doc/quadtree.md#refinement-example
@@ -13,10 +13,10 @@ fn level_one_tree() {
     };
 
     // let points: Vec<Point2D> = vec![seed, Point2D { x: 1.0, y: 1.0 }, Point2D { x: 3.0, y: 4.0 }];
-    let seed_inside = Point2D { x: 2.6, y: 0.6 };
+    let seed = Point2D { x: 2.6, y: 0.6 };
     let seed_outside = Point2D { x: 0.0, y: 0.0 };
 
-    assert!(cell.contains(&seed_inside));
+    assert!(cell.contains(&seed));
     assert!(!cell.contains(&seed_outside));
 
     let mut tree = QuadTree::new(cell, 0, 1);  // start level 0 up to 1
@@ -28,7 +28,7 @@ fn level_one_tree() {
     assert!(tree.nw.is_none(), "QuadTree 10 should be None before subdivision.");
     assert!(tree.ne.is_none(), "QuadTree 11 should be None before subdivision.");
 
-    tree.insert(seed_inside);
+    tree.insert(seed);
 
     // After insertion of a valid point, the tree should be subdivided
     assert!(tree.divided, "QuadTree should be divided since its cell domain contains the seed.");
@@ -46,7 +46,7 @@ fn level_one_tree() {
 }
 
 #[test]
-fn tree_level_1() {
+fn tree_level_1_viz() {
     // Prints to the terminal the Python code needed to visualize
     // the QuadTree.  Use `cargo test -- --nocapture` to collect the
     // Python code for plotting the QuadTree
@@ -62,7 +62,7 @@ fn tree_level_1() {
     let mut tree = QuadTree::new(cell, 0, 1);  // start level 0 up to 1
     tree.insert(seed);
     let show = true;
-    let save = false;
+    let save = true;
     let filename = "tree_level_1.py";
     let _ = tree.pyplot(show, save, filename);
 }
