@@ -171,10 +171,9 @@ impl QuadTree {
 
     }
 
-    pub fn inventory(&self) {
-        // Iterates over the tree and prints, for each cell
-        // (x, y, width, height)
-    }
+
+
+
 
     pub fn pyplot(&self, show: bool, save: bool, filename: &str) -> io::Result<()> {
         let header = r#"# This module, tree/mod.rs::pyplot, plots the
@@ -266,6 +265,32 @@ def main():
 
         Ok(())
 
+    }
+
+}
+
+
+pub fn inventory(tree: &QuadTree) {
+    // Iterates over the tree and prints, for each cell in Python style with
+    // (x, y, width, height)
+    println!(
+        "ax.add_patch(patches.Rectangle(({}, {}), {}, {}, edgecolor='gray', facecolor='blue', alpha=0.5, fill=True))",
+        tree.cell.origin.x,
+        tree.cell.origin.y,
+        tree.cell.width,
+        tree.cell.height,
+    );
+    if tree.sw.is_some() {
+        inventory(&tree.sw.as_ref().unwrap());
+    }
+    if tree.se.is_some() {
+        inventory(&tree.se.as_ref().unwrap());
+    }
+    if tree.nw.is_some() {
+        inventory(&tree.nw.as_ref().unwrap());
+    }
+    if tree.ne.is_some() {
+        inventory(&tree.ne.as_ref().unwrap());
     }
 
 }

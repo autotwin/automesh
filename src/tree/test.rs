@@ -1,3 +1,5 @@
+use crate::tree::inventory;
+
 // use reverse_string::*;
 use super::{Cell2D, Point2D, QuadTree};
 
@@ -65,6 +67,8 @@ fn tree_level_1_viz() {
     let save = true;
     let filename = "tree_level_1.py";
     let _ = tree.pyplot(show, save, filename);
+    // tree.inventory();
+    inventory(&tree);
 }
 
 
@@ -137,5 +141,7 @@ fn tree_level_2() {
     assert!(!tree.ne.as_ref().unwrap().se.as_ref().unwrap().divided, "QuadTree 1101 should not be divided.");
     assert!(!tree.ne.as_ref().unwrap().nw.as_ref().unwrap().divided, "QuadTree 1110 should not be divided.");
     assert!(!tree.ne.as_ref().unwrap().ne.as_ref().unwrap().divided, "QuadTree 1111 should not be divided.");
+
+    inventory(&tree);
 
 }
