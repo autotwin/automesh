@@ -171,6 +171,11 @@ impl QuadTree {
 
     }
 
+    pub fn inventory(&self) {
+        // Iterates over the tree and prints, for each cell
+        // (x, y, width, height)
+    }
+
     pub fn pyplot(&self, show: bool, save: bool, filename: &str) -> io::Result<()> {
         let header = r#"# This module, tree/mod.rs::pyplot, plots the
 # QuadTree as a collection of square patches.
