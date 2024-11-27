@@ -11,8 +11,8 @@
 * Match small to large
 * Match interior to exterior
 * Path forward
-  * Complete the quad templates (CBH)
-
+  * Complete the quad templates (CBH) in Rust
+  * Taubin iteration recast in code and docs (MRB)
 
 ## 2024-11-13
 
