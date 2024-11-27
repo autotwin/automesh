@@ -1,7 +1,7 @@
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use flavio::math::{Tensor, TensorRank1};
+use flavio::math::{Tensor, TensorRank1Vec};
 use ndarray::Array2;
 use ndarray_npy::{ReadNpyError, ReadNpyExt};
 use std::{
@@ -14,8 +14,7 @@ type Cells = [Cell; 8];
 type Faces = [Option<usize>; 6];
 type Indices = [usize; 8];
 pub type OcTree = Vec<Cell>;
-type Point = TensorRank1<3, 1>;
-type Points = Vec<Point>;
+type Points = TensorRank1Vec<3, 1>;
 
 pub trait Tree {
     fn balance(&mut self, levels: &usize);
@@ -44,7 +43,7 @@ pub struct Cell {
 
 impl Cell {
     fn contains(&self, points: &Points) -> bool {
-        for point in points {
+        for point in points.iter() {
             if &point[0] >= self.get_min_x()
                 && &point[0] <= self.get_max_x()
                 && &point[1] >= self.get_min_y()
@@ -445,56 +444,49 @@ impl Tree for OcTree {
         file.write_all(b"MeshVersionFormatted 1\nDimension 3\nVertices\n")?;
         let num_cells = self.len();
         file.write_all(format!("{}\n", num_cells * 8).as_bytes())?;
-        let mut nodal_coordinates = [
-            Point::zero(),
-            Point::zero(),
-            Point::zero(),
-            Point::zero(),
-            Point::zero(),
-            Point::zero(),
-            Point::zero(),
-            Point::zero(),
-        ];
+        let mut nodal_coordinates = Points::zero_vec(8);
         self.iter().try_for_each(|cell| {
-            nodal_coordinates[0] = Point::new([
-                cell.get_min_x().copy(),
-                cell.get_min_y().copy(),
-                cell.get_min_z().copy(),
-            ]);
-            nodal_coordinates[1] = Point::new([
-                cell.get_max_x().copy(),
-                cell.get_min_y().copy(),
-                cell.get_min_z().copy(),
-            ]);
-            nodal_coordinates[2] = Point::new([
-                cell.get_max_x().copy(),
-                cell.get_max_y().copy(),
-                cell.get_min_z().copy(),
-            ]);
-            nodal_coordinates[3] = Point::new([
-                cell.get_min_x().copy(),
-                cell.get_max_y().copy(),
-                cell.get_min_z().copy(),
-            ]);
-            nodal_coordinates[4] = Point::new([
-                cell.get_min_x().copy(),
-                cell.get_min_y().copy(),
-                cell.get_max_z().copy(),
-            ]);
-            nodal_coordinates[5] = Point::new([
-                cell.get_max_x().copy(),
-                cell.get_min_y().copy(),
-                cell.get_max_z().copy(),
-            ]);
-            nodal_coordinates[6] = Point::new([
-                cell.get_max_x().copy(),
-                cell.get_max_y().copy(),
-                cell.get_max_z().copy(),
-            ]);
-            nodal_coordinates[7] = Point::new([
-                cell.get_min_x().copy(),
-                cell.get_max_y().copy(),
-                cell.get_max_z().copy(),
+            nodal_coordinates = Points::new_vec(&[
+                [
+                    cell.get_min_x().copy(),
+                    cell.get_min_y().copy(),
+                    cell.get_min_z().copy(),
+                ],
+                [
+                    cell.get_max_x().copy(),
+                    cell.get_min_y().copy(),
+                    cell.get_min_z().copy(),
+                ],
+                [
+                    cell.get_max_x().copy(),
+                    cell.get_max_y().copy(),
+                    cell.get_min_z().copy(),
+                ],
+                [
+                    cell.get_min_x().copy(),
+                    cell.get_max_y().copy(),
+                    cell.get_min_z().copy(),
+                ],
+                [
+                    cell.get_min_x().copy(),
+                    cell.get_min_y().copy(),
+                    cell.get_max_z().copy(),
+                ],
+                [
+                    cell.get_max_x().copy(),
+                    cell.get_min_y().copy(),
+                    cell.get_max_z().copy(),
+                ],
+                [
+                    cell.get_max_x().copy(),
+                    cell.get_max_y().copy(),
+                    cell.get_max_z().copy(),
+                ],
+                [
+                    cell.get_min_x().copy(),
+                    cell.get_max_y().copy(),
+                    cell.get_max_z().copy(),
+                ],
             ]);
             nodal_coordinates.iter().try_for_each(|coordinates| {
                 coordinates.iter().try_for_each(|coordinate| {
