@@ -4,6 +4,16 @@
 
 *In order of most recent to least recent.*
 
+## 2024-11-27
+
+* Not all hanging nodes need to be connected; make (a complete set of) templates, and then match templates.
+* Algorithmic connection of all hanging nodes causes unnecessarily large number of quad/hex element.
+* Match small to large
+* Match interior to exterior
+* Path forward
+  * Complete the quad templates (CBH)
+
+
 ## 2024-11-13
 
 * stuck on local macOS
