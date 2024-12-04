@@ -182,10 +182,10 @@ impl QuadTree {
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
-
 "#.to_string();  // Convert the raw string literal to a String
 
-        let draw_cell = r#"def draw_cell(ax, x, y, width, height):
+        let draw_cell = r#"
+def draw_cell(ax, x, y, width, height):
     """Draw a cell as a patch."""
     ax.add_patch(
         patches.Rectangle(
@@ -198,10 +198,13 @@ import matplotlib.patches as patches
             fill=True,
         )
     )
-        "#.to_string();  // Convert the raw string literal to a String
 
-        let main = r#"
+"#.to_string();  // Convert the raw string literal to a String
+
+        let main_0 = r#"
 def main():
+    """The main drawing function."""
+
     print("Hello, World!")
 
     fig, ax = plt.subplots()
@@ -222,6 +225,7 @@ def main():
     plt.title("Quadtree Visualization")
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
+
 "#.to_string();  // Convert the raw string literal to a String
 
         // Build the script with show and save options
@@ -229,7 +233,6 @@ def main():
         let save_option = if save { "\n    SAVE = True" } else { "\n    SAVE = False" };
 
         let show_save = r#"
-
     if SHOW:
         plt.show()
 
@@ -237,12 +240,12 @@ def main():
         bb = "quadtree.png"
         fig.savefig(bb, dpi=300)
         print(f"Saved: {bb}")
-        "#.to_string(); 
+"#.to_string();
 
         let footer = "\n\nif __name__ == '__main__':\n    main()\n";
 
         // Collect the pieces into the script
-        let script = format!("{}{}{}{}{}{}{}", header, draw_cell, main, show_option, save_option, show_save, footer);
+        let script = format!("{}{}{}{}{}{}{}", header, draw_cell, main_0, show_option, save_option, show_save, footer);
         
         // Get the current working directory
         let cwd = env::current_dir()?;

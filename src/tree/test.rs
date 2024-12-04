@@ -1,3 +1,8 @@
+//! This module tests the QuadTree implementation.
+//! Example:
+//!     cargo test tree_level_1_viz -- --nocapture && python tree_level_1.py
+
+
 use crate::tree::inventory;
 
 // use reverse_string::*;
@@ -50,7 +55,7 @@ fn tree_level_1() {
 #[test]
 fn tree_level_1_viz() {
     // Prints to the terminal the Python code needed to visualize
-    // the QuadTree.  Use `cargo test -- --nocapture` to collect the
+    // the QuadTree.  Use `cargo test tree_level_1_viz -- --nocapture` to collect the
     // Python code for plotting the QuadTree
     let cell = Cell2D {
         origin: Point2D { x: 1.0, y: -1.0 },
