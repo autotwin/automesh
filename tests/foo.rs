@@ -1,3 +1,16 @@
+//! This module tests ideas for a QuadTree implementation.
+//! 
+//! # Example
+//! 
+//! ```
+//! cargo test foo -- --nocapture && python target/foo.py
+//! ```
+//! 
+//! ## Reference
+//! 
+//! [primal/dual quadrilateral transitions](https://github.com/sandialabs/sibl/blob/master/geo/doc/dual_quad_transitions.md) 
+
+
 use flavio::math::{Tensor, TensorRank1};
 use std::array::from_fn;
 
@@ -23,6 +36,12 @@ type Cells<const N: usize> = [Cell; N];
 impl Cell {
     fn contains(&self, points: &Points) -> bool {
         for point in points {
+            // TODO: discuss if we want to use traditional definitions
+            // of contains, i.e.,
+            // if &point[0] >= self.get_min_x()
+            //     && &point[0] < self.get_max_x()
+            //     && &point[1] >= self.get_min_y()
+            //     && &point[1] < self.get_max_y()
             if &point[0] >= self.get_min_x()
                 && &point[0] <= self.get_max_x()
                 && &point[1] >= self.get_min_y()
