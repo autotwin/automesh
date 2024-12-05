@@ -3,7 +3,7 @@
 
 use std::fs::File;
 use std::env;
-use std::io::{self, Write};
+use std::io::{self, BufWriter, Write};
 
 #[cfg(test)]
 pub mod test;
@@ -171,19 +171,29 @@ impl QuadTree {
 
     }
 
-
-
-
-
     pub fn pyplot(&self, show: bool, save: bool, filename: &str) -> io::Result<()> {
-        let header = r#"# This module, tree/mod.rs::pyplot, plots the
-# QuadTree as a collection of square patches.
+
+        // Get the current working directory
+        let cwd = env::current_dir()?;
+        
+        // Create the full path for the file
+        let full_path = cwd.join(filename);
+        
+        // Create or open the file
+        let mut file = File::create(&full_path)?;
+
+        let header = r#""""This module, tree/mod.rs::pyplot, plots the
+QuadTree as a collection of square patches.
+"""
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
 "#.to_string();  // Convert the raw string literal to a String
 
+        file.write_all(header.as_bytes())?;
+
+        // Write the draw_cell function
         let draw_cell = r#"
 def draw_cell(ax, x, y, width, height):
     """Draw a cell as a patch."""
@@ -201,6 +211,9 @@ def draw_cell(ax, x, y, width, height):
 
 "#.to_string();  // Convert the raw string literal to a String
 
+        file.write_all(draw_cell.as_bytes())?;
+
+        // Write the beginning of the main function
         let main_0 = r#"
 def main():
     """The main drawing function."""
@@ -209,24 +222,49 @@ def main():
 
     fig, ax = plt.subplots()
 
-    # Set limits for the plot
-    ax.set_xlim(0, 800)
-    ax.set_ylim(0, 800)
+"#.to_string();  // Convert the raw string literal to a String
 
-    # Draw some rectangles (representing quadtree nodes)
-    draw_cell(ax, 100, 100, 200, 200)  # Rectangle 1
-    draw_cell(ax, 300, 300, 150, 150)  # Rectangle 2
-    draw_cell(ax, 500, 100, 100, 300)  # Rectangle 3
+        file.write_all(main_0.as_bytes())?;
 
+        // Write the plot limits
+        let xmin = self.cell.origin.x;
+        let xmax = xmin + self.cell.width;
+        let ymin = self.cell.origin.y;
+        let ymax = ymin + self.cell.height;
+
+        file.write_all(format!("    # Set limits for the plot\n    ax.set_xlim({}, {})\n    ax.set_ylim({}, {})\n\n", xmin, xmax, ymin, ymax).as_bytes())?;
+
+        // self.iter().for_each(| self.cell | {
+        //     file.write_all(
+        //         format!(
+        //             "ax.add_patch(patches.Rectangle(({}{}),{},{}, edgecolor='red'))\n",
+        //             self.cell.origin.x,
+        //             self.cell.origin.y,
+        //             self.cell.width,
+        //             self.cell.height
+        //         )
+        //     )
+        // });
+        // todo
+        // # Draw some rectangles (representing quadtree nodes)
+        // draw_cell(ax, 100, 100, 200, 200)  # Rectangle 1
+        // draw_cell(ax, 300, 300, 150, 150)  # Rectangle 2
+        // draw_cell(ax, 500, 100, 100, 300)  # Rectangle 3
+        file.write_all("    # Draw cells - to come\n".as_bytes())?;
+
+        let plot_aspect = r#"
     # Set aspect of the plot to be equal
     ax.set_aspect("equal", adjustable="box")
+"#.to_string();  // Convert the raw string literal to a String
+        file.write_all(plot_aspect.as_bytes())?;
 
-    # Show the plot
-    plt.title("Quadtree Visualization")
+        file.write_all(format!("    plt.title(\"{}\")", filename).as_bytes())?;
+
+        let axes_labels = r#"
     plt.xlabel("x-axis")
     plt.ylabel("y-axis")
-
-"#.to_string();  // Convert the raw string literal to a String
+"#.to_string();
+        file.write_all(axes_labels.as_bytes())?;
 
         // Build the script with show and save options
         let show_option = if show { "\n    SHOW = True" } else { "\n    SHOW = False" };
@@ -245,16 +283,9 @@ def main():
         let footer = "\n\nif __name__ == '__main__':\n    main()\n";
 
         // Collect the pieces into the script
-        let script = format!("{}{}{}{}{}{}{}", header, draw_cell, main_0, show_option, save_option, show_save, footer);
+        // let script = format!("{}{}{}{}{}{}{}", header, draw_cell, main_0, show_option, save_option, show_save, footer);
+        let script = format!("{}{}{}{}", show_option, save_option, show_save, footer);
         
-        // Get the current working directory
-        let cwd = env::current_dir()?;
-        
-        // Create the full path for the file
-        let full_path = cwd.join(filename);
-        
-        // Create or open the file
-        let mut file = File::create(&full_path)?;
 
         // Write the Python script contents to the file
         file.write_all(script.as_bytes())?;
