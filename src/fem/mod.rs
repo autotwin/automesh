@@ -35,6 +35,12 @@ pub type Metrics = Array1<f64>;
 pub type Nodes = Vec<usize>;
 pub type ReorderedConnectivity = Vec<Vec<i32>>;
 
+/// Possible finite elements.
+pub enum Element {
+    Hexahedron,
+    Tetrahedron,
+}
+
 /// The finite elements type.
 pub struct FiniteElements {
     boundary_nodes: Nodes,

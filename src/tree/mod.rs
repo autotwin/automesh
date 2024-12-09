@@ -2,8 +2,9 @@
 use std::time::Instant;
 
 use super::{
-    Coordinate, Coordinates, FiniteElements, Points, Vector, VoxelData, Voxels, ELEMENT_NUM_NODES,
-    NODE_NUMBERING_OFFSET,
+    Coordinate, Coordinates, Element, FiniteElements,
+    Points, Vector, VoxelData, Voxels,
+    ELEMENT_NUM_NODES, NODE_NUMBERING_OFFSET,
 };
 use flavio::math::Tensor;
 use ndarray::{s, Axis};
@@ -22,12 +23,40 @@ pub trait Tree {
     fn from_voxels(voxels: Voxels) -> Self;
     fn into_finite_elements(
         self,
+        element: Element,
+        remove: Option<Vec<u8>>,
+        scale: &Vector,
+        translate: &Vector,
+    ) -> Result<FiniteElements, String>;
+    fn into_hexahedral_finite_elements(
+        self,
+        remove: Option<Vec<u8>>,
+        scale: &Vector,
+        translate: &Vector,
+    ) -> Result<FiniteElements, String>;
+    fn into_tetrahedral_finite_elements(
+        self,
+        remove: Option<Vec<u8>>,
+        scale: &Vector,
+        translate: &Vector,
+    ) -> Result<FiniteElements, String>;
+    fn octree_into_finite_elements(
+        self,
         remove: Option<Vec<u8>>,
         scale: &Vector,
         translate: &Vector,
     ) -> Result<FiniteElements, String>;
     fn prune(&mut self);
     fn subdivide(&mut self, index: usize);
+}
+
+type HexahedralConnectivity<const D: usize> = [[usize; ELEMENT_NUM_NODES]; D];
+// type TetrahedralConnectivity<const D: usize> = [[usize; 4]; D];
+
+#[derive(Debug)]
+enum Template {
+    Hex0000(HexahedralConnectivity<1>),
+    // Tet0000(TetrahedralConnectivity<12>),
 }
 
 #[derive(Debug)]
@@ -42,6 +71,7 @@ pub struct Cell {
     max_y: f64,
     min_z: f64,
     max_z: f64,
+    template: Option<Template>,
 }
 
 impl Cell {
@@ -66,6 +96,9 @@ impl Cell {
             panic!()
         }
     }
+    fn get_cells(&self) -> &Option<Indices> {
+        &self.cells
+    }
     fn get_faces(&self) -> &Faces {
         &self.faces
     }
@@ -89,6 +122,9 @@ impl Cell {
     }
     fn get_max_z(&self) -> &f64 {
         &self.max_z
+    }
+    fn get_template(&self) -> &Option<Template> {
+        &self.template
     }
     fn homogeneous(&self, data: &VoxelData) -> Option<u8> {
         let x_min = self.get_min_x().round() as u8 as usize;
@@ -137,6 +173,7 @@ impl Cell {
                 max_y: val_y,
                 min_z: *min_z,
                 max_z: val_z,
+                template: None,
             },
             Cell {
                 block: None,
@@ -156,6 +193,7 @@ impl Cell {
                 max_y: val_y,
                 min_z: *min_z,
                 max_z: val_z,
+                template: None,
             },
             Cell {
                 block: None,
@@ -175,6 +213,7 @@ impl Cell {
                 max_y: *max_y,
                 min_z: *min_z,
                 max_z: val_z,
+                template: None,
             },
             Cell {
                 block: None,
@@ -194,6 +233,7 @@ impl Cell {
                 max_y: *max_y,
                 min_z: *min_z,
                 max_z: val_z,
+                template: None,
             },
             Cell {
                 block: None,
@@ -213,6 +253,7 @@ impl Cell {
                 max_y: val_y,
                 min_z: val_z,
                 max_z: *max_z,
+                template: None,
             },
             Cell {
                 block: None,
@@ -232,6 +273,7 @@ impl Cell {
                 max_y: val_y,
                 min_z: val_z,
                 max_z: *max_z,
+                template: None,
             },
             Cell {
                 block: None,
@@ -251,6 +293,7 @@ impl Cell {
                 max_y: *max_y,
                 min_z: val_z,
                 max_z: *max_z,
+                template: None,
             },
             Cell {
                 block: None,
@@ -270,6 +313,7 @@ impl Cell {
                 max_y: *max_y,
                 min_z: val_z,
                 max_z: *max_z,
+                template: None,
             },
         ]
     }
@@ -392,6 +436,7 @@ impl Tree for OcTree {
             max_y,
             min_z,
             max_z,
+            template: None,
         }];
         let mut index = 0;
         while index < tree.len() {
@@ -444,6 +489,7 @@ impl Tree for OcTree {
                         max_y: length * (j + 1) as f64,
                         min_z: length * k as f64,
                         max_z: length * (k + 1) as f64,
+                        template: None,
                     })
                 })
             })
@@ -460,6 +506,148 @@ impl Tree for OcTree {
         tree
     }
     fn into_finite_elements(
+        self,
+        element: Element,
+        remove: Option<Vec<u8>>,
+        scale: &Vector,
+        translate: &Vector,
+    ) -> Result<FiniteElements, String> {
+        match element {
+            Element::Hexahedron => self.into_hexahedral_finite_elements(remove, scale, translate),
+            Element::Tetrahedron => self.into_tetrahedral_finite_elements(remove, scale, translate),
+        }
+    }
+    fn into_hexahedral_finite_elements(
+        mut self,
+        remove: Option<Vec<u8>>,
+        scale: &Vector,
+        translate: &Vector,
+    ) -> Result<FiniteElements, String> {
+        let mut node = 1;
+        let mut connectivity: HexahedralConnectivity<1> = [from_fn(|_| 0)];
+        let mut element_blocks = vec![];
+        let mut element_node_connectivity = vec![];
+        let mut nodal_coordinates = Coordinates::zero_vec(0);
+        let levels = self.iter().max_by(|a, b| a.get_level().cmp(b.get_level())).unwrap().get_level().clone();
+        let levels_map: Vec<Vec<usize>> = (0..levels)
+            .rev()
+            .map(|level| {
+                self.iter()
+                    .enumerate()
+                    .filter(|(_, cell)| cell.get_level() == &level)
+                    .map(|(index, _)| index)
+                    .collect()
+            })
+            .collect();
+        let mut removed_data = remove.unwrap_or_default();
+        removed_data.sort();
+        removed_data.dedup();
+        let mut subcell_tally = 0;
+        let mut will_mesh = false;
+        let mut quarter_cell_length = 0.0;
+        levels_map[0].iter().for_each(|index|
+            if let Some(subcells) = self[*index].cells {
+                subcell_tally = subcells.into_iter().filter(|&subcell| removed_data.binary_search(&self[subcell].get_block()).is_err()).count();
+                //
+                // mesh partial template if between 0 and NUM_OCTANTS(8)
+                // skip and do not mesh if 0
+                //
+                if subcell_tally == NUM_OCTANTS {
+                    will_mesh = true;
+                    self[*index].get_faces()
+                        .iter()
+                        .for_each(|face|
+                            if let Some(face_index) = face {
+                                if self[*face_index].get_cells().is_some() && self[*face_index].get_template().is_some() {
+                                    will_mesh = false
+                                }
+                            }
+                    );
+                    //
+                    // next: cases where neighboring faces have T0000
+                    //
+                    // WHAT ABOUT NEIGHBORS IN CORNER POSITIONS? THEY SHARE NODES
+                    //
+                    if will_mesh {
+                        //
+                        // also, what if not homogeneous?
+                        // since dualization would place elements over the interfaces
+                        //
+                        element_blocks.push(1);
+                        // element_blocks.push(self[*index].get_block() as usize);
+                        connectivity = [from_fn(|n| node + n)];
+                        self[*index].template = Some(Template::Hex0000(connectivity));
+                        node += 8;
+                        element_node_connectivity.push(
+                            connectivity[0].into_iter().collect::<Vec<usize>>()
+                        );
+                        quarter_cell_length = self[*index].get_max_x() - self[*index].get_min_x();
+                        nodal_coordinates.0.append(
+                            &mut vec![
+                                Vector::new([
+                                    self[*index].get_min_x() + quarter_cell_length,
+                                    self[*index].get_min_y() + quarter_cell_length,
+                                    self[*index].get_min_z() + quarter_cell_length,
+                                ]),
+                                Vector::new([
+                                    self[*index].get_max_x() - quarter_cell_length,
+                                    self[*index].get_min_y() + quarter_cell_length,
+                                    self[*index].get_min_z() + quarter_cell_length,
+                                ]),
+                                Vector::new([
+                                    self[*index].get_max_x() - quarter_cell_length,
+                                    self[*index].get_max_y() - quarter_cell_length,
+                                    self[*index].get_min_z() + quarter_cell_length,
+                                ]),
+                                Vector::new([
+                                    self[*index].get_min_x() + quarter_cell_length,
+                                    self[*index].get_max_y() - quarter_cell_length,
+                                    self[*index].get_min_z() + quarter_cell_length,
+                                ]),
+                                Vector::new([
+                                    self[*index].get_min_x() + quarter_cell_length,
+                                    self[*index].get_min_y() + quarter_cell_length,
+                                    self[*index].get_max_z() - quarter_cell_length,
+                                ]),
+                                Vector::new([
+                                    self[*index].get_max_x() - quarter_cell_length,
+                                    self[*index].get_min_y() + quarter_cell_length,
+                                    self[*index].get_max_z() - quarter_cell_length,
+                                ]),
+                                Vector::new([
+                                    self[*index].get_max_x() - quarter_cell_length,
+                                    self[*index].get_max_y() - quarter_cell_length,
+                                    self[*index].get_max_z() - quarter_cell_length,
+                                ]),
+                                Vector::new([
+                                    self[*index].get_min_x() + quarter_cell_length,
+                                    self[*index].get_max_y() - quarter_cell_length,
+                                    self[*index].get_max_z() - quarter_cell_length,
+                                ]),
+                            ]
+                        );
+                    }
+                }
+            }
+        );
+        Ok(FiniteElements::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates,
+        ))
+    }
+    fn into_tetrahedral_finite_elements(
+        self,
+        remove: Option<Vec<u8>>,
+        scale: &Vector,
+        translate: &Vector,
+    ) -> Result<FiniteElements, String> {
+        //
+        // need tets in FiniteElements
+        //
+        todo!()
+    }
+    fn octree_into_finite_elements(
         self,
         remove: Option<Vec<u8>>,
         scale: &Vector,
@@ -552,7 +740,7 @@ impl Tree for OcTree {
         ))
     }
     fn prune(&mut self) {
-        self.retain(|cell| cell.cells.is_none())
+        self.retain(|cell| cell.get_cells().is_none())
     }
     fn subdivide(&mut self, index: usize) {
         let new_indices = from_fn(|n| self.len() + n);

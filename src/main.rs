@@ -1,4 +1,4 @@
-use automesh::{FiniteElements, OcTree, Smoothing, Tree, Vector, Voxels};
+use automesh::{Element, FiniteElements, OcTree, Smoothing, Tree, Vector, Voxels};
 use clap::{Parser, Subcommand};
 use flavio::math::Tensor;
 use ndarray_npy::{ReadNpyError, WriteNpyError};
@@ -644,26 +644,29 @@ fn octree(
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
-    time = Instant::now();
-    if !quiet {
-        println!("     \x1b[1;96mPruning\x1b[0m octree");
-    }
-    tree.prune();
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
-    time = Instant::now();
-    if !quiet {
-        println!("     \x1b[1;96mMeshing\x1b[0m {}", output);
-    }
-    let output_type = tree.into_finite_elements(
-        remove,
-        &Vector::new([xscale, yscale, zscale]),
-        &Vector::new([xtranslate, ytranslate, ztranslate]),
-    )?;
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
+    // time = Instant::now();
+    // if !quiet {
+    //     println!("     \x1b[1;96mPruning\x1b[0m octree");
+    // }
+    // tree.prune();
+    // if !quiet {
+    //     println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    // }
+    // time = Instant::now();
+    // if !quiet {
+    //     println!("     \x1b[1;96mMeshing\x1b[0m {}", output);
+    // }
+    // let output_type = tree.octree_into_finite_elements(
+    //     remove,
+    //     &Vector::new([xscale, yscale, zscale]),
+    //     &Vector::new([xtranslate, ytranslate, ztranslate]),
+    // )?;
+    // if !quiet {
+    //     println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    // }
+
+    let output_type = tree.into_finite_elements(Element::Hexahedron, remove, &Vector::new([xscale, yscale, zscale]),
+    &Vector::new([xtranslate, ytranslate, ztranslate]))?;
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
     match output_extension {
         Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
@@ -672,6 +675,7 @@ fn octree(
         Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
         _ => invalid_output(&output, output_extension)?,
     }
+
     Ok(())
 }
 
