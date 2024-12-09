@@ -4,6 +4,26 @@
 
 *In order of most recent to least recent.*
 
+## 2024-12-09
+
+* Speed up 10x flavio
+* Tet meshing
+  * Literature review https://github.com/autotwin/automesh/issues/217
+* 2D weakly balanced templates - still work in progress
+* Hook up recon3d to Python API
+* Budget
+* Brainstorm - pivot from dev to analysis
+  * Case study #1 - three material spheres
+    * conforming versus voxelated versus voxelated smoothed
+      * displacement field (maybe also strain and strain rate)?
+      * existing CBH library for cross-correlation
+    * https://github.com/autotwin/basis/blob/main/README_three_material_spheres.md
+    * Write up as a chapter in mdbook as a case study?
+  * Case study #2 - 100 brains
+    * https://github.com/autotwin/basis
+    * shape metric - MSJ, possibly skew and aspect
+  * Case study #3 - IPREDICT
+
 ## 2024-11-27
 
 * Not all hanging nodes need to be connected; make (a complete set of) templates, and then match templates.
