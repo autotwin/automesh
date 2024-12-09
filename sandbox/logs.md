@@ -6,11 +6,12 @@
 
 ## 2024-12-09
 
-* Speed up 10x flavio
+* Speed up 10x flavio - on benchmarks
 * Tet meshing
   * Literature review https://github.com/autotwin/automesh/issues/217
 * 2D weakly balanced templates - still work in progress
 * Hook up recon3d to Python API
+* rebase quadtree branch
 * Budget
 * Brainstorm - pivot from dev to analysis
   * Case study #1 - three material spheres
@@ -21,8 +22,9 @@
     * Write up as a chapter in mdbook as a case study?
   * Case study #2 - 100 brains
     * https://github.com/autotwin/basis
-    * shape metric - MSJ, possibly skew and aspect
+    * shape metric - MSJ, possibly skew, aspect ratio
   * Case study #3 - IPREDICT
+    * https://mtec-sc.org/project-awards/18-04-i-predict/
 
 ## 2024-11-27
 
