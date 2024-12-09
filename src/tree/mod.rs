@@ -566,7 +566,8 @@ impl Tree for OcTree {
                     //
                     // next: cases where neighboring faces have T0000
                     //
-                    // WHAT ABOUT NEIGHBORS IN CORNER POSITIONS? THEY SHARE NODES
+                    // WHAT ABOUT NEIGHBORS IN CORNER POSITIONS? THEY SHARE NODES!
+                    // DO YOU HAVE TO TRACK "EDGES" TOO? (the 8 cells that share edges but not faces)
                     //
                     if will_mesh {
                         //
