@@ -139,6 +139,10 @@ enum Commands {
         /// Pass to quiet the terminal output
         #[arg(action, long, short)]
         quiet: bool,
+
+        /// ???
+        #[arg(action, hide = true, long, short)]
+        dual: bool,
     },
 
     /// Quality metrics for an existing finite element mesh
@@ -397,9 +401,10 @@ fn main() -> Result<(), ErrorWrapper> {
             ztranslate,
             metrics,
             quiet,
+            dual,
         }) => mesh(
             meshing, input, output, nelx, nely, nelz, remove, xscale, yscale, zscale, xtranslate,
-            ytranslate, ztranslate, metrics, quiet,
+            ytranslate, ztranslate, metrics, quiet, dual,
         ),
         Some(Commands::Metrics {
             input,
@@ -490,6 +495,7 @@ fn mesh(
     ztranslate: f64,
     metrics: Option<String>,
     quiet: bool,
+    dual: bool,
 ) -> Result<(), ErrorWrapper> {
     let input_type = match read_input(&input, nelx, nely, nelz, quiet)? {
         InputTypes::Npy(voxels) => voxels,
@@ -503,48 +509,74 @@ fn mesh(
             ))?
         }
     };
-    let time = Instant::now();
-    if !quiet {
-        let entirely_default = xscale == 1.0
-            && yscale == 1.0
-            && zscale == 1.0
-            && xtranslate == 0.0
-            && ytranslate == 0.0
-            && ztranslate == 0.0;
-        print!("     \x1b[1;96mMeshing\x1b[0m {}", output);
-        if !entirely_default {
-            print!(" [");
+    let mut output_type;
+    if dual {
+        let mut time = Instant::now();
+        if !quiet {
+            println!("    \x1b[1;96mBuilding\x1b[0m octree");
         }
-        if xscale != 1.0 {
-            print!("xscale: {}, ", xscale);
+        let mut tree = OcTree::from_voxels(input_type);
+        if !quiet {
+            println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
         }
-        if yscale != 1.0 {
-            print!("yscale: {}, ", yscale);
+        time = Instant::now();
+        if !quiet {
+            println!("   \x1b[1;96mBalancing\x1b[0m octree");
         }
-        if zscale != 1.0 {
-            print!("zscale: {}, ", zscale);
+        tree.balance();
+        if !quiet {
+            println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
         }
-        if xtranslate != 0.0 {
-            print!("xtranslate: {}, ", xtranslate);
+        output_type = tree.into_finite_elements(
+            Element::Hexahedron,
+            remove,
+            &Vector::new([xscale, yscale, zscale]),
+            &Vector::new([xtranslate, ytranslate, ztranslate]),
+        )?;
+    } else {
+        let time = Instant::now();
+        if !quiet {
+            let entirely_default = xscale == 1.0
+                && yscale == 1.0
+                && zscale == 1.0
+                && xtranslate == 0.0
+                && ytranslate == 0.0
+                && ztranslate == 0.0;
+            print!("     \x1b[1;96mMeshing\x1b[0m {}", output);
+            if !entirely_default {
+                print!(" [");
+            }
+            if xscale != 1.0 {
+                print!("xscale: {}, ", xscale);
+            }
+            if yscale != 1.0 {
+                print!("yscale: {}, ", yscale);
+            }
+            if zscale != 1.0 {
+                print!("zscale: {}, ", zscale);
+            }
+            if xtranslate != 0.0 {
+                print!("xtranslate: {}, ", xtranslate);
+            }
+            if ytranslate != 0.0 {
+                print!("ytranslate: {}, ", ytranslate);
+            }
+            if ztranslate != 0.0 {
+                print!("ztranslate: {}, ", ztranslate);
+            }
+            if !entirely_default {
+                print!("\x1b[2D]");
+            }
+            println!();
         }
-        if ytranslate != 0.0 {
-            print!("ytranslate: {}, ", ytranslate);
+        output_type = input_type.into_finite_elements(
+            remove,
+            &Vector::new([xscale, yscale, zscale]),
+            &Vector::new([xtranslate, ytranslate, ztranslate]),
+        )?;
+        if !quiet {
+            println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
         }
-        if ztranslate != 0.0 {
-            print!("ztranslate: {}, ", ztranslate);
-        }
-        if !entirely_default {
-            print!("\x1b[2D]");
-        }
-        println!();
-    }
-    let mut output_type = input_type.into_finite_elements(
-        remove,
-        &Vector::new([xscale, yscale, zscale]),
-        &Vector::new([xtranslate, ytranslate, ztranslate]),
-    )?;
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
     if let Some(options) = meshing {
         match options {
@@ -644,29 +676,26 @@ fn octree(
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
-    // time = Instant::now();
-    // if !quiet {
-    //     println!("     \x1b[1;96mPruning\x1b[0m octree");
-    // }
-    // tree.prune();
-    // if !quiet {
-    //     println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    // }
-    // time = Instant::now();
-    // if !quiet {
-    //     println!("     \x1b[1;96mMeshing\x1b[0m {}", output);
-    // }
-    // let output_type = tree.octree_into_finite_elements(
-    //     remove,
-    //     &Vector::new([xscale, yscale, zscale]),
-    //     &Vector::new([xtranslate, ytranslate, ztranslate]),
-    // )?;
-    // if !quiet {
-    //     println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    // }
-
-    let output_type = tree.into_finite_elements(Element::Hexahedron, remove, &Vector::new([xscale, yscale, zscale]),
-    &Vector::new([xtranslate, ytranslate, ztranslate]))?;
+    time = Instant::now();
+    if !quiet {
+        println!("     \x1b[1;96mPruning\x1b[0m octree");
+    }
+    tree.prune();
+    if !quiet {
+        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    }
+    time = Instant::now();
+    if !quiet {
+        println!("     \x1b[1;96mMeshing\x1b[0m {}", output);
+    }
+    let output_type = tree.octree_into_finite_elements(
+        remove,
+        &Vector::new([xscale, yscale, zscale]),
+        &Vector::new([xtranslate, ytranslate, ztranslate]),
+    )?;
+    if !quiet {
+        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    }
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
     match output_extension {
         Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
