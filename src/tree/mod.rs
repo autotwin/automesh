@@ -558,6 +558,17 @@ impl Tree for OcTree {
                     .collect()
             })
             .collect();
+        //
+        // how are you going to stitch these together for real?
+        // is T11111111 an actual template? or should you step around instead
+        // i.e. T11111111 does not create new nodes (only stitches them together), and is not independent from T00000000
+        //
+        // rather than "templates", should you focus on "transitions" from finer to coarser cells?
+        // and even transitions across similar cells?
+        // are the "atomic schemes" in the paper the meshes, or the part where the hanging nodes are connected?
+        //
+        // how does Marco do it? by actually making the intermediate geometry?
+        //
         let mut removed_data = remove.unwrap_or_default();
         removed_data.sort();
         removed_data.dedup();
@@ -661,213 +672,212 @@ impl Tree for OcTree {
                                 ]),
                             ]);
                         }
-                    } else if subcells
-                        .into_iter()
-                        .filter(|&subcell| {
-                            matches!(self[subcell].get_template(), Some(Template::Hex00000000(_)))
-                        })
-                        .count()
-                        == NUM_OCTANTS
-                    {
-                        //
-                        // are you going to assign the connectivity and template to this cell?
-                        //
-                        // how are you going to stitch these together for real?
-                        //
-                        element_blocks.append(&mut vec![1; 19]);
-                        element_node_connectivity.append(&mut vec![
-                            vec![
-                                self[subcells[0]].get_connectivity()[0][1],
-                                self[subcells[1]].get_connectivity()[0][0],
-                                self[subcells[1]].get_connectivity()[0][3],
-                                self[subcells[0]].get_connectivity()[0][2],
-                                self[subcells[0]].get_connectivity()[0][5],
-                                self[subcells[1]].get_connectivity()[0][4],
-                                self[subcells[1]].get_connectivity()[0][7],
-                                self[subcells[0]].get_connectivity()[0][6],
-                            ],
-                            vec![
-                                self[subcells[1]].get_connectivity()[0][3],
-                                self[subcells[1]].get_connectivity()[0][2],
-                                self[subcells[3]].get_connectivity()[0][1],
-                                self[subcells[3]].get_connectivity()[0][0],
-                                self[subcells[1]].get_connectivity()[0][7],
-                                self[subcells[1]].get_connectivity()[0][6],
-                                self[subcells[3]].get_connectivity()[0][5],
-                                self[subcells[3]].get_connectivity()[0][4],
-                            ],
-                            vec![
-                                self[subcells[2]].get_connectivity()[0][1],
-                                self[subcells[3]].get_connectivity()[0][0],
-                                self[subcells[3]].get_connectivity()[0][3],
-                                self[subcells[2]].get_connectivity()[0][2],
-                                self[subcells[2]].get_connectivity()[0][5],
-                                self[subcells[3]].get_connectivity()[0][4],
-                                self[subcells[3]].get_connectivity()[0][7],
-                                self[subcells[2]].get_connectivity()[0][6],
-                            ],
-                            vec![
-                                self[subcells[0]].get_connectivity()[0][3],
-                                self[subcells[0]].get_connectivity()[0][2],
-                                self[subcells[2]].get_connectivity()[0][1],
-                                self[subcells[2]].get_connectivity()[0][0],
-                                self[subcells[0]].get_connectivity()[0][7],
-                                self[subcells[0]].get_connectivity()[0][6],
-                                self[subcells[2]].get_connectivity()[0][5],
-                                self[subcells[2]].get_connectivity()[0][4],
-                            ],
-                            vec![
-                                self[subcells[0]].get_connectivity()[0][2],
-                                self[subcells[1]].get_connectivity()[0][3],
-                                self[subcells[3]].get_connectivity()[0][0],
-                                self[subcells[2]].get_connectivity()[0][1],
-                                self[subcells[0]].get_connectivity()[0][6],
-                                self[subcells[1]].get_connectivity()[0][7],
-                                self[subcells[3]].get_connectivity()[0][4],
-                                self[subcells[2]].get_connectivity()[0][5],
-                            ],
-                            vec![
-                                self[subcells[0]].get_connectivity()[0][4],
-                                self[subcells[0]].get_connectivity()[0][5],
-                                self[subcells[0]].get_connectivity()[0][6],
-                                self[subcells[0]].get_connectivity()[0][7],
-                                self[subcells[4]].get_connectivity()[0][0],
-                                self[subcells[4]].get_connectivity()[0][1],
-                                self[subcells[4]].get_connectivity()[0][2],
-                                self[subcells[4]].get_connectivity()[0][3],
-                            ],
-                            vec![
-                                self[subcells[0]].get_connectivity()[0][5],
-                                self[subcells[1]].get_connectivity()[0][4],
-                                self[subcells[1]].get_connectivity()[0][7],
-                                self[subcells[0]].get_connectivity()[0][6],
-                                self[subcells[4]].get_connectivity()[0][1],
-                                self[subcells[5]].get_connectivity()[0][0],
-                                self[subcells[5]].get_connectivity()[0][3],
-                                self[subcells[4]].get_connectivity()[0][2],
-                            ],
-                            vec![
-                                self[subcells[1]].get_connectivity()[0][4],
-                                self[subcells[1]].get_connectivity()[0][5],
-                                self[subcells[1]].get_connectivity()[0][6],
-                                self[subcells[1]].get_connectivity()[0][7],
-                                self[subcells[5]].get_connectivity()[0][0],
-                                self[subcells[5]].get_connectivity()[0][1],
-                                self[subcells[5]].get_connectivity()[0][2],
-                                self[subcells[5]].get_connectivity()[0][3],
-                            ],
-                            vec![
-                                self[subcells[1]].get_connectivity()[0][7],
-                                self[subcells[1]].get_connectivity()[0][6],
-                                self[subcells[3]].get_connectivity()[0][5],
-                                self[subcells[3]].get_connectivity()[0][4],
-                                self[subcells[5]].get_connectivity()[0][3],
-                                self[subcells[5]].get_connectivity()[0][2],
-                                self[subcells[7]].get_connectivity()[0][1],
-                                self[subcells[7]].get_connectivity()[0][0],
-                            ],
-                            vec![
-                                self[subcells[3]].get_connectivity()[0][4],
-                                self[subcells[3]].get_connectivity()[0][5],
-                                self[subcells[3]].get_connectivity()[0][6],
-                                self[subcells[3]].get_connectivity()[0][7],
-                                self[subcells[7]].get_connectivity()[0][0],
-                                self[subcells[7]].get_connectivity()[0][1],
-                                self[subcells[7]].get_connectivity()[0][2],
-                                self[subcells[7]].get_connectivity()[0][3],
-                            ],
-                            vec![
-                                self[subcells[2]].get_connectivity()[0][5],
-                                self[subcells[3]].get_connectivity()[0][4],
-                                self[subcells[3]].get_connectivity()[0][7],
-                                self[subcells[2]].get_connectivity()[0][6],
-                                self[subcells[6]].get_connectivity()[0][1],
-                                self[subcells[7]].get_connectivity()[0][0],
-                                self[subcells[7]].get_connectivity()[0][3],
-                                self[subcells[6]].get_connectivity()[0][2],
-                            ],
-                            vec![
-                                self[subcells[2]].get_connectivity()[0][4],
-                                self[subcells[2]].get_connectivity()[0][5],
-                                self[subcells[2]].get_connectivity()[0][6],
-                                self[subcells[2]].get_connectivity()[0][7],
-                                self[subcells[6]].get_connectivity()[0][0],
-                                self[subcells[6]].get_connectivity()[0][1],
-                                self[subcells[6]].get_connectivity()[0][2],
-                                self[subcells[6]].get_connectivity()[0][3],
-                            ],
-                            vec![
-                                self[subcells[0]].get_connectivity()[0][7],
-                                self[subcells[0]].get_connectivity()[0][6],
-                                self[subcells[2]].get_connectivity()[0][5],
-                                self[subcells[2]].get_connectivity()[0][4],
-                                self[subcells[4]].get_connectivity()[0][3],
-                                self[subcells[4]].get_connectivity()[0][2],
-                                self[subcells[6]].get_connectivity()[0][1],
-                                self[subcells[6]].get_connectivity()[0][0],
-                            ],
-                            vec![
-                                self[subcells[0]].get_connectivity()[0][6],
-                                self[subcells[1]].get_connectivity()[0][7],
-                                self[subcells[3]].get_connectivity()[0][4],
-                                self[subcells[2]].get_connectivity()[0][5],
-                                self[subcells[4]].get_connectivity()[0][2],
-                                self[subcells[5]].get_connectivity()[0][3],
-                                self[subcells[7]].get_connectivity()[0][0],
-                                self[subcells[6]].get_connectivity()[0][1],
-                            ],
-                            vec![
-                                self[subcells[4]].get_connectivity()[0][1],
-                                self[subcells[5]].get_connectivity()[0][0],
-                                self[subcells[5]].get_connectivity()[0][3],
-                                self[subcells[4]].get_connectivity()[0][2],
-                                self[subcells[4]].get_connectivity()[0][5],
-                                self[subcells[5]].get_connectivity()[0][4],
-                                self[subcells[5]].get_connectivity()[0][7],
-                                self[subcells[4]].get_connectivity()[0][6],
-                            ],
-                            vec![
-                                self[subcells[5]].get_connectivity()[0][3],
-                                self[subcells[5]].get_connectivity()[0][2],
-                                self[subcells[7]].get_connectivity()[0][1],
-                                self[subcells[7]].get_connectivity()[0][0],
-                                self[subcells[5]].get_connectivity()[0][7],
-                                self[subcells[5]].get_connectivity()[0][6],
-                                self[subcells[7]].get_connectivity()[0][5],
-                                self[subcells[7]].get_connectivity()[0][4],
-                            ],
-                            vec![
-                                self[subcells[6]].get_connectivity()[0][1],
-                                self[subcells[7]].get_connectivity()[0][0],
-                                self[subcells[7]].get_connectivity()[0][3],
-                                self[subcells[6]].get_connectivity()[0][2],
-                                self[subcells[6]].get_connectivity()[0][5],
-                                self[subcells[7]].get_connectivity()[0][4],
-                                self[subcells[7]].get_connectivity()[0][7],
-                                self[subcells[6]].get_connectivity()[0][6],
-                            ],
-                            vec![
-                                self[subcells[4]].get_connectivity()[0][3],
-                                self[subcells[4]].get_connectivity()[0][2],
-                                self[subcells[6]].get_connectivity()[0][1],
-                                self[subcells[6]].get_connectivity()[0][0],
-                                self[subcells[4]].get_connectivity()[0][7],
-                                self[subcells[4]].get_connectivity()[0][6],
-                                self[subcells[6]].get_connectivity()[0][5],
-                                self[subcells[6]].get_connectivity()[0][4],
-                            ],
-                            vec![
-                                self[subcells[4]].get_connectivity()[0][2],
-                                self[subcells[5]].get_connectivity()[0][3],
-                                self[subcells[7]].get_connectivity()[0][0],
-                                self[subcells[6]].get_connectivity()[0][1],
-                                self[subcells[4]].get_connectivity()[0][6],
-                                self[subcells[5]].get_connectivity()[0][7],
-                                self[subcells[7]].get_connectivity()[0][4],
-                                self[subcells[6]].get_connectivity()[0][5],
-                            ],
-                        ]);
                     }
+                    // else if subcells
+                    //     .into_iter()
+                    //     .filter(|&subcell| {
+                    //         matches!(self[subcell].get_template(), Some(Template::Hex00000000(_)))
+                    //     })
+                    //     .count()
+                    //     == NUM_OCTANTS
+                    // {
+                    // //
+                    // // are you going to assign the connectivity and template to this cell?
+                    // //
+                    //     element_blocks.append(&mut vec![1; 19]);
+                    //     element_node_connectivity.append(&mut vec![
+                    //         vec![
+                    //             self[subcells[0]].get_connectivity()[0][1],
+                    //             self[subcells[1]].get_connectivity()[0][0],
+                    //             self[subcells[1]].get_connectivity()[0][3],
+                    //             self[subcells[0]].get_connectivity()[0][2],
+                    //             self[subcells[0]].get_connectivity()[0][5],
+                    //             self[subcells[1]].get_connectivity()[0][4],
+                    //             self[subcells[1]].get_connectivity()[0][7],
+                    //             self[subcells[0]].get_connectivity()[0][6],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[1]].get_connectivity()[0][3],
+                    //             self[subcells[1]].get_connectivity()[0][2],
+                    //             self[subcells[3]].get_connectivity()[0][1],
+                    //             self[subcells[3]].get_connectivity()[0][0],
+                    //             self[subcells[1]].get_connectivity()[0][7],
+                    //             self[subcells[1]].get_connectivity()[0][6],
+                    //             self[subcells[3]].get_connectivity()[0][5],
+                    //             self[subcells[3]].get_connectivity()[0][4],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[2]].get_connectivity()[0][1],
+                    //             self[subcells[3]].get_connectivity()[0][0],
+                    //             self[subcells[3]].get_connectivity()[0][3],
+                    //             self[subcells[2]].get_connectivity()[0][2],
+                    //             self[subcells[2]].get_connectivity()[0][5],
+                    //             self[subcells[3]].get_connectivity()[0][4],
+                    //             self[subcells[3]].get_connectivity()[0][7],
+                    //             self[subcells[2]].get_connectivity()[0][6],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[0]].get_connectivity()[0][3],
+                    //             self[subcells[0]].get_connectivity()[0][2],
+                    //             self[subcells[2]].get_connectivity()[0][1],
+                    //             self[subcells[2]].get_connectivity()[0][0],
+                    //             self[subcells[0]].get_connectivity()[0][7],
+                    //             self[subcells[0]].get_connectivity()[0][6],
+                    //             self[subcells[2]].get_connectivity()[0][5],
+                    //             self[subcells[2]].get_connectivity()[0][4],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[0]].get_connectivity()[0][2],
+                    //             self[subcells[1]].get_connectivity()[0][3],
+                    //             self[subcells[3]].get_connectivity()[0][0],
+                    //             self[subcells[2]].get_connectivity()[0][1],
+                    //             self[subcells[0]].get_connectivity()[0][6],
+                    //             self[subcells[1]].get_connectivity()[0][7],
+                    //             self[subcells[3]].get_connectivity()[0][4],
+                    //             self[subcells[2]].get_connectivity()[0][5],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[0]].get_connectivity()[0][4],
+                    //             self[subcells[0]].get_connectivity()[0][5],
+                    //             self[subcells[0]].get_connectivity()[0][6],
+                    //             self[subcells[0]].get_connectivity()[0][7],
+                    //             self[subcells[4]].get_connectivity()[0][0],
+                    //             self[subcells[4]].get_connectivity()[0][1],
+                    //             self[subcells[4]].get_connectivity()[0][2],
+                    //             self[subcells[4]].get_connectivity()[0][3],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[0]].get_connectivity()[0][5],
+                    //             self[subcells[1]].get_connectivity()[0][4],
+                    //             self[subcells[1]].get_connectivity()[0][7],
+                    //             self[subcells[0]].get_connectivity()[0][6],
+                    //             self[subcells[4]].get_connectivity()[0][1],
+                    //             self[subcells[5]].get_connectivity()[0][0],
+                    //             self[subcells[5]].get_connectivity()[0][3],
+                    //             self[subcells[4]].get_connectivity()[0][2],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[1]].get_connectivity()[0][4],
+                    //             self[subcells[1]].get_connectivity()[0][5],
+                    //             self[subcells[1]].get_connectivity()[0][6],
+                    //             self[subcells[1]].get_connectivity()[0][7],
+                    //             self[subcells[5]].get_connectivity()[0][0],
+                    //             self[subcells[5]].get_connectivity()[0][1],
+                    //             self[subcells[5]].get_connectivity()[0][2],
+                    //             self[subcells[5]].get_connectivity()[0][3],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[1]].get_connectivity()[0][7],
+                    //             self[subcells[1]].get_connectivity()[0][6],
+                    //             self[subcells[3]].get_connectivity()[0][5],
+                    //             self[subcells[3]].get_connectivity()[0][4],
+                    //             self[subcells[5]].get_connectivity()[0][3],
+                    //             self[subcells[5]].get_connectivity()[0][2],
+                    //             self[subcells[7]].get_connectivity()[0][1],
+                    //             self[subcells[7]].get_connectivity()[0][0],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[3]].get_connectivity()[0][4],
+                    //             self[subcells[3]].get_connectivity()[0][5],
+                    //             self[subcells[3]].get_connectivity()[0][6],
+                    //             self[subcells[3]].get_connectivity()[0][7],
+                    //             self[subcells[7]].get_connectivity()[0][0],
+                    //             self[subcells[7]].get_connectivity()[0][1],
+                    //             self[subcells[7]].get_connectivity()[0][2],
+                    //             self[subcells[7]].get_connectivity()[0][3],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[2]].get_connectivity()[0][5],
+                    //             self[subcells[3]].get_connectivity()[0][4],
+                    //             self[subcells[3]].get_connectivity()[0][7],
+                    //             self[subcells[2]].get_connectivity()[0][6],
+                    //             self[subcells[6]].get_connectivity()[0][1],
+                    //             self[subcells[7]].get_connectivity()[0][0],
+                    //             self[subcells[7]].get_connectivity()[0][3],
+                    //             self[subcells[6]].get_connectivity()[0][2],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[2]].get_connectivity()[0][4],
+                    //             self[subcells[2]].get_connectivity()[0][5],
+                    //             self[subcells[2]].get_connectivity()[0][6],
+                    //             self[subcells[2]].get_connectivity()[0][7],
+                    //             self[subcells[6]].get_connectivity()[0][0],
+                    //             self[subcells[6]].get_connectivity()[0][1],
+                    //             self[subcells[6]].get_connectivity()[0][2],
+                    //             self[subcells[6]].get_connectivity()[0][3],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[0]].get_connectivity()[0][7],
+                    //             self[subcells[0]].get_connectivity()[0][6],
+                    //             self[subcells[2]].get_connectivity()[0][5],
+                    //             self[subcells[2]].get_connectivity()[0][4],
+                    //             self[subcells[4]].get_connectivity()[0][3],
+                    //             self[subcells[4]].get_connectivity()[0][2],
+                    //             self[subcells[6]].get_connectivity()[0][1],
+                    //             self[subcells[6]].get_connectivity()[0][0],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[0]].get_connectivity()[0][6],
+                    //             self[subcells[1]].get_connectivity()[0][7],
+                    //             self[subcells[3]].get_connectivity()[0][4],
+                    //             self[subcells[2]].get_connectivity()[0][5],
+                    //             self[subcells[4]].get_connectivity()[0][2],
+                    //             self[subcells[5]].get_connectivity()[0][3],
+                    //             self[subcells[7]].get_connectivity()[0][0],
+                    //             self[subcells[6]].get_connectivity()[0][1],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[4]].get_connectivity()[0][1],
+                    //             self[subcells[5]].get_connectivity()[0][0],
+                    //             self[subcells[5]].get_connectivity()[0][3],
+                    //             self[subcells[4]].get_connectivity()[0][2],
+                    //             self[subcells[4]].get_connectivity()[0][5],
+                    //             self[subcells[5]].get_connectivity()[0][4],
+                    //             self[subcells[5]].get_connectivity()[0][7],
+                    //             self[subcells[4]].get_connectivity()[0][6],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[5]].get_connectivity()[0][3],
+                    //             self[subcells[5]].get_connectivity()[0][2],
+                    //             self[subcells[7]].get_connectivity()[0][1],
+                    //             self[subcells[7]].get_connectivity()[0][0],
+                    //             self[subcells[5]].get_connectivity()[0][7],
+                    //             self[subcells[5]].get_connectivity()[0][6],
+                    //             self[subcells[7]].get_connectivity()[0][5],
+                    //             self[subcells[7]].get_connectivity()[0][4],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[6]].get_connectivity()[0][1],
+                    //             self[subcells[7]].get_connectivity()[0][0],
+                    //             self[subcells[7]].get_connectivity()[0][3],
+                    //             self[subcells[6]].get_connectivity()[0][2],
+                    //             self[subcells[6]].get_connectivity()[0][5],
+                    //             self[subcells[7]].get_connectivity()[0][4],
+                    //             self[subcells[7]].get_connectivity()[0][7],
+                    //             self[subcells[6]].get_connectivity()[0][6],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[4]].get_connectivity()[0][3],
+                    //             self[subcells[4]].get_connectivity()[0][2],
+                    //             self[subcells[6]].get_connectivity()[0][1],
+                    //             self[subcells[6]].get_connectivity()[0][0],
+                    //             self[subcells[4]].get_connectivity()[0][7],
+                    //             self[subcells[4]].get_connectivity()[0][6],
+                    //             self[subcells[6]].get_connectivity()[0][5],
+                    //             self[subcells[6]].get_connectivity()[0][4],
+                    //         ],
+                    //         vec![
+                    //             self[subcells[4]].get_connectivity()[0][2],
+                    //             self[subcells[5]].get_connectivity()[0][3],
+                    //             self[subcells[7]].get_connectivity()[0][0],
+                    //             self[subcells[6]].get_connectivity()[0][1],
+                    //             self[subcells[4]].get_connectivity()[0][6],
+                    //             self[subcells[5]].get_connectivity()[0][7],
+                    //             self[subcells[7]].get_connectivity()[0][4],
+                    //             self[subcells[6]].get_connectivity()[0][5],
+                    //         ],
+                    //     ]);
+                    // }
                 }
             })
         });
