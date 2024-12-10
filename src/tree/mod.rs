@@ -99,6 +99,15 @@ impl Cell {
     fn get_cells(&self) -> &Option<Indices> {
         &self.cells
     }
+    fn get_connectivity(&self) -> &[[usize; ELEMENT_NUM_NODES]] {
+        if let Some(template) = self.get_template() {
+            match template {
+                Template::Hex00000000(connectivity) => connectivity
+            }
+        } else {
+            panic!()
+        }
+    }
     fn get_faces(&self) -> &Faces {
         &self.faces
     }
@@ -558,7 +567,7 @@ impl Tree for OcTree {
                             element_blocks.push(1);
                             connectivity = [from_fn(|n| node + n)];
                             self[*index].template = Some(Template::Hex00000000(connectivity));
-                            node += 8;
+                            node += ELEMENT_NUM_NODES * connectivity.len();
                             element_node_connectivity.push(
                                 connectivity[0].into_iter().collect::<Vec<usize>>()
                             );
@@ -608,102 +617,89 @@ impl Tree for OcTree {
                                 ]
                             );
                         }
+                    } else if subcells.into_iter().filter(|&subcell|
+                        match self[subcell].get_template() {
+                            Some(Template::Hex00000000(_)) => true,
+                            _ => false,
+                        }
+                    ).count() == NUM_OCTANTS {
+                        //
+                        // are you going to assign the connectivity and template to this cell?
+                        //
+                        element_blocks.append(&mut vec![1, 1, 1, 1, 1]);
+                        element_node_connectivity.append(
+                            &mut vec![
+                                vec![
+                                    self[subcells[0]].get_connectivity()[0][1],
+                                    self[subcells[1]].get_connectivity()[0][0],
+                                    self[subcells[1]].get_connectivity()[0][3],
+                                    self[subcells[0]].get_connectivity()[0][2],
+                                    self[subcells[0]].get_connectivity()[0][5],
+                                    self[subcells[1]].get_connectivity()[0][4],
+                                    self[subcells[1]].get_connectivity()[0][7],
+                                    self[subcells[0]].get_connectivity()[0][6],
+                                ],
+                                vec![
+                                    self[subcells[1]].get_connectivity()[0][3],
+                                    self[subcells[1]].get_connectivity()[0][2],
+                                    self[subcells[3]].get_connectivity()[0][1],
+                                    self[subcells[3]].get_connectivity()[0][0],
+                                    self[subcells[1]].get_connectivity()[0][7],
+                                    self[subcells[1]].get_connectivity()[0][6],
+                                    self[subcells[3]].get_connectivity()[0][5],
+                                    self[subcells[3]].get_connectivity()[0][4],
+                                ],
+                                vec![
+                                    self[subcells[2]].get_connectivity()[0][1],
+                                    self[subcells[3]].get_connectivity()[0][0],
+                                    self[subcells[3]].get_connectivity()[0][3],
+                                    self[subcells[2]].get_connectivity()[0][2],
+                                    self[subcells[2]].get_connectivity()[0][5],
+                                    self[subcells[3]].get_connectivity()[0][4],
+                                    self[subcells[3]].get_connectivity()[0][7],
+                                    self[subcells[2]].get_connectivity()[0][6],
+                                ],
+                                vec![
+                                    self[subcells[0]].get_connectivity()[0][3],
+                                    self[subcells[0]].get_connectivity()[0][2],
+                                    self[subcells[2]].get_connectivity()[0][1],
+                                    self[subcells[2]].get_connectivity()[0][0],
+                                    self[subcells[0]].get_connectivity()[0][7],
+                                    self[subcells[0]].get_connectivity()[0][6],
+                                    self[subcells[2]].get_connectivity()[0][5],
+                                    self[subcells[2]].get_connectivity()[0][4],
+                                ],
+                                vec![
+                                    self[subcells[0]].get_connectivity()[0][2],
+                                    self[subcells[1]].get_connectivity()[0][3],
+                                    self[subcells[3]].get_connectivity()[0][0],
+                                    self[subcells[2]].get_connectivity()[0][1],
+                                    self[subcells[0]].get_connectivity()[0][6],
+                                    self[subcells[1]].get_connectivity()[0][7],
+                                    self[subcells[3]].get_connectivity()[0][4],
+                                    self[subcells[2]].get_connectivity()[0][5],
+                                ],
+                                // vec![
+                                //     self[subcells[]].get_connectivity()[0][],
+                                //     self[subcells[]].get_connectivity()[0][],
+                                //     self[subcells[]].get_connectivity()[0][],
+                                //     self[subcells[]].get_connectivity()[0][],
+                                //     self[subcells[]].get_connectivity()[0][],
+                                //     self[subcells[]].get_connectivity()[0][],
+                                //     self[subcells[]].get_connectivity()[0][],
+                                //     self[subcells[]].get_connectivity()[0][],
+                                // ],
+                            ]
+                        );
+                        // no new nodal coordinates, just connectivity
+                        // subcell_0_node_1
+                        // subcell_1_node_0
+                        // subcell_1_node_3
+                        // subcell_0_node_2
                     }
                 }
             )
         );
-
-        // levels_map[0].iter().for_each(|index|
-        //     if let Some(subcells) = self[*index].cells {
-        //         subcell_tally = subcells.into_iter().filter(|&subcell| removed_data.binary_search(&self[subcell].get_block()).is_err()).count();
-        //         //
-        //         // mesh partial template if between 0 and NUM_OCTANTS(8)
-        //         // skip and do not mesh if 0
-        //         //
-        //         if subcell_tally == NUM_OCTANTS {
-        //             will_mesh = true;
-        //             //self[*index].get_faces()
-        //             //    .iter()
-        //             //    .for_each(|face|
-        //             //        if let Some(face_index) = face {
-        //             //            if self[*face_index].get_cells().is_some() && self[*face_index].get_template().is_some() {
-        //             //                will_mesh = false
-        //             //            }
-        //             //        }
-        //             //);
-        //             //
-        //             // next: cases where neighboring faces have T0000
-        //             //
-        //             // WHAT ABOUT NEIGHBORS IN CORNER POSITIONS? THEY SHARE NODES!
-        //             // DO YOU HAVE TO TRACK "EDGES" TOO? (the 8 cells that share edges but not faces)
-        //             // matter when the face is not meshed yet (None template), but one or more of the edges do
-        //             //
-        //             // doesnt that only matter for the tets case?
-        //             // the single hexes you are placing in should not touch each other
-        //             //
-        //             if will_mesh {
-        //                 //
-        //                 // also, what if not homogeneous?
-        //                 // since dualization would place elements over the interfaces
-        //                 //
-        //                 element_blocks.push(1);
-        //                 // element_blocks.push(self[*index].get_block() as usize);
-        //                 connectivity = [from_fn(|n| node + n)];
-        //                 self[*index].template = Some(Template::Hex00000000(connectivity));
-        //                 node += 8;
-        //                 element_node_connectivity.push(
-        //                     connectivity[0].into_iter().collect::<Vec<usize>>()
-        //                 );
-        //                 quarter_cell_length = 0.25 * (self[*index].get_max_x() - self[*index].get_min_x());
-        //                 nodal_coordinates.0.append(
-        //                     &mut vec![
-        //                         Vector::new([
-        //                             self[*index].get_min_x() + quarter_cell_length,
-        //                             self[*index].get_min_y() + quarter_cell_length,
-        //                             self[*index].get_min_z() + quarter_cell_length,
-        //                         ]),
-        //                         Vector::new([
-        //                             self[*index].get_max_x() - quarter_cell_length,
-        //                             self[*index].get_min_y() + quarter_cell_length,
-        //                             self[*index].get_min_z() + quarter_cell_length,
-        //                         ]),
-        //                         Vector::new([
-        //                             self[*index].get_max_x() - quarter_cell_length,
-        //                             self[*index].get_max_y() - quarter_cell_length,
-        //                             self[*index].get_min_z() + quarter_cell_length,
-        //                         ]),
-        //                         Vector::new([
-        //                             self[*index].get_min_x() + quarter_cell_length,
-        //                             self[*index].get_max_y() - quarter_cell_length,
-        //                             self[*index].get_min_z() + quarter_cell_length,
-        //                         ]),
-        //                         Vector::new([
-        //                             self[*index].get_min_x() + quarter_cell_length,
-        //                             self[*index].get_min_y() + quarter_cell_length,
-        //                             self[*index].get_max_z() - quarter_cell_length,
-        //                         ]),
-        //                         Vector::new([
-        //                             self[*index].get_max_x() - quarter_cell_length,
-        //                             self[*index].get_min_y() + quarter_cell_length,
-        //                             self[*index].get_max_z() - quarter_cell_length,
-        //                         ]),
-        //                         Vector::new([
-        //                             self[*index].get_max_x() - quarter_cell_length,
-        //                             self[*index].get_max_y() - quarter_cell_length,
-        //                             self[*index].get_max_z() - quarter_cell_length,
-        //                         ]),
-        //                         Vector::new([
-        //                             self[*index].get_min_x() + quarter_cell_length,
-        //                             self[*index].get_max_y() - quarter_cell_length,
-        //                             self[*index].get_max_z() - quarter_cell_length,
-        //                         ]),
-        //                     ]
-        //                 );
-        //             }
-        //         }
-        //     }
-        // );
-
         Ok(FiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
