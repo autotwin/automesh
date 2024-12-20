@@ -1,0 +1,118 @@
+m0:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 1
+  plot_kwargs:
+    label: r=0 cm
+    linestyle: "--"
+m1:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 2
+  plot_kwargs:
+    label: r=1 cm
+    linestyle: ":"
+m2:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 3
+  plot_kwargs:
+    label: r=2 cm
+    marker: "$2$"
+m3:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 4
+  plot_kwargs:
+    label: r=3 cm
+m4:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 5
+  plot_kwargs:
+    label: r=4 cm
+    marker: "$4$"
+m5:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 6
+  plot_kwargs:
+    label: r=5 cm
+m6:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 7
+  plot_kwargs:
+    label: r=6 cm
+    marker: "$6$"
+m7:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 8
+  plot_kwargs:
+    label: r=7 cm
+m8:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 9
+  plot_kwargs:
+    label: r=8 cm
+    marker: "$8$"
+m9:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 10
+  plot_kwargs:
+    label: r=9 cm
+m10:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 11
+  plot_kwargs:
+    label: r=10 cm
+    marker: "$10$"
+m11:
+  class: model
+  folder: ~/autotwin/ssm/input/sr3
+  file: history.csv
+  skip_rows: 3
+  ycolumn: 12
+  plot_kwargs:
+    label: r=11 cm
+figure:
+  class: view
+  folder: ~/autotwin/automesh/book/analysis/sphere_with_shells/img
+  file: displacement_sr3.svg
+  size: [8.0, 6.0]
+  title: Displacement Magnitude at Various Radii (sr3)
+  xlabel: time (s),
+  ylabel: displacement magnitude (cm)
+  xlim: [-0.001, 0.021]
+  #ylim: [-0.01, 0.46]
+  details: false
+  display: true
+  dpi: 100
+  latex: false
+  serialize: true

@@ -1,8 +1,8 @@
 angular_position:
   class: model
-  # folder: ~/autotwin/ssm/input/sr2
-  # folder: ~/autotwin/ssm/input/sr3
-  folder: ~/autotwin/ssm/input/sr4
+  folder: ~/autotwin/ssm/input/sr2
+  #folder: ~/autotwin/ssm/input/sr3
+  #folder: ~/autotwin/ssm/input/sr4
   file: history_rigid.csv
   skip_rows: 2
   ycolumn: 12
@@ -14,13 +14,13 @@ angular_position:
 figure:
   class: view
   folder: ~/autotwin/automesh/book/analysis/sphere_with_shells/img
-  # file: sr2_angular_position_z.png
-  # file: sr3_angular_position_z.png
-  file: sr4_angular_position_z.png
+  file: sr2_angular_position_z.svg
+  #file: sr3_angular_position_z.svg
+  #file: sr4_angular_position_z.svg
   size: [8.0, 6.0]
-  # title: sr2 angular position versus time
-  # title: sr3 angular position versus time
-  title: sr4 angular position versus time
+  title: sr2 angular position versus time
+  #title: sr3 angular position versus time
+  #title: sr4 angular position versus time
   xlabel: time (s)
   ylabel: angular position z (rad)
   yaxis_rhs:

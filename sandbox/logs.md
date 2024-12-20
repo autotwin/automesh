@@ -4,6 +4,22 @@
 
 *In order of most recent to least recent.*
 
+## 2024-12-18
+
+* .svg figures instead of .png
+  * inherit colors from webpage
+  * more lightweight
+  * `custom.css` into mdbook, and point to it in the mdbook
+  * CBH to create a cross-correlation .svg images
+* order to get a dualized mesh - MRB to do next
+  * dualization with one material block
+  * then dualization with two material blocks, how to handle the interfaces?
+  * strong balance, regular pairing
+  * weak balance, regular pairing
+  * generalized pairing
+* IPREDICT input segmentations
+  * show existing mesh workflow, conformity of .stl boundaries
+  * how might we improve their workflow
 
 ## 2024-12-09
 

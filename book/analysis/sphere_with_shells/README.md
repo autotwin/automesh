@@ -8,6 +8,7 @@ We use the model to explore answers to the following questions:
 3. Given a rotational boundary condition, what are the displacement and strain fields for the voxel mesh?
 4. How do the results for the voxel mesh compare with the results for a conforming mesh?
 5. To what degree may smoothing the voxel mesh improve the results?
+6. To what degree may dualization of the voxel mesh improve the results?
 
 ## Model
 

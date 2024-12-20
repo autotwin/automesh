@@ -1,8 +1,8 @@
 angular_acceleration:
   class: model
-  # folder: ~/autotwin/ssm/input/sr2
-  # folder: ~/autotwin/ssm/input/sr3
-  folder: ~/autotwin/ssm/input/sr4
+  folder: ~/autotwin/ssm/input/sr2
+  #folder: ~/autotwin/ssm/input/sr3
+  #folder: ~/autotwin/ssm/input/sr4
   file: history_rigid.csv
   skip_rows: 2
   ycolumn: 18
@@ -14,13 +14,13 @@ angular_acceleration:
 figure:
   class: view
   folder: ~/autotwin/automesh/book/analysis/sphere_with_shells/img
-  # file: sr2_angular_acceleration_z.png
-  # file: sr3_angular_acceleration_z.png
-  file: sr4_angular_acceleration_z.png
+  file: sr2_angular_acceleration_z.svg
+  #file: sr3_angular_acceleration_z.svg
+  #file: sr4_angular_acceleration_z.svg
   size: [8.0, 6.0]
-  # title: sr2 angular acceleration versus time
-  # title: sr3 angular acceleration versus time
-  title: sr4 angular acceleration versus time
+  title: sr2 angular acceleration versus time
+  #title: sr3 angular acceleration versus time
+  #title: sr4 angular acceleration versus time
   xlabel: time (s)
   ylabel: angular acceleration z (rad/s^2)
   details: false
