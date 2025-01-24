@@ -401,7 +401,7 @@ fn finite_element_data_from_inp<const NUM_NODES_ELEMENT: usize>(
                 .parse()
                 .unwrap(),
         );
-        nodal_coordinates.0.push(
+        nodal_coordinates.push(
             buffer
                 .trim()
                 .split(",")
@@ -563,7 +563,7 @@ fn write_finite_elements_to_abaqus<const NUM_NODES_ELEMENT: usize>(
     nodal_coordinates: &Coordinates,
 ) -> Result<(), ErrorIO> {
     let element_number_width = get_width(element_node_connectivity);
-    let node_number_width = get_width(&nodal_coordinates.0);
+    let node_number_width = nodal_coordinates.len().to_string().chars().count();
     let inp_file = File::create(file_path)?;
     let mut file = BufWriter::new(inp_file);
     write_heading_to_inp(&mut file)?;
