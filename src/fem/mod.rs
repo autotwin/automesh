@@ -16,7 +16,11 @@ use std::time::Instant;
 
 use super::{Coordinate, Coordinates, Tessellation, Vector, NSD};
 use chrono::Utc;
-use conspire::math::{Tensor, TensorArray, TensorVec};
+use conspire::{
+    constitutive::solid::hyperelastic::NeoHookean,
+    math::{Tensor, TensorArray, TensorVec, TensorRank1Vec},
+    fem::{ElementBlock, LinearTriangle, SurfaceFiniteElementBlock}
+};
 use ndarray::{s, Array1, Array2};
 use ndarray_npy::WriteNpyExt;
 use netcdf::{create, Error as ErrorNetCDF};
@@ -81,6 +85,8 @@ pub trait FiniteElementMethods<const N: usize>
 where
     Self: FiniteElementSpecifics + Sized,
 {
+    /// ???
+    fn bar(&self, thickness: f64);
     /// Constructs and returns a new finite elements type from data.
     fn from_data(
         element_blocks: Blocks,
@@ -153,6 +159,15 @@ impl<const N: usize> FiniteElementMethods<N> for FiniteElements<N>
 where
     Self: FiniteElementSpecifics + Sized,
 {
+    fn bar(&self, thickness: f64) {
+        const E: usize = 88;
+        let foo = ElementBlock::<E, LinearTriangle<NeoHookean>, TRI>::new(
+            &[13.0, 3.0],
+            [[0, 0, 0]; E],
+            TensorRank1Vec::<NSD, 0>::new(&[]),
+            thickness,
+        );
+    }
     fn from_data(
         element_blocks: Blocks,
         element_node_connectivity: Connectivity<N>,
