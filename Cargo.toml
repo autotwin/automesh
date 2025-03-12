@@ -17,7 +17,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 clap = { version = "=4.5.32", features = ["derive"] }
 chrono = "=0.4.40"
-conspire = { features = ["fem"], git = "https://github.com/mrbuche/conspire.rs.git", rev = "bdb6ee8283cc3333257f6895ca63b3b82e0e236f" }
+conspire = { features = ["fem"], git = "https://github.com/mrbuche/conspire.rs.git", rev = "aa4034ddb2f2fd474f7bacf627b9382acc92ee04" }
 ndarray = {version = "=0.15.6"}
 ndarray-npy = {version = "=0.8.1"}
 netcdf = { version = "=0.10.5", features = ["ndarray", "static"] }

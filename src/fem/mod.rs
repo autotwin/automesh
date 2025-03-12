@@ -17,9 +17,9 @@ use std::time::Instant;
 use super::{Coordinate, Coordinates, Tessellation, Vector, NSD};
 use chrono::Utc;
 use conspire::{
-    constitutive::solid::hyperelastic::NeoHookean,
-    math::{Tensor, TensorArray, TensorVec, TensorRank1Vec},
-    fem::{ElementBlock, LinearTriangle, SurfaceFiniteElementBlock}
+    constitutive::{Constitutive, Parameters, solid::{elastic::Elastic, hyperelastic::NeoHookean}},
+    fem::{ElasticFiniteElementBlock, ElementBlock, LinearTriangle, SurfaceFiniteElementBlock, FiniteElementBlock, FiniteElement, SurfaceFiniteElement, ElasticFiniteElement},
+    math::{Tensor, TensorArray, TensorRank1Vec, TensorVec, TensorRank1, TensorRank1List},
 };
 use ndarray::{s, Array1, Array2};
 use ndarray_npy::WriteNpyExt;
@@ -46,10 +46,79 @@ pub type Blocks = Vec<u8>;
 /// An element-to-node connectivity.
 pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 
-pub type VecConnectivity = Vec<Vec<usize>>;
+pub type Forces = TensorRank1Vec<NSD, 1>;
 pub type Metrics = Array1<f64>;
 pub type Nodes = Vec<usize>;
+pub type ReferenceCoordinate = TensorRank1<3, 0>;
+pub type ReferenceCoordinates = TensorRank1Vec<3, 0>;
 pub type ReorderedConnectivity = Vec<Vec<i32>>;
+pub type VecConnectivity = Vec<Vec<usize>>;
+
+struct FooBlock<C> {
+    connectivity: Connectivity<TRI>,
+    elements: Vec<LinearTriangle<C>>,
+}
+
+impl<'a, C> SurfaceFiniteElementBlock<'a, C, LinearTriangle<C>, 1, TRI, 1>
+    for FooBlock<C>
+where
+    C: Constitutive<'a>,
+{
+    fn new(
+        constitutive_model_parameters: Parameters<'a>,
+        connectivity: Connectivity<TRI>,
+        _reference_nodal_coordinates: TensorRank1Vec<3, 0>,
+        thickness: f64,
+    ) -> Self {
+        let elements = connectivity
+            .iter()
+            .map(|_element_connectivity| {
+                LinearTriangle::<C>::new(
+                    constitutive_model_parameters,
+                    TensorRank1List::<3, 0, 3>::new([
+                        [0.0, 0.0, 0.0],
+                        [1.0, 0.0, 0.0],
+                        [0.5, 0.5 * 3_f64.sqrt(), 0.0],
+                        // [0.0, 1.0, 0.0],
+                    ]),
+                    &thickness
+                )
+            })
+            .collect();
+        Self {
+            connectivity,
+            elements,
+        }
+    }
+}
+
+impl<'a, C> FooBlock<C>
+where
+    C: Elastic<'a>,
+{
+    fn nodal_forces(
+        &self,
+        nodal_coordinates: &Coordinates,
+    ) -> Forces {
+        let mut nodal_forces = Forces::zero(nodal_coordinates.len());
+        self.elements
+            .iter()
+            .zip(self.connectivity.iter())
+            .for_each(|(element, element_connectivity)| {
+                element
+                    .nodal_forces(
+                        &element_connectivity
+                            .iter()
+                            .map(|node| nodal_coordinates[*node].clone())
+                            .collect()
+                    ).unwrap()
+                    .iter()
+                    .zip(element_connectivity.iter())
+                    .for_each(|(nodal_force, node)| nodal_forces[*node] += nodal_force)
+            });
+        nodal_forces
+    }
+}
 
 /// Possible smoothing methods.
 pub enum Smoothing {
@@ -86,7 +155,7 @@ where
     Self: FiniteElementSpecifics + Sized,
 {
     /// ???
-    fn bar(&self, thickness: f64);
+    fn foo(&self, bulk_modulus: f64, shear_modulus: f64, thickness: f64) -> Forces;
     /// Constructs and returns a new finite elements type from data.
     fn from_data(
         element_blocks: Blocks,
@@ -159,14 +228,42 @@ impl<const N: usize> FiniteElementMethods<N> for FiniteElements<N>
 where
     Self: FiniteElementSpecifics + Sized,
 {
-    fn bar(&self, thickness: f64) {
-        const E: usize = 88;
-        let foo = ElementBlock::<E, LinearTriangle<NeoHookean>, TRI>::new(
-            &[13.0, 3.0],
-            [[0, 0, 0]; E],
-            TensorRank1Vec::<NSD, 0>::new(&[]),
+    fn foo(&self, bulk_modulus: f64, shear_modulus: f64, thickness: f64) -> Forces {
+        let element_node_connectivity: Connectivity<TRI> = self.get_element_node_connectivity().iter().map(|connectivity|
+            [connectivity[0] - NODE_NUMBERING_OFFSET, connectivity[1] - NODE_NUMBERING_OFFSET, connectivity[2] - NODE_NUMBERING_OFFSET]
+        ).collect();
+        let foo = ReferenceCoordinates::zero(self.get_nodal_coordinates().len());
+        // let mut nodal_coordinates = ReferenceCoordinates::zero(self.get_nodal_coordinates().len());
+        //
+        // MORE COMPLICATED THAN THIS DUE TO CONNECTIVITY
+        //
+        // element_node_connectivity.iter().for_each(|connectivity| {
+        //     // nodal_coordinates[connectivity[0]] = ReferenceCoordinate::new([0.0, 0.0, 0.0]); // shouldn't need this
+        //     nodal_coordinates[connectivity[1]] = ReferenceCoordinate::new([1.0, 0.0, 0.0]);
+        //     // nodal_coordinates[connectivity[0]] = ReferenceCoordinate::new([0.5, 0.5 * 3_f64.sqrt(), 0.0])
+        //     nodal_coordinates[connectivity[2]] = ReferenceCoordinate::new([0.0, 1.0, 0.0])
+        // });
+        // let mut nodal_coordinates: ReferenceCoordinates = self.get_nodal_coordinates().iter().map(|coordinate|
+        //     coordinate.into()
+        // ).collect();
+        // nodal_coordinates[0][0] += 1e-3;
+        // self.get_element_node_connectivity().iter().for_each(|connectivity|
+        //     println!("{}, {}, {}",
+        //         &self.get_nodal_coordinates()[connectivity[0] - NODE_NUMBERING_OFFSET],
+        //         &self.get_nodal_coordinates()[connectivity[1] - NODE_NUMBERING_OFFSET],
+        //         &self.get_nodal_coordinates()[connectivity[2] - NODE_NUMBERING_OFFSET]
+        //         // &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET],
+        //         // &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET],
+        //         // &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
+        //     )
+        // );
+        let constitutive_model_parameters = &[bulk_modulus, shear_modulus];
+        FooBlock::<NeoHookean>::new(
+            constitutive_model_parameters,
+            element_node_connectivity,
+            foo,
             thickness,
-        );
+        ).nodal_forces(self.get_nodal_coordinates())
     }
     fn from_data(
         element_blocks: Blocks,
@@ -402,7 +499,7 @@ where
                         smoothing_scale_deflate = scale;
                         smoothing_scale_inflate = scale / (pass_band * scale - 1.0);
                         if smoothing_scale_deflate >= -smoothing_scale_inflate {
-                            return Err("Inflation scale must be larger than deflation scale.");
+                            return Err("Inflation scale must be larger than deflation scale");
                         }
                     }
                 }
@@ -441,11 +538,18 @@ where
                 } else {
                     smoothing_scale_deflate
                 };
-                laplacian = self.laplacian(self.get_nodal_influencers());
+                // laplacian = self.laplacian(self.get_nodal_influencers());
+                laplacian = self.laplacian(self.get_nodal_influencers()).iter()
+                    .zip(self.foo(0.0, 1.0, 0.1).iter())
+                    .map(|(laplacian, force)|
+                        laplacian * scale - force
+                ).collect::<Forces>();
+                // laplacian = self.laplacian(self.get_nodal_influencers()) + self.foo(1.0, 1.0, 1e-1);
                 self.get_nodal_coordinates_mut()
                     .iter_mut()
                     .zip(laplacian.iter())
-                    .for_each(|(coordinate, entry)| *coordinate += entry * scale);
+                    // .for_each(|(coordinate, entry)| *coordinate += entry * scale);
+                    .for_each(|(coordinate, entry)| *coordinate += entry);
                 #[cfg(feature = "profile")]
                 if frequency == 1 {
                     println!(

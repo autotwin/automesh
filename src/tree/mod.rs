@@ -1600,9 +1600,9 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                 face_connectivity[3],
             ];
             element_node_connectivity[triangle + 1] = [
-                face_connectivity[1],
                 face_connectivity[2],
                 face_connectivity[3],
+                face_connectivity[1],
             ];
             face += 1;
             triangle += 2;
