@@ -61,3 +61,4 @@ Cargo.lock
 **.pytest_cache
 book/build/
 benches/block/
+benches/compare/
