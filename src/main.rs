@@ -180,41 +180,8 @@ enum Commands {
 
     /// Applies smoothing to an existing mesh
     Smooth {
-        /// Pass to enable hierarchical control
-        #[arg(action, long, short = 'c')]
-        hierarchical: bool,
-
-        /// Mesh input file (inp | stl)
-        #[arg(long, short, value_name = "FILE")]
-        input: String,
-
-        /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
-        #[arg(long, short, value_name = "FILE")]
-        output: String,
-
-        /// Number of smoothing iterations
-        #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-        iterations: usize,
-
-        /// Smoothing method (Laplace | Taubin) [default: Taubin]
-        #[arg(long, short, value_name = "NAME")]
-        method: Option<String>,
-
-        /// Pass-band frequency (for Taubin only)
-        #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-        pass_band: f64,
-
-        /// Scaling parameter for all smoothing methods
-        #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-        scale: f64,
-
-        /// Quality metrics output file (csv | npy)
-        #[arg(long, value_name = "FILE")]
-        metrics: Option<String>,
-
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
+        #[command(subcommand)]
+        subcommand: SmoothSubcommand,
     },
 }
 
@@ -469,6 +436,92 @@ enum MeshSmoothCommands {
     },
 }
 
+#[derive(Subcommand)]
+enum SmoothSubcommand {
+    /// Smooths an all-hexahedral mesh
+    Hex(SmoothHexArgs),
+    /// Smooths an all-triangular mesh
+    Tri(SmoothTriArgs),
+}
+
+#[derive(clap::Args)]
+struct SmoothHexArgs {
+        /// Pass to enable hierarchical control
+        #[arg(action, long, short = 'c')]
+        hierarchical: bool,
+
+        /// Mesh input file (inp)
+        #[arg(long, short, value_name = "FILE")]
+        input: String,
+
+        /// Smoothed mesh output file (exo | inp | mesh | vtk)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of smoothing iterations
+        #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+        iterations: usize,
+
+        /// Smoothing method (Laplace | Taubin) [default: Taubin]
+        #[arg(long, short, value_name = "NAME")]
+        method: Option<String>,
+
+        /// Pass-band frequency (for Taubin only)
+        #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+        pass_band: f64,
+
+        /// Scaling parameter for all smoothing methods
+        #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+        scale: f64,
+
+        /// Quality metrics output file (csv | npy)
+        #[arg(long, value_name = "FILE")]
+        metrics: Option<String>,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+}
+
+#[derive(clap::Args)]
+struct SmoothTriArgs {
+        /// Pass to enable hierarchical control
+        #[arg(action, long, short = 'c')]
+        hierarchical: bool,
+
+        /// Mesh input file (stl); #TODO: the (inp) file type is a work in progress
+        #[arg(long, short, value_name = "FILE")]
+        input: String,
+
+        /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of smoothing iterations
+        #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+        iterations: usize,
+
+        /// Smoothing method (Laplace | Taubin) [default: Taubin]
+        #[arg(long, short, value_name = "NAME")]
+        method: Option<String>,
+
+        /// Pass-band frequency (for Taubin only)
+        #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+        pass_band: f64,
+
+        /// Scaling parameter for all smoothing methods
+        #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+        scale: f64,
+
+        /// Quality metrics output file (csv | npy)
+        #[arg(long, value_name = "FILE")]
+        metrics: Option<String>,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+}
+
 struct ErrorWrapper {
     message: String,
 }
@@ -536,6 +589,7 @@ impl From<WriteNpyError> for ErrorWrapper {
 #[allow(clippy::large_enum_variant)]
 enum InputTypes {
     Abaqus(HexahedralFiniteElements),
+    // Abaqus(FiniteElements<N>),  // #TODO: Ask MRB
     Npy(Voxels),
     Spn(Voxels),
     Stl(Tessellation),
@@ -680,29 +734,35 @@ fn main() -> Result<(), ErrorWrapper> {
                 ytranslate, ztranslate, quiet, pair, strong,
             )
         }
-        Some(Commands::Smooth {
-            input,
-            output,
-            iterations,
-            method,
-            hierarchical,
-            pass_band,
-            scale,
-            metrics,
-            quiet,
-        }) => {
-            is_quiet = quiet;
-            smooth(
-                input,
-                output,
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-                metrics,
-                quiet,
-            )
+        Some(Commands::Smooth { subcommand }) => match subcommand {
+            SmoothSubcommand::Hex(args) => {
+                is_quiet = args.quiet;
+                smooth(
+                    args.input,
+                    args.output,
+                    args.iterations,
+                    args.method,
+                    args.hierarchical,
+                    args.pass_band,
+                    args.scale,
+                    args.metrics,
+                    args.quiet,
+                )
+            }
+            SmoothSubcommand::Tri(args) => {
+                is_quiet = args.quiet;
+                smooth(
+                    args.input,
+                    args.output,
+                    args.iterations,
+                    args.method,
+                    args.hierarchical,
+                    args.pass_band,
+                    args.scale,
+                    args.metrics,
+                    args.quiet,
+                )
+            }
         }
         None => return Ok(()),
     };
