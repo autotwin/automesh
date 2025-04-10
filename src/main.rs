@@ -446,80 +446,80 @@ enum SmoothSubcommand {
 
 #[derive(clap::Args)]
 struct SmoothHexArgs {
-        /// Pass to enable hierarchical control
-        #[arg(action, long, short = 'c')]
-        hierarchical: bool,
+    /// Pass to enable hierarchical control
+    #[arg(action, long, short = 'c')]
+    hierarchical: bool,
 
-        /// Mesh input file (inp)
-        #[arg(long, short, value_name = "FILE")]
-        input: String,
+    /// Mesh input file (inp)
+    #[arg(long, short, value_name = "FILE")]
+    input: String,
 
-        /// Smoothed mesh output file (exo | inp | mesh | vtk)
-        #[arg(long, short, value_name = "FILE")]
-        output: String,
+    /// Smoothed mesh output file (exo | inp | mesh | vtk)
+    #[arg(long, short, value_name = "FILE")]
+    output: String,
 
-        /// Number of smoothing iterations
-        #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-        iterations: usize,
+    /// Number of smoothing iterations
+    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+    iterations: usize,
 
-        /// Smoothing method (Laplace | Taubin) [default: Taubin]
-        #[arg(long, short, value_name = "NAME")]
-        method: Option<String>,
+    /// Smoothing method (Laplace | Taubin) [default: Taubin]
+    #[arg(long, short, value_name = "NAME")]
+    method: Option<String>,
 
-        /// Pass-band frequency (for Taubin only)
-        #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-        pass_band: f64,
+    /// Pass-band frequency (for Taubin only)
+    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+    pass_band: f64,
 
-        /// Scaling parameter for all smoothing methods
-        #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-        scale: f64,
+    /// Scaling parameter for all smoothing methods
+    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+    scale: f64,
 
-        /// Quality metrics output file (csv | npy)
-        #[arg(long, value_name = "FILE")]
-        metrics: Option<String>,
+    /// Quality metrics output file (csv | npy)
+    #[arg(long, value_name = "FILE")]
+    metrics: Option<String>,
 
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
+    /// Pass to quiet the terminal output
+    #[arg(action, long, short)]
+    quiet: bool,
 }
 
 #[derive(clap::Args)]
 struct SmoothTriArgs {
-        /// Pass to enable hierarchical control
-        #[arg(action, long, short = 'c')]
-        hierarchical: bool,
+    /// Pass to enable hierarchical control
+    #[arg(action, long, short = 'c')]
+    hierarchical: bool,
 
-        /// Mesh input file (stl); #TODO: the (inp) file type is a work in progress
-        #[arg(long, short, value_name = "FILE")]
-        input: String,
+    /// Mesh input file (stl); #TODO: the (inp) file type is a work in progress
+    #[arg(long, short, value_name = "FILE")]
+    input: String,
 
-        /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
-        #[arg(long, short, value_name = "FILE")]
-        output: String,
+    /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
+    #[arg(long, short, value_name = "FILE")]
+    output: String,
 
-        /// Number of smoothing iterations
-        #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-        iterations: usize,
+    /// Number of smoothing iterations
+    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+    iterations: usize,
 
-        /// Smoothing method (Laplace | Taubin) [default: Taubin]
-        #[arg(long, short, value_name = "NAME")]
-        method: Option<String>,
+    /// Smoothing method (Laplace | Taubin) [default: Taubin]
+    #[arg(long, short, value_name = "NAME")]
+    method: Option<String>,
 
-        /// Pass-band frequency (for Taubin only)
-        #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-        pass_band: f64,
+    /// Pass-band frequency (for Taubin only)
+    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+    pass_band: f64,
 
-        /// Scaling parameter for all smoothing methods
-        #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-        scale: f64,
+    /// Scaling parameter for all smoothing methods
+    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+    scale: f64,
 
-        /// Quality metrics output file (csv | npy)
-        #[arg(long, value_name = "FILE")]
-        metrics: Option<String>,
+    /// Quality metrics output file (csv | npy)
+    #[arg(long, value_name = "FILE")]
+    metrics: Option<String>,
 
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
+    /// Pass to quiet the terminal output
+    #[arg(action, long, short)]
+    quiet: bool,
 }
 
 struct ErrorWrapper {
@@ -763,7 +763,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.quiet,
                 )
             }
-        }
+        },
         None => return Ok(()),
     };
     if !is_quiet {
