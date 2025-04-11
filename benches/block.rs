@@ -2,7 +2,7 @@
 
 extern crate test;
 use automesh::{
-    FiniteElementMethods, HexahedralFiniteElements, NSD, Octree, Smoothing, Tree, Voxels,
+    FiniteElementMethods, HexahedralFiniteElements, Octree, Smoothing, Tree, Voxels, NSD,
 };
 use std::{
     fs::{read_dir, remove_file},
