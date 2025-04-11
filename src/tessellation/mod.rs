@@ -1,12 +1,12 @@
 use super::{
-    fem::{FiniteElementMethods, TriangularFiniteElements, NODE_NUMBERING_OFFSET},
     Coordinate,
+    fem::{FiniteElementMethods, NODE_NUMBERING_OFFSET, TriangularFiniteElements},
 };
 use conspire::math::TensorArray;
 use std::fmt;
 use std::fs::File;
 use std::io::{BufWriter, Error};
-use stl_io::{read_stl, write_stl, IndexedMesh, Triangle, Vertex};
+use stl_io::{IndexedMesh, Triangle, Vertex, read_stl, write_stl};
 
 /// The tessellation type.
 #[derive(Debug, PartialEq)]
