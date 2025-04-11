@@ -1,11 +1,11 @@
 use super::{
     super::{
+        Blocks, NSD,
         fem::py::HexahedralFiniteElements,
         py::{IntoFoo, PyIntermediateError},
-        Blocks, NSD,
     },
-    defeature_voxels, finite_element_data_from_data, voxel_data_from_npy, voxel_data_from_spn,
-    write_voxels_to_npy, write_voxels_to_spn, VoxelData,
+    VoxelData, defeature_voxels, finite_element_data_from_data, voxel_data_from_npy,
+    voxel_data_from_spn, write_voxels_to_npy, write_voxels_to_spn,
 };
 use pyo3::prelude::*;
 

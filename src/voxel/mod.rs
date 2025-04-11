@@ -8,11 +8,11 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
+    Coordinate, Coordinates, NSD, Octree, Tree, Vector,
     fem::{
-        Blocks, Connectivity, FiniteElementMethods, HexahedralFiniteElements, HEX,
+        Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
         NODE_NUMBERING_OFFSET,
     },
-    Coordinate, Coordinates, Octree, Tree, Vector, NSD,
 };
 use conspire::math::TensorArray;
 use ndarray::{Array3, Axis};
