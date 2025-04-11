@@ -17,6 +17,7 @@ use std::{
 
 const J_EQUILATERAL: f64 = 0.8660254037844387;
 
+/// The number of nodes in a triangular finite element.
 pub const TRI: usize = 3;
 
 /// The triangular finite elements type.

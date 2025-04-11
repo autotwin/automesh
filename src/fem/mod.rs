@@ -71,6 +71,7 @@ pub struct FiniteElements<const N: usize> {
     prescribed_nodes_inhomogeneous_coordinates: Coordinates,
 }
 
+/// The number of nodes in a hexahedral finite element.
 pub const HEX: usize = 8;
 
 /// The hexahedral finite elements type.
