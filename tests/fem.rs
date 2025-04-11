@@ -1,4 +1,4 @@
-use automesh::{FiniteElementMethods, NSD, Scale, Translate, Voxels};
+use automesh::{FiniteElementMethods, Scale, Translate, Voxels, NSD};
 use conspire::math::Tensor;
 use std::{
     fs::File,

@@ -2,12 +2,12 @@
 use std::time::Instant;
 
 use super::{
-    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
-    Metrics, NODE_NUMBERING_OFFSET, Tessellation, Vector, calculate_maximum_edge_ratios,
-    calculate_maximum_skews, calculate_minimum_scaled_jacobians, metrics_headers,
+    calculate_maximum_edge_ratios, calculate_maximum_skews, calculate_minimum_scaled_jacobians,
+    metrics_headers, Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics,
+    FiniteElements, Metrics, Tessellation, Vector, NODE_NUMBERING_OFFSET,
 };
 use conspire::math::{Tensor, TensorArray};
-use ndarray::{Array2, s};
+use ndarray::{s, Array2};
 use ndarray_npy::WriteNpyExt;
 use std::{
     fs::File,
