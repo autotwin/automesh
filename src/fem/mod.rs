@@ -5,32 +5,32 @@ pub mod py;
 pub mod test;
 
 pub mod tri;
-pub use tri::{TRI, TriangularFiniteElements};
 use tri::{
     calculate_maximum_edge_ratios_tri, calculate_maximum_skews_tri,
     calculate_minimum_scaled_jacobians_tri, write_finite_elements_metrics_tri,
 };
+pub use tri::{TriangularFiniteElements, TRI};
 
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
+use super::{Coordinate, Coordinates, Tessellation, Vector, NSD};
 use chrono::Utc;
 use conspire::math::{Tensor, TensorArray, TensorVec};
-use ndarray::{Array1, Array2, s};
+use ndarray::{s, Array1, Array2};
 use ndarray_npy::WriteNpyExt;
-use netcdf::{Error as ErrorNetCDF, create};
+use netcdf::{create, Error as ErrorNetCDF};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
     path::{Path, PathBuf},
 };
 use vtkio::{
-    Error as ErrorVtk,
     model::{
         Attributes, ByteOrder, CellType, Cells, DataSet, IOBuffer, UnstructuredGridPiece, Version,
         VertexNumbers, Vtk,
     },
+    Error as ErrorVtk,
 };
 
 const ELEMENT_NUMBERING_OFFSET: usize = 1;
@@ -71,6 +71,7 @@ pub struct FiniteElements<const N: usize> {
     prescribed_nodes_inhomogeneous_coordinates: Coordinates,
 }
 
+/// The number of nodes in a hexahedral finite element.
 pub const HEX: usize = 8;
 
 /// The hexahedral finite elements type.

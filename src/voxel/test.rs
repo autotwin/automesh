@@ -1,4 +1,4 @@
-use super::{Nel, Voxels, filter_voxel_data};
+use super::{filter_voxel_data, Nel, Voxels};
 
 const NUM_ELEMENTS: usize = 39;
 
