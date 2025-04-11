@@ -407,7 +407,10 @@ struct MeshTriArgs {
     /// Pass to quiet the terminal output
     #[arg(action, long, short)]
     quiet: bool,
-    // There is no dualization for triangles, only hexahedra.
+
+    /// Pass to mesh using dualization
+    #[arg(action, hide = true, long)]
+    dual: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -663,7 +666,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                mesh_hex(
+                mesh::<HEX, HexahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -685,7 +688,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                mesh_tri(
+                mesh::<TRI, TriangularFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -702,6 +705,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
+                    args.dual,
                 )
             }
         },
@@ -910,7 +914,7 @@ enum MeshBasis {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn mesh_hex(
+fn mesh<const N: usize, T>(
     smoothing: Option<MeshSmoothCommands>,
     input: String,
     output: String,
@@ -928,7 +932,10 @@ fn mesh_hex(
     metrics: Option<String>,
     quiet: bool,
     dual: bool,
-) -> Result<(), ErrorWrapper> {
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<N>,
+{
     let mut time = Instant::now();
     let remove = remove.map(|removed_blocks| {
         removed_blocks
@@ -938,203 +945,156 @@ fn mesh_hex(
     });
     let scale = Scale::from([xscale, yscale, zscale]);
     let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let mut input_type =
-        match read_input::<HEX, HexahedralFiniteElements>(&input, nelx, nely, nelz, quiet)? {
-            InputTypes::Npy(voxels) => voxels,
-            InputTypes::Spn(voxels) => voxels,
-            _ => {
-                let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-                Err(format!(
-                    "Invalid extension .{} from input file {}",
-                    input_extension.unwrap_or("UNDEFINED"),
-                    input
-                ))?
-            }
-        };
-    if let Some(min_num_voxels) = defeature {
-        if !quiet {
-            time = Instant::now();
-            println!(
-                " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                min_num_voxels
-            );
+    let mut input_type = match read_input::<N, T>(&input, nelx, nely, nelz, quiet)? {
+        InputTypes::Npy(voxels) => voxels,
+        InputTypes::Spn(voxels) => voxels,
+        _ => {
+            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+            Err(format!(
+                "Invalid extension .{} from input file {}",
+                input_extension.unwrap_or("UNDEFINED"),
+                input
+            ))?
         }
-        input_type = input_type.defeature(min_num_voxels);
-        if !quiet {
-            println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-        }
-    }
-    if !quiet {
-        time = Instant::now();
-        mesh_print_info(MeshBasis::Voxels, &scale, &translate)
-    }
-    let mut output_type = if dual {
-        let (nel_padded, mut tree) = Octree::from_voxels(input_type);
-        tree.balance(true);
-        tree.pair();
-        tree.into_finite_elements(nel_padded, remove, scale, translate)?
-    } else {
-        input_type.into_finite_elements(remove, scale, translate)?
     };
-    if !quiet {
-        let mut blocks = output_type.get_element_blocks().clone();
-        let elements = blocks.len();
-        blocks.sort();
-        blocks.dedup();
-        println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
-            time.elapsed(),
-            blocks.len(),
-            elements,
-            output_type.get_nodal_coordinates().len()
-        );
-    }
-    if let Some(options) = smoothing {
-        match options {
-            MeshSmoothCommands::Smooth {
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-            } => {
-                apply_smoothing_method(
-                    &mut output_type,
-                    iterations,
-                    method,
-                    hierarchical,
-                    pass_band,
-                    scale,
+    match N {
+        HEX => {
+            if let Some(min_num_voxels) = defeature {
+                if !quiet {
+                    time = Instant::now();
+                    println!(
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
+                        min_num_voxels
+                    );
+                }
+                input_type = input_type.defeature(min_num_voxels);
+                if !quiet {
+                    println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+                }
+            }
+            if !quiet {
+                time = Instant::now();
+                mesh_print_info(MeshBasis::Voxels, &scale, &translate)
+            }
+            let mut output_type = if dual {
+                let (nel_padded, mut tree) = Octree::from_voxels(input_type);
+                tree.balance(true);
+                tree.pair();
+                tree.into_finite_elements(nel_padded, remove, scale, translate)?
+            } else {
+                input_type.into_finite_elements(remove, scale, translate)?
+            };
+            if !quiet {
+                let mut blocks = output_type.get_element_blocks().clone();
+                let elements = blocks.len();
+                blocks.sort();
+                blocks.dedup();
+                println!(
+                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+                    time.elapsed(),
+                    blocks.len(),
+                    elements,
+                    output_type.get_nodal_coordinates().len()
+                );
+            }
+            if let Some(options) = smoothing {
+                match options {
+                    MeshSmoothCommands::Smooth {
+                        iterations,
+                        method,
+                        hierarchical,
+                        pass_band,
+                        scale,
+                    } => {
+                        apply_smoothing_method(
+                            &mut output_type,
+                            iterations,
+                            method,
+                            hierarchical,
+                            pass_band,
+                            scale,
+                            quiet,
+                        )?;
+                    }
+                }
+            }
+            if let Some(file) = metrics {
+                metrics_inner(&output_type, file, quiet)?
+            }
+            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+            match output_extension {
+                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
+                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
+                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
+                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
+                _ => invalid_output(&output, output_extension)?,
+            }
+        }
+        TRI => {
+            if !quiet {
+                time = Instant::now();
+                if let Some(min_num_voxels) = defeature {
+                    println!(
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
+                        min_num_voxels
+                    );
+                } else {
+                    mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
+                }
+            }
+            let (nel_padded, mut tree) = Octree::from_voxels(input_type);
+            tree.balance(true);
+            if let Some(min_num_voxels) = defeature {
+                tree.defeature(min_num_voxels);
+                println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+                time = Instant::now();
+                mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
+            }
+            let mut output_type: TriangularFiniteElements =
+                tree.into_finite_elements(nel_padded, remove, scale, translate)?;
+            if !quiet {
+                let mut blocks = output_type.get_element_blocks().clone();
+                let elements = blocks.len();
+                blocks.sort();
+                blocks.dedup();
+                println!("        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m", time.elapsed(), blocks.len(), elements, output_type.get_nodal_coordinates().len());
+            }
+            if let Some(options) = smoothing {
+                match options {
+                    MeshSmoothCommands::Smooth {
+                        iterations,
+                        method,
+                        hierarchical,
+                        pass_band,
+                        scale,
+                    } => {
+                        apply_smoothing_method(
+                            &mut output_type,
+                            iterations,
+                            method,
+                            hierarchical,
+                            pass_band,
+                            scale,
+                            quiet,
+                        )?;
+                    }
+                }
+            }
+            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+            match output_extension {
+                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
+                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
+                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
+                Some("stl") => write_output(
+                    output,
+                    OutputTypes::<3, TriangularFiniteElements>::Stl(output_type.into_tesselation()),
                     quiet,
-                )?;
+                )?,
+                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
+                _ => invalid_output(&output, output_extension)?,
             }
         }
-    }
-    if let Some(file) = metrics {
-        metrics_inner(&output_type, file, quiet)?
-    }
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match output_extension {
-        Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-        Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-        Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-        Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-        _ => invalid_output(&output, output_extension)?,
-    }
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-fn mesh_tri(
-    smoothing: Option<MeshSmoothCommands>,
-    input: String,
-    output: String,
-    defeature: Option<usize>,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    remove: Option<Vec<usize>>,
-    xscale: f64,
-    yscale: f64,
-    zscale: f64,
-    xtranslate: f64,
-    ytranslate: f64,
-    ztranslate: f64,
-    metrics: Option<String>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let mut time = Instant::now();
-    let remove = remove.map(|removed_blocks| {
-        removed_blocks
-            .into_iter()
-            .map(|entry| entry as u8)
-            .collect()
-    });
-    let scale = Scale::from([xscale, yscale, zscale]);
-    let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let input_type =
-        match read_input::<TRI, TriangularFiniteElements>(&input, nelx, nely, nelz, quiet)? {
-            InputTypes::Npy(voxels) => voxels,
-            InputTypes::Spn(voxels) => voxels,
-            _ => {
-                let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-                Err(format!(
-                    "Invalid extension .{} from input file {}",
-                    input_extension.unwrap_or("UNDEFINED"),
-                    input
-                ))?
-            }
-        };
-    if !quiet {
-        time = Instant::now();
-        if let Some(min_num_voxels) = defeature {
-            println!(
-                " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                min_num_voxels
-            );
-        } else {
-            mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
-        }
-    }
-    let (nel_padded, mut tree) = Octree::from_voxels(input_type);
-    tree.balance(true);
-    if let Some(min_num_voxels) = defeature {
-        tree.defeature(min_num_voxels);
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-        time = Instant::now();
-        mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
-    }
-    let mut output_type: TriangularFiniteElements =
-        tree.into_finite_elements(nel_padded, remove, scale, translate)?;
-    if !quiet {
-        let mut blocks = output_type.get_element_blocks().clone();
-        let elements = blocks.len();
-        blocks.sort();
-        blocks.dedup();
-        println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
-            time.elapsed(),
-            blocks.len(),
-            elements,
-            output_type.get_nodal_coordinates().len()
-        );
-    }
-    if let Some(options) = smoothing {
-        match options {
-            MeshSmoothCommands::Smooth {
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-            } => {
-                apply_smoothing_method(
-                    &mut output_type,
-                    iterations,
-                    method,
-                    hierarchical,
-                    pass_band,
-                    scale,
-                    quiet,
-                )?;
-            }
-        }
-    }
-    if let Some(file) = metrics {
-        metrics_inner(&output_type, file, quiet)?
-    }
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match output_extension {
-        Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-        Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-        Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-        Some("stl") => write_output(
-            output,
-            OutputTypes::<TRI, TriangularFiniteElements>::Stl(output_type.into_tesselation()),
-            quiet,
-        )?,
-        Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-        _ => invalid_output(&output, output_extension)?,
+        _ => panic!(),
     }
     Ok(())
 }
