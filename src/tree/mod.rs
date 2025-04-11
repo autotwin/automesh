@@ -69,6 +69,9 @@ const fn subcells_on_neighbor_face(face: usize) -> SubcellsOnFace {
 }
 
 type Cells = [Cell; NUM_OCTANTS];
+type Edge = [usize; 2];
+type Edges = Vec<Edge>;
+type Edgess = Vec<Edges>;
 type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
 
@@ -1524,9 +1527,9 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                     .iter()
                     .for_each(|(cell, _)| boundary_from_cell[*cell] = Some(boundary))
             });
-        let mut face_blocks = vec![];
+        let mut boundaries_faces_connectivity = vec![vec![]; boundaries_cells_faces.len()];
+        let mut face_blocks: Vec<u8> = vec![];
         let mut face_connectivity = [0; NUM_NODES_FACE];
-        let mut faces_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut node_new = 1;
         let nodes_len = (self[0].get_lngth() + 1) as usize;
@@ -1576,33 +1579,100 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                                             node_new += 1;
                                         }
                                     });
+                                boundaries_faces_connectivity[boundary].push(face_connectivity);
                                 face_blocks.push(boundary as u8 + 1);
-                                faces_connectivity.push(face_connectivity)
                             }
                         }
                     })
                 })
         });
+        let mut node_face_connectivity = vec![vec![]; nodal_coordinates.len()];
+        boundaries_faces_connectivity
+            .iter()
+            .flatten()
+            .enumerate()
+            .for_each(|(face, connectivity)| {
+                connectivity.iter().for_each(|node| {
+                    node_face_connectivity[node - NODE_NUMBERING_OFFSET].push(face)
+                })
+            });
+        let mut edges = vec![[0; 2]];
+        let boundaries_edges: Edgess = boundaries_faces_connectivity
+            .iter()
+            .map(|boundary_faces_connectivity| {
+                edges = boundary_faces_connectivity
+                    .iter()
+                    .flat_map(|connectivity| {
+                        [
+                            [connectivity[0], connectivity[1]],
+                            [connectivity[1], connectivity[2]],
+                            [connectivity[2], connectivity[3]],
+                            [connectivity[3], connectivity[0]],
+                        ]
+                        .into_iter()
+                    })
+                    .collect();
+                edges.iter_mut().for_each(|edge| edge.sort());
+                edges.sort();
+                edges.dedup();
+                edges.clone()
+            })
+            .collect();
+        let non_manifold_edges: Edges = boundaries_edges
+            .iter()
+            .flat_map(|boundary_edges| {
+                boundary_edges.iter().filter_map(|&edge| {
+                    if node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET]
+                        .iter()
+                        .filter(|face_a| {
+                            node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
+                        })
+                        .count()
+                        == 4
+                    {
+                        Some(edge)
+                    } else {
+                        None
+                    }
+                })
+            })
+            .collect();
+        non_manifold_edges.iter().for_each(|edge| {
+            println!(
+                "             \x1b[91mNon-manifold edge between node {} and node {}.\x1b[0m",
+                edge[0], edge[1]
+            )
+        });
+        let num_faces: usize = boundaries_faces_connectivity
+            .iter()
+            .map(|boundary_faces_connectivity| boundary_faces_connectivity.len())
+            .sum();
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
-        let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
+        let mut element_node_connectivity = vec![[0; 3]; 2 * num_faces];
         let mut face = 0;
         let mut triangle = 0;
-        faces_connectivity.iter().for_each(|face_connectivity| {
-            element_blocks[triangle] = face_blocks[face];
-            element_blocks[triangle + 1] = face_blocks[face];
-            element_node_connectivity[triangle] = [
-                face_connectivity[0],
-                face_connectivity[1],
-                face_connectivity[3],
-            ];
-            element_node_connectivity[triangle + 1] = [
-                face_connectivity[1],
-                face_connectivity[2],
-                face_connectivity[3],
-            ];
-            face += 1;
-            triangle += 2;
-        });
+        boundaries_faces_connectivity
+            .iter()
+            .for_each(|boundary_faces_connectivity| {
+                boundary_faces_connectivity
+                    .iter()
+                    .for_each(|face_connectivity| {
+                        element_blocks[triangle] = face_blocks[face];
+                        element_blocks[triangle + 1] = face_blocks[face];
+                        element_node_connectivity[triangle] = [
+                            face_connectivity[0],
+                            face_connectivity[1],
+                            face_connectivity[3],
+                        ];
+                        element_node_connectivity[triangle + 1] = [
+                            face_connectivity[1],
+                            face_connectivity[2],
+                            face_connectivity[3],
+                        ];
+                        face += 1;
+                        triangle += 2;
+                    });
+            });
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mSurface finite elements\x1b[0m {:?} ",
