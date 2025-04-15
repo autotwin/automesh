@@ -1598,6 +1598,7 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
         // need some way to figure out which face to add the new node to that will
         // (a) remove the non-manifold edge
         // (b) not create a hole
+        // (c) be robust to affecting other nearby non-manifold edges
         //
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
         let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
