@@ -1,7 +1,7 @@
 use automesh::{
     Blocks, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
     IntoFiniteElements, Nel, Octree, Scale, Smoothing, Tessellation, Translate, Tree,
-    TriangularFiniteElements, Voxels,
+    TriangularFiniteElements, Voxels, HEX, TRI,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -180,41 +180,8 @@ enum Commands {
 
     /// Applies smoothing to an existing mesh
     Smooth {
-        /// Pass to enable hierarchical control
-        #[arg(action, long, short = 'c')]
-        hierarchical: bool,
-
-        /// Mesh input file (inp | stl)
-        #[arg(long, short, value_name = "FILE")]
-        input: String,
-
-        /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
-        #[arg(long, short, value_name = "FILE")]
-        output: String,
-
-        /// Number of smoothing iterations
-        #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-        iterations: usize,
-
-        /// Smoothing method (Laplace | Taubin) [default: Taubin]
-        #[arg(long, short, value_name = "NAME")]
-        method: Option<String>,
-
-        /// Pass-band frequency (for Taubin only)
-        #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-        pass_band: f64,
-
-        /// Scaling parameter for all smoothing methods
-        #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-        scale: f64,
-
-        /// Quality metrics output file (csv | npy)
-        #[arg(long, value_name = "FILE")]
-        metrics: Option<String>,
-
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
+        #[command(subcommand)]
+        subcommand: SmoothSubcommand,
     },
 }
 
@@ -440,7 +407,10 @@ struct MeshTriArgs {
     /// Pass to quiet the terminal output
     #[arg(action, long, short)]
     quiet: bool,
-    // There is no dualization for triangles, only hexahedra.
+
+    /// Pass to mesh using dualization
+    #[arg(action, hide = true, long)]
+    dual: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -467,6 +437,92 @@ enum MeshSmoothCommands {
         #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
         scale: f64,
     },
+}
+
+#[derive(Subcommand)]
+enum SmoothSubcommand {
+    /// Smooths an all-hexahedral mesh
+    Hex(SmoothHexArgs),
+    /// Smooths an all-triangular mesh
+    Tri(SmoothTriArgs),
+}
+
+#[derive(clap::Args)]
+struct SmoothHexArgs {
+    /// Pass to enable hierarchical control
+    #[arg(action, long, short = 'c')]
+    hierarchical: bool,
+
+    /// Mesh input file (inp)
+    #[arg(long, short, value_name = "FILE")]
+    input: String,
+
+    /// Smoothed mesh output file (exo | inp | mesh | vtk)
+    #[arg(long, short, value_name = "FILE")]
+    output: String,
+
+    /// Number of smoothing iterations
+    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+    iterations: usize,
+
+    /// Smoothing method (Laplace | Taubin) [default: Taubin]
+    #[arg(long, short, value_name = "NAME")]
+    method: Option<String>,
+
+    /// Pass-band frequency (for Taubin only)
+    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+    pass_band: f64,
+
+    /// Scaling parameter for all smoothing methods
+    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+    scale: f64,
+
+    /// Quality metrics output file (csv | npy)
+    #[arg(long, value_name = "FILE")]
+    metrics: Option<String>,
+
+    /// Pass to quiet the terminal output
+    #[arg(action, long, short)]
+    quiet: bool,
+}
+
+#[derive(clap::Args)]
+struct SmoothTriArgs {
+    /// Pass to enable hierarchical control
+    #[arg(action, long, short = 'c')]
+    hierarchical: bool,
+
+    /// Mesh input file (stl); #TODO: the (inp) file type is a work in progress
+    #[arg(long, short, value_name = "FILE")]
+    input: String,
+
+    /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
+    #[arg(long, short, value_name = "FILE")]
+    output: String,
+
+    /// Number of smoothing iterations
+    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+    iterations: usize,
+
+    /// Smoothing method (Laplace | Taubin) [default: Taubin]
+    #[arg(long, short, value_name = "NAME")]
+    method: Option<String>,
+
+    /// Pass-band frequency (for Taubin only)
+    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+    pass_band: f64,
+
+    /// Scaling parameter for all smoothing methods
+    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+    scale: f64,
+
+    /// Quality metrics output file (csv | npy)
+    #[arg(long, value_name = "FILE")]
+    metrics: Option<String>,
+
+    /// Pass to quiet the terminal output
+    #[arg(action, long, short)]
+    quiet: bool,
 }
 
 struct ErrorWrapper {
@@ -534,8 +590,11 @@ impl From<WriteNpyError> for ErrorWrapper {
 }
 
 #[allow(clippy::large_enum_variant)]
-enum InputTypes {
-    Abaqus(HexahedralFiniteElements),
+enum InputTypes<const N: usize, T>
+where
+    T: FiniteElementMethods<N>,
+{
+    Abaqus(T),
     Npy(Voxels),
     Spn(Voxels),
     Stl(Tessellation),
@@ -607,7 +666,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                mesh_hex(
+                mesh::<HEX, HexahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -629,7 +688,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                mesh_tri(
+                mesh::<TRI, TriangularFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -646,6 +705,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
+                    args.dual,
                 )
             }
         },
@@ -655,7 +715,7 @@ fn main() -> Result<(), ErrorWrapper> {
             quiet,
         }) => {
             is_quiet = quiet;
-            metrics(input, output, quiet)
+            metrics::<HEX, HexahedralFiniteElements>(input, output, quiet)
         }
         Some(Commands::Octree {
             input,
@@ -680,30 +740,36 @@ fn main() -> Result<(), ErrorWrapper> {
                 ytranslate, ztranslate, quiet, pair, strong,
             )
         }
-        Some(Commands::Smooth {
-            input,
-            output,
-            iterations,
-            method,
-            hierarchical,
-            pass_band,
-            scale,
-            metrics,
-            quiet,
-        }) => {
-            is_quiet = quiet;
-            smooth(
-                input,
-                output,
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-                metrics,
-                quiet,
-            )
-        }
+        Some(Commands::Smooth { subcommand }) => match subcommand {
+            SmoothSubcommand::Hex(args) => {
+                is_quiet = args.quiet;
+                smooth::<HEX, HexahedralFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.iterations,
+                    args.method,
+                    args.hierarchical,
+                    args.pass_band,
+                    args.scale,
+                    args.metrics,
+                    args.quiet,
+                )
+            }
+            SmoothSubcommand::Tri(args) => {
+                is_quiet = args.quiet;
+                smooth::<TRI, TriangularFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.iterations,
+                    args.method,
+                    args.hierarchical,
+                    args.pass_band,
+                    args.scale,
+                    args.metrics,
+                    args.quiet,
+                )
+            }
+        },
         None => return Ok(()),
     };
     if !is_quiet {
@@ -715,7 +781,7 @@ fn main() -> Result<(), ErrorWrapper> {
 fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorWrapper> {
     let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input(&input, None, None, None, quiet)? {
+    match read_input::<HEX, HexahedralFiniteElements>(&input, None, None, None, quiet)? {
         InputTypes::Abaqus(finite_elements) => match output_extension {
             Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
             Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
@@ -761,17 +827,17 @@ fn convert_segmentation(
 ) -> Result<(), ErrorWrapper> {
     let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input(&input, nelx, nely, nelz, quiet)? {
+    match read_input::<HEX, HexahedralFiniteElements>(&input, nelx, nely, nelz, quiet)? {
         InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
         InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => match output_extension {
             Some("spn") => write_output(
                 output,
-                OutputTypes::<8, HexahedralFiniteElements>::Spn(voxels),
+                OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels),
                 quiet,
             ),
             Some("npy") => write_output(
                 output,
-                OutputTypes::<8, HexahedralFiniteElements>::Npy(voxels),
+                OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels),
                 quiet,
             ),
             _ => invalid_output(&output, output_extension),
@@ -790,7 +856,7 @@ fn defeature(
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input(&input, nelx, nely, nelz, quiet)? {
+    match read_input::<HEX, HexahedralFiniteElements>(&input, nelx, nely, nelz, quiet)? {
         InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
             Some("npy") => {
                 let time = Instant::now();
@@ -806,7 +872,7 @@ fn defeature(
                 }
                 write_output(
                     output,
-                    OutputTypes::<8, HexahedralFiniteElements>::Npy(voxels),
+                    OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels),
                     quiet,
                 )
             }
@@ -824,7 +890,7 @@ fn defeature(
                 }
                 write_output(
                     output,
-                    OutputTypes::<8, HexahedralFiniteElements>::Spn(voxels),
+                    OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels),
                     quiet,
                 )
             }
@@ -848,7 +914,7 @@ enum MeshBasis {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn mesh_hex(
+fn mesh<const N: usize, T>(
     smoothing: Option<MeshSmoothCommands>,
     input: String,
     output: String,
@@ -866,7 +932,10 @@ fn mesh_hex(
     metrics: Option<String>,
     quiet: bool,
     dual: bool,
-) -> Result<(), ErrorWrapper> {
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<N>,
+{
     let mut time = Instant::now();
     let remove = remove.map(|removed_blocks| {
         removed_blocks
@@ -876,7 +945,7 @@ fn mesh_hex(
     });
     let scale = Scale::from([xscale, yscale, zscale]);
     let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let mut input_type = match read_input(&input, nelx, nely, nelz, quiet)? {
+    let mut input_type = match read_input::<N, T>(&input, nelx, nely, nelz, quiet)? {
         InputTypes::Npy(voxels) => voxels,
         InputTypes::Spn(voxels) => voxels,
         _ => {
@@ -888,189 +957,144 @@ fn mesh_hex(
             ))?
         }
     };
-    if let Some(min_num_voxels) = defeature {
-        if !quiet {
-            time = Instant::now();
-            println!(
-                " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                min_num_voxels
-            );
-        }
-        input_type = input_type.defeature(min_num_voxels);
-        if !quiet {
-            println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-        }
-    }
-    if !quiet {
-        time = Instant::now();
-        mesh_print_info(MeshBasis::Voxels, &scale, &translate)
-    }
-    let mut output_type = if dual {
-        let (nel_padded, mut tree) = Octree::from_voxels(input_type);
-        tree.balance(true);
-        tree.pair();
-        tree.into_finite_elements(nel_padded, remove, scale, translate)?
-    } else {
-        input_type.into_finite_elements(remove, scale, translate)?
-    };
-    if !quiet {
-        let mut blocks = output_type.get_element_blocks().clone();
-        let elements = blocks.len();
-        blocks.sort();
-        blocks.dedup();
-        println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
-            time.elapsed(),
-            blocks.len(),
-            elements,
-            output_type.get_nodal_coordinates().len()
-        );
-    }
-    if let Some(options) = smoothing {
-        match options {
-            MeshSmoothCommands::Smooth {
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-            } => {
-                apply_smoothing_method(
-                    &mut output_type,
-                    iterations,
-                    method,
-                    hierarchical,
-                    pass_band,
-                    scale,
-                    quiet,
-                )?;
+    match N {
+        HEX => {
+            if let Some(min_num_voxels) = defeature {
+                if !quiet {
+                    time = Instant::now();
+                    println!(
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
+                        min_num_voxels
+                    );
+                }
+                input_type = input_type.defeature(min_num_voxels);
+                if !quiet {
+                    println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+                }
+            }
+            if !quiet {
+                time = Instant::now();
+                mesh_print_info(MeshBasis::Voxels, &scale, &translate)
+            }
+            let mut output_type = if dual {
+                let (nel_padded, mut tree) = Octree::from_voxels(input_type);
+                tree.balance(true);
+                tree.pair();
+                tree.into_finite_elements(nel_padded, remove, scale, translate)?
+            } else {
+                input_type.into_finite_elements(remove, scale, translate)?
+            };
+            if !quiet {
+                let mut blocks = output_type.get_element_blocks().clone();
+                let elements = blocks.len();
+                blocks.sort();
+                blocks.dedup();
+                println!(
+                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+                    time.elapsed(),
+                    blocks.len(),
+                    elements,
+                    output_type.get_nodal_coordinates().len()
+                );
+            }
+            if let Some(options) = smoothing {
+                match options {
+                    MeshSmoothCommands::Smooth {
+                        iterations,
+                        method,
+                        hierarchical,
+                        pass_band,
+                        scale,
+                    } => {
+                        apply_smoothing_method(
+                            &mut output_type,
+                            iterations,
+                            method,
+                            hierarchical,
+                            pass_band,
+                            scale,
+                            quiet,
+                        )?;
+                    }
+                }
+            }
+            if let Some(file) = metrics {
+                metrics_inner(&output_type, file, quiet)?
+            }
+            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+            match output_extension {
+                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
+                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
+                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
+                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
+                _ => invalid_output(&output, output_extension)?,
             }
         }
-    }
-    if let Some(file) = metrics {
-        metrics_inner(&output_type, file, quiet)?
-    }
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match output_extension {
-        Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-        Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-        Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-        Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-        _ => invalid_output(&output, output_extension)?,
-    }
-    Ok(())
-}
-
-#[allow(clippy::too_many_arguments)]
-fn mesh_tri(
-    smoothing: Option<MeshSmoothCommands>,
-    input: String,
-    output: String,
-    defeature: Option<usize>,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    remove: Option<Vec<usize>>,
-    xscale: f64,
-    yscale: f64,
-    zscale: f64,
-    xtranslate: f64,
-    ytranslate: f64,
-    ztranslate: f64,
-    metrics: Option<String>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let mut time = Instant::now();
-    let remove = remove.map(|removed_blocks| {
-        removed_blocks
-            .into_iter()
-            .map(|entry| entry as u8)
-            .collect()
-    });
-    let scale = Scale::from([xscale, yscale, zscale]);
-    let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let input_type = match read_input(&input, nelx, nely, nelz, quiet)? {
-        InputTypes::Npy(voxels) => voxels,
-        InputTypes::Spn(voxels) => voxels,
-        _ => {
-            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-            Err(format!(
-                "Invalid extension .{} from input file {}",
-                input_extension.unwrap_or("UNDEFINED"),
-                input
-            ))?
-        }
-    };
-    if !quiet {
-        time = Instant::now();
-        if let Some(min_num_voxels) = defeature {
-            println!(
-                " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                min_num_voxels
-            );
-        } else {
-            mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
-        }
-    }
-    let (nel_padded, mut tree) = Octree::from_voxels(input_type);
-    tree.balance(true);
-    if let Some(min_num_voxels) = defeature {
-        tree.defeature(min_num_voxels);
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-        time = Instant::now();
-        mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
-    }
-    let mut output_type: TriangularFiniteElements =
-        tree.into_finite_elements(nel_padded, remove, scale, translate)?;
-    if !quiet {
-        let mut blocks = output_type.get_element_blocks().clone();
-        let elements = blocks.len();
-        blocks.sort();
-        blocks.dedup();
-        println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
-            time.elapsed(),
-            blocks.len(),
-            elements,
-            output_type.get_nodal_coordinates().len()
-        );
-    }
-    if let Some(options) = smoothing {
-        match options {
-            MeshSmoothCommands::Smooth {
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-            } => {
-                apply_smoothing_method(
-                    &mut output_type,
-                    iterations,
-                    method,
-                    hierarchical,
-                    pass_band,
-                    scale,
+        TRI => {
+            if !quiet {
+                time = Instant::now();
+                if let Some(min_num_voxels) = defeature {
+                    println!(
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
+                        min_num_voxels
+                    );
+                } else {
+                    mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
+                }
+            }
+            let (nel_padded, mut tree) = Octree::from_voxels(input_type);
+            tree.balance(true);
+            if let Some(min_num_voxels) = defeature {
+                tree.defeature(min_num_voxels);
+                println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+                time = Instant::now();
+                mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
+            }
+            let mut output_type: TriangularFiniteElements =
+                tree.into_finite_elements(nel_padded, remove, scale, translate)?;
+            if !quiet {
+                let mut blocks = output_type.get_element_blocks().clone();
+                let elements = blocks.len();
+                blocks.sort();
+                blocks.dedup();
+                println!("        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m", time.elapsed(), blocks.len(), elements, output_type.get_nodal_coordinates().len());
+            }
+            if let Some(options) = smoothing {
+                match options {
+                    MeshSmoothCommands::Smooth {
+                        iterations,
+                        method,
+                        hierarchical,
+                        pass_band,
+                        scale,
+                    } => {
+                        apply_smoothing_method(
+                            &mut output_type,
+                            iterations,
+                            method,
+                            hierarchical,
+                            pass_band,
+                            scale,
+                            quiet,
+                        )?;
+                    }
+                }
+            }
+            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+            match output_extension {
+                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
+                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
+                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
+                Some("stl") => write_output(
+                    output,
+                    OutputTypes::<3, TriangularFiniteElements>::Stl(output_type.into_tesselation()),
                     quiet,
-                )?;
+                )?,
+                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
+                _ => invalid_output(&output, output_extension)?,
             }
         }
-    }
-    if let Some(file) = metrics {
-        metrics_inner(&output_type, file, quiet)?
-    }
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match output_extension {
-        Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-        Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-        Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-        Some("stl") => write_output(
-            output,
-            OutputTypes::<3, TriangularFiniteElements>::Stl(output_type.into_tesselation()),
-            quiet,
-        )?,
-        Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-        _ => invalid_output(&output, output_extension)?,
+        _ => panic!(),
     }
     Ok(())
 }
@@ -1113,8 +1137,15 @@ fn mesh_print_info(basis: MeshBasis, scale: &Scale, translate: &Translate) {
     }
 }
 
-fn metrics(input: String, output: String, quiet: bool) -> Result<(), ErrorWrapper> {
-    let output_type = match read_input(&input, None, None, None, quiet)? {
+fn metrics<const N: usize, T>(
+    input: String,
+    output: String,
+    quiet: bool,
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<N>,
+{
+    let output_type = match read_input::<N, T>(&input, None, None, None, quiet)? {
         InputTypes::Abaqus(finite_elements) => finite_elements,
         InputTypes::Npy(_) | InputTypes::Spn(_) => {
             Err(format!("No metrics for segmentation file {}", input))?
@@ -1169,18 +1200,19 @@ fn octree(
     });
     let scale = [xscale, yscale, zscale].into();
     let translate = [xtranslate, ytranslate, ztranslate].into();
-    let input_type = match read_input(&input, nelx, nely, nelz, quiet)? {
-        InputTypes::Npy(voxels) => voxels,
-        InputTypes::Spn(voxels) => voxels,
-        _ => {
-            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-            Err(format!(
-                "Invalid extension .{} from input file {}",
-                input_extension.unwrap_or("UNDEFINED"),
-                input
-            ))?
-        }
-    };
+    let input_type =
+        match read_input::<HEX, HexahedralFiniteElements>(&input, nelx, nely, nelz, quiet)? {
+            InputTypes::Npy(voxels) => voxels,
+            InputTypes::Spn(voxels) => voxels,
+            _ => {
+                let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+                Err(format!(
+                    "Invalid extension .{} from input file {}",
+                    input_extension.unwrap_or("UNDEFINED"),
+                    input
+                ))?
+            }
+        };
     let time = Instant::now();
     if !quiet {
         mesh_print_info(MeshBasis::Leaves, &scale, &translate)
@@ -1217,7 +1249,7 @@ fn octree(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn smooth(
+fn smooth<const N: usize, T>(
     input: String,
     output: String,
     iterations: usize,
@@ -1227,9 +1259,12 @@ fn smooth(
     scale: f64,
     metrics: Option<String>,
     quiet: bool,
-) -> Result<(), ErrorWrapper> {
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<N>,
+{
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input(&input, None, None, None, quiet)? {
+    match read_input::<N, T>(&input, None, None, None, quiet)? {
         InputTypes::Abaqus(mut finite_elements) => {
             apply_smoothing_method(
                 &mut finite_elements,
@@ -1249,7 +1284,7 @@ fn smooth(
                 Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<3, TriangularFiniteElements>::Stl(
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(
                         finite_elements.into_tesselation(),
                     ),
                     quiet,
@@ -1348,13 +1383,16 @@ where
     }
 }
 
-fn read_input(
+fn read_input<const N: usize, T>(
     input: &str,
     nelx: Option<usize>,
     nely: Option<usize>,
     nelz: Option<usize>,
     quiet: bool,
-) -> Result<InputTypes, ErrorWrapper> {
+) -> Result<InputTypes<N, T>, ErrorWrapper>
+where
+    T: FiniteElementMethods<N>,
+{
     let time = Instant::now();
     if !quiet {
         println!(
@@ -1366,7 +1404,7 @@ fn read_input(
     }
     let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
     let result = match input_extension {
-        Some("inp") => InputTypes::Abaqus(HexahedralFiniteElements::from_inp(input)?),
+        Some("inp") => InputTypes::Abaqus(T::from_inp(input)?),
         Some("npy") => InputTypes::Npy(Voxels::from_npy(input)?),
         Some("spn") => {
             let nel = Nel::from_input([nelx, nely, nelz])?;
