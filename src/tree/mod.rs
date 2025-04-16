@@ -1526,7 +1526,10 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                     .iter()
                     .for_each(|(cell, _)| boundary_from_cell[*cell] = Some(boundary))
             });
+        let mut cell_face_index = 0;
+        let mut cell_faces = vec![vec![]; max_cell_id + 1];
         let mut face_blocks: Vec<u8> = vec![];
+        let mut face_cells: Vec<usize> = vec![];
         let mut face_connectivity = [0; NUM_NODES_FACE];
         let mut faces_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
@@ -1578,7 +1581,10 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                                             node_new += 1;
                                         }
                                     });
+                                cell_faces[*cell].push(cell_face_index);
+                                cell_face_index += 1;
                                 face_blocks.push(boundary as u8 + 1);
+                                face_cells.push(*cell);
                                 faces_connectivity.push(face_connectivity)
                             }
                         }
@@ -1588,11 +1594,108 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
         let node_face_connectivity =
             invert_connectivity(&faces_connectivity, nodal_coordinates.len());
         let non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
+
+        // non_manifold_edges.iter().for_each(|edge| {
+        //     let foo: Vec<usize> = node_face_connectivity[edge[0]].iter().filter(|face_a|
+        //         node_face_connectivity[edge[1]].contains(face_a)
+        //     ).copied().collect();
+        // });
+        //
+        // how to query if the 4 faces have neighbors using (surface)faces and nodes?
+        // the 2 edge nodes share 4 faces, 2 on each of the 2 voxels
+        // the 4 faces of interest, 2 on each voxel, share nodes with the above faces
+        //
         non_manifold_edges.iter().for_each(|edge| {
             println!(
-                "             \x1b[91mNon-manifold edge between node {} and node {}.\x1b[0m",
-                edge[0], edge[1],
-            )
+                "             \x1b[91mNon-manifold edge between node {} and node {}.", edge[0], edge[1]
+            );
+            let non_manifold_faces: Vec<usize> = node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET].iter().filter(|face_a|
+                node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
+            ).copied().collect();
+            println!(
+                "                 Involved faces: {:?}.", non_manifold_faces
+            );
+            non_manifold_faces.iter().for_each(|&non_manifold_face|
+                println!(
+                    "                     Face {} is on cell {}, which has faces {:?}.", non_manifold_face, face_cells[non_manifold_face], cell_faces[face_cells[non_manifold_face]]
+                )
+            );
+            let mut non_manifold_cells: Vec<usize> = non_manifold_faces.iter().map(|&non_manifold_face|
+                face_cells[non_manifold_face]
+            ).collect();
+            non_manifold_cells.sort();
+            non_manifold_cells.dedup();
+
+            // Should only ever be 2 non-manifold cells per non-manfold edge.
+            assert_eq!(non_manifold_cells.len(), 2);
+
+            println!(
+                "                 Involved cells: {:?}.", non_manifold_cells
+            );
+            let non_manifold_cells_non_manifold_faces: Vec<Vec<usize>> = non_manifold_cells.iter().map(|&non_manifold_cell|
+                cell_faces[non_manifold_cell].iter().filter(|cell_face| non_manifold_faces.contains(cell_face)).copied().collect()
+            ).collect();
+
+            // Should only ever be 2 non-manifold faces per non-manifold cell.
+            non_manifold_cells_non_manifold_faces.iter().for_each(|non_manifold_cell_non_manifold_faces|
+                assert_eq!(non_manifold_cell_non_manifold_faces.len(), 2)
+            );
+
+            let non_manifold_cells_other_faces: Vec<Vec<usize>> = non_manifold_cells.iter().map(|&non_manifold_cell|
+                cell_faces[non_manifold_cell].iter().filter(|cell_face| !non_manifold_faces.contains(cell_face)).copied().collect()
+            ).collect();
+            let non_manifold_cells_bowtie_faces: Vec<Vec<usize>> = non_manifold_cells_non_manifold_faces.iter()
+                .zip(non_manifold_cells_other_faces.iter())
+                .map(|(non_manifold_faces, other_faces)| {
+                    other_faces.iter().filter(|&&other_face|
+                        faces_connectivity[other_face].iter().any(|node|
+                            non_manifold_faces.iter().all(|&non_manifold_face|
+                                faces_connectivity[non_manifold_face].contains(node)
+                            )
+                        )
+                    ).copied().collect()
+                }).collect();
+            non_manifold_cells.iter()
+                .zip(non_manifold_cells_non_manifold_faces.iter()
+                .zip(non_manifold_cells_other_faces.iter()
+                .zip(non_manifold_cells_bowtie_faces)))
+                .for_each(|(non_manifold_cell, (non_manifold_cell_non_manifold_faces, (non_manifold_cell_other_faces, non_manifold_cell_bowtie_faces)))|
+                    println!(
+                        "                     Cell {} has non-manifold faces {:?} and other faces {:?}, of which {:?} are bowtie faces.",
+                        non_manifold_cell, non_manifold_cell_non_manifold_faces, non_manifold_cell_other_faces, non_manifold_cell_bowtie_faces
+                    )
+                );
+            //
+            // Match cases: cell (a,b) has (0,1,2) bowtie faces.
+            // The (1,1) case seems popular, the (1,0) cases seem less popular, and the (2,x) cases see, rare.
+            //
+
+            // let mut faces = [0; 4];
+            // faces[0] = foo[0];
+            // let normal = nodal_coordinates[faces_connectivity[foo][0]];
+
+            // edge.iter().enumerate().for_each(|(baz, node)|
+            //     node_face_connectivity[node - NODE_NUMBERING_OFFSET].iter()
+            //         .filter(|face| !foo.contains(face))
+            //         .for_each(|&face| {
+            //             let asdf: Vec<[usize; 2]> = foo.iter().filter_map(|&face_a|
+            //                 if faces_connectivity[face].iter().filter(|node| faces_connectivity[face_a].contains(node)).count() == 2 {
+            //                     if let Some(&face_b) = foo.iter().find(|&&face_b|
+            //                         faces_connectivity[face].iter().filter(|node|
+            //                             faces_connectivity[face_b].contains(node)
+            //                         ).count() == 2 && face_a < face_b
+            //                     ) {
+            //                         Some([face_a, face_b])
+            //                     } else {
+            //                         None
+            //                     }
+            //                 } else {
+            //                     None
+            //                 }
+            //             ).collect();
+            //             println!("                 {} Node {}, face {}, {:?}", baz, node, face, asdf);
+            //     })
+            // );
         });
         //
         // need some way to figure out which face to add the new node to that will
