@@ -1669,55 +1669,7 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
             // Match cases: cell (a,b) has (0,1,2) bowtie faces.
             // The (1,1) case seems popular, the (1,0) cases seem less popular, and the (2,x) cases see, rare.
             //
-
-            // let mut faces = [0; 4];
-            // faces[0] = foo[0];
-            // let normal = nodal_coordinates[faces_connectivity[foo][0]];
-
-            // edge.iter().enumerate().for_each(|(baz, node)|
-            //     node_face_connectivity[node - NODE_NUMBERING_OFFSET].iter()
-            //         .filter(|face| !foo.contains(face))
-            //         .for_each(|&face| {
-            //             let asdf: Vec<[usize; 2]> = foo.iter().filter_map(|&face_a|
-            //                 if faces_connectivity[face].iter().filter(|node| faces_connectivity[face_a].contains(node)).count() == 2 {
-            //                     if let Some(&face_b) = foo.iter().find(|&&face_b|
-            //                         faces_connectivity[face].iter().filter(|node|
-            //                             faces_connectivity[face_b].contains(node)
-            //                         ).count() == 2 && face_a < face_b
-            //                     ) {
-            //                         Some([face_a, face_b])
-            //                     } else {
-            //                         None
-            //                     }
-            //                 } else {
-            //                     None
-            //                 }
-            //             ).collect();
-            //             println!("                 {} Node {}, face {}, {:?}", baz, node, face, asdf);
-            //     })
-            // );
         });
-        //
-        // need some way to figure out which face to add the new node to that will
-        // (a) remove the non-manifold edge
-        // (b) not create a hole
-        // (c) be robust to affecting other nearby non-manifold edges
-        //
-        // The two cells involved in the bowtie have 4 important possible neighboring cells.
-        // The goal is to correctly pick which of the 2 edge nodes,
-        // and then which of the two cells to adjust the faces on, so 4 choices.
-        // The case that seems too hard are when all 4 choices affect a neighboring cell too.
-        // Maybe just panic in those cases for now?
-        // And maybe panic whenver non-manfold edges touch, since not sure if handling those well.
-        // Seems like that choice in particular rules out a lot of complicated cases.
-        //
-        // You can check if there are faces that share all 4 nodes of the bowtie faces to check for neighbors.
-        // Panic in the case where they all have neighbors.
-        // Unmerge and affect the faces of the bowtie which has the face without the neighbor.
-        // If more than one face, just pick one?
-        //
-        // Might also only ever unmerge one node, and let the cases where you should have unmerged both be handled by the non-manifold vertices part.
-        //
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
         let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
         let mut face = 0;
