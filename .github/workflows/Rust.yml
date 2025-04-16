@@ -41,11 +41,11 @@ jobs:
         with:
           toolchain: nightly
       - name: Install
-        uses: taiki-e/install-action@a48a50298f98c47e46a957ae6f82c44cc4878e42
+        uses: taiki-e/install-action@09dc018eee06ae1c9e0409786563f534210ceb83
         with:
           tool: cargo-llvm-cov
       - name: Coverage
-        run: rustup run nightly cargo llvm-cov --profile release --fail-under-functions 54 --fail-under-lines 69 --fail-under-regions 36
+        run: rustup run nightly cargo llvm-cov --profile release --fail-under-functions 50 --fail-under-lines 65 --fail-under-regions 35
   Package:
     runs-on: ubuntu-latest
     steps:

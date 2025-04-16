@@ -69,6 +69,8 @@ const fn subcells_on_neighbor_face(face: usize) -> SubcellsOnFace {
 }
 
 type Cells = [Cell; NUM_OCTANTS];
+type Edge = [usize; 2];
+type Edges = Vec<Edge>;
 type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
 
@@ -1524,7 +1526,7 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                     .iter()
                     .for_each(|(cell, _)| boundary_from_cell[*cell] = Some(boundary))
             });
-        let mut face_blocks = vec![];
+        let mut face_blocks: Vec<u8> = vec![];
         let mut face_connectivity = [0; NUM_NODES_FACE];
         let mut faces_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
@@ -1583,6 +1585,21 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                     })
                 })
         });
+        let node_face_connectivity =
+            invert_connectivity(&faces_connectivity, nodal_coordinates.len());
+        let non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
+        non_manifold_edges.iter().for_each(|edge| {
+            println!(
+                "             \x1b[91mNon-manifold edge between node {} and node {}.\x1b[0m",
+                edge[0], edge[1],
+            )
+        });
+        //
+        // need some way to figure out which face to add the new node to that will
+        // (a) remove the non-manifold edge
+        // (b) not create a hole
+        // (c) be robust to affecting other nearby non-manifold edges
+        //
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
         let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
         let mut face = 0;
@@ -1614,6 +1631,58 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
             nodal_coordinates,
         ))
     }
+}
+
+fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> Vec<Vec<usize>> {
+    let mut node_face_connectivity = vec![vec![]; num_nodes];
+    faces_connectivity
+        .iter()
+        .enumerate()
+        .for_each(|(face, connectivity)| {
+            connectivity
+                .iter()
+                .for_each(|node| node_face_connectivity[node - NODE_NUMBERING_OFFSET].push(face))
+        });
+    node_face_connectivity
+}
+
+fn edges(faces_connectivity: &[[usize; 4]]) -> Edges {
+    let mut edges: Edges = faces_connectivity
+        .iter()
+        .flat_map(|connectivity| {
+            [
+                [connectivity[0], connectivity[1]],
+                [connectivity[1], connectivity[2]],
+                [connectivity[2], connectivity[3]],
+                [connectivity[3], connectivity[0]],
+            ]
+            .into_iter()
+        })
+        .collect();
+    edges.iter_mut().for_each(|edge| edge.sort());
+    edges.sort();
+    edges.dedup();
+    edges
+}
+
+fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec<usize>]) -> Edges {
+    edges(faces_connectivity)
+        .iter()
+        .flat_map(|&edge| {
+            if node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET]
+                .iter()
+                .filter(|face_a| {
+                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
+                })
+                .count()
+                == 4
+            {
+                Some(edge)
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
