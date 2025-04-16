@@ -151,7 +151,7 @@ supported by the authors.
 While there are many applications suitable for creation of finite element meshes,
 we found none that could meet all of our requirements.
 
-Commercial (closed-source) applications such as 
+Commercial (closed-source) applications such as
 Altair HyperMesh [@altair_hypermesh],
 ANSYS Meshing [@ansys_meshing],
 COMSOL Multiphysics [@comsol_multiphysics],
@@ -216,7 +216,7 @@ Surface reconstruction of a 3D, all-triangular mesh **isosurface** can also be c
 ![Surface reconstruction of a real weld: (top) mesh generated from a CT segmentation, (bottom) example of voxel domain (left) used to generate a smooth isosurface (right).](figures/weld_composite.png)
 
 `automesh` uses an **octree** for efficient performance [@meagher1980].  The octree serves as an adaptive segmentation, which accelerates defeaturing.  The top two items of Figure&nbsp;4
-show an octree visualization in HexaLab [@bracci2019hexalab] of an `automesh` octree. 
+show an octree visualization in HexaLab [@bracci2019hexalab] of an `automesh` octree.
 The bottom two items of Figure&nbsp;4 show application of `automesh` to a large problem,
 which underscores the importance of the octree implementation.  The micro CT segmentation
 input was composed of one billion voxels, which could be represented in an octree with
@@ -227,9 +227,9 @@ With this 200$\times$ reduction, only 36 seconds were required to create the mes
 
 ## Conclusion
 
-`automesh` presents a robust solution for automatic mesh generation from segmentation data, bridging the gap between 3D imaging modalities and finite element analysis. 
-By leveraging defeaturing, smoothing, and an efficient octree structure, `automesh` not only enhances the quality of the generated meshes but also significantly reduces computational overhead. 
-Its ability to handle multiple input and output formats, including support for both hexahedral and triangular elements, makes it versatile for various applications across engineering and biomedical fields. 
+`automesh` presents a robust solution for automatic mesh generation from segmentation data, bridging the gap between 3D imaging modalities and finite element analysis.
+By leveraging defeaturing, smoothing, and an efficient octree structure, `automesh` not only enhances the quality of the generated meshes but also significantly reduces computational overhead.
+Its ability to handle multiple input and output formats, including support for both hexahedral and triangular elements, makes it versatile for various applications across engineering and biomedical fields.
 The integration of automated workflows ensures that users can efficiently convert complex voxel data into high-quality meshes without manual intervention.
 
 
