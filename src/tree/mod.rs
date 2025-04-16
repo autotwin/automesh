@@ -1594,16 +1594,8 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
         let node_face_connectivity =
             invert_connectivity(&faces_connectivity, nodal_coordinates.len());
         let non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
-
-        // non_manifold_edges.iter().for_each(|edge| {
-        //     let foo: Vec<usize> = node_face_connectivity[edge[0]].iter().filter(|face_a|
-        //         node_face_connectivity[edge[1]].contains(face_a)
-        //     ).copied().collect();
-        // });
         //
-        // how to query if the 4 faces have neighbors using (surface)faces and nodes?
-        // the 2 edge nodes share 4 faces, 2 on each of the 2 voxels
-        // the 4 faces of interest, 2 on each voxel, share nodes with the above faces
+        // panic if any edges share nodes
         //
         non_manifold_edges.iter().for_each(|edge| {
             println!(
