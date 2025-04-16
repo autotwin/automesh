@@ -1660,7 +1660,10 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
             //
             // Match cases: cell (a,b) has (0,1,2) bowtie faces.
             // The (1,1) case seems popular, the (1,0) cases seem less popular, and the (2,x) cases see, rare.
-            //
+            // - (0, 0) -> panic
+            // - (1, 0) | (1, 1) -> unmerge on cell 1
+            // - (0, 1) -> unmerge on cell 2
+            // - (2, x) | (x, 2) -> panic?
         });
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
         let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
