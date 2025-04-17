@@ -1705,9 +1705,58 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                 faces_connectivity[face][position] = node_new
             });
         });
-        //
-        // need to do non-manifold vertices now
-        //
+        let node_face_connectivity =
+            invert_connectivity(&faces_connectivity, nodal_coordinates.len());
+        let mut faces = [[0; 3]; 2];
+        let mut faces_temp;
+        for node_index in 0..nodal_coordinates.len() {
+            if node_face_connectivity[node_index].len() == 6 {
+                faces[0][0] = node_face_connectivity[node_index][0];
+                if let Ok(trial_faces) = <[usize; 2]>::try_from(
+                    node_face_connectivity[node_index]
+                        .iter()
+                        .skip(1)
+                        .filter(|&&face| {
+                            faces_connectivity[faces[0][0]]
+                                .iter()
+                                .filter(|node| faces_connectivity[face].contains(node))
+                                .count()
+                                == 2
+                        })
+                        .copied()
+                        .collect::<Vec<usize>>(),
+                ) {
+                    faces[0][1] = trial_faces[0];
+                    faces[0][2] = trial_faces[1];
+                    faces_temp = node_face_connectivity[node_index].clone();
+                    faces_temp.retain(|face| !faces[0].contains(face));
+                    if let Ok(trial_faces_2) = <[usize; 3]>::try_from(faces_temp.clone()) {
+                        faces[1] = trial_faces_2;
+                        if faces[0].iter().all(|&face_a| {
+                            faces[1].iter().all(|&face_b| {
+                                faces_connectivity[face_a]
+                                    .iter()
+                                    .filter(|node_a| faces_connectivity[face_b].contains(node_a))
+                                    .count()
+                                    == 1
+                            })
+                        }) {
+                            nodal_coordinates.push(nodal_coordinates[node_index].clone());
+                            let node = node_index + NODE_NUMBERING_OFFSET;
+                            let node_new = nodal_coordinates.len();
+                            let mut position = 0;
+                            faces[0].iter().for_each(|&face| {
+                                position = faces_connectivity[face]
+                                    .iter()
+                                    .position(|face_node| face_node == &node)
+                                    .unwrap();
+                                faces_connectivity[face][position] = node_new
+                            });
+                        }
+                    }
+                }
+            }
+        }
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
         let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
         let mut face = 0;
