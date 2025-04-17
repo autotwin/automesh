@@ -1,6 +1,21 @@
 # Introduction
 
-`automesh` can automatically convert a segmentation into a hexahedral finite element mesh.
+`automesh` is an open-source Rust software program that uses a **segmentation**,
+typically generated from a 3D image stack,
+to create a finite element **mesh**,
+composed either of hexahedral (volumetric)
+or triangular (isosurface) elements.
+
+`automesh` **converts** between
+segmentation formats (`.npy`, `.spn`)
+and
+mesh formats (`.exo`, `.inp`, `.mesh`, `.stl`, `.vtk`).
+
+`automesh` can **defeature** voxel domains,
+apply Laplacian and Taubin **smoothing**,
+and output mesh quality **metrics**.
+
+`automesh` uses an internal octree for fast performance.
 
 ## Segmentation
 
