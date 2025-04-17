@@ -215,15 +215,18 @@ Surface reconstruction of a 3D, all-triangular mesh **isosurface** can also be c
 
 ![Surface reconstruction of a real weld: (top) isosurface mesh generated from a CT segmentation, (bottom) example of voxel domain (left) used to generate a smooth isosurface (right).](figures/weld_composite.png)
 
-`automesh` uses an **octree** for efficient performance [@meagher1980].  The octree serves as an adaptive segmentation, which accelerates defeaturing.  The top two items of Figure&nbsp;4
-show an octree visualization in HexaLab [@bracci2019hexalab] of an `automesh` octree.
+`automesh` uses an **octree** for efficient performance [@meagher1980].  The octree serves as an adaptive segmentation, which accelerates defeaturing.  Our current implementation requires the octree to be strongly balanced, not weakly balanced.   Octree balancing refers to how much neighboring cells can differ in their level of refinement and the type of adjacency (face, edge, vertex) that is considered [@livesu2021optimal]:
+
+* A strongly balanced octree requires neighboring cells that share a face, edge, or vertex to differ by no more than one level of refinement.
+* In contrast, a weakly balanced octree requires neighboring cells that share a face to differ by no more than one level of refinement, while edge and vertex neighbors may differ by more than one level of refinement.
+
+The top two items of Figure&nbsp;4 show an octree visualization in
+HexaLab [@bracci2019hexalab] of an `automesh` octree composing a spherical domain.
 The bottom two items of Figure&nbsp;4 show application of `automesh` to a large problem,
-which underscores the importance of the octree implementation.  The micro CT segmentation
+to illustrate the importance of the octree implementation.  The micro CT segmentation
 input was composed of one billion voxels, which could be represented in an octree with
 only 10&nbsp;million cells.  Five million of those octree cells are removable void.
 With this 200$\times$ reduction, only 36 seconds were required to create the mesh.
-
-The octree supports efficient defeaturing.  Our current implementation requires the octree to be strongly balanced, not weakly balanced.   Octree balancing refers to how much neighboring cells can differ in their level of refinement and the type of adjacency (face, edge, vertex) that is considered.  A strongly balanced octree requires neighboring cells that share a face, edge, or vertex to differ by no more than one level of refinement.  In contrast, a weakly balanced octree requires neighboring cells that share a face to differ by no more than one level of refinement, while edge and vertex neighbors may differ by more than one level of refinement [@livesu2021optimal].
 
 ![Application of the `automesh` octree: (top left) octree mesh of a spherical domain, (top right) cut plane through the domain to expose the adaptivity of the octree mesh, (bottom left), sagittal view of a micro CT of a spinal unit, courtesy of [@nicolella2025] (used with permission) with segmentation IDs `0` through `8`, (bottom right) axial view of `automesh` octree, used to create a finite element mesh from the segmentation.](figures/spine_composite.png)
 
