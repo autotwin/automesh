@@ -1594,77 +1594,120 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
         let node_face_connectivity =
             invert_connectivity(&faces_connectivity, nodal_coordinates.len());
         let non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
-        //
-        // panic if any edges share nodes
-        //
-        non_manifold_edges.iter().for_each(|edge| {
-            println!(
-                "             \x1b[91mNon-manifold edge between node {} and node {}.", edge[0], edge[1]
-            );
-            let non_manifold_faces: Vec<usize> = node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET].iter().filter(|face_a|
-                node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
-            ).copied().collect();
-            println!(
-                "                 Involved faces: {:?}.", non_manifold_faces
-            );
-            non_manifold_faces.iter().for_each(|&non_manifold_face|
-                println!(
-                    "                     Face {} is on cell {}, which has faces {:?}.", non_manifold_face, face_cells[non_manifold_face], cell_faces[face_cells[non_manifold_face]]
-                )
-            );
-            let mut non_manifold_cells: Vec<usize> = non_manifold_faces.iter().map(|&non_manifold_face|
-                face_cells[non_manifold_face]
-            ).collect();
-            non_manifold_cells.sort();
-            non_manifold_cells.dedup();
-
-            // Should only ever be 2 non-manifold cells per non-manfold edge.
-            assert_eq!(non_manifold_cells.len(), 2);
-
-            println!(
-                "                 Involved cells: {:?}.", non_manifold_cells
-            );
-            let non_manifold_cells_non_manifold_faces: Vec<Vec<usize>> = non_manifold_cells.iter().map(|&non_manifold_cell|
-                cell_faces[non_manifold_cell].iter().filter(|cell_face| non_manifold_faces.contains(cell_face)).copied().collect()
-            ).collect();
-
-            // Should only ever be 2 non-manifold faces per non-manifold cell.
-            non_manifold_cells_non_manifold_faces.iter().for_each(|non_manifold_cell_non_manifold_faces|
-                assert_eq!(non_manifold_cell_non_manifold_faces.len(), 2)
-            );
-
-            let non_manifold_cells_other_faces: Vec<Vec<usize>> = non_manifold_cells.iter().map(|&non_manifold_cell|
-                cell_faces[non_manifold_cell].iter().filter(|cell_face| !non_manifold_faces.contains(cell_face)).copied().collect()
-            ).collect();
-            let non_manifold_cells_bowtie_faces: Vec<Vec<usize>> = non_manifold_cells_non_manifold_faces.iter()
-                .zip(non_manifold_cells_other_faces.iter())
-                .map(|(non_manifold_faces, other_faces)| {
-                    other_faces.iter().filter(|&&other_face|
-                        faces_connectivity[other_face].iter().any(|node|
-                            non_manifold_faces.iter().all(|&non_manifold_face|
-                                faces_connectivity[non_manifold_face].contains(node)
-                            )
-                        )
-                    ).copied().collect()
-                }).collect();
-            non_manifold_cells.iter()
-                .zip(non_manifold_cells_non_manifold_faces.iter()
-                .zip(non_manifold_cells_other_faces.iter()
-                .zip(non_manifold_cells_bowtie_faces)))
-                .for_each(|(non_manifold_cell, (non_manifold_cell_non_manifold_faces, (non_manifold_cell_other_faces, non_manifold_cell_bowtie_faces)))|
-                    println!(
-                        "                     Cell {} has non-manifold faces {:?} and other faces {:?}, of which {:?} are bowtie faces.",
-                        non_manifold_cell, non_manifold_cell_non_manifold_faces, non_manifold_cell_other_faces, non_manifold_cell_bowtie_faces
-                    )
-                );
-            //
-            // Match cases: cell (a,b) has (0,1,2) bowtie faces.
-            // The (1,1) case seems popular, the (1,0) cases seem less popular, and the (2,x) cases see, rare.
-            // - (0, 0) -> panic
-            // - (1, 0) | (1, 1) -> unmerge on cell 1
-            // - (0, 1) -> unmerge on cell 2
-            // - (2, x) | (x, 2) -> panic?
+        non_manifold_edges.iter().for_each(|non_manifold_edge_a| {
+            non_manifold_edges.iter().for_each(|non_manifold_edge_b| {
+                if non_manifold_edge_a
+                    .iter()
+                    .filter(|node_a| non_manifold_edge_b.contains(node_a))
+                    .count()
+                    == 1
+                {
+                    panic!("Consecutive non-manifold edges are currently unsupported.")
+                }
+            })
         });
+        non_manifold_edges.iter().for_each(|edge| {
+            let non_manifold_faces: Vec<usize> = node_face_connectivity
+                [edge[0] - NODE_NUMBERING_OFFSET]
+                .iter()
+                .filter(|face_a| {
+                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
+                })
+                .copied()
+                .collect();
+            let mut non_manifold_cells_vec: Vec<usize> = non_manifold_faces
+                .iter()
+                .map(|&non_manifold_face| face_cells[non_manifold_face])
+                .collect();
+            non_manifold_cells_vec.sort();
+            non_manifold_cells_vec.dedup();
+            let non_manifold_cells: [usize; 2] = non_manifold_cells_vec
+                .try_into()
+                .expect("There should be two non-manifold cells.");
+            let non_manifold_cells_non_manifold_faces: [[usize; 2]; 2] = non_manifold_cells
+                .iter()
+                .map(|&non_manifold_cell| {
+                    cell_faces[non_manifold_cell]
+                        .iter()
+                        .filter(|cell_face| non_manifold_faces.contains(cell_face))
+                        .copied()
+                        .collect::<Vec<usize>>()
+                        .try_into()
+                        .expect("There should be two non-manifold faces per non-manifold cell.")
+                })
+                .collect::<Vec<[usize; 2]>>()
+                .try_into()
+                .expect("There should be two non-manifold cells.");
+
+            let non_manifold_cells_other_faces: Vec<Vec<usize>> = non_manifold_cells
+                .iter()
+                .map(|&non_manifold_cell| {
+                    cell_faces[non_manifold_cell]
+                        .iter()
+                        .filter(|cell_face| !non_manifold_faces.contains(cell_face))
+                        .copied()
+                        .collect()
+                })
+                .collect();
+            let non_manifold_cells_bowtie_faces: Vec<Vec<usize>> =
+                non_manifold_cells_non_manifold_faces
+                    .iter()
+                    .zip(non_manifold_cells_other_faces.iter())
+                    .map(|(non_manifold_faces, other_faces)| {
+                        other_faces
+                            .iter()
+                            .filter(|&&other_face| {
+                                faces_connectivity[other_face].iter().any(|node| {
+                                    non_manifold_faces.iter().all(|&non_manifold_face| {
+                                        faces_connectivity[non_manifold_face].contains(node)
+                                    })
+                                })
+                            })
+                            .copied()
+                            .collect()
+                    })
+                    .collect();
+            let cells_num_bowtie_faces: [usize; 2] = non_manifold_cells_bowtie_faces
+                .iter()
+                .map(|non_manifold_cell_bowtie_faces| non_manifold_cell_bowtie_faces.len())
+                .collect::<Vec<usize>>()
+                .try_into()
+                .expect("There should be two non-manifold cells.");
+            let cell_index = match cells_num_bowtie_faces {
+                [0, 0] => unimplemented!("Change below [0] once implemented."),
+                [1, 0] | [1, 1] => 0,
+                [0, 1] => 1,
+                [2, 2] => unimplemented!("Change below [0] once implemented."),
+                _ => panic!(),
+            };
+            let node = edge
+                .iter()
+                .find(|node| {
+                    faces_connectivity[non_manifold_cells_bowtie_faces[cell_index][0]]
+                        .contains(node)
+                })
+                .unwrap();
+            let faces: [usize; 3] = node_face_connectivity[node - NODE_NUMBERING_OFFSET]
+                .iter()
+                .filter(|face| cell_faces[non_manifold_cells[cell_index]].contains(face))
+                .copied()
+                .collect::<Vec<usize>>()
+                .try_into()
+                .expect("Should be 3 faces.");
+            nodal_coordinates.push(nodal_coordinates[node - NODE_NUMBERING_OFFSET].clone());
+            let node_new = nodal_coordinates.len();
+            let mut position = 0;
+            faces.iter().for_each(|&face| {
+                position = faces_connectivity[face]
+                    .iter()
+                    .position(|face_node| face_node == node)
+                    .unwrap();
+                faces_connectivity[face][position] = node_new
+            });
+        });
+        //
+        // need to do non-manifold vertices now
+        //
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
         let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
         let mut face = 0;
