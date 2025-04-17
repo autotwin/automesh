@@ -203,7 +203,7 @@ One significant attribute of `automesh` is its implementation in Rust, a modern 
 
 ![Example of defeaturing: (left) mesh prior to defeaturing, (right) mesh after defeaturing.](figures/minecraft.png)
 
-`automesh` provides both Laplace [@sorkine2005laplacian] and Taubin [@taubin1995signal] formulations for mesh **smoothing**, with optional hierarchical control.  Hierarchical control classifies all nodes as prescribed, boundary, or interior.  With hierarchical control, the updated (smoothed) position of a boundary node is influenced only by prescribed nodes and other boundary nodes; whereas, the updated position of an interior node is influenced by all types of nodes (prescribed, boundary, and interior).   Hierarchical control with smoothing can help maintain domain boundaries [@chen2010mri].
+`automesh` provides both Laplace [@sorkine2005laplacian] and Taubin [@taubin1995signal] formulations for mesh **smoothing**, with optional hierarchical control.  Hierarchical control classifies all nodes as prescribed, boundary, or interior.  With hierarchical control, the updated (smoothed) position of a boundary node is influenced only by prescribed nodes and other boundary nodes; whereas, the updated position of an interior node is influenced by all types of nodes (prescribed, boundary, and interior).   Smoothing with hierarchical control can help maintain domain boundaries better than smoothing alone [@chen2010mri].
 
 Figure&nbsp;2 shows `automesh` results of Taubin smoothing on an all-hexahedral mesh in the shape of a sphere (green) with a concentric shell (yellow).  Similar to the original demonstration of Taubin smoothing on a tessellation [@taubin1995signal], we apply Taubin smoothing to a hexahedral domain, with noise added to the $x > 0$ hemisphere.
 
@@ -215,20 +215,25 @@ Surface reconstruction of a 3D, all-triangular mesh **isosurface** can also be c
 
 ![Surface reconstruction of a real weld: (top) isosurface mesh generated from a CT segmentation, (bottom) example of voxel domain (left) used to generate a smooth isosurface (right).](figures/weld_composite.png)
 
-`automesh` uses an **octree** for efficient performance [@meagher1980].  The octree serves as an adaptive segmentation, which accelerates defeaturing.  Our current implementation requires the octree to be strongly balanced, not weakly balanced.   Octree balancing refers to how much neighboring cells can differ in their level of refinement and the type of adjacency (face, edge, vertex) that is considered [@livesu2021optimal]:
+`automesh` uses an **octree** for efficient performance [@meagher1980].  The octree serves as an adaptive segmentation, which accelerates defeaturing.  Our current implementation requires the octree to be strongly balanced, not weakly balanced.
 
-* A strongly balanced octree requires neighboring cells that share a face, edge, or vertex to differ by no more than one level of refinement.
-* In contrast, a weakly balanced octree requires neighboring cells that share a face to differ by no more than one level of refinement, while edge and vertex neighbors may differ by more than one level of refinement.
+Octree balancing refers to how much neighboring cells can differ in their level of refinement and the type of adjacency (face, edge, vertex) that is considered [@livesu2021optimal]:
 
-The top two items of Figure&nbsp;4 show an octree visualization in
+* A **strongly balanced** octree requires neighboring cells that share a face, edge, or vertex to differ by no more than one level of refinement.
+* A **weakly balanced** octree requires neighboring cells that share a face to differ by no more than one level of refinement, while edge and vertex neighbors may differ by more than one level of refinement.
+
+The top two items of Figure&nbsp;4 show a visualization in
 HexaLab [@bracci2019hexalab] of an `automesh` octree composing a spherical domain.
-The bottom two items of Figure&nbsp;4 show application of `automesh` to a large problem,
-to illustrate the importance of the octree implementation.  The micro CT segmentation
-input was composed of one billion voxels, which could be represented in an octree with
-only 10&nbsp;million cells.  Five million of those octree cells are removable void.
-With this 200$\times$ reduction, only 36 seconds were required to create the mesh.
+The cut plane on the right item exposes the octree adaptivity.  Four levels of cell
+refinement are present.
 
-![Application of the `automesh` octree: (top left) octree mesh of a spherical domain, (top right) cut plane through the domain to expose the adaptivity of the octree mesh, (bottom left), sagittal view of a micro CT of a spinal unit, courtesy of [@nicolella2025] (used with permission) with segmentation IDs `0` through `8`, (bottom right) axial view of `automesh` octree, used to create a finite element mesh from the segmentation.](figures/spine_composite.png)
+The bottom two items of Figure&nbsp;4 show application of `automesh` to a large problem,
+illustrating the importance of the octree implementation.  The micro CT segmentation
+input is composed of one billion voxels, representable in an octree with
+only 10&nbsp;million cells.  Five million of those octree cells are removable void.
+With this 200$\times$ reduction, only 36 seconds is required to create the mesh.
+
+![Application of the `automesh` octree: (top left) octree mesh of a spherical domain, (top right) cut plane through the domain to expose the adaptivity of the octree, (bottom left), sagittal view of a micro CT of a spinal unit, courtesy of [@nicolella2025] (used with permission) with segmentation IDs `0` through `8`, (bottom right) axial view of `automesh` octree, used to create a finite element mesh from the segmentation.](figures/spine_composite.png)
 
 ## Conclusion
 
