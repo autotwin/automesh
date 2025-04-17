@@ -1526,7 +1526,10 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                     .iter()
                     .for_each(|(cell, _)| boundary_from_cell[*cell] = Some(boundary))
             });
+        let mut cell_face_index = 0;
+        let mut cell_faces = vec![vec![]; max_cell_id + 1];
         let mut face_blocks: Vec<u8> = vec![];
+        let mut face_cells: Vec<usize> = vec![];
         let mut face_connectivity = [0; NUM_NODES_FACE];
         let mut faces_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
@@ -1578,7 +1581,10 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                                             node_new += 1;
                                         }
                                     });
+                                cell_faces[*cell].push(cell_face_index);
+                                cell_face_index += 1;
                                 face_blocks.push(boundary as u8 + 1);
+                                face_cells.push(*cell);
                                 faces_connectivity.push(face_connectivity)
                             }
                         }
@@ -1588,18 +1594,169 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
         let node_face_connectivity =
             invert_connectivity(&faces_connectivity, nodal_coordinates.len());
         let non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
-        non_manifold_edges.iter().for_each(|edge| {
-            println!(
-                "             \x1b[91mNon-manifold edge between node {} and node {}.\x1b[0m",
-                edge[0], edge[1],
-            )
+        non_manifold_edges.iter().for_each(|non_manifold_edge_a| {
+            non_manifold_edges.iter().for_each(|non_manifold_edge_b| {
+                if non_manifold_edge_a
+                    .iter()
+                    .filter(|node_a| non_manifold_edge_b.contains(node_a))
+                    .count()
+                    == 1
+                {
+                    panic!("Consecutive non-manifold edges are currently unsupported.")
+                }
+            })
         });
-        //
-        // need some way to figure out which face to add the new node to that will
-        // (a) remove the non-manifold edge
-        // (b) not create a hole
-        // (c) be robust to affecting other nearby non-manifold edges
-        //
+        non_manifold_edges.iter().for_each(|edge| {
+            let non_manifold_faces: Vec<usize> = node_face_connectivity
+                [edge[0] - NODE_NUMBERING_OFFSET]
+                .iter()
+                .filter(|face_a| {
+                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
+                })
+                .copied()
+                .collect();
+            let mut non_manifold_cells_vec: Vec<usize> = non_manifold_faces
+                .iter()
+                .map(|&non_manifold_face| face_cells[non_manifold_face])
+                .collect();
+            non_manifold_cells_vec.sort();
+            non_manifold_cells_vec.dedup();
+            let non_manifold_cells: [usize; 2] = non_manifold_cells_vec
+                .try_into()
+                .expect("There should be two non-manifold cells.");
+            let non_manifold_cells_non_manifold_faces: [[usize; 2]; 2] = non_manifold_cells
+                .iter()
+                .map(|&non_manifold_cell| {
+                    cell_faces[non_manifold_cell]
+                        .iter()
+                        .filter(|cell_face| non_manifold_faces.contains(cell_face))
+                        .copied()
+                        .collect::<Vec<usize>>()
+                        .try_into()
+                        .expect("There should be two non-manifold faces per non-manifold cell.")
+                })
+                .collect::<Vec<[usize; 2]>>()
+                .try_into()
+                .expect("There should be two non-manifold cells.");
+
+            let non_manifold_cells_other_faces: Vec<Vec<usize>> = non_manifold_cells
+                .iter()
+                .map(|&non_manifold_cell| {
+                    cell_faces[non_manifold_cell]
+                        .iter()
+                        .filter(|cell_face| !non_manifold_faces.contains(cell_face))
+                        .copied()
+                        .collect()
+                })
+                .collect();
+            let non_manifold_cells_bowtie_faces: Vec<Vec<usize>> =
+                non_manifold_cells_non_manifold_faces
+                    .iter()
+                    .zip(non_manifold_cells_other_faces.iter())
+                    .map(|(non_manifold_faces, other_faces)| {
+                        other_faces
+                            .iter()
+                            .filter(|&&other_face| {
+                                faces_connectivity[other_face].iter().any(|node| {
+                                    non_manifold_faces.iter().all(|&non_manifold_face| {
+                                        faces_connectivity[non_manifold_face].contains(node)
+                                    })
+                                })
+                            })
+                            .copied()
+                            .collect()
+                    })
+                    .collect();
+            let cells_num_bowtie_faces: [usize; 2] = non_manifold_cells_bowtie_faces
+                .iter()
+                .map(|non_manifold_cell_bowtie_faces| non_manifold_cell_bowtie_faces.len())
+                .collect::<Vec<usize>>()
+                .try_into()
+                .expect("There should be two non-manifold cells.");
+            let cell_index = match cells_num_bowtie_faces {
+                [0, 0] => unimplemented!("Change below [0] once implemented."),
+                [1, 0] | [1, 1] => 0,
+                [0, 1] => 1,
+                [2, 2] => unimplemented!("Change below [0] once implemented."),
+                _ => panic!(),
+            };
+            let node = edge
+                .iter()
+                .find(|node| {
+                    faces_connectivity[non_manifold_cells_bowtie_faces[cell_index][0]]
+                        .contains(node)
+                })
+                .unwrap();
+            let faces: [usize; 3] = node_face_connectivity[node - NODE_NUMBERING_OFFSET]
+                .iter()
+                .filter(|face| cell_faces[non_manifold_cells[cell_index]].contains(face))
+                .copied()
+                .collect::<Vec<usize>>()
+                .try_into()
+                .expect("Should be 3 faces.");
+            nodal_coordinates.push(nodal_coordinates[node - NODE_NUMBERING_OFFSET].clone());
+            let node_new = nodal_coordinates.len();
+            let mut position = 0;
+            faces.iter().for_each(|&face| {
+                position = faces_connectivity[face]
+                    .iter()
+                    .position(|face_node| face_node == node)
+                    .unwrap();
+                faces_connectivity[face][position] = node_new
+            });
+        });
+        let node_face_connectivity =
+            invert_connectivity(&faces_connectivity, nodal_coordinates.len());
+        let mut faces = [[0; 3]; 2];
+        let mut faces_temp;
+        for node_index in 0..nodal_coordinates.len() {
+            if node_face_connectivity[node_index].len() == 6 {
+                faces[0][0] = node_face_connectivity[node_index][0];
+                if let Ok(trial_faces) = <[usize; 2]>::try_from(
+                    node_face_connectivity[node_index]
+                        .iter()
+                        .skip(1)
+                        .filter(|&&face| {
+                            faces_connectivity[faces[0][0]]
+                                .iter()
+                                .filter(|node| faces_connectivity[face].contains(node))
+                                .count()
+                                == 2
+                        })
+                        .copied()
+                        .collect::<Vec<usize>>(),
+                ) {
+                    faces[0][1] = trial_faces[0];
+                    faces[0][2] = trial_faces[1];
+                    faces_temp = node_face_connectivity[node_index].clone();
+                    faces_temp.retain(|face| !faces[0].contains(face));
+                    if let Ok(trial_faces_2) = <[usize; 3]>::try_from(faces_temp.clone()) {
+                        faces[1] = trial_faces_2;
+                        if faces[0].iter().all(|&face_a| {
+                            faces[1].iter().all(|&face_b| {
+                                faces_connectivity[face_a]
+                                    .iter()
+                                    .filter(|node_a| faces_connectivity[face_b].contains(node_a))
+                                    .count()
+                                    == 1
+                            })
+                        }) {
+                            nodal_coordinates.push(nodal_coordinates[node_index].clone());
+                            let node = node_index + NODE_NUMBERING_OFFSET;
+                            let node_new = nodal_coordinates.len();
+                            let mut position = 0;
+                            faces[0].iter().for_each(|&face| {
+                                position = faces_connectivity[face]
+                                    .iter()
+                                    .position(|face_node| face_node == &node)
+                                    .unwrap();
+                                faces_connectivity[face][position] = node_new
+                            });
+                        }
+                    }
+                }
+            }
+        }
         let mut element_blocks = vec![0; 2 * face_blocks.len()];
         let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
         let mut face = 0;
