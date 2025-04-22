@@ -41,7 +41,7 @@ jobs:
         with:
           toolchain: nightly
       - name: Install
-        uses: taiki-e/install-action@09dc018eee06ae1c9e0409786563f534210ceb83
+        uses: taiki-e/install-action@9903ab6feadaec33945de535fe9d181b91802a55
         with:
           tool: cargo-llvm-cov
       - name: Coverage
