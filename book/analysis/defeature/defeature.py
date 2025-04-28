@@ -17,7 +17,10 @@ FN_SPHERE_STEM = "spheres"
 FN_BLOB_STEM = "blobs"
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(levelname)s: %(message)s",
+)
 
 
 def create_spheres(
@@ -173,17 +176,17 @@ if __name__ == "__main__":
     for command in commands:
 
         try:
-            logging.info(f"Running command: {' '.join(command)}")
+            logging.info("Running command: %s", ' '.join(command))
             result = subprocess.run(
                 command, check=True, capture_output=True, text=True
             )
             logging.info("Mesh created successfully.")
         except subprocess.CalledProcessError as e:
             logging.error("Error creating mesh:")
-            logging.error(f"Command: {' '.join(command)}")
-            logging.error(f"Return code: {e.returncode}")
-            logging.error(f"Standard Output: {e.stdout}")
-            logging.error(f"Standard Error: {e.stderr}")
+            logging.error("Command: %s", ' '.join(command))
+            logging.error("Return code: %s", e.returncode)
+            logging.error("Standard Output: %s", e.stdout)
+            logging.error("Standard Error: %s", e.stderr)
 
         # # Run the command, create the mesh with automesh
         # result = subprocess.run(
