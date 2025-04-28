@@ -1,4 +1,4 @@
-use super::{voxel::IntermediateError, Coordinate, Coordinates, NSD};
+use super::{Coordinate, Coordinates, NSD, voxel::IntermediateError};
 use conspire::math::{Tensor, TensorArray};
 use ndarray_npy::{ReadNpyError, WriteNpyError};
 use netcdf::Error as ErrorNetCDF;
