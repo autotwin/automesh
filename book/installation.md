@@ -44,7 +44,7 @@ source $HOME/.cargo/env
 #### Windows
 
 1. Download and run the [Rust installer](https://rustup.rs).
-2. Follow the installation instructions in the command prompt.
+2. Follow the installation instructions in the command prompt.  Additional Windows installation details are available in [The rustup book](https://rust-lang.github.io/rustup/installation/windows.html).
 3. Ensure that Cargo's bin directory is in your `PATH`. You may need to restart your command prompt or system.
 
 ### Python Prerequisites
