@@ -4,8 +4,8 @@ use super::{
         py::{IntoFoo, PyIntermediateError},
         Blocks, NSD,
     },
-    defeature_voxels, finite_element_data_from_data, voxel_data_from_npy, voxel_data_from_spn,
-    write_voxels_to_npy, write_voxels_to_spn, VoxelData,
+    defeature_voxels, extract_voxels, finite_element_data_from_data, voxel_data_from_npy,
+    voxel_data_from_spn, write_voxels_to_npy, write_voxels_to_spn, Extraction, VoxelData,
 };
 use pyo3::prelude::*;
 
@@ -48,6 +48,15 @@ impl Voxels {
         )
         .get_data()
         .clone()
+    }
+    /// Extract a specified range of voxels from the segmentation.
+    pub fn extract(&mut self, extraction: [usize; 6]) {
+        extract_voxels(
+            &mut super::Voxels {
+                data: self.data.clone(),
+            },
+            Extraction::from(extraction),
+        )
     }
     /// Constructs and returns a new voxels type from an NPY file.
     #[staticmethod]

@@ -15,7 +15,7 @@ use super::{
     Coordinate, Coordinates, Octree, Tree, Vector, NSD,
 };
 use conspire::math::TensorArray;
-use ndarray::{Array3, Axis};
+use ndarray::{s, Array3, Axis};
 use ndarray_npy::{ReadNpyError, ReadNpyExt, WriteNpyError, WriteNpyExt};
 use std::{
     fs::File,
@@ -170,6 +170,86 @@ impl From<[f64; NSD]> for Translate {
     }
 }
 
+/// Extraction ranges for a segmentation.
+pub struct Extraction {
+    x_min: usize,
+    x_max: usize,
+    y_min: usize,
+    y_max: usize,
+    z_min: usize,
+    z_max: usize,
+}
+
+impl Extraction {
+    pub fn from_input<'a>(
+        [x_min, x_max, y_min, y_max, z_min, z_max]: [usize; 6],
+    ) -> Result<Self, &'a str> {
+        if x_min >= x_max {
+            Err("Need to specify x_min < x_max")
+        } else if y_min >= y_max {
+            Err("Need to specify y_min < y_max")
+        } else if z_min >= z_max {
+            Err("Need to specify z_min < z_max")
+        } else {
+            Ok(Self {
+                x_min,
+                x_max,
+                y_min,
+                y_max,
+                z_min,
+                z_max,
+            })
+        }
+    }
+}
+
+impl From<[usize; 6]> for Extraction {
+    fn from([x_min, x_max, y_min, y_max, z_min, z_max]: [usize; 6]) -> Self {
+        if x_min >= x_max {
+            panic!("Need to specify x_min < x_max.")
+        } else if y_min >= y_max {
+            panic!("Need to specify y_min < y_max.")
+        } else if z_min >= z_max {
+            panic!("Need to specify z_min < z_max.")
+        } else {
+            Self {
+                x_min,
+                x_max,
+                y_min,
+                y_max,
+                z_min,
+                z_max,
+            }
+        }
+    }
+}
+
+impl From<[usize; NSD]> for Extraction {
+    fn from([x_max, y_max, z_max]: [usize; NSD]) -> Self {
+        Self {
+            x_min: 0,
+            x_max,
+            y_min: 0,
+            y_max,
+            z_min: 0,
+            z_max,
+        }
+    }
+}
+
+impl From<Nel> for Extraction {
+    fn from(Nel { x, y, z }: Nel) -> Self {
+        Self {
+            x_min: 0,
+            x_max: x,
+            y_min: 0,
+            y_max: y,
+            z_min: 0,
+            z_max: z,
+        }
+    }
+}
+
 /// The voxels type.
 pub struct Voxels {
     data: VoxelData,
@@ -179,6 +259,10 @@ impl Voxels {
     /// Defeatures clusters with less than a minimum number of voxels.
     pub fn defeature(self, min_num_voxels: usize) -> Self {
         defeature_voxels(min_num_voxels, self)
+    }
+    /// Extract a specified range of voxels from the segmentation.
+    pub fn extract(&mut self, extraction: Extraction) {
+        extract_voxels(self, extraction)
     }
     /// Constructs and returns a new voxels type from an NPY file.
     pub fn from_npy(file_path: &str) -> Result<Self, ReadNpyError> {
@@ -250,11 +334,31 @@ impl Voxels {
     }
 }
 
+fn extract_voxels(
+    voxels: &mut Voxels,
+    Extraction {
+        x_min,
+        x_max,
+        y_min,
+        y_max,
+        z_min,
+        z_max,
+    }: Extraction,
+) {
+    voxels.data = voxels
+        .data
+        .slice(s![x_min..x_max, y_min..y_max, z_min..z_max])
+        .to_owned()
+}
+
 fn defeature_voxels(min_num_voxels: usize, voxels: Voxels) -> Voxels {
+    let nel_0 = Nel::from(voxels.data.shape());
     let (nel, mut tree) = Octree::from_voxels(voxels);
     tree.balance(true);
     tree.defeature(min_num_voxels);
-    Voxels::from_octree(nel, tree)
+    let mut voxels = Voxels::from_octree(nel, tree);
+    extract_voxels(&mut voxels, Extraction::from(nel_0));
+    voxels
 }
 
 fn filter_voxel_data(data: &VoxelData, remove: Option<Blocks>) -> (VoxelDataSized<NSD>, Blocks) {

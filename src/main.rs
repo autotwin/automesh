@@ -1,5 +1,5 @@
 use automesh::{
-    Blocks, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
+    Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
     IntoFiniteElements, Nel, Octree, Scale, Smoothing, Tessellation, Translate, Tree,
     TriangularFiniteElements, Voxels, HEX, TRI,
 };
@@ -72,6 +72,57 @@ enum Commands {
         /// Number of voxels in the z-direction
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+    },
+
+    /// Extracts a specified range of voxels from a segmentation
+    Extract {
+        /// Segmentation input file (npy | spn)
+        #[arg(long, short, value_name = "FILE")]
+        input: String,
+
+        /// Extractd segmentation output file (npy | spn)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of voxels in the x-direction
+        #[arg(long, short = 'x', value_name = "NEL")]
+        nelx: Option<usize>,
+
+        /// Number of voxels in the y-direction
+        #[arg(long, short = 'y', value_name = "NEL")]
+        nely: Option<usize>,
+
+        /// Number of voxels in the z-direction
+        #[arg(long, short = 'z', value_name = "NEL")]
+        nelz: Option<usize>,
+
+        /// Minimum voxel in the x-direction
+        #[arg(long, value_name = "MIN")]
+        xmin: usize,
+
+        /// Maximum voxel in the x-direction
+        #[arg(long, value_name = "MAX")]
+        xmax: usize,
+
+        /// Minimum voxel in the y-direction
+        #[arg(long, value_name = "MIN")]
+        ymin: usize,
+
+        /// Maximum voxel in the y-direction
+        #[arg(long, value_name = "MAX")]
+        ymax: usize,
+
+        /// Minimum voxel in the z-direction
+        #[arg(long, value_name = "MIN")]
+        zmin: usize,
+
+        /// Maximum voxel in the z-direction
+        #[arg(long, value_name = "MAX")]
+        zmax: usize,
 
         /// Pass to quiet the terminal output
         #[arg(action, long, short)]
@@ -663,6 +714,25 @@ fn main() -> Result<(), ErrorWrapper> {
             is_quiet = quiet;
             defeature(input, output, min, nelx, nely, nelz, quiet)
         }
+        Some(Commands::Extract {
+            input,
+            output,
+            nelx,
+            nely,
+            nelz,
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            zmin,
+            zmax,
+            quiet,
+        }) => {
+            is_quiet = quiet;
+            extract(
+                input, output, nelx, nely, nelz, xmin, xmax, ymin, ymax, zmin, zmax, quiet,
+            )
+        }
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
@@ -904,6 +974,49 @@ fn defeature(
                 input
             ))?
         }
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn extract(
+    input: String,
+    output: String,
+    nelx: Option<usize>,
+    nely: Option<usize>,
+    nelz: Option<usize>,
+    xmin: usize,
+    xmax: usize,
+    ymin: usize,
+    ymax: usize,
+    zmin: usize,
+    zmax: usize,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    let extraction = Extraction::from_input([xmin, xmax, ymin, ymax, zmin, zmax])?;
+    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+    match read_input::<HEX, HexahedralFiniteElements>(&input, nelx, nely, nelz, quiet)? {
+        InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
+        InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
+            Some("spn") => {
+                voxels.extract(extraction);
+                write_output(
+                    output,
+                    OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels),
+                    quiet,
+                )
+            }
+            Some("npy") => {
+                voxels.extract(extraction);
+                write_output(
+                    output,
+                    OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels),
+                    quiet,
+                )
+            }
+            _ => invalid_output(&output, output_extension),
+        },
+        InputTypes::Stl(_voxels) => invalid_input(&input, input_extension),
     }
 }
 
