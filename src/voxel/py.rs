@@ -4,8 +4,8 @@ use super::{
         py::{IntoFoo, PyIntermediateError},
         Blocks, NSD,
     },
-    defeature_voxels, finite_element_data_from_data, voxel_data_from_npy, voxel_data_from_spn,
-    write_voxels_to_npy, write_voxels_to_spn, VoxelData,
+    defeature_voxels, finite_element_data_from_data, reduce_voxels, voxel_data_from_npy,
+    voxel_data_from_spn, write_voxels_to_npy, write_voxels_to_spn, Reduction, VoxelData,
 };
 use pyo3::prelude::*;
 
@@ -62,6 +62,15 @@ impl Voxels {
         Ok(Self {
             data: voxel_data_from_spn(file_path, nel.into())?,
         })
+    }
+    /// Reduce the segmentation to the specified range of voxels.
+    pub fn reduce(&mut self, reduction: [usize; 6]) {
+        reduce_voxels(
+            &mut super::Voxels {
+                data: self.data.clone(),
+            },
+            Reduction::from(reduction),
+        )
     }
     /// Writes the internal voxels data to an NPY file.
     pub fn write_npy(&self, file_path: &str) -> Result<(), PyIntermediateError> {

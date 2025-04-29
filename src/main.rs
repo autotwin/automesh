@@ -1,6 +1,6 @@
 use automesh::{
     Blocks, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
-    IntoFiniteElements, Nel, Octree, Scale, Smoothing, Tessellation, Translate, Tree,
+    IntoFiniteElements, Nel, Octree, Reduction, Scale, Smoothing, Tessellation, Translate, Tree,
     TriangularFiniteElements, Voxels, HEX, TRI,
 };
 use clap::{Parser, Subcommand};
@@ -176,6 +176,57 @@ enum Commands {
         /// Pass to apply strong balancing
         #[arg(action, long, short)]
         strong: bool,
+    },
+
+    /// Reduces a segmentation to a specified range of voxels
+    Reduce {
+        /// Segmentation input file (npy | spn)
+        #[arg(long, short, value_name = "FILE")]
+        input: String,
+
+        /// Reduced segmentation output file (npy | spn)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of voxels in the x-direction
+        #[arg(long, short = 'x', value_name = "NEL")]
+        nelx: Option<usize>,
+
+        /// Number of voxels in the y-direction
+        #[arg(long, short = 'y', value_name = "NEL")]
+        nely: Option<usize>,
+
+        /// Number of voxels in the z-direction
+        #[arg(long, short = 'z', value_name = "NEL")]
+        nelz: Option<usize>,
+
+        /// Minimum voxel in the x-direction
+        #[arg(long, value_name = "MIN")]
+        xmin: usize,
+
+        /// Maximum voxel in the x-direction
+        #[arg(long, value_name = "MAX")]
+        xmax: usize,
+
+        /// Minimum voxel in the y-direction
+        #[arg(long, value_name = "MIN")]
+        ymin: usize,
+
+        /// Maximum voxel in the y-direction
+        #[arg(long, value_name = "MAX")]
+        ymax: usize,
+
+        /// Minimum voxel in the z-direction
+        #[arg(long, value_name = "MIN")]
+        zmin: usize,
+
+        /// Maximum voxel in the z-direction
+        #[arg(long, value_name = "MAX")]
+        zmax: usize,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
     },
 
     /// Applies smoothing to an existing mesh
@@ -740,6 +791,25 @@ fn main() -> Result<(), ErrorWrapper> {
                 ytranslate, ztranslate, quiet, pair, strong,
             )
         }
+        Some(Commands::Reduce {
+            input,
+            output,
+            nelx,
+            nely,
+            nelz,
+            xmin,
+            xmax,
+            ymin,
+            ymax,
+            zmin,
+            zmax,
+            quiet,
+        }) => {
+            is_quiet = quiet;
+            reduce(
+                input, output, nelx, nely, nelz, xmin, xmax, ymin, ymax, zmin, zmax, quiet,
+            )
+        }
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
@@ -1246,6 +1316,49 @@ fn octree(
         _ => invalid_output(&output, output_extension)?,
     }
     Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn reduce(
+    input: String,
+    output: String,
+    nelx: Option<usize>,
+    nely: Option<usize>,
+    nelz: Option<usize>,
+    xmin: usize,
+    xmax: usize,
+    ymin: usize,
+    ymax: usize,
+    zmin: usize,
+    zmax: usize,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    let reduction = Reduction::from_input([xmin, xmax, ymin, ymax, zmin, zmax])?;
+    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+    match read_input::<HEX, HexahedralFiniteElements>(&input, nelx, nely, nelz, quiet)? {
+        InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
+        InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
+            Some("spn") => {
+                voxels.reduce(reduction);
+                write_output(
+                    output,
+                    OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels),
+                    quiet,
+                )
+            }
+            Some("npy") => {
+                voxels.reduce(reduction);
+                write_output(
+                    output,
+                    OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels),
+                    quiet,
+                )
+            }
+            _ => invalid_output(&output, output_extension),
+        },
+        InputTypes::Stl(_voxels) => invalid_input(&input, input_extension),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -13,6 +13,8 @@ use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
 use ndarray::{s, Axis};
 use std::array::from_fn;
 
+pub const PADDING: u8 = 255;
+
 const NUM_FACES: usize = 6;
 const NUM_OCTANTS: usize = 8;
 const NUM_NODES_FACE: usize = 4;
@@ -818,6 +820,7 @@ impl Tree for Octree {
         let mut removed_data = remove.clone().unwrap_or_default();
         removed_data.sort();
         removed_data.dedup();
+        removed_data.push(PADDING);
         let supercells = if let Some(supercells) = supercells_opt {
             supercells
         } else {
@@ -1102,6 +1105,10 @@ impl Tree for Octree {
             .unwrap();
         let nel = Nel::from([nel_padded; NSD]);
         let mut data = VoxelData::from(nel);
+        data.iter_mut().for_each(|entry| *entry = PADDING);
+        if data_voxels.iter().any(|entry| entry == &PADDING) {
+            panic!("Segmentation cannot use 255 as an ID with octree padding.")
+        }
         data.axis_iter_mut(Axis(2))
             .zip(data_voxels.axis_iter(Axis(2)))
             .for_each(|(mut data_i, data_voxels_i)| {
@@ -1164,6 +1171,7 @@ impl Tree for Octree {
         let mut removed_data = remove.unwrap_or_default();
         removed_data.sort();
         removed_data.dedup();
+        removed_data.push(PADDING);
         let num_elements = self
             .iter()
             .filter(|cell| removed_data.binary_search(&cell.get_block()).is_err())
@@ -1453,6 +1461,7 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
         let mut removed_data = remove.clone().unwrap_or_default();
         removed_data.sort();
         removed_data.dedup();
+        removed_data.push(PADDING);
         self.boundaries(&nel_padded);
         let clusters = self.clusters(&remove, None);
         #[cfg(feature = "profile")]
