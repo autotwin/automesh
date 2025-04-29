@@ -170,8 +170,8 @@ impl From<[f64; NSD]> for Translate {
     }
 }
 
-/// Reduction ranges for a segmentation.
-pub struct Reduction {
+/// Extraction ranges for a segmentation.
+pub struct Extraction {
     x_min: usize,
     x_max: usize,
     y_min: usize,
@@ -180,7 +180,7 @@ pub struct Reduction {
     z_max: usize,
 }
 
-impl Reduction {
+impl Extraction {
     pub fn from_input<'a>(
         [x_min, x_max, y_min, y_max, z_min, z_max]: [usize; 6],
     ) -> Result<Self, &'a str> {
@@ -203,7 +203,7 @@ impl Reduction {
     }
 }
 
-impl From<[usize; 6]> for Reduction {
+impl From<[usize; 6]> for Extraction {
     fn from([x_min, x_max, y_min, y_max, z_min, z_max]: [usize; 6]) -> Self {
         if x_min >= x_max {
             panic!("Need to specify x_min < x_max.")
@@ -224,7 +224,7 @@ impl From<[usize; 6]> for Reduction {
     }
 }
 
-impl From<[usize; NSD]> for Reduction {
+impl From<[usize; NSD]> for Extraction {
     fn from([x_max, y_max, z_max]: [usize; NSD]) -> Self {
         Self {
             x_min: 0,
@@ -237,7 +237,7 @@ impl From<[usize; NSD]> for Reduction {
     }
 }
 
-impl From<Nel> for Reduction {
+impl From<Nel> for Extraction {
     fn from(Nel { x, y, z }: Nel) -> Self {
         Self {
             x_min: 0,
@@ -259,6 +259,10 @@ impl Voxels {
     /// Defeatures clusters with less than a minimum number of voxels.
     pub fn defeature(self, min_num_voxels: usize) -> Self {
         defeature_voxels(min_num_voxels, self)
+    }
+    /// Extract a specified range of voxels from the segmentation.
+    pub fn extract(&mut self, extraction: Extraction) {
+        extract_voxels(self, extraction)
     }
     /// Constructs and returns a new voxels type from an NPY file.
     pub fn from_npy(file_path: &str) -> Result<Self, ReadNpyError> {
@@ -320,10 +324,6 @@ impl Voxels {
             nodal_coordinates,
         ))
     }
-    /// Reduce the segmentation to the specified range of voxels.
-    pub fn reduce(&mut self, reduction: Reduction) {
-        reduce_voxels(self, reduction)
-    }
     /// Writes the internal voxels data to an NPY file.
     pub fn write_npy(&self, file_path: &str) -> Result<(), WriteNpyError> {
         write_voxels_to_npy(self.get_data(), file_path)
@@ -334,16 +334,16 @@ impl Voxels {
     }
 }
 
-fn reduce_voxels(
+fn extract_voxels(
     voxels: &mut Voxels,
-    Reduction {
+    Extraction {
         x_min,
         x_max,
         y_min,
         y_max,
         z_min,
         z_max,
-    }: Reduction,
+    }: Extraction,
 ) {
     voxels.data = voxels
         .data
@@ -357,8 +357,7 @@ fn defeature_voxels(min_num_voxels: usize, voxels: Voxels) -> Voxels {
     tree.balance(true);
     tree.defeature(min_num_voxels);
     let mut voxels = Voxels::from_octree(nel, tree);
-    let reduction = Reduction::from(nel_0);
-    reduce_voxels(&mut voxels, reduction);
+    extract_voxels(&mut voxels, Extraction::from(nel_0));
     voxels
 }
 
