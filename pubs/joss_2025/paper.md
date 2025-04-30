@@ -201,7 +201,7 @@ One significant attribute of `automesh` is its implementation in Rust, a modern 
 
 **Defeaturing** is accomplished by specifying a voxel threshold.  A cluster of voxels, defined as two or more voxels that share a face (edge and node sharing do not constitute a cluster) with count at or above the threshold will be preserved, whereas a cluster of voxels with a count below the threshold will be eliminated through resorption into the surrounding material.  Figure&nbsp;1 shows an example of a mesh before and after defeaturing.
 
-![Example of defeaturing: (left) mesh prior to defeaturing, (right) mesh after defeaturing.](figures/minecraft.png)
+![Example of defeaturing: (left) mesh prior to defeaturing, (right) mesh after defeaturing.](figures/blob_defeatured_iso2_high_res.png)
 
 `automesh` provides both Laplace [@sorkine2005laplacian] and Taubin [@taubin1995signal] formulations for mesh **smoothing**, with optional hierarchical control.  Hierarchical control classifies all nodes as prescribed, boundary, or interior.  With hierarchical control, the updated (smoothed) position of a boundary node is influenced only by prescribed nodes and other boundary nodes; whereas, the updated position of an interior node is influenced by all types of nodes (prescribed, boundary, and interior).   Smoothing with hierarchical control can help maintain domain boundaries better than smoothing alone [@chen2010mri].
 
