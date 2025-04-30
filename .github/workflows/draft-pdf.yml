@@ -4,6 +4,7 @@
 name: Draft PDF
 on: [push]
 
+permissions: {}
 jobs:
   paper:
     runs-on: ubuntu-latest
