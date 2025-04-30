@@ -1,5 +1,4 @@
-"""This module, quadtree.py, creates a simple quadtree and plots it.
-"""
+"""This module, quadtree.py, creates a simple quadtree and plots it."""
 
 from pathlib import Path
 from typing import NamedTuple

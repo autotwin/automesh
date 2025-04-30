@@ -1,5 +1,4 @@
-"""This module creates flower shaped meshes for illuration of quality metrics.
-"""
+"""Creates flower shaped meshes for illustration of quality metrics."""
 
 import math
 

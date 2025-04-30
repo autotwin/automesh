@@ -4,6 +4,29 @@
 
 *In order of most recent to least recent.*
 
+## 2025-03-30
+
+* Extraction
+  * mdbook update?
+* Concurrency
+  * looked at rayon, https://docs.rs/rayon/latest/rayon/
+  * current not needed
+  * defeaturing is currently the slowest
+  * surface triangularization
+* isosurface
+  * still working toward full-manifold
+  * lurking challenge (?) multi-material with non-manifold
+* JOSS submission
+  * Defeaturing
+    * canonical defeature A and B figure
+    * mdbook in need of update
+* Funding
+  * tbd
+* ONR annual review
+  * slides
+  * dates of attendance
+* Matrix multiplication
+
 ## 2025-01-29
 
 * Goals
