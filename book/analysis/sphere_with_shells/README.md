@@ -29,12 +29,12 @@ with a cubic domain (`nelx = nely = nelz`) to create finite element meshes.
 
 ### Solution
 
-vox/cm | element side length (cm) | `nelx` | # voxels | segmentation
----: | :---: | ---: | ---: | :---:
-1 | 1.0 | 24 | 13,824 | `spheres_resolution_1.npy`
-2 | 0.5 | 48 | 110,592 | `spheres_resolution_2.npy`
-4 | 0.25 | 96 | 884,736 | `spheres_resolution_3.npy`
-10 | 0.1 | 240 | 13,824,000 | `spheres_resolution_4.npy`
+vox/cm | element side length (cm) | `nelx` | # voxels | segmentation | file size
+---: | :---: | ---: | ---: | :---: | ---:
+1 | 1.0 | 24 | 13,824 | [`spheres_resolution_1.npy`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdp_CmSSJa2sO_v0A?e=YEDL4V) | 14 kB
+2 | 0.5 | 48 | 110,592 | [`spheres_resolution_2.npy`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdsI9JAPl-R7qG3Pw?e=XGGW25) | 111 kB
+4 | 0.25 | 96 | 884,736 | [`spheres_resolution_3.npy`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdwZb-oC-XJNQBZ5g?e=rGqW3e) | 885 kB
+10 | 0.1 | 240 | 13,824,000 | [`spheres_resolution_4.npy`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdzd_KPCergFv2ppw?e=AoTVdX) | 13.78 MB
 
 ### Python Segmentation
 

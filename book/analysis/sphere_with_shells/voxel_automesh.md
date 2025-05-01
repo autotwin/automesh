@@ -137,3 +137,5 @@ block 1 (green) #elements | 3,648 | 31,408 | 259,408 | 4,136,832
 block 2 (yellow) #elements | 1,248 | 10,400 | 86,032 | 1,369,056
 block 3 (magenta) #elements | 1,376 | 12,280 | 103,240 | 1,639,992
 total #elements | 6,272 | 54,088 | 448,680 | 7,145,880
+Exodus file | [`spheres_resolution_1.exo`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdqDek09Lk7k8KWlw?e=dnkMRZ) (401 kB) | [`spheres_resolution_2.exo`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdt-bOdaS_qhgVlLQ?e=JRP9RV) (3.2 MB) | [`spheres_resolution_3.exo`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdxXHN1SCJitmDgQQ?e=1mhAAn) (25.7 MB) | [`spheres_resolution_4.exo`](https://1drv.ms/u/s!ApVSeeLlvsE8hId0Z-rRjJPOisEYvQ?e=f0Lnbv) (404 MB)
+Abaqus file | [`spheres_resolution_1.inp`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdrwe59HupHMq485A?e=jnp8tC) (962 kB) | [`spheres_resolution_2.inp`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdvMV0y35PFDc4E0Q?e=XXIa1D) (8.5 MB) | [`spheres_resolution_3.inp`](https://1drv.ms/u/s!ApVSeeLlvsE8hIdyGM8cuW115NwCCg?e=4ZslO4) (73.6 MB) | [`spheres_resolution_4.inp`](https://1drv.ms/u/s!ApVSeeLlvsE8hId1Y0wZ31lF74SrcQ?e=D7ZYbo) (1.23 GB)
