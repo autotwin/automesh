@@ -6,7 +6,7 @@ Build the latest release version of `automesh`.
 cd ~/autotwin/automesh
 cargo build --release
 ...
-   Compiling automesh v0.2.9 (/Users/chovey/autotwin/automesh)
+   Compiling automesh v0.3.3 (/Users/chovey/autotwin/automesh)
     Finished `release` profile [optimized] target(s) in 2m 59s
 ```
 
@@ -23,26 +23,30 @@ Use `automesh` to convert the segmentations into finite element meshes.
 
 **Remark:** In the analysis below, we use the Exodus II output format (`.exo`) instead of the Abaqus output format (`.inp`).  The Exodus format results in faster mesh creation and smaller file size due to compression.
 
+### Resolution 1
+
 ```sh
-automesh mesh -i spheres_resolution_1.npy \
+automesh mesh hex -i spheres_resolution_1.npy \
 -o spheres_resolution_1.exo \
 --remove 0 \
 --xtranslate -12 --ytranslate -12 --ztranslate -12
 ```
 
 ```sh
-    automesh 0.2.9
+    automesh 0.3.3
      Reading spheres_resolution_1.npy
-        Done 9.991084ms
-     Meshing spheres_resolution_1.exo [xtranslate: -12, ytranslate: -12, ztranslate: -12]
-        Done 567.75µs
+        Done 5.410958ms [4 materials, 13824 voxels]
+     Meshing voxels into hexes [xtranslate: -12, ytranslate: -12, ztranslate: -12]
+        Done 513.125µs [3 blocks, 6272 elements, 7563 nodes]
      Writing spheres_resolution_1.exo
-        Done 7.369708ms
-       Total 18.158ms
+        Done 9.939916ms
+       Total 16.381583ms
 ```
 
+### Resolution 2
+
 ```sh
-automesh mesh -i spheres_resolution_2.npy \
+automesh mesh hex -i spheres_resolution_2.npy \
 -o spheres_resolution_2.exo \
 --remove 0 \
 --xscale 0.5 --yscale 0.5 --zscale 0.5 \
@@ -50,18 +54,20 @@ automesh mesh -i spheres_resolution_2.npy \
 ```
 
 ```sh
-    automesh 0.2.9
+    automesh 0.3.3
      Reading spheres_resolution_2.npy
-        Done 6.601875ms
-     Meshing spheres_resolution_2.exo [xscale: 0.5, yscale: 0.5, zscale: 0.5, xtranslate: -12, ytranslate: -12, ztranslate: -12]
-        Done 4.208542ms
+        Done 513.25µs [4 materials, 110592 voxels]
+     Meshing voxels into hexes [xscale: 0.5, yscale: 0.5, zscale: 0.5, xtranslate: -12, ytranslate: -12, ztranslate: -12]
+        Done 4.492458ms [3 blocks, 54088 elements, 59375 nodes]
      Writing spheres_resolution_2.exo
-        Done 13.984917ms
-       Total 25.056125ms
+        Done 8.687541ms
+       Total 16.362625ms
 ```
 
+### Resolution 3
+
 ```sh
-automesh mesh -i spheres_resolution_3.npy \
+automesh mesh hex -i spheres_resolution_3.npy \
 -o spheres_resolution_3.exo \
 --remove 0 \
 --xscale 0.25 --yscale 0.25 --zscale 0.25 \
@@ -69,18 +75,20 @@ automesh mesh -i spheres_resolution_3.npy \
 ```
 
 ```sh
-    automesh 0.2.9
+    automesh 0.3.3
      Reading spheres_resolution_3.npy
-        Done 701.959µs
-     Meshing spheres_resolution_3.exo [xscale: 0.25, yscale: 0.25, zscale: 0.25, xtranslate: -12, ytranslate: -12, ztranslate: -12]
-        Done 32.522625ms
+        Done 14.784291ms [4 materials, 884736 voxels]
+     Meshing voxels into hexes [xscale: 0.25, yscale: 0.25, zscale: 0.25, xtranslate: -12, ytranslate: -12, ztranslate: -12]
+        Done 27.708125ms [3 blocks, 448680 elements, 470203 nodes]
      Writing spheres_resolution_3.exo
-        Done 39.280292ms
-       Total 72.724167ms
+        Done 33.148125ms
+       Total 94.863584ms
 ```
 
+### Resolution 4
+
 ```sh
-automesh mesh -i spheres_resolution_4.npy \
+automesh mesh hex -i spheres_resolution_4.npy \
 -o spheres_resolution_4.exo \
 --remove 0 \
 --xscale 0.1 --yscale 0.1 --zscale 0.1 \
@@ -88,14 +96,14 @@ automesh mesh -i spheres_resolution_4.npy \
 ```
 
 ```sh
-    automesh 0.2.9
+    automesh 0.3.3
      Reading spheres_resolution_4.npy
-        Done 5.540458ms
-     Meshing spheres_resolution_4.exo [xscale: 0.1, yscale: 0.1, zscale: 0.1, xtranslate: -12, ytranslate: -12, ztranslate: -12]
-        Done 458.92225ms
+        Done 2.846917ms [4 materials, 13824000 voxels]
+     Meshing voxels into hexes [xscale: 0.1, yscale: 0.1, zscale: 0.1, xtranslate: -12, ytranslate: -12, ztranslate: -12]
+        Done 430.685042ms [3 blocks, 7145880 elements, 7281019 nodes]
      Writing spheres_resolution_4.exo
-        Done 495.663416ms
-       Total 960.318042ms
+        Done 464.796625ms
+       Total 1.119838875s
 ```
 
 ## Visualization

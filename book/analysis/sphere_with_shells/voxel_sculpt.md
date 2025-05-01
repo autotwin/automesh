@@ -79,7 +79,7 @@ sculpt --num_procs 1 --input_spn "spheres_resolution_4.spn" \
 Total Time on 1 Procs	135.636523 sec. (2.260609 min.)
 ```
 
-The table below summarizes the relative processing times, Sculpt versus `automesh`.
+The table below summarizes the relative processing times, Sculpt versus `automesh` (completed with `automesh` version `0.2.9`)
 
 resolution | 1 vox/cm | 2 vox/cm | 4 vox/cm | 10 vox/cm
 ---------- | -------: | -------: | -------: | --------:

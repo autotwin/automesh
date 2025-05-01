@@ -24,19 +24,17 @@ Figure: Schematic cross-section of three concentric spheres of radius 10, 11, an
 
 ### Find
 
-Use the following segmentation resolutions,
+Use segmentation resolutions 1, 2, 4, and 10 voxels per centimeter
+with a cubic domain (`nelx = nely = nelz`) to create finite element meshes.
 
-resolution (vox/cm) | element side length (cm) | `nelx` | # voxels
----: | :---: | ---: | ---:
-1 | 1.0 | 24 | 13,824
-2 | 0.5 | 48 | 110,592
-4 | 0.25 | 96 | 884,736
-10 | 0.1 | 240 | 13,824,000
+### Solution
 
-with a cubic domain (`nelx = nely = nelz`),
-to create finite element meshes.
-
-## Solution
+vox/cm | element side length (cm) | `nelx` | # voxels | segmentation
+---: | :---: | ---: | ---: | :---:
+1 | 1.0 | 24 | 13,824 | `spheres_resolution_1.npy`
+2 | 0.5 | 48 | 110,592 | `spheres_resolution_2.npy`
+4 | 0.25 | 96 | 884,736 | `spheres_resolution_3.npy`
+10 | 0.1 | 240 | 13,824,000 | `spheres_resolution_4.npy`
 
 ### Python Segmentation
 
@@ -44,13 +42,13 @@ The Python code used to generate the figures is included [below](#source).
 
 ![spheres_cont](img/spheres_cont.png)
 
-Figure: Sphere segmentations at selected resolutions, shown in the voxel domain.
+Figure: Sphere segmentations (left) `spheres_resolution_1.npy` and (right) `spheres_resolution_2.npy` shown in the voxel domain.
 Because plotting large domains with [*Matplotlib*](https://matplotlib.org)
 is slow, only the first two resolutions are shown.
 
 ![spheres_cont_cut](img/spheres_cont_cut.png)
 
-Figure: Sphere segmentations with cutting plane.
+Figure: Sphere segmentations with cutting plane of (left) `spheres_resolution_1.npy` and (right) `spheres_resolution_2.npy`.
 
 ## Source
 
