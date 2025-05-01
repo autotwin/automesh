@@ -20,14 +20,16 @@ jobs:
         uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
         with:
           toolchain: stable
+      - name: Install
+        uses: taiki-e/install-action@33734a118689b0b418824fb78ea2bf18e970b43b
+        with:
+          tool: mdbook, mdbook-cmdrun, mdbook-katex
       - name: Python
         uses: actions/setup-python@v5
         with:
           python-version: 3.13
       - name: CLI
         run: cargo install --path .
-      - name: Install
-        run: cargo install mdbook mdbook-cmdrun mdbook-katex
       - name: Rust
         run: cargo build --release
       - name: Python
