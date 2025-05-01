@@ -9,6 +9,7 @@
 - [Examples](examples/README.md)
   - [Unit Tests](examples/unit_tests/README.md)
   - [Spheres](examples/spheres/README.md)
+- [Defeaturing](analysis/defeature/README.md)
 - [Smoothing](smoothing/README.md)
   - [Laplace](smoothing/laplace.md)
   - [Hierarchical Laplace](smoothing/laplace_hierarchical.md)
