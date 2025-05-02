@@ -52,7 +52,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Cleanup
-        run: rm -fr book/ sandbox/ tests/
+        run: rm -fr benches/ book/ sandbox/ tests/
       - name: Package
         run: cargo package
       - name: Login
