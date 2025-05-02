@@ -1345,9 +1345,9 @@ impl Tree for Octree {
             .clone()
             .iter()
             .enumerate()
-            .for_each(|(face, face_cell)| {
+            .for_each(|(face, &face_cell)| {
                 if let Some(neighbor) = face_cell {
-                    if let Some(kids) = self[*neighbor].cells {
+                    if let Some(kids) = self[neighbor].cells {
                         subcells_on_own_face(face)
                             .iter()
                             .zip(subcells_on_neighbor_face(face).iter())
