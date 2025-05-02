@@ -22,6 +22,8 @@ use std::{
     io::{BufRead, BufReader, BufWriter, Error, Write},
 };
 
+use ndarray::parallel::prelude::*;
+
 const NODE_NUMBERING_OFFSET_PLUS_ONE: usize = NODE_NUMBERING_OFFSET + 1;
 
 type InitialNodalCoordinates = Vec<Option<Coordinate>>;
@@ -371,6 +373,7 @@ fn filter_voxel_data(data: &VoxelData, remove: Option<Blocks>) -> (VoxelDataSize
     removed_data.dedup();
     let (filtered_voxel_data, element_blocks) = data
         .axis_iter(Axis(2))
+        .into_par_iter()
         .enumerate()
         .flat_map(|(k, data_k)| {
             data_k
@@ -404,7 +407,7 @@ fn initial_element_node_connectivity(
     let time = Instant::now();
     let nelxplus1_mul_nelyplus1 = nelxplus1 * nelyplus1;
     let element_node_connectivity: Connectivity<HEX> = filtered_voxel_data
-        .iter()
+        .par_iter()
         .map(|&[i, j, k]| {
             [
                 i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
@@ -515,7 +518,7 @@ fn renumber_nodes(
             }
         });
     element_node_connectivity
-        .iter_mut()
+        .par_iter_mut()
         .for_each(|connectivity| {
             connectivity
                 .iter_mut()

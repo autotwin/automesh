@@ -13,7 +13,7 @@ use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
 use ndarray::{s, Axis};
 use std::array::from_fn;
 
-use rayon::prelude::*;
+use ndarray::parallel::prelude::*;
 
 pub const PADDING: u8 = 255;
 
