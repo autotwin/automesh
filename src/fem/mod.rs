@@ -625,14 +625,13 @@ fn reorder_connectivity<const N: usize>(
             element_blocks
                 .iter()
                 .enumerate()
-                .filter(|&(_, &block)| &block == unique_block)
+                .filter(|&(_, block)| block == unique_block)
                 .flat_map(|(element, _)| {
                     element_node_connectivity[element]
                         .iter()
-                        .map(|entry| *entry as i32)
-                        .collect::<Vec<i32>>()
+                        .map(|&entry| entry as i32)
                 })
-                .collect::<Vec<i32>>()
+                .collect()
         })
         .collect()
 }
@@ -802,9 +801,10 @@ fn write_finite_elements_to_exodus<const N: usize>(
     );
     #[cfg(feature = "profile")]
     let time = Instant::now();
-    let xs: Vec<f64> = nodal_coordinates.iter().map(|coords| coords[0]).collect();
-    let ys: Vec<f64> = nodal_coordinates.iter().map(|coords| coords[1]).collect();
-    let zs: Vec<f64> = nodal_coordinates.iter().map(|coords| coords[2]).collect();
+    let (xs, (ys, zs)): (Vec<f64>, (Vec<f64>, Vec<f64>)) = nodal_coordinates
+        .iter()
+        .map(|coords| (coords[0], (coords[1], coords[2])))
+        .unzip();
     file.add_dimension("num_nodes", nodal_coordinates.len())?;
     file.add_variable::<f64>("coordx", &["num_nodes"])?
         .put_values(&xs, 0..)?;
