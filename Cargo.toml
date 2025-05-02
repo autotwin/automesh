@@ -9,7 +9,7 @@ keywords = ["mesh"]
 license = "GPL-3.0"
 name = "automesh"
 repository = "https://github.com/autotwin/automesh"
-version = "0.3.3"
+version = "0.3.4"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -17,11 +17,11 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 clap = { version = "=4.5.37", features = ["derive"] }
 chrono = "=0.4.41"
-conspire = {version = "=0.5.5", features = ["math"]}
-ndarray = {version = "=0.15.6"}
-ndarray-npy = {version = "=0.8.1"}
+conspire = { version = "=0.5.5", features = ["math"] }
+ndarray = "=0.15.6"
+ndarray-npy = "=0.8.1"
 netcdf = { version = "=0.11.0", features = ["ndarray", "static"] }
-pyo3 = {version = "=0.24.2", features = ["extension-module"], optional = true}
+pyo3 = { version = "=0.24.2", features = ["extension-module"], optional = true }
 stl_io = "=0.8.5"
 vtkio = "=0.6.3"
 
