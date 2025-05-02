@@ -1348,69 +1348,14 @@ impl Tree for Octree {
             .for_each(|(face, face_cell)| {
                 if let Some(neighbor) = face_cell {
                     if let Some(kids) = self[*neighbor].cells {
-                        match face {
-                            0 => {
-                                new_cells[0].faces[0] = Some(kids[2]);
-                                new_cells[1].faces[0] = Some(kids[3]);
-                                new_cells[4].faces[0] = Some(kids[6]);
-                                new_cells[5].faces[0] = Some(kids[7]);
-                                self[kids[2]].faces[2] = Some(new_indices[0]);
-                                self[kids[3]].faces[2] = Some(new_indices[1]);
-                                self[kids[6]].faces[2] = Some(new_indices[4]);
-                                self[kids[7]].faces[2] = Some(new_indices[5]);
-                            }
-                            1 => {
-                                new_cells[1].faces[1] = Some(kids[0]);
-                                new_cells[3].faces[1] = Some(kids[2]);
-                                new_cells[5].faces[1] = Some(kids[4]);
-                                new_cells[7].faces[1] = Some(kids[6]);
-                                self[kids[0]].faces[3] = Some(new_indices[1]);
-                                self[kids[2]].faces[3] = Some(new_indices[3]);
-                                self[kids[4]].faces[3] = Some(new_indices[5]);
-                                self[kids[6]].faces[3] = Some(new_indices[7]);
-                            }
-                            2 => {
-                                new_cells[2].faces[2] = Some(kids[0]);
-                                new_cells[3].faces[2] = Some(kids[1]);
-                                new_cells[6].faces[2] = Some(kids[4]);
-                                new_cells[7].faces[2] = Some(kids[5]);
-                                self[kids[0]].faces[0] = Some(new_indices[2]);
-                                self[kids[1]].faces[0] = Some(new_indices[3]);
-                                self[kids[4]].faces[0] = Some(new_indices[6]);
-                                self[kids[5]].faces[0] = Some(new_indices[7]);
-                            }
-                            3 => {
-                                new_cells[0].faces[3] = Some(kids[1]);
-                                new_cells[2].faces[3] = Some(kids[3]);
-                                new_cells[4].faces[3] = Some(kids[5]);
-                                new_cells[6].faces[3] = Some(kids[7]);
-                                self[kids[1]].faces[1] = Some(new_indices[0]);
-                                self[kids[3]].faces[1] = Some(new_indices[2]);
-                                self[kids[5]].faces[1] = Some(new_indices[4]);
-                                self[kids[7]].faces[1] = Some(new_indices[6]);
-                            }
-                            4 => {
-                                new_cells[0].faces[4] = Some(kids[4]);
-                                new_cells[1].faces[4] = Some(kids[5]);
-                                new_cells[2].faces[4] = Some(kids[6]);
-                                new_cells[3].faces[4] = Some(kids[7]);
-                                self[kids[4]].faces[5] = Some(new_indices[0]);
-                                self[kids[5]].faces[5] = Some(new_indices[1]);
-                                self[kids[6]].faces[5] = Some(new_indices[2]);
-                                self[kids[7]].faces[5] = Some(new_indices[3]);
-                            }
-                            5 => {
-                                new_cells[4].faces[5] = Some(kids[0]);
-                                new_cells[5].faces[5] = Some(kids[1]);
-                                new_cells[6].faces[5] = Some(kids[2]);
-                                new_cells[7].faces[5] = Some(kids[3]);
-                                self[kids[0]].faces[4] = Some(new_indices[4]);
-                                self[kids[1]].faces[4] = Some(new_indices[5]);
-                                self[kids[2]].faces[4] = Some(new_indices[6]);
-                                self[kids[3]].faces[4] = Some(new_indices[7]);
-                            }
-                            _ => panic!(),
-                        }
+                        subcells_on_own_face(face)
+                            .iter()
+                            .zip(subcells_on_neighbor_face(face).iter())
+                            .for_each(|(&subcell, &neighbor_subcell)| {
+                                new_cells[subcell].faces[face] = Some(kids[neighbor_subcell]);
+                                self[kids[neighbor_subcell]].faces[mirror_face(face)] =
+                                    Some(new_indices[subcell]);
+                            });
                     }
                 }
             });
