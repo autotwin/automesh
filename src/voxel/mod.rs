@@ -22,6 +22,8 @@ use std::{
     io::{BufRead, BufReader, BufWriter, Error, Write},
 };
 
+const NODE_NUMBERING_OFFSET_PLUS_ONE: usize = NODE_NUMBERING_OFFSET + 1;
+
 type InitialNodalCoordinates = Vec<Option<Coordinate>>;
 type VoxelDataFlattened = Blocks;
 type VoxelDataSized<const N: usize> = Vec<[usize; N]>;
@@ -400,21 +402,25 @@ fn initial_element_node_connectivity(
 ) -> Connectivity<HEX> {
     #[cfg(feature = "profile")]
     let time = Instant::now();
+    let nelxplus1_mul_nelyplus1 = nelxplus1 * nelyplus1;
     let element_node_connectivity: Connectivity<HEX> = filtered_voxel_data
         .iter()
         .map(|&[i, j, k]| {
             [
-                i + j * nelxplus1 + k * nelxplus1 * nelyplus1 + NODE_NUMBERING_OFFSET,
-                i + j * nelxplus1 + k * nelxplus1 * nelyplus1 + 1 + NODE_NUMBERING_OFFSET,
-                i + (j + 1) * nelxplus1 + k * nelxplus1 * nelyplus1 + 1 + NODE_NUMBERING_OFFSET,
-                i + (j + 1) * nelxplus1 + k * nelxplus1 * nelyplus1 + NODE_NUMBERING_OFFSET,
-                i + j * nelxplus1 + (k + 1) * nelxplus1 * nelyplus1 + NODE_NUMBERING_OFFSET,
-                i + j * nelxplus1 + (k + 1) * nelxplus1 * nelyplus1 + 1 + NODE_NUMBERING_OFFSET,
+                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
+                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET_PLUS_ONE,
                 i + (j + 1) * nelxplus1
-                    + (k + 1) * nelxplus1 * nelyplus1
-                    + 1
-                    + NODE_NUMBERING_OFFSET,
-                i + (j + 1) * nelxplus1 + (k + 1) * nelxplus1 * nelyplus1 + NODE_NUMBERING_OFFSET,
+                    + k * nelxplus1_mul_nelyplus1
+                    + NODE_NUMBERING_OFFSET_PLUS_ONE,
+                i + (j + 1) * nelxplus1 + k * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
+                i + j * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
+                i + j * nelxplus1
+                    + (k + 1) * nelxplus1_mul_nelyplus1
+                    + NODE_NUMBERING_OFFSET_PLUS_ONE,
+                i + (j + 1) * nelxplus1
+                    + (k + 1) * nelxplus1_mul_nelyplus1
+                    + NODE_NUMBERING_OFFSET_PLUS_ONE,
+                i + (j + 1) * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
             ]
         })
         .collect();

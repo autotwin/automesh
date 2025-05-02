@@ -2,7 +2,8 @@ name: Bump
 on:
   release:
     types: published
-permissions: {}
+permissions:
+  contents: write
 jobs:
   Bump:
     runs-on: ubuntu-latest

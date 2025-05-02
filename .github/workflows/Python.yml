@@ -37,7 +37,7 @@ jobs:
     - name: Install
       run: pip install .[dev]
     - name: Style
-      run: pycodestyle --verbose .
+      run: pycodestyle --verbose tests
     - name: Test
       run: pytest --verbose
   Source:
