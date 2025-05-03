@@ -13,6 +13,8 @@ use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
 use ndarray::{s, Axis};
 use std::array::from_fn;
 
+use ndarray::parallel::prelude::*;
+
 pub const PADDING: u8 = 255;
 
 const NUM_FACES: usize = 6;
@@ -64,6 +66,20 @@ const fn subcells_on_neighbor_face(face: usize) -> SubcellsOnFace {
         3 => SUBCELLS_ON_OWN_FACE_1,
         4 => SUBCELLS_ON_OWN_FACE_5,
         5 => SUBCELLS_ON_OWN_FACE_4,
+        _ => {
+            panic!()
+        }
+    }
+}
+
+const fn subcells_on_own_face_contains(face: usize, subcell: usize) -> bool {
+    match face {
+        0 => matches!(subcell, 0 | 1 | 4 | 5),
+        1 => matches!(subcell, 1 | 3 | 5 | 7),
+        2 => matches!(subcell, 2 | 3 | 6 | 7),
+        3 => matches!(subcell, 0 | 2 | 4 | 6),
+        4 => matches!(subcell, 0..=3),
+        5 => matches!(subcell, 4..=7),
         _ => {
             panic!()
         }
@@ -833,10 +849,6 @@ impl Tree for Octree {
             .collect();
         blocks.sort();
         blocks.dedup();
-        let mut clusters = vec![];
-        let mut complete = false;
-        let mut index = 0;
-        let mut leaf = 0;
         let mut leaves: Vec<Vec<usize>> = blocks
             .iter()
             .map(|&block| {
@@ -855,28 +867,28 @@ impl Tree for Octree {
         leaves
             .iter_mut()
             .for_each(|block_leaves| block_leaves.sort());
-        blocks
-            .into_iter()
-            .enumerate()
-            .for_each(|(block_index, block)| {
-                let block_leaves = &mut leaves[block_index];
+        let clusters = blocks
+            .into_par_iter()
+            .zip(leaves.par_iter_mut())
+            .flat_map(|(block, block_leaves)| {
+                let mut clusters = vec![];
                 while let Some(starting_leaf) = block_leaves.pop() {
                     let mut cluster = vec![starting_leaf];
                     loop {
-                        complete = true;
-                        index = 0;
+                        let mut index = 0;
+                        let initial_cluster_len = cluster.len();
                         while index < cluster.len() {
-                            leaf = cluster[index];
-                            self[leaf].get_faces().iter().enumerate().for_each(
-                                |(face, face_cell)| {
+                            self[cluster[index]]
+                                .get_faces()
+                                .iter()
+                                .enumerate()
+                                .for_each(|(face, &face_cell)| {
                                     if let Some(cell) = face_cell {
-                                        if let Ok(spot) = block_leaves.binary_search(cell) {
-                                            if self[*cell].get_block() == block {
-                                                block_leaves.remove(spot);
-                                                cluster.push(*cell);
-                                                complete = false;
+                                        if let Ok(spot) = block_leaves.binary_search(&cell) {
+                                            if self[cell].get_block() == block {
+                                                cluster.push(block_leaves.remove(spot));
                                             }
-                                        } else if let Some(subcells) = self[*cell].get_cells() {
+                                        } else if let Some(subcells) = self[cell].get_cells() {
                                             subcells_on_neighbor_face(face).into_iter().for_each(
                                                 |subcell| {
                                                     if let Ok(spot) = block_leaves
@@ -885,32 +897,27 @@ impl Tree for Octree {
                                                         if self[subcells[subcell]].get_block()
                                                             == block
                                                         {
-                                                            block_leaves.remove(spot);
-                                                            cluster.push(subcells[subcell]);
-                                                            complete = false;
+                                                            cluster.push(block_leaves.remove(spot));
                                                         }
                                                     }
                                                 },
                                             )
                                         }
                                     }
-                                },
-                            );
+                                });
                             index += 1;
                         }
                         index = 0;
                         while index < cluster.len() {
-                            leaf = cluster[index];
-                            if let Some([parent, subcell]) = supercells[leaf] {
+                            if let Some([parent, subcell]) = supercells[cluster[index]] {
                                 self[parent].get_faces().iter().enumerate().for_each(
-                                    |(face, face_cell)| {
+                                    |(face, &face_cell)| {
                                         if let Some(cell) = face_cell {
-                                            if subcells_on_own_face(face).contains(&subcell) {
-                                                if let Ok(spot) = block_leaves.binary_search(cell) {
-                                                    if self[*cell].get_block() == block {
-                                                        block_leaves.remove(spot);
-                                                        cluster.push(*cell);
-                                                        complete = false;
+                                            if subcells_on_own_face_contains(face, subcell) {
+                                                if let Ok(spot) = block_leaves.binary_search(&cell)
+                                                {
+                                                    if self[cell].get_block() == block {
+                                                        cluster.push(block_leaves.remove(spot));
                                                     }
                                                 }
                                             }
@@ -920,13 +927,15 @@ impl Tree for Octree {
                             }
                             index += 1;
                         }
-                        if complete {
+                        if cluster.len() == initial_cluster_len {
                             break;
                         }
                     }
                     clusters.push(cluster);
                 }
-            });
+                clusters
+            })
+            .collect();
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mClusters creation\x1b[0m {:?} ",
@@ -1025,8 +1034,9 @@ impl Tree for Octree {
                                             .filter_map(|(face, face_cell)| {
                                                 if let Some(neighbor_cell) = face_cell {
                                                     if self[*neighbor_cell].is_leaf()
-                                                        && subcells_on_own_face(face)
-                                                            .contains(&subcell)
+                                                        && subcells_on_own_face_contains(
+                                                            face, subcell,
+                                                        )
                                                     {
                                                         neighbor_block =
                                                             self[*neighbor_cell].get_block();
@@ -1345,72 +1355,17 @@ impl Tree for Octree {
             .clone()
             .iter()
             .enumerate()
-            .for_each(|(face, face_cell)| {
+            .for_each(|(face, &face_cell)| {
                 if let Some(neighbor) = face_cell {
-                    if let Some(kids) = self[*neighbor].cells {
-                        match face {
-                            0 => {
-                                new_cells[0].faces[0] = Some(kids[2]);
-                                new_cells[1].faces[0] = Some(kids[3]);
-                                new_cells[4].faces[0] = Some(kids[6]);
-                                new_cells[5].faces[0] = Some(kids[7]);
-                                self[kids[2]].faces[2] = Some(new_indices[0]);
-                                self[kids[3]].faces[2] = Some(new_indices[1]);
-                                self[kids[6]].faces[2] = Some(new_indices[4]);
-                                self[kids[7]].faces[2] = Some(new_indices[5]);
-                            }
-                            1 => {
-                                new_cells[1].faces[1] = Some(kids[0]);
-                                new_cells[3].faces[1] = Some(kids[2]);
-                                new_cells[5].faces[1] = Some(kids[4]);
-                                new_cells[7].faces[1] = Some(kids[6]);
-                                self[kids[0]].faces[3] = Some(new_indices[1]);
-                                self[kids[2]].faces[3] = Some(new_indices[3]);
-                                self[kids[4]].faces[3] = Some(new_indices[5]);
-                                self[kids[6]].faces[3] = Some(new_indices[7]);
-                            }
-                            2 => {
-                                new_cells[2].faces[2] = Some(kids[0]);
-                                new_cells[3].faces[2] = Some(kids[1]);
-                                new_cells[6].faces[2] = Some(kids[4]);
-                                new_cells[7].faces[2] = Some(kids[5]);
-                                self[kids[0]].faces[0] = Some(new_indices[2]);
-                                self[kids[1]].faces[0] = Some(new_indices[3]);
-                                self[kids[4]].faces[0] = Some(new_indices[6]);
-                                self[kids[5]].faces[0] = Some(new_indices[7]);
-                            }
-                            3 => {
-                                new_cells[0].faces[3] = Some(kids[1]);
-                                new_cells[2].faces[3] = Some(kids[3]);
-                                new_cells[4].faces[3] = Some(kids[5]);
-                                new_cells[6].faces[3] = Some(kids[7]);
-                                self[kids[1]].faces[1] = Some(new_indices[0]);
-                                self[kids[3]].faces[1] = Some(new_indices[2]);
-                                self[kids[5]].faces[1] = Some(new_indices[4]);
-                                self[kids[7]].faces[1] = Some(new_indices[6]);
-                            }
-                            4 => {
-                                new_cells[0].faces[4] = Some(kids[4]);
-                                new_cells[1].faces[4] = Some(kids[5]);
-                                new_cells[2].faces[4] = Some(kids[6]);
-                                new_cells[3].faces[4] = Some(kids[7]);
-                                self[kids[4]].faces[5] = Some(new_indices[0]);
-                                self[kids[5]].faces[5] = Some(new_indices[1]);
-                                self[kids[6]].faces[5] = Some(new_indices[2]);
-                                self[kids[7]].faces[5] = Some(new_indices[3]);
-                            }
-                            5 => {
-                                new_cells[4].faces[5] = Some(kids[0]);
-                                new_cells[5].faces[5] = Some(kids[1]);
-                                new_cells[6].faces[5] = Some(kids[2]);
-                                new_cells[7].faces[5] = Some(kids[3]);
-                                self[kids[0]].faces[4] = Some(new_indices[4]);
-                                self[kids[1]].faces[4] = Some(new_indices[5]);
-                                self[kids[2]].faces[4] = Some(new_indices[6]);
-                                self[kids[3]].faces[4] = Some(new_indices[7]);
-                            }
-                            _ => panic!(),
-                        }
+                    if let Some(kids) = self[neighbor].cells {
+                        subcells_on_own_face(face)
+                            .iter()
+                            .zip(subcells_on_neighbor_face(face).iter())
+                            .for_each(|(&subcell, &neighbor_subcell)| {
+                                new_cells[subcell].faces[face] = Some(kids[neighbor_subcell]);
+                                self[kids[neighbor_subcell]].faces[mirror_face(face)] =
+                                    Some(new_indices[subcell]);
+                            });
                     }
                 }
             });
