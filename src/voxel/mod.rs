@@ -505,22 +505,28 @@ fn renumber_nodes(
 ) -> Coordinates {
     #[cfg(feature = "profile")]
     let time = std::time::Instant::now();
+
+    // let mut mapping = vec![0; number_of_nodes_unfiltered];
+    // let mut nodes = 1..=number_of_nodes_unfiltered;
+    // initial_nodal_coordinates
+    // .iter()
+    // .enumerate()
+    // .filter(|&(_, coordinate)| coordinate.is_some())
+    // // .flat_map(|(_, coordinate)| coordinate)
+    // .for_each(|(index, _)| {
+    //     if let Some(node) = nodes.next() {
+    //         mapping[index] = node;
+    //     }
+    // });
+
     let mut mapping = vec![0; number_of_nodes_unfiltered];
-    let mut nodes = 1..=number_of_nodes_unfiltered;
-
-    initial_nodal_coordinates.iter().enumerate().zip(nodes)
-        .filter(|&((_, coordinate), _)| coordinate.is_some())
-
     initial_nodal_coordinates
         .iter()
         .enumerate()
         .filter(|&(_, coordinate)| coordinate.is_some())
-        // .flat_map(|(_, coordinate)| coordinate)
-        .for_each(|(index, _)| {
-            if let Some(node) = nodes.next() {
-                mapping[index] = node;
-            }
-        });
+        .zip(1..=number_of_nodes_unfiltered)
+        .for_each(|((index, _), node)| mapping[index] = node);
+
     element_node_connectivity
         .par_iter_mut()
         .for_each(|connectivity| {
