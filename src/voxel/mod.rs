@@ -444,8 +444,7 @@ fn initial_nodal_coordinates(
 ) -> Result<InitialNodalCoordinates, String> {
     #[cfg(feature = "profile")]
     let time = Instant::now();
-    let mut nodal_coordinates: InitialNodalCoordinates =
-        (0..number_of_nodes_unfiltered).map(|_| None).collect();
+    let mut nodal_coordinates: InitialNodalCoordinates = vec![None; number_of_nodes_unfiltered];
     filtered_voxel_data
         .iter()
         .zip(element_node_connectivity.iter())
@@ -507,16 +506,12 @@ fn renumber_nodes(
     #[cfg(feature = "profile")]
     let time = std::time::Instant::now();
     let mut mapping = vec![0; number_of_nodes_unfiltered];
-    let mut nodes = 1..=number_of_nodes_unfiltered;
     initial_nodal_coordinates
         .iter()
         .enumerate()
         .filter(|&(_, coordinate)| coordinate.is_some())
-        .for_each(|(index, _)| {
-            if let Some(node) = nodes.next() {
-                mapping[index] = node;
-            }
-        });
+        .zip(1..=number_of_nodes_unfiltered)
+        .for_each(|((index, _), node)| mapping[index] = node);
     element_node_connectivity
         .par_iter_mut()
         .for_each(|connectivity| {
