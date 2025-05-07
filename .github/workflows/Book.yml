@@ -21,9 +21,7 @@ jobs:
         with:
           toolchain: stable
       - name: Install
-        uses: taiki-e/install-action@f285525a10c5cb7ee50e88901676b1ecfd91c647
-        with:
-          tool: mdbook, mdbook-cmdrun, mdbook-katex
+        run: cargo install mdbook mdbook-cmdrun mdbook-katex
       - name: Python
         uses: actions/setup-python@v5
         with:

@@ -41,9 +41,7 @@ jobs:
         with:
           toolchain: nightly
       - name: Install
-        uses: taiki-e/install-action@f285525a10c5cb7ee50e88901676b1ecfd91c647
-        with:
-          tool: cargo-llvm-cov
+        run: cargo install cargo-llvm-cov
       - name: Coverage
         run: rustup run nightly cargo llvm-cov --profile release --fail-under-functions 49 --fail-under-lines 65 --fail-under-regions 34
   Package:
