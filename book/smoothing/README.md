@@ -164,6 +164,9 @@ Some `INTERIOR` and `BOUNDARY` nodes may be recategorized as `PRESCRIBED` nodes.
 
 ![prescribed_nodes.png](prescribed_nodes.png)
 
+Note that this focuses on regular volumetric finite element meshes, and does not apply to certain other meshes.
+For example, manifold surface meshes embedded in three dimensions have only interior nodes, so hierarchical control would not apply.
+
 ### The `Hierarchy` enum
 
 These three categories, `INTERIOR`, `BOUNDARY`, and `PRESCRIBED`, compose the hierarchical structure of hierarchical smoothing.  Nodes are classified in code with the following `enum`,
