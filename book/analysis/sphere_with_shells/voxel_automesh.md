@@ -1,22 +1,5 @@
 # Voxel Mesh with `automesh`
 
-Build the latest release version of `automesh`.
-
-```sh
-cd ~/autotwin/automesh
-cargo build --release
-...
-   Compiling automesh v0.3.3 (/Users/chovey/autotwin/automesh)
-    Finished `release` profile [optimized] target(s) in 2m 59s
-```
-
-Set up.
-
-```sh
-alias automesh='/Users/chovey/autotwin/automesh/target/release/automesh'
-cd ~/autotwin/automesh/book/analysis/sphere_with_shells/
-```
-
 ## Mesh Creation
 
 Use `automesh` to convert the segmentations into finite element meshes.

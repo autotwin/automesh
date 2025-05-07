@@ -25,14 +25,6 @@ We compare our volumetric results to the surface mesh presented by Taubin.[^Taub
 The smoothing parameters used were the `autotwin` defaults,[^autotwin_defaults] the same as used in Taubin's Figure 3 example.
 
 ```sh
-alias automesh='~/autotwin/automesh/target/release/automesh'
-```
-
-```sh
-cd ~/autotwin/automesh/book/examples/smoothing/
-```
-
-```sh
 automesh smooth -i sphere_res_1cm_noised.inp -o s10.exo -n 10
 ```
 

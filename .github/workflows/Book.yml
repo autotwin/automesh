@@ -20,6 +20,8 @@ jobs:
         uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
         with:
           toolchain: stable
+      - name: Ansifilter
+        run: sudo apt-get install -y ansifilter
       - name: Install
         run: cargo install mdbook mdbook-cmdrun mdbook-katex
       - name: Python

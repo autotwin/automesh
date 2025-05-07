@@ -15,14 +15,12 @@ use super::{
     Coordinate, Coordinates, Octree, Tree, Vector, NSD,
 };
 use conspire::math::TensorArray;
-use ndarray::{s, Array3, Axis};
+use ndarray::{parallel::prelude::*, s, Array3, Axis};
 use ndarray_npy::{ReadNpyError, ReadNpyExt, WriteNpyError, WriteNpyExt};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error, Write},
 };
-
-use ndarray::parallel::prelude::*;
 
 const NODE_NUMBERING_OFFSET_PLUS_ONE: usize = NODE_NUMBERING_OFFSET + 1;
 

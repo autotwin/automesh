@@ -657,15 +657,16 @@ automesh convert --help
 For example, to convert the `octahedron.npy` to `octahedron2.spn`:
 
 ```sh
+<!-- cmdrun python octahedron.py > /dev/null -->
 automesh convert segmentation -i octahedron.npy -o octahedron2.spn
-<!-- cmdrun automesh convert segmentation -i octahedron.npy -o octahedron2.spn -->
+<!-- cmdrun automesh convert segmentation -i octahedron.npy -o octahedron2.spn | ansifilter -->
 ```
 
 To convert from `octahedron2.spn` to `octahedron3.npy`:
 
 ```sh
 automesh convert segmentation -i octahedron2.spn -x 7 -y 7 -z 7 -o octahedron3.npy
-<!-- cmdrun automesh convert segmentation -i octahedron2.spn -x 7 -y 7 -z 7 -o octahedron3.npy -->
+<!-- cmdrun automesh convert segmentation -i octahedron2.spn -x 7 -y 7 -z 7 -o octahedron3.npy | ansifilter -->
 ```
 
 > Remark: Notice that the `.spn` requires number of voxels in each of the x, y, and z dimensions to be specified using `--nelx`, `--nely`, `--nelz` (or, equivalently `-x`, `-y`, `-z`) flags.
@@ -693,7 +694,7 @@ segmentation `0` from the mesh:
 
 ```sh
 automesh mesh hex -r 0 -i octahedron.npy -o octahedron.inp
-<!-- cmdrun hex -r 0 -i octahedron.npy -o octahedron.inp -->
+<!-- cmdrun automesh mesh hex -r 0 -i octahedron.npy -o octahedron.inp | ansifilter -->
 ```
 
 ## Smoothing
@@ -709,8 +710,8 @@ To smooth the `octahedron.inp` mesh with Taubin smoothing parameters for five
 iterations:
 
 ```sh
-automesh smooth -n 5 -i octahedron.inp -o octahedron_s05.inp
-<!-- cmdrun automesh smooth -n 5 -i octahedron.inp -o octahedron_s05.inp -->
+automesh smooth hex -n 5 -i octahedron.inp -o octahedron_s05.inp
+<!-- cmdrun automesh smooth hex -n 5 -i octahedron.inp -o octahedron_s05.inp | ansifilter -->
 ```
 
 The original voxel mesh and the smoothed voxel mesh are shown below:
@@ -729,7 +730,7 @@ To create a mesh of the outer isosurfaces contained in the `octahedron` example:
 
 ```sh
 automesh mesh tri -r 0 1 2 -i octahedron.npy -o octahedron.stl
-<!-- cmdrun automesh mesh tri -r 0 1 2 -i octahedron.npy -o octahedron.stl -->
+<!-- cmdrun automesh mesh tri -r 0 1 2 -i octahedron.npy -o octahedron.stl | ansifilter -->
 ```
 
 The surfaces are visualized below:
