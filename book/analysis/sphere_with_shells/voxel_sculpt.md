@@ -16,12 +16,6 @@ automesh convert segmentation -i spheres_resolution_3.npy -o spheres_resolution_
 automesh convert segmentation -i spheres_resolution_4.npy -o spheres_resolution_4.spn
 ```
 
-For example,
-
-```sh
-<!-- cmdrun automesh convert segmentation -i spheres_resolution_4.npy -o spheres_resolution_4.spn -->
-```
-
 Run Sculpt.
 
 ```sh

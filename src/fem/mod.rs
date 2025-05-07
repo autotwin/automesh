@@ -17,7 +17,7 @@ use std::time::Instant;
 use super::{Coordinate, Coordinates, Tessellation, Vector, NSD};
 use chrono::Utc;
 use conspire::math::{Tensor, TensorArray, TensorVec};
-use ndarray::{s, Array1, Array2};
+use ndarray::{parallel::prelude::*, s, Array1, Array2};
 use ndarray_npy::WriteNpyExt;
 use netcdf::{create, Error as ErrorNetCDF};
 use std::{
@@ -620,7 +620,7 @@ fn reorder_connectivity<const N: usize>(
     element_node_connectivity: &Connectivity<N>,
 ) -> ReorderedConnectivity {
     element_blocks_unique
-        .iter()
+        .par_iter()
         .map(|unique_block| {
             element_blocks
                 .iter()

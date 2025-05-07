@@ -10,10 +10,8 @@ use super::{
     Coordinate, Coordinates, NSD,
 };
 use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
-use ndarray::{s, Axis};
+use ndarray::{parallel::prelude::*, s, Axis};
 use std::array::from_fn;
-
-use ndarray::parallel::prelude::*;
 
 pub const PADDING: u8 = 255;
 

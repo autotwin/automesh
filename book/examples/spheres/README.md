@@ -46,17 +46,17 @@ These segmentations are saved to
 
 ```sh
 automesh mesh hex -i spheres_radius_1.npy -o spheres_radius_1.inp
-<!-- cmdrun automesh mesh hex -i spheres_radius_1.npy -o spheres_radius_1.inp -->
+<!-- cmdrun automesh mesh hex -i spheres_radius_1.npy -o spheres_radius_1.inp | ansifilter -->
 ```
 
 ```sh
 automesh mesh hex -i spheres_radius_3.npy -o spheres_radius_3.inp
-<!-- cmdrun automesh mesh hex -i spheres_radius_3.npy -o spheres_radius_3.inp -->
+<!-- cmdrun automesh mesh hex -i spheres_radius_3.npy -o spheres_radius_3.inp | ansifilter -->
 ```
 
 ```sh
 automesh mesh hex -i spheres_radius_5.npy -o spheres_radius_5.inp
-<!-- cmdrun automesh mesh hex -i spheres_radius_5.npy -o spheres_radius_5.inp -->
+<!-- cmdrun automesh mesh hex -i spheres_radius_5.npy -o spheres_radius_5.inp | ansifilter -->
 ```
 
 ## Mesh
