@@ -2,6 +2,7 @@
 pub mod py;
 
 pub mod hex;
+pub mod tet;
 pub mod tri;
 use hex::{
     calculate_maximum_edge_ratios_hex, calculate_maximum_skews_hex,
