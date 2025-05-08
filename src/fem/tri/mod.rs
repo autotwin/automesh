@@ -1,3 +1,6 @@
+#[cfg(test)]
+pub mod test;
+
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
