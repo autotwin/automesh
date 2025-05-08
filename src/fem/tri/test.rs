@@ -1,22 +1,16 @@
+// use super::{
+//     super::tri::{calculate_element_areas_tri, calculate_minimum_angles_tri, TRI},
+//     calculate_maximum_edge_ratios, calculate_maximum_skews, calculate_minimum_scaled_jacobians,
+//     metrics_headers, Coordinates,
+// };
 use super::{
-    super::tri::{calculate_element_areas_tri, calculate_minimum_angles_tri, TRI},
-    calculate_maximum_edge_ratios, calculate_maximum_skews, calculate_minimum_scaled_jacobians,
-    metrics_headers, Coordinates,
+    super::Coordinates, FiniteElementMethods, FiniteElementSpecifics, TriangularFiniteElements,
 };
 use conspire::math::TensorVec;
 
 const EPSILON: f64 = 1.0e-14;
 const DEG_TO_RAD: f64 = std::f64::consts::PI / 180.0;
 const RAD_TO_DEG: f64 = 1.0 / DEG_TO_RAD;
-
-#[test]
-fn metrics_headers_test() {
-    let tri_header_gold =
-        "maximum edge ratio,minimum scaled jacobian,maximum skew,element area,minimum angle\n"
-            .to_string();
-    let tri_header_result = metrics_headers::<TRI>();
-    assert_eq!(tri_header_gold, tri_header_result);
-}
 
 #[test]
 fn triangular_unit_tests() {
@@ -173,18 +167,20 @@ fn triangular_unit_tests() {
         [1.0, 1.0 + 3.0_f64.sqrt(), 1.0], // tile.stl end
     ]);
 
-    let maximum_edge_ratios =
-        calculate_maximum_edge_ratios(&element_node_connectivity, &nodal_coordinates);
+    let blocks = element_node_connectivity.iter().map(|_| 1).collect();
 
-    maximum_edge_ratios
+    let block =
+        TriangularFiniteElements::from_data(blocks, element_node_connectivity, nodal_coordinates);
+
+    block
+        .maximum_edge_ratios()
         .iter()
         .zip(maximum_edge_ratios_gold.iter())
         .for_each(|(calculated, gold)| {
             assert!((calculated - gold).abs() < EPSILON,);
         });
 
-    let minimum_angles =
-        calculate_minimum_angles_tri(&element_node_connectivity, &nodal_coordinates);
+    let minimum_angles = block.minimum_angles();
 
     let minimum_angles_deg: Vec<f64> = minimum_angles
         .iter()
@@ -198,27 +194,22 @@ fn triangular_unit_tests() {
             assert!((calculated - gold).abs() < EPSILON,);
         });
 
-    let maximum_skews = calculate_maximum_skews(&element_node_connectivity, &nodal_coordinates);
-
-    maximum_skews
+    block
+        .maximum_skews()
         .iter()
         .zip(maximum_skews_gold.iter())
         .for_each(|(calculated, gold)| {
             assert!((calculated - gold).abs() < EPSILON,);
         });
 
-    let element_areas = calculate_element_areas_tri(&element_node_connectivity, &nodal_coordinates);
-
-    element_areas
+    block
+        .areas()
         .iter()
         .zip(element_areas_gold.iter())
         .for_each(|(calculated, gold)| assert!((calculated - gold).abs() < EPSILON,));
 
-    // let element_areas = calculate_element_measures(&element_node_connectivity, &nodal_coordinates);
-    let minimum_scaled_jacobians =
-        calculate_minimum_scaled_jacobians(&element_node_connectivity, &nodal_coordinates);
-
-    minimum_scaled_jacobians
+    block
+        .minimum_scaled_jacobians()
         .iter()
         .zip(minimum_scaled_jacobians_gold.iter())
         .for_each(|(calculated, gold)| assert!((calculated - gold).abs() < EPSILON,));

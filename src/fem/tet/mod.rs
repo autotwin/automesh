@@ -1,4 +1,5 @@
-use super::{FiniteElementSpecifics, FiniteElements, Tessellation};
+use super::{FiniteElementSpecifics, FiniteElements, Metrics, Tessellation};
+use std::io::Error as ErrorIO;
 
 /// The number of nodes in a tetrahedral finite element.
 pub const TET: usize = 4;
@@ -18,5 +19,17 @@ impl FiniteElementSpecifics for TetrahedralFiniteElements {
     }
     fn into_tesselation(self) -> Tessellation {
         unimplemented!()
+    }
+    fn maximum_edge_ratios(&self) -> Metrics {
+        todo!()
+    }
+    fn maximum_skews(&self) -> Metrics {
+        todo!()
+    }
+    fn minimum_scaled_jacobians(&self) -> Metrics {
+        todo!()
+    }
+    fn write_metrics(&self, _file_path: &str) -> Result<(), ErrorIO> {
+        todo!()
     }
 }

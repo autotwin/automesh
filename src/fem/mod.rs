@@ -4,16 +4,8 @@ pub mod py;
 pub mod hex;
 pub mod tet;
 pub mod tri;
-use hex::{
-    calculate_maximum_edge_ratios_hex, calculate_maximum_skews_hex,
-    calculate_minimum_scaled_jacobians_hex, write_finite_elements_metrics_hex,
-};
 pub use hex::{HexahedralFiniteElements, HEX};
 pub use tet::{TetrahedralFiniteElements, TET};
-use tri::{
-    calculate_maximum_edge_ratios_tri, calculate_maximum_skews_tri,
-    calculate_minimum_scaled_jacobians_tri, write_finite_elements_metrics_tri,
-};
 pub use tri::{TriangularFiniteElements, TRI};
 
 #[cfg(feature = "profile")]
@@ -106,8 +98,6 @@ where
     fn write_inp(&self, file_path: &str) -> Result<(), ErrorIO>;
     /// Writes the finite elements data to a new Mesh file.
     fn write_mesh(&self, file_path: &str) -> Result<(), ErrorIO>;
-    /// Writes the finite elements quality metrics to a new file.
-    fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO>;
     /// Writes the finite elements data to a new VTK file.
     fn write_vtk(&self, file_path: &str) -> Result<(), ErrorVtk>;
     /// Returns a reference to the boundary nodes.
@@ -495,13 +485,6 @@ where
             self.get_nodal_coordinates(),
         )
     }
-    fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
-        write_finite_elements_metrics(
-            file_path,
-            self.get_element_node_connectivity(),
-            self.get_nodal_coordinates(),
-        )
-    }
     fn write_vtk(&self, file_path: &str) -> Result<(), ErrorVtk> {
         write_finite_elements_to_vtk(
             file_path,
@@ -591,6 +574,14 @@ pub trait FiniteElementSpecifics {
     fn connected_nodes(node: &usize) -> Vec<usize>;
     /// Converts the finite elements into a tessellation, consuming the finite elements.
     fn into_tesselation(self) -> Tessellation;
+    /// ???
+    fn maximum_edge_ratios(&self) -> Metrics;
+    /// ???
+    fn maximum_skews(&self) -> Metrics;
+    /// ???
+    fn minimum_scaled_jacobians(&self) -> Metrics;
+    /// Writes the finite elements quality metrics to a new file.
+    fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO>;
 }
 
 fn reorder_connectivity<const N: usize>(
@@ -1042,94 +1033,4 @@ fn write_finite_elements_to_vtk<const N: usize>(
         }),
     }
     .export_be(&file)
-}
-
-fn metrics_headers<const N: usize>() -> String {
-    match N {
-        HEX => {
-            "maximum edge ratio,minimum scaled jacobian,maximum skew,element volume\n".to_string()
-        }
-        TRI => {
-            "maximum edge ratio,minimum scaled jacobian,maximum skew,element area,minimum angle\n"
-                .to_string()
-        }
-        _ => panic!(),
-    }
-}
-
-fn write_finite_elements_metrics<const N: usize>(
-    file_path: &str,
-    element_node_connectivity: &Connectivity<N>,
-    nodal_coordinates: &Coordinates,
-) -> Result<(), ErrorIO> {
-    match N {
-        HEX => write_finite_elements_metrics_hex(
-            file_path,
-            element_node_connectivity,
-            nodal_coordinates,
-        ),
-        TRI => write_finite_elements_metrics_tri(
-            file_path,
-            element_node_connectivity,
-            nodal_coordinates,
-        ),
-        _ => panic!(),
-    }
-}
-
-fn calculate_maximum_edge_ratios<const N: usize>(
-    element_node_connectivity: &Connectivity<N>,
-    nodal_coordinates: &Coordinates,
-) -> Metrics {
-    #[cfg(feature = "profile")]
-    let time = Instant::now();
-    let maximum_edge_ratios = match N {
-        HEX => calculate_maximum_edge_ratios_hex(element_node_connectivity, nodal_coordinates),
-        TRI => calculate_maximum_edge_ratios_tri(element_node_connectivity, nodal_coordinates),
-        _ => panic!(),
-    };
-    #[cfg(feature = "profile")]
-    println!(
-        "           \x1b[1;93m⤷ Maximum edge ratios\x1b[0m {:?}",
-        time.elapsed()
-    );
-    maximum_edge_ratios
-}
-
-fn calculate_minimum_scaled_jacobians<const N: usize>(
-    element_node_connectivity: &Connectivity<N>,
-    nodal_coordinates: &Coordinates,
-) -> Metrics {
-    #[cfg(feature = "profile")]
-    let time = Instant::now();
-    let minimum_scaled_jacobians = match N {
-        HEX => calculate_minimum_scaled_jacobians_hex(element_node_connectivity, nodal_coordinates),
-        TRI => calculate_minimum_scaled_jacobians_tri(element_node_connectivity, nodal_coordinates),
-        _ => panic!(),
-    };
-    #[cfg(feature = "profile")]
-    println!(
-        "             \x1b[1;93mMinimum scaled Jacobians\x1b[0m {:?}",
-        time.elapsed()
-    );
-    minimum_scaled_jacobians
-}
-
-fn calculate_maximum_skews<const N: usize>(
-    element_node_connectivity: &Connectivity<N>,
-    nodal_coordinates: &Coordinates,
-) -> Metrics {
-    #[cfg(feature = "profile")]
-    let time = Instant::now();
-    let maximum_skews = match N {
-        HEX => calculate_maximum_skews_hex(element_node_connectivity, nodal_coordinates),
-        TRI => calculate_maximum_skews_tri(element_node_connectivity, nodal_coordinates),
-        _ => panic!(),
-    };
-    #[cfg(feature = "profile")]
-    println!(
-        "             \x1b[1;93mMaximum edge skews\x1b[0m {:?}",
-        time.elapsed()
-    );
-    maximum_skews
 }
