@@ -9,6 +9,7 @@ use hex::{
     calculate_minimum_scaled_jacobians_hex, write_finite_elements_metrics_hex,
 };
 pub use hex::{HexahedralFiniteElements, HEX};
+pub use tet::{TetrahedralFiniteElements, TET};
 use tri::{
     calculate_maximum_edge_ratios_tri, calculate_maximum_skews_tri,
     calculate_minimum_scaled_jacobians_tri, write_finite_elements_metrics_tri,
