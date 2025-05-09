@@ -184,11 +184,22 @@ impl Default for Remove {
     }
 }
 
+impl From<&Remove> for Vec<u8> {
+    fn from(remove: &Remove) -> Self {
+        match remove {
+            Remove::Some(blocks) => blocks.clone(),
+            Remove::None => vec![],
+        }
+    }
+}
+
 impl From<Vec<u8>> for Remove {
-    fn from(blocks: Vec<u8>) -> Self {
+    fn from(mut blocks: Vec<u8>) -> Self {
         if blocks.is_empty() {
             Self::None
         } else {
+            blocks.sort();
+            blocks.dedup();
             Self::Some(blocks)
         }
     }
@@ -196,7 +207,9 @@ impl From<Vec<u8>> for Remove {
 
 impl From<Option<Vec<usize>>> for Remove {
     fn from(option: Option<Vec<usize>>) -> Self {
-        if let Some(blocks) = option {
+        if let Some(mut blocks) = option {
+            blocks.sort();
+            blocks.dedup();
             Self::Some(blocks.into_iter().map(|entry| entry as u8).collect())
         } else {
             Self::None
@@ -206,7 +219,9 @@ impl From<Option<Vec<usize>>> for Remove {
 
 impl From<Option<Blocks>> for Remove {
     fn from(option: Option<Blocks>) -> Self {
-        if let Some(blocks) = option {
+        if let Some(mut blocks) = option {
+            blocks.sort();
+            blocks.dedup();
             Self::Some(blocks)
         } else {
             Self::None
@@ -303,6 +318,10 @@ pub struct Voxels {
 }
 
 impl Voxels {
+    /// Moves and returns the data associated with the voxels.
+    pub fn data(self) -> (VoxelData, Remove, Scale, Translate) {
+        (self.data, self.remove, self.scale, self.translate)
+    }
     /// Defeatures clusters with less than a minimum number of voxels.
     pub fn defeature(self, min_num_voxels: usize) -> Self {
         defeature_voxels(min_num_voxels, self)
@@ -401,6 +420,42 @@ impl From<Voxels> for HexahedralFiniteElements {
     }
 }
 
+impl From<Octree> for Voxels {
+    fn from(mut tree: Octree) -> Voxels {
+        let mut data = VoxelData::from(tree.nel());
+        let mut length = 0;
+        let mut x = 0;
+        let mut y = 0;
+        let mut z = 0;
+        tree.prune();
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        tree.iter().for_each(|cell| {
+            x = *cell.get_min_x() as usize;
+            y = *cell.get_min_y() as usize;
+            z = *cell.get_min_z() as usize;
+            length = *cell.get_lngth() as usize;
+            (0..length).for_each(|i| {
+                (0..length).for_each(|j| {
+                    (0..length).for_each(|k| data[[x + i, y + j, z + k]] = cell.get_block())
+                })
+            })
+        });
+        let voxels = Self {
+            data,
+            remove: Remove::default(),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        };
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mOctree to voxels\x1b[0m {:?}",
+            time.elapsed()
+        );
+        voxels
+    }
+}
+
 fn extract_voxels(
     voxels: &mut Voxels,
     Extraction {
@@ -420,10 +475,10 @@ fn extract_voxels(
 
 fn defeature_voxels(min_num_voxels: usize, voxels: Voxels) -> Voxels {
     let nel_0 = Nel::from(voxels.data.shape());
-    let (nel, mut tree) = Octree::from_voxels(voxels);
+    let mut tree = Octree::from(voxels);
     tree.balance(true);
     tree.defeature(min_num_voxels);
-    let mut voxels = Voxels::from_octree(nel, tree);
+    let mut voxels = Voxels::from(tree);
     extract_voxels(&mut voxels, Extraction::from(nel_0));
     voxels
 }

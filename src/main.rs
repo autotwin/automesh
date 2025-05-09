@@ -1,7 +1,7 @@
 use automesh::{
     Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
-    IntoFiniteElements, Nel, Octree, Remove, Scale, Smoothing, Tessellation, Translate, Tree,
-    TriangularFiniteElements, Voxels, HEX, TRI,
+    Nel, Octree, Remove, Scale, Smoothing, Tessellation, Translate, Tree, TriangularFiniteElements,
+    Voxels, HEX, TRI,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -1086,12 +1086,6 @@ where
     T: FiniteElementMethods<N>,
 {
     let mut time = Instant::now();
-    let remove_temporary = remove.clone().map(|removed_blocks| {
-        removed_blocks
-            .into_iter()
-            .map(|entry| entry as u8)
-            .collect()
-    });
     let scale_temporary = Scale::from([xscale, yscale, zscale]);
     let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
     let remove = Remove::from(remove);
@@ -1130,15 +1124,10 @@ where
                 mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
             let mut output_type: HexahedralFiniteElements = if dual {
-                let (nel_padded, mut tree) = Octree::from_voxels(input_type);
+                let mut tree = Octree::from(input_type);
                 tree.balance(true);
                 tree.pair();
-                tree.into_finite_elements(
-                    nel_padded,
-                    remove_temporary,
-                    scale_temporary,
-                    translate_temporary,
-                )?
+                tree.into()
             } else {
                 input_type.into()
             };
@@ -1200,7 +1189,7 @@ where
                     mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
                 }
             }
-            let (nel_padded, mut tree) = Octree::from_voxels(input_type);
+            let mut tree = Octree::from(input_type);
             tree.balance(true);
             if let Some(min_num_voxels) = defeature {
                 tree.defeature(min_num_voxels);
@@ -1208,12 +1197,7 @@ where
                 time = Instant::now();
                 mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
             }
-            let mut output_type: TriangularFiniteElements = tree.into_finite_elements(
-                nel_padded,
-                remove_temporary,
-                scale_temporary,
-                translate_temporary,
-            )?;
+            let mut output_type = TriangularFiniteElements::from(tree);
             if !quiet {
                 let mut blocks = output_type.get_element_blocks().clone();
                 let elements = blocks.len();
@@ -1363,12 +1347,6 @@ fn octree(
     pair: bool,
     strong: bool,
 ) -> Result<(), ErrorWrapper> {
-    let remove_temporary = remove.clone().map(|removed_blocks| {
-        removed_blocks
-            .into_iter()
-            .map(|entry| entry as u8)
-            .collect()
-    });
     let scale_temporary = Scale::from([xscale, yscale, zscale]);
     let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
     let scale = [xscale, yscale, zscale].into();
@@ -1392,15 +1370,14 @@ fn octree(
     if !quiet {
         mesh_print_info(MeshBasis::Leaves, &scale_temporary, &translate_temporary)
     }
-    let (_, mut tree) = Octree::from_voxels(input_type);
+    let mut tree = Octree::from(input_type);
     tree.balance(strong);
     if pair {
         tree.pair();
     }
     tree.prune();
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    let output_type =
-        tree.octree_into_finite_elements(remove_temporary, scale_temporary, translate_temporary)?;
+    let output_type = HexahedralFiniteElements::from(tree);
     if !quiet {
         let mut blocks = output_type.get_element_blocks().clone();
         let elements = blocks.len();
