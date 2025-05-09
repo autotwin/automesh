@@ -492,17 +492,6 @@ fn filter_voxel_data(data: VoxelData, remove: Remove) -> (Indices, Blocks) {
     };
     removed_data.sort();
     removed_data.dedup();
-    // let (filtered_voxel_data, element_blocks) = data
-    //     .indexed_iter()
-    //     // .filter_map(|(indices, data_ijk)| {
-    //     .filter_map(|((i, j, k), data_ijk)| {
-    //         if removed_data.binary_search(data_ijk).is_err() {
-    //             Some(([i, j, k], *data_ijk)) // better or worse just keeping the tuples?
-    //         } else {
-    //             None
-    //         }
-    //     })
-    //     .unzip();
     let (filtered_voxel_data, element_blocks) = data
         .axis_iter(Axis(2))
         .into_par_iter()
