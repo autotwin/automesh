@@ -3,7 +3,7 @@
 extern crate test;
 use automesh::{
     FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements, Octree, Smoothing,
-    Tree, Voxels, NSD,
+    Voxels, NSD,
 };
 use std::{
     fs::{read_dir, remove_file},
@@ -159,7 +159,7 @@ macro_rules! bench_block {
         fn octree_from_voxels_from_npy(bencher: &mut Bencher) {
             let npy = format!("benches/block/block_{}.npy", $nel);
             bencher.iter(|| {
-                Octree::from_voxels(
+                Octree::from(
                     Voxels::from_npy(&npy, REMOVE.into(), SCALE.into(), TRANSLATE.into()).unwrap(),
                 )
             });
