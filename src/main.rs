@@ -1,6 +1,6 @@
 use automesh::{
     Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
-    IntoFiniteElements, Nel, Octree, Scale, Smoothing, Tessellation, Translate, Tree,
+    IntoFiniteElements, Nel, Octree, Remove, Scale, Smoothing, Tessellation, Translate, Tree,
     TriangularFiniteElements, Voxels, HEX, TRI,
 };
 use clap::{Parser, Subcommand};
@@ -856,6 +856,7 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
         None,
         None,
         None,
+        Remove::default(),
         Scale::default(),
         Translate::default(),
         quiet,
@@ -910,6 +911,7 @@ fn convert_segmentation(
         nelx,
         nely,
         nelz,
+        Remove::default(),
         Scale::default(),
         Translate::default(),
         quiet,
@@ -947,6 +949,7 @@ fn defeature(
         nelx,
         nely,
         nelz,
+        Remove::default(),
         Scale::default(),
         Translate::default(),
         quiet,
@@ -1024,6 +1027,7 @@ fn extract(
         nelx,
         nely,
         nelz,
+        Remove::default(),
         Scale::default(),
         Translate::default(),
         quiet,
@@ -1082,16 +1086,19 @@ where
     T: FiniteElementMethods<N>,
 {
     let mut time = Instant::now();
-    let remove = remove.map(|removed_blocks| {
+    let remove_temporary = remove.clone().map(|removed_blocks| {
         removed_blocks
             .into_iter()
             .map(|entry| entry as u8)
             .collect()
     });
+    let scale_temporary = Scale::from([xscale, yscale, zscale]);
+    let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
+    let remove = Remove::from(remove);
     let scale = Scale::from([xscale, yscale, zscale]);
     let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
     let mut input_type =
-        match read_input::<N, T>(&input, nelx, nely, nelz, scale, translate, quiet)? {
+        match read_input::<N, T>(&input, nelx, nely, nelz, remove, scale, translate, quiet)? {
             InputTypes::Npy(voxels) => voxels,
             InputTypes::Spn(voxels) => voxels,
             _ => {
@@ -1103,9 +1110,6 @@ where
                 ))?
             }
         };
-    // temporary
-    let scale = Scale::from([xscale, yscale, zscale]);
-    let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
     match N {
         HEX => {
             if let Some(min_num_voxels) = defeature {
@@ -1123,15 +1127,20 @@ where
             }
             if !quiet {
                 time = Instant::now();
-                mesh_print_info(MeshBasis::Voxels, &scale, &translate)
+                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut output_type = if dual {
+            let mut output_type: HexahedralFiniteElements = if dual {
                 let (nel_padded, mut tree) = Octree::from_voxels(input_type);
                 tree.balance(true);
                 tree.pair();
-                tree.into_finite_elements(nel_padded, remove, scale, translate)?
+                tree.into_finite_elements(
+                    nel_padded,
+                    remove_temporary,
+                    scale_temporary,
+                    translate_temporary,
+                )?
             } else {
-                input_type.into_finite_elements(remove, scale, translate)?
+                input_type.into()
             };
             if !quiet {
                 let mut blocks = output_type.get_element_blocks().clone();
@@ -1188,7 +1197,7 @@ where
                         min_num_voxels
                     );
                 } else {
-                    mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
+                    mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
                 }
             }
             let (nel_padded, mut tree) = Octree::from_voxels(input_type);
@@ -1197,10 +1206,14 @@ where
                 tree.defeature(min_num_voxels);
                 println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
                 time = Instant::now();
-                mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
+                mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
             }
-            let mut output_type: TriangularFiniteElements =
-                tree.into_finite_elements(nel_padded, remove, scale, translate)?;
+            let mut output_type: TriangularFiniteElements = tree.into_finite_elements(
+                nel_padded,
+                remove_temporary,
+                scale_temporary,
+                translate_temporary,
+            )?;
             if !quiet {
                 let mut blocks = output_type.get_element_blocks().clone();
                 let elements = blocks.len();
@@ -1299,6 +1312,7 @@ where
         None,
         None,
         None,
+        Remove::default(),
         Scale::default(),
         Translate::default(),
         quiet,
@@ -1349,16 +1363,19 @@ fn octree(
     pair: bool,
     strong: bool,
 ) -> Result<(), ErrorWrapper> {
-    let remove = remove.map(|removed_blocks| {
+    let remove_temporary = remove.clone().map(|removed_blocks| {
         removed_blocks
             .into_iter()
             .map(|entry| entry as u8)
             .collect()
     });
+    let scale_temporary = Scale::from([xscale, yscale, zscale]);
+    let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
     let scale = [xscale, yscale, zscale].into();
     let translate = [xtranslate, ytranslate, ztranslate].into();
+    let remove = Remove::from(remove);
     let input_type = match read_input::<HEX, HexahedralFiniteElements>(
-        &input, nelx, nely, nelz, scale, translate, quiet,
+        &input, nelx, nely, nelz, remove, scale, translate, quiet,
     )? {
         InputTypes::Npy(voxels) => voxels,
         InputTypes::Spn(voxels) => voxels,
@@ -1372,11 +1389,8 @@ fn octree(
         }
     };
     let time = Instant::now();
-    // temporary
-    let scale = Scale::from([xscale, yscale, zscale]);
-    let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
     if !quiet {
-        mesh_print_info(MeshBasis::Leaves, &scale, &translate)
+        mesh_print_info(MeshBasis::Leaves, &scale_temporary, &translate_temporary)
     }
     let (_, mut tree) = Octree::from_voxels(input_type);
     tree.balance(strong);
@@ -1385,7 +1399,8 @@ fn octree(
     }
     tree.prune();
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    let output_type = tree.octree_into_finite_elements(remove, scale, translate)?;
+    let output_type =
+        tree.octree_into_finite_elements(remove_temporary, scale_temporary, translate_temporary)?;
     if !quiet {
         let mut blocks = output_type.get_element_blocks().clone();
         let elements = blocks.len();
@@ -1430,6 +1445,7 @@ where
         None,
         None,
         None,
+        Remove::default(),
         Scale::default(),
         Translate::default(),
         quiet,
@@ -1552,11 +1568,13 @@ where
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn read_input<const N: usize, T>(
     input: &str,
     nelx: Option<usize>,
     nely: Option<usize>,
     nelz: Option<usize>,
+    remove: Remove,
     scale: Scale,
     translate: Translate,
     quiet: bool,
@@ -1576,7 +1594,7 @@ where
     let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
     let result = match input_extension {
         Some("inp") => InputTypes::Abaqus(T::from_inp(input)?),
-        Some("npy") => InputTypes::Npy(Voxels::from_npy(input, scale, translate)?),
+        Some("npy") => InputTypes::Npy(Voxels::from_npy(input, remove, scale, translate)?),
         Some("spn") => {
             let nel = Nel::from_input([nelx, nely, nelz])?;
             if !quiet {
@@ -1587,7 +1605,7 @@ where
                     nel.z(),
                 );
             }
-            InputTypes::Spn(Voxels::from_spn(input, nel, scale, translate)?)
+            InputTypes::Spn(Voxels::from_spn(input, nel, remove, scale, translate)?)
         }
         Some("stl") => InputTypes::Stl(Tessellation::from_stl(input)?),
         _ => Err(format!(

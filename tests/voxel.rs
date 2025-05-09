@@ -1,4 +1,6 @@
-use automesh::{FiniteElementMethods, Nel, Scale, Translate, Voxels, NSD};
+use automesh::{
+    FiniteElementMethods, HexahedralFiniteElements, Nel, Remove, Scale, Translate, Voxels, NSD,
+};
 use conspire::math::{Tensor, TensorVec};
 
 const GOLD_DATA: [[[u8; 3]; 5]; 4] = [
@@ -61,13 +63,12 @@ fn assert_fem_data_from_spn_eq_gold<const D: usize, const E: usize, const N: usi
     let voxels = Voxels::from_spn(
         &gold.file_path,
         gold.nel,
-        Scale::default(),
-        Translate::default(),
+        Remove::from(gold.remove),
+        gold.scale,
+        gold.translate,
     )
     .unwrap();
-    let fem = voxels
-        .into_finite_elements(gold.remove, gold.scale, gold.translate)
-        .unwrap();
+    let fem = HexahedralFiniteElements::from(voxels);
     assert_data_eq_gold_1d(fem.get_element_blocks(), &gold.element_blocks);
     assert_data_eq_gold_2d(
         fem.get_element_node_connectivity(),
@@ -1372,6 +1373,7 @@ mod defeature {
         let voxels = Voxels::from_spn(
             "tests/input/cube_with_inclusion.spn",
             [nel; NSD].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1398,6 +1400,7 @@ mod from_npy {
     fn file_nonexistent() {
         Voxels::from_npy(
             "tests/input/f_file_nonexistent.npy",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1409,6 +1412,7 @@ mod from_npy {
     fn file_unreadable() {
         Voxels::from_npy(
             "tests/input/letter_f_3d.txt",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1420,6 +1424,7 @@ mod from_npy {
     fn file_unopenable() {
         Voxels::from_npy(
             "tests/input/encrypted.npy",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1430,6 +1435,7 @@ mod from_npy {
     fn success() {
         let voxels = Voxels::from_npy(
             "tests/input/letter_f_3d.npy",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1441,39 +1447,36 @@ mod from_npy {
     fn xscale_positive() {
         let voxels = Voxels::from_npy(
             "tests/input/letter_f_3d.npy",
-            Scale::default(),
+            Remove::default(),
+            Scale::from([0.0, 1.0, 1.0]),
             Translate::default(),
         )
         .unwrap();
-        voxels
-            .into_finite_elements(None, [0.0, 1.0, 1.0].into(), [0.0, 0.0, 0.0].into())
-            .unwrap();
+        let _ = HexahedralFiniteElements::from(voxels);
     }
     #[test]
     #[should_panic(expected = "Need to specify scale > 0.")]
     fn yscale_positive() {
         let voxels = Voxels::from_npy(
             "tests/input/letter_f_3d.npy",
-            Scale::default(),
+            Remove::default(),
+            Scale::from([1.0, 0.0, 1.0]),
             Translate::default(),
         )
         .unwrap();
-        voxels
-            .into_finite_elements(None, [1.0, 0.0, 1.0].into(), [0.0, 0.0, 0.0].into())
-            .unwrap();
+        let _ = HexahedralFiniteElements::from(voxels);
     }
     #[test]
     #[should_panic(expected = "Need to specify scale > 0.")]
     fn zscale_positive() {
         let voxels = Voxels::from_npy(
             "tests/input/letter_f_3d.npy",
-            Scale::default(),
+            Remove::default(),
+            Scale::from([1.0, 1.0, 0.0]),
             Translate::default(),
         )
         .unwrap();
-        voxels
-            .into_finite_elements(None, [1.0, 1.0, 0.0].into(), [0.0, 0.0, 0.0].into())
-            .unwrap();
+        let _ = HexahedralFiniteElements::from(voxels);
     }
 }
 
@@ -1486,6 +1489,7 @@ mod from_spn {
         Voxels::from_spn(
             "tests/input/f_file_nonexistent.spn",
             [4, 5, 3].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1498,6 +1502,7 @@ mod from_spn {
         Voxels::from_spn(
             "tests/input/letter_f_3d.txt",
             [4, 5, 3].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1510,6 +1515,7 @@ mod from_spn {
         Voxels::from_spn(
             "tests/input/single.spn",
             [0, 1, 1].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1521,6 +1527,7 @@ mod from_spn {
         Voxels::from_spn(
             "tests/input/single.spn",
             [1, 0, 1].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1532,6 +1539,7 @@ mod from_spn {
         Voxels::from_spn(
             "tests/input/single.spn",
             [1, 1, 0].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1542,6 +1550,7 @@ mod from_spn {
         let voxels = Voxels::from_spn(
             "tests/input/letter_f_3d.spn",
             [4, 5, 3].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1557,6 +1566,7 @@ mod write_npy {
         let voxels_from_spn = Voxels::from_spn(
             "tests/input/letter_f_3d.spn",
             [4, 5, 3].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1564,6 +1574,7 @@ mod write_npy {
         voxels_from_spn.write_npy("target/letter_f_3d.npy").unwrap();
         let voxels_from_npy = Voxels::from_npy(
             "target/letter_f_3d.npy",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1577,6 +1588,7 @@ mod write_npy {
         let voxels = Voxels::from_spn(
             "tests/input/letter_f_3d.spn",
             [4, 5, 3].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1588,13 +1600,19 @@ mod write_npy {
         let voxels_from_spn = Voxels::from_spn(
             "tests/input/sparse.spn",
             [5, 5, 5].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
         .unwrap();
         voxels_from_spn.write_npy("target/sparse.npy").unwrap();
-        let voxels_from_npy =
-            Voxels::from_npy("target/sparse.npy", Scale::default(), Translate::default()).unwrap();
+        let voxels_from_npy = Voxels::from_npy(
+            "target/sparse.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         assert_data_eq(voxels_from_npy, voxels_from_spn);
     }
 }
@@ -1605,6 +1623,7 @@ mod write_spn {
     fn letter_f_3d() {
         let voxels_from_npy = Voxels::from_npy(
             "tests/input/letter_f_3d.npy",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1613,6 +1632,7 @@ mod write_spn {
         let voxels_from_spn = Voxels::from_spn(
             "target/letter_f_3d.spn",
             [4, 5, 3].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1625,6 +1645,7 @@ mod write_spn {
     fn no_such_directory() {
         let voxels = Voxels::from_npy(
             "tests/input/letter_f_3d.npy",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1635,6 +1656,7 @@ mod write_spn {
     fn sparse() {
         let voxels_from_npy = Voxels::from_npy(
             "tests/input/sparse.npy",
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )
@@ -1643,6 +1665,7 @@ mod write_spn {
         let voxels_from_spn = Voxels::from_spn(
             "target/sparse.spn",
             [5, 5, 5].into(),
+            Remove::default(),
             Scale::default(),
             Translate::default(),
         )

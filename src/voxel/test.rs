@@ -1,11 +1,11 @@
-use crate::{Scale, Translate};
+use crate::{Remove, Scale, Translate, NSD};
 
 use super::{filter_voxel_data, Nel, Voxels};
 
 const NUM_ELEMENTS: usize = 39;
 
 const BLOCKS_GOLD: [u8; NUM_ELEMENTS] = [1; NUM_ELEMENTS];
-const VOXELS_GOLD: [[usize; 3]; NUM_ELEMENTS] = [
+const VOXELS_GOLD: [[usize; NSD]; NUM_ELEMENTS] = [
     [0, 0, 0],
     [1, 0, 0],
     [2, 0, 0],
@@ -51,11 +51,13 @@ const VOXELS_GOLD: [[usize; 3]; NUM_ELEMENTS] = [
 fn filter() {
     let spn = Voxels::from_npy(
         "tests/input/letter_f_3d.npy",
+        Remove::default(),
         Scale::default(),
         Translate::default(),
     )
     .unwrap();
-    let (filtered_voxel_data, element_blocks) = filter_voxel_data(spn.get_data(), Some(vec![0]));
+    let (filtered_voxel_data, element_blocks) =
+        filter_voxel_data(spn.get_data().to_owned(), Remove::from(vec![0]));
     assert_eq!(element_blocks.len(), NUM_ELEMENTS);
     BLOCKS_GOLD
         .iter()

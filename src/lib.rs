@@ -24,7 +24,7 @@ pub use fem::{
 };
 pub use tessellation::Tessellation;
 pub use tree::{IntoFiniteElements, Octree, Tree};
-pub use voxel::{Extraction, Nel, Scale, Translate, VoxelData, Voxels};
+pub use voxel::{Extraction, Nel, Remove, Scale, Translate, VoxelData, Voxels};
 
 use conspire::math::{TensorRank1, TensorRank1Vec};
 
