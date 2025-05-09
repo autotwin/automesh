@@ -6,12 +6,15 @@ use super::{
         Blocks, FiniteElementMethods, HexahedralFiniteElements, TriangularFiniteElements, HEX,
         NODE_NUMBERING_OFFSET,
     },
-    voxel::{Nel, Scale, Translate, VoxelData, Voxels},
+    voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
     Coordinate, Coordinates, NSD,
 };
 use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
 use ndarray::{parallel::prelude::*, s, Axis};
-use std::array::from_fn;
+use std::{
+    array::from_fn,
+    ops::{Deref, DerefMut},
+};
 
 pub const PADDING: u8 = 255;
 
@@ -91,7 +94,26 @@ type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
 
 /// The octree type.
-pub type Octree = Vec<Cell>;
+pub struct Octree {
+    nel: Nel,
+    octree: Vec<Cell>,
+    remove: Remove,
+    scale: Scale,
+    translate: Translate,
+}
+
+impl Deref for Octree {
+    type Target = Vec<Cell>;
+    fn deref(&self) -> &Self::Target {
+        &self.octree
+    }
+}
+
+impl DerefMut for Octree {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.octree
+    }
+}
 
 type Cluster = Vec<usize>;
 type Clusters = Vec<Cluster>;
@@ -100,10 +122,10 @@ type Supercells = Vec<Option<[usize; 2]>>;
 /// Methods for trees such as quadtrees or octrees.
 pub trait Tree {
     fn balance(&mut self, strong: bool);
-    fn boundaries(&mut self, nel_padded: &Nel);
-    fn clusters(&self, remove: &Option<Blocks>, supercells: Option<&Supercells>) -> Clusters;
+    fn boundaries(&mut self);
+    fn clusters(&self, remove: Option<&Blocks>, supercells: Option<&Supercells>) -> Clusters;
     fn defeature(&mut self, min_num_voxels: usize);
-    fn from_voxels(voxels: Voxels) -> (Nel, Self);
+    fn nel(&self) -> Nel;
     fn octree_into_finite_elements(
         self,
         remove: Option<Blocks>,
@@ -115,17 +137,6 @@ pub trait Tree {
     fn prune(&mut self);
     fn subdivide(&mut self, index: usize);
     fn supercells(&self) -> Supercells;
-}
-
-/// Methods for converting trees into finite elements.
-pub trait IntoFiniteElements<F> {
-    fn into_finite_elements(
-        self,
-        nel: Nel,
-        remove: Option<Blocks>,
-        scale: Scale,
-        translate: Translate,
-    ) -> Result<F, String>;
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -233,7 +244,7 @@ impl Cell {
             None
         }
     }
-    pub fn is_face_on_octree_boundary(&self, face_index: &usize, nel: &Nel) -> bool {
+    pub fn is_face_on_octree_boundary(&self, face_index: &usize, nel: Nel) -> bool {
         match face_index {
             0 => self.get_min_y() == &0,
             1 => self.get_max_x() == *nel.x() as u16,
@@ -389,6 +400,85 @@ impl Cell {
                 min_z: val_z,
             },
         ]
+    }
+}
+
+impl From<Voxels> for Octree {
+    fn from(voxels: Voxels) -> Octree {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let (data_voxels, remove, scale, translate) = voxels.data();
+        let mut nel_i = 0;
+        let nel_padded = data_voxels
+            .shape()
+            .iter()
+            .map(|nel_0| {
+                nel_i = *nel_0;
+                while (nel_i & (nel_i - 1)) != 0 {
+                    nel_i += 1
+                }
+                nel_i
+            })
+            .max()
+            .unwrap();
+        let nel = Nel::from([nel_padded; NSD]);
+        let mut data = VoxelData::from(nel);
+        data.iter_mut().for_each(|entry| *entry = PADDING);
+        if data_voxels.iter().any(|entry| entry == &PADDING) {
+            panic!("Segmentation cannot use 255 as an ID with octree padding.")
+        }
+        data.axis_iter_mut(Axis(2))
+            .zip(data_voxels.axis_iter(Axis(2)))
+            .for_each(|(mut data_i, data_voxels_i)| {
+                data_i
+                    .axis_iter_mut(Axis(1))
+                    .zip(data_voxels_i.axis_iter(Axis(1)))
+                    .for_each(|(mut data_ij, data_voxels_ij)| {
+                        data_ij
+                            .iter_mut()
+                            .zip(data_voxels_ij.iter())
+                            .for_each(|(data_ijk, data_voxels_ijk)| *data_ijk = *data_voxels_ijk)
+                    })
+            });
+        let nel_min = nel.iter().min().unwrap();
+        let lngth = *nel_min as u16;
+        let mut tree = Octree {
+            nel,
+            octree: vec![],
+            remove,
+            scale,
+            translate,
+        };
+        (0..(nel.x() / nel_min)).for_each(|i| {
+            (0..(nel.y() / nel_min)).for_each(|j| {
+                (0..(nel.z() / nel_min)).for_each(|k| {
+                    tree.push(Cell {
+                        block: None,
+                        cells: None,
+                        faces: [None; NUM_FACES],
+                        lngth,
+                        min_x: lngth * i as u16,
+                        min_y: lngth * j as u16,
+                        min_z: lngth * k as u16,
+                    })
+                })
+            })
+        });
+        let mut index = 0;
+        while index < tree.len() {
+            if let Some(block) = tree[index].homogeneous(&data) {
+                tree[index].block = Some(block)
+            } else {
+                tree.subdivide(index)
+            }
+            index += 1;
+        }
+        #[cfg(feature = "profile")]
+        println!(
+            "           \x1b[1;93m⤷ Octree initialization\x1b[0m {:?} ",
+            time.elapsed()
+        );
+        tree
     }
 }
 
@@ -739,7 +829,7 @@ impl Tree for Octree {
             }
         }
     }
-    fn boundaries(&mut self, nel_padded: &Nel) {
+    fn boundaries(&mut self) {
         //
         // Consider having this skip blocks that will be removed.
         // Also, for this and other places, should you always remove the padding?
@@ -795,7 +885,7 @@ impl Tree for Octree {
                             .enumerate()
                             .filter(|(_, face)| face.is_none())
                             .any(|(face_index, _)| {
-                                cell.is_face_on_octree_boundary(&face_index, nel_padded)
+                                cell.is_face_on_octree_boundary(&face_index, self.nel())
                             })
                     {
                         self.subdivide(index);
@@ -828,13 +918,10 @@ impl Tree for Octree {
         }
         self.balance(true);
     }
-    fn clusters(&self, remove: &Option<Blocks>, supercells_opt: Option<&Supercells>) -> Clusters {
+    fn clusters(&self, remove: Option<&Blocks>, supercells_opt: Option<&Supercells>) -> Clusters {
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let mut removed_data = remove.clone().unwrap_or_default();
-        removed_data.sort();
-        removed_data.dedup();
-        removed_data.push(PADDING);
+        let removed_data = remove.unwrap();
         let supercells = if let Some(supercells) = supercells_opt {
             supercells
         } else {
@@ -964,7 +1051,7 @@ impl Tree for Octree {
         let supercells = self.supercells();
         #[allow(unused_variables)]
         for iteration in 1.. {
-            clusters = self.clusters(&None, Some(&supercells));
+            clusters = self.clusters(Some(&vec![PADDING]), Some(&supercells));
             #[cfg(feature = "profile")]
             let time = Instant::now();
             volumes = clusters
@@ -1094,75 +1181,8 @@ impl Tree for Octree {
             }
         }
     }
-    fn from_voxels(voxels: Voxels) -> (Nel, Self) {
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let data_voxels = voxels.get_data();
-        let mut nel_i = 0;
-        let nel_padded = data_voxels
-            .shape()
-            .iter()
-            .map(|nel_0| {
-                nel_i = *nel_0;
-                while (nel_i & (nel_i - 1)) != 0 {
-                    nel_i += 1
-                }
-                nel_i
-            })
-            .max()
-            .unwrap();
-        let nel = Nel::from([nel_padded; NSD]);
-        let mut data = VoxelData::from(nel);
-        data.iter_mut().for_each(|entry| *entry = PADDING);
-        if data_voxels.iter().any(|entry| entry == &PADDING) {
-            panic!("Segmentation cannot use 255 as an ID with octree padding.")
-        }
-        data.axis_iter_mut(Axis(2))
-            .zip(data_voxels.axis_iter(Axis(2)))
-            .for_each(|(mut data_i, data_voxels_i)| {
-                data_i
-                    .axis_iter_mut(Axis(1))
-                    .zip(data_voxels_i.axis_iter(Axis(1)))
-                    .for_each(|(mut data_ij, data_voxels_ij)| {
-                        data_ij
-                            .iter_mut()
-                            .zip(data_voxels_ij.iter())
-                            .for_each(|(data_ijk, data_voxels_ijk)| *data_ijk = *data_voxels_ijk)
-                    })
-            });
-        let nel_min = nel.iter().min().unwrap();
-        let lngth = *nel_min as u16;
-        let mut tree = vec![];
-        (0..(nel.x() / nel_min)).for_each(|i| {
-            (0..(nel.y() / nel_min)).for_each(|j| {
-                (0..(nel.z() / nel_min)).for_each(|k| {
-                    tree.push(Cell {
-                        block: None,
-                        cells: None,
-                        faces: [None; NUM_FACES],
-                        lngth,
-                        min_x: lngth * i as u16,
-                        min_y: lngth * j as u16,
-                        min_z: lngth * k as u16,
-                    })
-                })
-            })
-        });
-        let mut index = 0;
-        while index < tree.len() {
-            if let Some(block) = tree[index].homogeneous(&data) {
-                tree[index].block = Some(block)
-            } else {
-                tree.subdivide(index)
-            }
-            index += 1;
-        }
-        #[cfg(feature = "profile")]
-        println!(
-            "           \x1b[1;93m⤷ Octree initialization\x1b[0m {:?} ",
-            time.elapsed()
-        );
-        (nel, tree)
+    fn nel(&self) -> Nel {
+        self.nel
     }
     fn octree_into_finite_elements(
         self,
@@ -1403,25 +1423,17 @@ impl Tree for Octree {
     }
 }
 
-impl IntoFiniteElements<TriangularFiniteElements> for Octree {
-    fn into_finite_elements(
-        mut self,
-        nel_padded: Nel,
-        remove: Option<Blocks>,
-        scale: Scale,
-        translate: Translate,
-    ) -> Result<TriangularFiniteElements, String> {
-        let mut removed_data = remove.clone().unwrap_or_default();
-        removed_data.sort();
-        removed_data.dedup();
+impl From<Octree> for TriangularFiniteElements {
+    fn from(mut tree: Octree) -> TriangularFiniteElements {
+        let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
-        self.boundaries(&nel_padded);
-        let clusters = self.clusters(&remove, None);
+        tree.boundaries();
+        let clusters = tree.clusters(Some(&removed_data), None);
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let blocks = clusters
             .iter()
-            .map(|cluster: &Vec<usize>| self[cluster[0]].get_block())
+            .map(|cluster: &Vec<usize>| tree[cluster[0]].get_block())
             .collect::<Blocks>();
         let default_face_info = [None; NUM_FACES];
         let mut faces_info = default_face_info;
@@ -1431,20 +1443,20 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
             .map(|(&block, cluster)| {
                 cluster
                     .iter()
-                    .filter(|&&cell| self[cell].is_voxel())
+                    .filter(|&&cell| tree[cell].is_voxel())
                     .filter_map(|&cell| {
                         faces_info = default_face_info;
                         faces_info
                             .iter_mut()
                             .enumerate()
-                            .zip(self[cell].get_faces().iter())
+                            .zip(tree[cell].get_faces().iter())
                             .for_each(|((face_index, face_info), &face)| {
                                 if let Some(face_cell) = face {
-                                    if self[face_cell].get_block() != block {
+                                    if tree[face_cell].get_block() != block {
                                         *face_info = Some(face_cell)
                                     }
-                                } else if self[cell]
-                                    .is_face_on_octree_boundary(&face_index, &nel_padded)
+                                } else if tree[cell]
+                                    .is_face_on_octree_boundary(&face_index, tree.nel())
                                 {
                                     *face_info = Some(usize::MAX)
                                 }
@@ -1496,7 +1508,7 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
         let mut faces_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut node_new = 1;
-        let nodes_len = (self[0].get_lngth() + 1) as usize;
+        let nodes_len = (tree[0].get_lngth() + 1) as usize;
         let mut nodes = vec![vec![vec![None::<usize>; nodes_len]; nodes_len]; nodes_len];
         (0..boundaries_cells_faces.len()).for_each(|boundary| {
             boundaries_cells_faces[boundary]
@@ -1509,7 +1521,7 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                                 #[allow(clippy::collapsible_if)]
                                 if face_cell != &usize::MAX {
                                     if removed_data
-                                        .binary_search(&self[*face_cell].get_block())
+                                        .binary_search(&tree[*face_cell].get_block())
                                         .is_err()
                                     {
                                         if let Some(opposing_boundary) =
@@ -1520,7 +1532,7 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                                         }
                                     }
                                 }
-                                self[*cell]
+                                tree[*cell]
                                     .get_nodal_indices_face(&face_index)
                                     .iter()
                                     .zip(face_connectivity.iter_mut())
@@ -1532,9 +1544,12 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
                                             *face_node = node
                                         } else {
                                             nodal_coordinates.push(Coordinate::new([
-                                                nodal_indices[0] as f64 * scale.x() + translate.x(),
-                                                nodal_indices[1] as f64 * scale.y() + translate.y(),
-                                                nodal_indices[2] as f64 * scale.z() + translate.z(),
+                                                nodal_indices[0] as f64 * tree.scale.x()
+                                                    + tree.translate.x(),
+                                                nodal_indices[1] as f64 * tree.scale.y()
+                                                    + tree.translate.y(),
+                                                nodal_indices[2] as f64 * tree.scale.z()
+                                                    + tree.translate.z(),
                                             ]));
                                             *face_node = node_new;
                                             nodes[nodal_indices[0] as usize]
@@ -1744,90 +1759,32 @@ impl IntoFiniteElements<TriangularFiniteElements> for Octree {
             "             \x1b[1;93mSurface finite elements\x1b[0m {:?} ",
             time.elapsed()
         );
-        Ok(TriangularFiniteElements::from_data(
+        TriangularFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        ))
+        )
     }
 }
 
-fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> Vec<Vec<usize>> {
-    let mut node_face_connectivity = vec![vec![]; num_nodes];
-    faces_connectivity
-        .iter()
-        .enumerate()
-        .for_each(|(face, connectivity)| {
-            connectivity
-                .iter()
-                .for_each(|node| node_face_connectivity[node - NODE_NUMBERING_OFFSET].push(face))
-        });
-    node_face_connectivity
-}
-
-fn edges(faces_connectivity: &[[usize; 4]]) -> Edges {
-    let mut edges: Edges = faces_connectivity
-        .iter()
-        .flat_map(|connectivity| {
-            [
-                [connectivity[0], connectivity[1]],
-                [connectivity[1], connectivity[2]],
-                [connectivity[2], connectivity[3]],
-                [connectivity[3], connectivity[0]],
-            ]
-            .into_iter()
-        })
-        .collect();
-    edges.iter_mut().for_each(|edge| edge.sort());
-    edges.sort();
-    edges.dedup();
-    edges
-}
-
-fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec<usize>]) -> Edges {
-    edges(faces_connectivity)
-        .iter()
-        .flat_map(|&edge| {
-            if node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET]
-                .iter()
-                .filter(|face_a| {
-                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
-                })
-                .count()
-                == 4
-            {
-                Some(edge)
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
-    fn into_finite_elements(
-        self,
-        _nel: Nel,
-        _remove: Option<Blocks>,
-        scale: Scale,
-        translate: Translate,
-    ) -> Result<HexahedralFiniteElements, String> {
+impl From<Octree> for HexahedralFiniteElements {
+    fn from(tree: Octree) -> HexahedralFiniteElements {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut element_node_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
-        let mut cells_nodes = vec![0; self.len()];
+        let mut cells_nodes = vec![0; tree.len()];
         let mut node_index = 1;
-        self.iter().enumerate().for_each(|(cell_index, cell)| {
+        tree.iter().enumerate().for_each(|(cell_index, cell)| {
             if cell.is_leaf() {
                 cells_nodes[cell_index] = node_index;
                 nodal_coordinates.append(&mut TensorRank1Vec::new(&[[
-                    0.5 * (2 * cell.get_min_x() + cell.get_lngth()) as f64 * scale.x()
-                        + translate.x(),
-                    0.5 * (2 * cell.get_min_y() + cell.get_lngth()) as f64 * scale.y()
-                        + translate.y(),
-                    0.5 * (2 * cell.get_min_z() + cell.get_lngth()) as f64 * scale.z()
-                        + translate.z(),
+                    0.5 * (2 * cell.get_min_x() + cell.get_lngth()) as f64 * tree.scale.x()
+                        + tree.translate.x(),
+                    0.5 * (2 * cell.get_min_y() + cell.get_lngth()) as f64 * tree.scale.y()
+                        + tree.translate.y(),
+                    0.5 * (2 * cell.get_min_z() + cell.get_lngth()) as f64 * tree.scale.z()
+                        + tree.translate.z(),
                 ]]));
                 node_index += 1;
             }
@@ -1841,11 +1798,11 @@ impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
         let mut fa_1_subcells = [0; NUM_OCTANTS];
         let mut fa_4_subcells = [0; NUM_OCTANTS];
         let mut face_0_faces = &[None; NUM_FACES];
-        self.iter().for_each(|cell| {
+        tree.iter().for_each(|cell| {
             if let Some(cell_subcells) = cell.get_cells() {
                 if cell_subcells
                     .iter()
-                    .filter(|&&subcell| self[subcell].is_leaf())
+                    .filter(|&&subcell| tree[subcell].is_leaf())
                     .count()
                     == NUM_OCTANTS
                 {
@@ -1869,10 +1826,10 @@ impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
                         .enumerate()
                         .for_each(|(face_index, face_cell)| {
                             if let Some(face_cell_index) = face_cell {
-                                if let Some(face_subcells) = self[*face_cell_index].get_cells() {
+                                if let Some(face_subcells) = tree[*face_cell_index].get_cells() {
                                     if face_subcells
                                         .iter()
-                                        .filter(|&&subcell| self[subcell].is_leaf())
+                                        .filter(|&&subcell| tree[subcell].is_leaf())
                                         .count()
                                         == NUM_OCTANTS
                                     {
@@ -1924,17 +1881,17 @@ impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
                             }
                         });
                     if let Some(face_4) = connected_faces[4] {
-                        fa_4_subcells = self[*face_4].get_cells().unwrap();
+                        fa_4_subcells = tree[*face_4].get_cells().unwrap();
                     }
                     if let Some(face_1) = connected_faces[1] {
-                        fa_1_subcells = self[*face_1].get_cells().unwrap();
+                        fa_1_subcells = tree[*face_1].get_cells().unwrap();
                         if connected_faces[4].is_some() {
                             if let Some(diag_subcells) =
-                                self[self[*face_1].get_faces()[4].unwrap()].get_cells()
+                                tree[tree[*face_1].get_faces()[4].unwrap()].get_cells()
                             {
                                 if diag_subcells
                                     .iter()
-                                    .filter(|&&subcell| self[subcell].is_leaf())
+                                    .filter(|&&subcell| tree[subcell].is_leaf())
                                     .count()
                                     == NUM_OCTANTS
                                 {
@@ -1944,14 +1901,14 @@ impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
                         }
                     }
                     if let Some(face_0) = connected_faces[0] {
-                        fa_0_subcells = self[*face_0].get_cells().unwrap();
-                        face_0_faces = self[*face_0].get_faces();
+                        fa_0_subcells = tree[*face_0].get_cells().unwrap();
+                        face_0_faces = tree[*face_0].get_faces();
                         if connected_faces[1].is_some() {
-                            if let Some(diag_subcells) = self[face_0_faces[1].unwrap()].get_cells()
+                            if let Some(diag_subcells) = tree[face_0_faces[1].unwrap()].get_cells()
                             {
                                 if diag_subcells
                                     .iter()
-                                    .filter(|&&subcell| self[subcell].is_leaf())
+                                    .filter(|&&subcell| tree[subcell].is_leaf())
                                     .count()
                                     == NUM_OCTANTS
                                 {
@@ -1960,23 +1917,23 @@ impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
                             }
                         }
                         if connected_faces[4].is_some() {
-                            if let Some(diag_subcells) = self[face_0_faces[4].unwrap()].get_cells()
+                            if let Some(diag_subcells) = tree[face_0_faces[4].unwrap()].get_cells()
                             {
                                 if diag_subcells
                                     .iter()
-                                    .filter(|&&subcell| self[subcell].is_leaf())
+                                    .filter(|&&subcell| tree[subcell].is_leaf())
                                     .count()
                                     == NUM_OCTANTS
                                 {
                                     d_04_subcells = Some(diag_subcells);
                                     if d_01_subcells.is_some() && d_01_subcells.is_some() {
-                                        if let Some(diag_subcells) = self
-                                            [self[face_0_faces[1].unwrap()].get_faces()[4].unwrap()]
+                                        if let Some(diag_subcells) = tree
+                                            [tree[face_0_faces[1].unwrap()].get_faces()[4].unwrap()]
                                         .get_cells()
                                         {
                                             if diag_subcells
                                                 .iter()
-                                                .filter(|&&subcell| self[subcell].is_leaf())
+                                                .filter(|&&subcell| tree[subcell].is_leaf())
                                                 .count()
                                                 == NUM_OCTANTS
                                             {
@@ -2039,11 +1996,11 @@ impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
                 }
             }
         });
-        let fem = Ok(HexahedralFiniteElements::from_data(
+        let fem = HexahedralFiniteElements::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
             nodal_coordinates,
-        ));
+        );
         #[cfg(feature = "profile")]
         println!(
             "           \x1b[1;93m  Dualization of primal\x1b[0m {:?} ",
@@ -2051,4 +2008,56 @@ impl IntoFiniteElements<HexahedralFiniteElements> for Octree {
         );
         fem
     }
+}
+
+fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> Vec<Vec<usize>> {
+    let mut node_face_connectivity = vec![vec![]; num_nodes];
+    faces_connectivity
+        .iter()
+        .enumerate()
+        .for_each(|(face, connectivity)| {
+            connectivity
+                .iter()
+                .for_each(|node| node_face_connectivity[node - NODE_NUMBERING_OFFSET].push(face))
+        });
+    node_face_connectivity
+}
+
+fn edges(faces_connectivity: &[[usize; 4]]) -> Edges {
+    let mut edges: Edges = faces_connectivity
+        .iter()
+        .flat_map(|connectivity| {
+            [
+                [connectivity[0], connectivity[1]],
+                [connectivity[1], connectivity[2]],
+                [connectivity[2], connectivity[3]],
+                [connectivity[3], connectivity[0]],
+            ]
+            .into_iter()
+        })
+        .collect();
+    edges.iter_mut().for_each(|edge| edge.sort());
+    edges.sort();
+    edges.dedup();
+    edges
+}
+
+fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec<usize>]) -> Edges {
+    edges(faces_connectivity)
+        .iter()
+        .flat_map(|&edge| {
+            if node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET]
+                .iter()
+                .filter(|face_a| {
+                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
+                })
+                .count()
+                == 4
+            {
+                Some(edge)
+            } else {
+                None
+            }
+        })
+        .collect()
 }

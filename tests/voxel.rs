@@ -1,4 +1,6 @@
-use automesh::{FiniteElementMethods, Nel, Scale, Translate, Voxels, NSD};
+use automesh::{
+    FiniteElementMethods, HexahedralFiniteElements, Nel, Remove, Scale, Translate, Voxels, NSD,
+};
 use conspire::math::{Tensor, TensorVec};
 
 const GOLD_DATA: [[[u8; 3]; 5]; 4] = [
@@ -58,10 +60,15 @@ where
 fn assert_fem_data_from_spn_eq_gold<const D: usize, const E: usize, const N: usize>(
     gold: Gold<D, E, N>,
 ) {
-    let voxels = Voxels::from_spn(&gold.file_path, gold.nel).unwrap();
-    let fem = voxels
-        .into_finite_elements(gold.remove, gold.scale, gold.translate)
-        .unwrap();
+    let voxels = Voxels::from_spn(
+        &gold.file_path,
+        gold.nel,
+        Remove::from(gold.remove),
+        gold.scale,
+        gold.translate,
+    )
+    .unwrap();
+    let fem = HexahedralFiniteElements::from(voxels);
     assert_data_eq_gold_1d(fem.get_element_blocks(), &gold.element_blocks);
     assert_data_eq_gold_2d(
         fem.get_element_node_connectivity(),
@@ -1363,8 +1370,14 @@ mod defeature {
     #[test]
     fn cube_with_inclusion() {
         let nel = 3;
-        let voxels =
-            Voxels::from_spn("tests/input/cube_with_inclusion.spn", [nel; NSD].into()).unwrap();
+        let voxels = Voxels::from_spn(
+            "tests/input/cube_with_inclusion.spn",
+            [nel; NSD].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         let voxels = voxels.defeature(2);
         voxels.get_data().outer_iter().take(nel).for_each(|a| {
             a.outer_iter()
@@ -1385,52 +1398,85 @@ mod from_npy {
     #[cfg(not(target_os = "windows"))]
     #[should_panic(expected = "No such file or directory")]
     fn file_nonexistent() {
-        Voxels::from_npy("tests/input/f_file_nonexistent.npy")
-            .map_err(|e| e.to_string())
-            .unwrap();
+        Voxels::from_npy(
+            "tests/input/f_file_nonexistent.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
     }
     #[test]
     #[should_panic(expected = "error parsing header: start does not match magic string")]
     fn file_unreadable() {
-        Voxels::from_npy("tests/input/letter_f_3d.txt")
-            .map_err(|e| e.to_string())
-            .unwrap();
+        Voxels::from_npy(
+            "tests/input/letter_f_3d.txt",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
     }
     #[test]
     #[should_panic(expected = "error parsing header: start does not match magic string")]
     fn file_unopenable() {
-        Voxels::from_npy("tests/input/encrypted.npy")
-            .map_err(|e| e.to_string())
-            .unwrap();
+        Voxels::from_npy(
+            "tests/input/encrypted.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
     }
     #[test]
     fn success() {
-        let voxels = Voxels::from_npy("tests/input/letter_f_3d.npy").unwrap();
+        let voxels = Voxels::from_npy(
+            "tests/input/letter_f_3d.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         assert_data_eq_gold(voxels);
     }
     #[test]
     #[should_panic(expected = "Need to specify scale > 0.")]
     fn xscale_positive() {
-        let voxels = Voxels::from_npy("tests/input/letter_f_3d.npy").unwrap();
-        voxels
-            .into_finite_elements(None, [0.0, 1.0, 1.0].into(), [0.0, 0.0, 0.0].into())
-            .unwrap();
+        let voxels = Voxels::from_npy(
+            "tests/input/letter_f_3d.npy",
+            Remove::default(),
+            Scale::from([0.0, 1.0, 1.0]),
+            Translate::default(),
+        )
+        .unwrap();
+        let _ = HexahedralFiniteElements::from(voxels);
     }
     #[test]
     #[should_panic(expected = "Need to specify scale > 0.")]
     fn yscale_positive() {
-        let voxels = Voxels::from_npy("tests/input/letter_f_3d.npy").unwrap();
-        voxels
-            .into_finite_elements(None, [1.0, 0.0, 1.0].into(), [0.0, 0.0, 0.0].into())
-            .unwrap();
+        let voxels = Voxels::from_npy(
+            "tests/input/letter_f_3d.npy",
+            Remove::default(),
+            Scale::from([1.0, 0.0, 1.0]),
+            Translate::default(),
+        )
+        .unwrap();
+        let _ = HexahedralFiniteElements::from(voxels);
     }
     #[test]
     #[should_panic(expected = "Need to specify scale > 0.")]
     fn zscale_positive() {
-        let voxels = Voxels::from_npy("tests/input/letter_f_3d.npy").unwrap();
-        voxels
-            .into_finite_elements(None, [1.0, 1.0, 0.0].into(), [0.0, 0.0, 0.0].into())
-            .unwrap();
+        let voxels = Voxels::from_npy(
+            "tests/input/letter_f_3d.npy",
+            Remove::default(),
+            Scale::from([1.0, 1.0, 0.0]),
+            Translate::default(),
+        )
+        .unwrap();
+        let _ = HexahedralFiniteElements::from(voxels);
     }
 }
 
@@ -1440,35 +1486,75 @@ mod from_spn {
     #[cfg(not(target_os = "windows"))]
     #[should_panic(expected = "No such file or directory")]
     fn file_nonexistent() {
-        Voxels::from_spn("tests/input/f_file_nonexistent.spn", [4, 5, 3].into())
-            .map_err(|e| e.to_string())
-            .unwrap();
+        Voxels::from_spn(
+            "tests/input/f_file_nonexistent.spn",
+            [4, 5, 3].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
     }
     #[test]
     #[should_panic(expected = "ParseIntError { kind: InvalidDigit }")]
     fn file_unreadable() {
-        Voxels::from_spn("tests/input/letter_f_3d.txt", [4, 5, 3].into())
-            .map_err(|e| e.to_string())
-            .unwrap();
+        Voxels::from_spn(
+            "tests/input/letter_f_3d.txt",
+            [4, 5, 3].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .map_err(|e| e.to_string())
+        .unwrap();
     }
     #[test]
     #[should_panic(expected = "Need to specify nel > 0.")]
     fn nelx_positive() {
-        Voxels::from_spn("tests/input/single.spn", [0, 1, 1].into()).unwrap();
+        Voxels::from_spn(
+            "tests/input/single.spn",
+            [0, 1, 1].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
     }
     #[test]
     #[should_panic(expected = "Need to specify nel > 0.")]
     fn nely_positive() {
-        Voxels::from_spn("tests/input/single.spn", [1, 0, 1].into()).unwrap();
+        Voxels::from_spn(
+            "tests/input/single.spn",
+            [1, 0, 1].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
     }
     #[test]
     #[should_panic(expected = "Need to specify nel > 0.")]
     fn nelz_positive() {
-        Voxels::from_spn("tests/input/single.spn", [1, 1, 0].into()).unwrap();
+        Voxels::from_spn(
+            "tests/input/single.spn",
+            [1, 1, 0].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
     }
     #[test]
     fn success() {
-        let voxels = Voxels::from_spn("tests/input/letter_f_3d.spn", [4, 5, 3].into()).unwrap();
+        let voxels = Voxels::from_spn(
+            "tests/input/letter_f_3d.spn",
+            [4, 5, 3].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         assert_data_eq_gold(voxels);
     }
 }
@@ -1477,24 +1563,56 @@ mod write_npy {
     use super::*;
     #[test]
     fn letter_f_3d() {
-        let voxels_from_spn =
-            Voxels::from_spn("tests/input/letter_f_3d.spn", [4, 5, 3].into()).unwrap();
+        let voxels_from_spn = Voxels::from_spn(
+            "tests/input/letter_f_3d.spn",
+            [4, 5, 3].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         voxels_from_spn.write_npy("target/letter_f_3d.npy").unwrap();
-        let voxels_from_npy = Voxels::from_npy("target/letter_f_3d.npy").unwrap();
+        let voxels_from_npy = Voxels::from_npy(
+            "target/letter_f_3d.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         assert_data_eq(voxels_from_npy, voxels_from_spn);
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     #[should_panic(expected = "No such file or directory")]
     fn no_such_directory() {
-        let voxels = Voxels::from_spn("tests/input/letter_f_3d.spn", [4, 5, 3].into()).unwrap();
+        let voxels = Voxels::from_spn(
+            "tests/input/letter_f_3d.spn",
+            [4, 5, 3].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         voxels.write_npy("no_such_directory/foo.npy").unwrap();
     }
     #[test]
     fn sparse() {
-        let voxels_from_spn = Voxels::from_spn("tests/input/sparse.spn", [5, 5, 5].into()).unwrap();
+        let voxels_from_spn = Voxels::from_spn(
+            "tests/input/sparse.spn",
+            [5, 5, 5].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         voxels_from_spn.write_npy("target/sparse.npy").unwrap();
-        let voxels_from_npy = Voxels::from_npy("target/sparse.npy").unwrap();
+        let voxels_from_npy = Voxels::from_npy(
+            "target/sparse.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         assert_data_eq(voxels_from_npy, voxels_from_spn);
     }
 }
@@ -1503,23 +1621,55 @@ mod write_spn {
     use super::*;
     #[test]
     fn letter_f_3d() {
-        let voxels_from_npy = Voxels::from_npy("tests/input/letter_f_3d.npy").unwrap();
+        let voxels_from_npy = Voxels::from_npy(
+            "tests/input/letter_f_3d.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         voxels_from_npy.write_spn("target/letter_f_3d.spn").unwrap();
-        let voxels_from_spn = Voxels::from_spn("target/letter_f_3d.spn", [4, 5, 3].into()).unwrap();
+        let voxels_from_spn = Voxels::from_spn(
+            "target/letter_f_3d.spn",
+            [4, 5, 3].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         assert_data_eq(voxels_from_npy, voxels_from_spn);
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     #[should_panic(expected = "No such file or directory")]
     fn no_such_directory() {
-        let voxels = Voxels::from_npy("tests/input/letter_f_3d.npy").unwrap();
+        let voxels = Voxels::from_npy(
+            "tests/input/letter_f_3d.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         voxels.write_spn("no_such_directory/foo.spn").unwrap();
     }
     #[test]
     fn sparse() {
-        let voxels_from_npy = Voxels::from_npy("tests/input/sparse.npy").unwrap();
+        let voxels_from_npy = Voxels::from_npy(
+            "tests/input/sparse.npy",
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         voxels_from_npy.write_spn("target/sparse.spn").unwrap();
-        let voxels_from_spn = Voxels::from_spn("target/sparse.spn", [5, 5, 5].into()).unwrap();
+        let voxels_from_spn = Voxels::from_spn(
+            "target/sparse.spn",
+            [5, 5, 5].into(),
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
         assert_data_eq(voxels_from_npy, voxels_from_spn);
     }
 }

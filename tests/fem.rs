@@ -1,4 +1,6 @@
-use automesh::{FiniteElementMethods, Scale, Translate, Voxels, NSD};
+use automesh::{
+    FiniteElementMethods, HexahedralFiniteElements, Remove, Scale, Translate, Voxels, NSD,
+};
 use conspire::math::Tensor;
 use std::{
     fs::File,
@@ -38,10 +40,15 @@ fn compare_files(
     scale: Scale,
     translate: Translate,
 ) {
-    let voxels = Voxels::from_spn(spn_path, nel.into()).unwrap();
-    let fem = voxels
-        .into_finite_elements(Some(vec![0]), scale, translate)
-        .unwrap();
+    let voxels = Voxels::from_spn(
+        spn_path,
+        nel.into(),
+        Remove::from(Some(vec![0_u8])),
+        scale,
+        translate,
+    )
+    .unwrap();
+    let fem = HexahedralFiniteElements::from(voxels);
     fem.write_inp(file_path).unwrap();
     let mut gold = String::new();
     let mut line = String::new();
@@ -72,14 +79,15 @@ mod read_inp {
     use automesh::HexahedralFiniteElements;
     #[test]
     fn letter_f_3d() {
-        let voxels = Voxels::from_spn("tests/input/letter_f_3d.spn", [4, 5, 3].into()).unwrap();
-        let fem = voxels
-            .into_finite_elements(
-                Some(vec![0]),
-                [1.0, 1.0, 1.0].into(),
-                [0.0, 0.0, 0.0].into(),
-            )
-            .unwrap();
+        let voxels = Voxels::from_spn(
+            "tests/input/letter_f_3d.spn",
+            [4, 5, 3].into(),
+            Remove::from(Some(vec![0_u8])),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
+        let fem = HexahedralFiniteElements::from(voxels);
         fem.write_inp("target/letter_f_3d.inp").unwrap();
         let read = HexahedralFiniteElements::from_inp("target/letter_f_3d.inp").unwrap();
         assert_eq!(fem.get_element_blocks(), read.get_element_blocks());
@@ -125,14 +133,15 @@ mod write_mesh {
     use super::*;
     #[test]
     fn letter_f_3d() {
-        let voxels = Voxels::from_spn("tests/input/letter_f_3d.spn", [4, 5, 3].into()).unwrap();
-        let fem = voxels
-            .into_finite_elements(
-                Some(vec![0]),
-                [1.0, 1.0, 1.0].into(),
-                [0.0, 0.0, 0.0].into(),
-            )
-            .unwrap();
+        let voxels = Voxels::from_spn(
+            "tests/input/letter_f_3d.spn",
+            [4, 5, 3].into(),
+            Remove::from(Some(vec![0_u8])),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
+        let fem = HexahedralFiniteElements::from(voxels);
         fem.write_mesh("target/letter_f_3d.mesh").unwrap();
     }
 }
@@ -141,14 +150,15 @@ mod write_vtk {
     use super::*;
     #[test]
     fn letter_f_3d() {
-        let voxels = Voxels::from_spn("tests/input/letter_f_3d.spn", [4, 5, 3].into()).unwrap();
-        let fem = voxels
-            .into_finite_elements(
-                Some(vec![0]),
-                [1.0, 1.0, 1.0].into(),
-                [0.0, 0.0, 0.0].into(),
-            )
-            .unwrap();
+        let voxels = Voxels::from_spn(
+            "tests/input/letter_f_3d.spn",
+            [4, 5, 3].into(),
+            Remove::from(Some(vec![0_u8])),
+            Scale::default(),
+            Translate::default(),
+        )
+        .unwrap();
+        let fem = HexahedralFiniteElements::from(voxels);
         fem.write_vtk("target/letter_f_3d.vtk").unwrap();
     }
 }

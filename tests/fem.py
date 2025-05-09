@@ -3,21 +3,23 @@ from automesh import Voxels
 remove = [0]
 scale = [1, 1, 1]
 translate = [0, 0, 0]
-voxels = Voxels.from_npy('tests/input/letter_f_3d.npy')
+voxels = Voxels.from_npy(
+    'tests/input/letter_f_3d.npy', remove, scale, translate
+    )
 
 
 def test_smooth_laplace():
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    fem = voxels.as_hexahedra()
     fem.smooth(method='Laplace')
 
 
 def test_smooth_taubin():
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    fem = voxels.as_hexahedra()
     fem.smooth(method='Taubin')
 
 
 def test_write_inp():
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    fem = voxels.as_hexahedra()
     inp = 'target/letter_f_3d.inp'
     fem.write_inp(inp)
     with open('tests/input/letter_f_3d.inp') as gold, open(inp) as file:
@@ -35,13 +37,15 @@ def test_write_inp():
 
 
 def test_write_exo():
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    fem = voxels.as_hexahedra()
     fem.write_exo('target/letter_f_3d.exo')
 
 
 def test_write_inp_sparse():
-    voxels = Voxels.from_spn('tests/input/sparse.spn', [5, 5, 5])
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    voxels = Voxels.from_spn(
+        'tests/input/sparse.spn', [5, 5, 5], remove, scale, translate
+        )
+    fem = voxels.as_hexahedra()
     inp = 'target/sparse.inp'
     fem.write_inp(inp)
     with open('tests/input/sparse.inp') as gold, open(inp) as file:
@@ -59,15 +63,15 @@ def test_write_inp_sparse():
 
 
 def test_write_mesh():
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    fem = voxels.as_hexahedra()
     fem.write_mesh('target/letter_f_3d.mesh')
 
 
 def test_write_metrics():
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    fem = voxels.as_hexahedra()
     fem.write_metrics('target/letter_f_3d.csv')
 
 
 def test_write_vtk():
-    fem = voxels.as_finite_elements(remove, scale, translate)
+    fem = voxels.as_hexahedra()
     fem.write_vtk('target/letter_f_3d.vtk')

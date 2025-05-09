@@ -26,7 +26,7 @@ const NODE_NUMBERING_OFFSET_PLUS_ONE: usize = NODE_NUMBERING_OFFSET + 1;
 
 type InitialNodalCoordinates = Vec<Option<Coordinate>>;
 type VoxelDataFlattened = Blocks;
-type VoxelDataSized<const N: usize> = Vec<[usize; N]>;
+type Indices = Vec<[usize; NSD]>;
 
 /// The segmentation data corresponding to voxels.
 pub type VoxelData = Array3<u8>;
@@ -172,6 +172,63 @@ impl From<[f64; NSD]> for Translate {
     }
 }
 
+/// The voxels to be removed.
+pub enum Remove {
+    None,
+    Some(Blocks),
+}
+
+impl Default for Remove {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl From<&Remove> for Vec<u8> {
+    fn from(remove: &Remove) -> Self {
+        match remove {
+            Remove::Some(blocks) => blocks.clone(),
+            Remove::None => vec![],
+        }
+    }
+}
+
+impl From<Vec<u8>> for Remove {
+    fn from(mut blocks: Vec<u8>) -> Self {
+        if blocks.is_empty() {
+            Self::None
+        } else {
+            blocks.sort();
+            blocks.dedup();
+            Self::Some(blocks)
+        }
+    }
+}
+
+impl From<Option<Vec<usize>>> for Remove {
+    fn from(option: Option<Vec<usize>>) -> Self {
+        if let Some(mut blocks) = option {
+            blocks.sort();
+            blocks.dedup();
+            Self::Some(blocks.into_iter().map(|entry| entry as u8).collect())
+        } else {
+            Self::None
+        }
+    }
+}
+
+impl From<Option<Blocks>> for Remove {
+    fn from(option: Option<Blocks>) -> Self {
+        if let Some(mut blocks) = option {
+            blocks.sort();
+            blocks.dedup();
+            Self::Some(blocks)
+        } else {
+            Self::None
+        }
+    }
+}
+
 /// Extraction ranges for a segmentation.
 pub struct Extraction {
     x_min: usize,
@@ -255,9 +312,16 @@ impl From<Nel> for Extraction {
 /// The voxels type.
 pub struct Voxels {
     data: VoxelData,
+    remove: Remove,
+    scale: Scale,
+    translate: Translate,
 }
 
 impl Voxels {
+    /// Moves and returns the data associated with the voxels.
+    pub fn data(self) -> (VoxelData, Remove, Scale, Translate) {
+        (self.data, self.remove, self.scale, self.translate)
+    }
     /// Defeatures clusters with less than a minimum number of voxels.
     pub fn defeature(self, min_num_voxels: usize) -> Self {
         defeature_voxels(min_num_voxels, self)
@@ -267,9 +331,17 @@ impl Voxels {
         extract_voxels(self, extraction)
     }
     /// Constructs and returns a new voxels type from an NPY file.
-    pub fn from_npy(file_path: &str) -> Result<Self, ReadNpyError> {
+    pub fn from_npy(
+        file_path: &str,
+        remove: Remove,
+        scale: Scale,
+        translate: Translate,
+    ) -> Result<Self, ReadNpyError> {
         Ok(Self {
             data: voxel_data_from_npy(file_path)?,
+            remove,
+            scale,
+            translate,
         })
     }
     /// Constructs and returns a new voxels type from an Octree.
@@ -293,7 +365,12 @@ impl Voxels {
                 })
             })
         });
-        let voxels = Self { data };
+        let voxels = Self {
+            data,
+            remove: Remove::default(),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        };
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mOctree to voxels\x1b[0m {:?}",
@@ -302,29 +379,23 @@ impl Voxels {
         voxels
     }
     /// Constructs and returns a new voxels type from an SPN file.
-    pub fn from_spn(file_path: &str, nel: Nel) -> Result<Self, String> {
+    pub fn from_spn(
+        file_path: &str,
+        nel: Nel,
+        remove: Remove,
+        scale: Scale,
+        translate: Translate,
+    ) -> Result<Self, String> {
         Ok(Self {
             data: voxel_data_from_spn(file_path, nel)?,
+            remove,
+            scale,
+            translate,
         })
     }
     /// Returns a reference to the internal voxels data.
     pub fn get_data(&self) -> &VoxelData {
         &self.data
-    }
-    /// Converts the voxels type into a finite elements type, consuming the voxels type.
-    pub fn into_finite_elements(
-        self,
-        remove: Option<Blocks>,
-        scale: Scale,
-        translate: Translate,
-    ) -> Result<HexahedralFiniteElements, String> {
-        let (element_blocks, element_node_connectivity, nodal_coordinates) =
-            finite_element_data_from_data(self.get_data(), remove, scale, translate)?;
-        Ok(HexahedralFiniteElements::from_data(
-            element_blocks,
-            element_node_connectivity,
-            nodal_coordinates,
-        ))
     }
     /// Writes the internal voxels data to an NPY file.
     pub fn write_npy(&self, file_path: &str) -> Result<(), WriteNpyError> {
@@ -333,6 +404,55 @@ impl Voxels {
     /// Writes the internal voxels data to an SPN file.
     pub fn write_spn(&self, file_path: &str) -> Result<(), Error> {
         write_voxels_to_spn(self.get_data(), file_path)
+    }
+}
+
+impl From<Voxels> for HexahedralFiniteElements {
+    fn from(voxels: Voxels) -> HexahedralFiniteElements {
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_element_data_from_data(
+                voxels.data,
+                voxels.remove,
+                voxels.scale,
+                voxels.translate,
+            );
+        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+    }
+}
+
+impl From<Octree> for Voxels {
+    fn from(mut tree: Octree) -> Voxels {
+        let mut data = VoxelData::from(tree.nel());
+        let mut length = 0;
+        let mut x = 0;
+        let mut y = 0;
+        let mut z = 0;
+        tree.prune();
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        tree.iter().for_each(|cell| {
+            x = *cell.get_min_x() as usize;
+            y = *cell.get_min_y() as usize;
+            z = *cell.get_min_z() as usize;
+            length = *cell.get_lngth() as usize;
+            (0..length).for_each(|i| {
+                (0..length).for_each(|j| {
+                    (0..length).for_each(|k| data[[x + i, y + j, z + k]] = cell.get_block())
+                })
+            })
+        });
+        let voxels = Self {
+            data,
+            remove: Remove::default(),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        };
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mOctree to voxels\x1b[0m {:?}",
+            time.elapsed()
+        );
+        voxels
     }
 }
 
@@ -355,18 +475,21 @@ fn extract_voxels(
 
 fn defeature_voxels(min_num_voxels: usize, voxels: Voxels) -> Voxels {
     let nel_0 = Nel::from(voxels.data.shape());
-    let (nel, mut tree) = Octree::from_voxels(voxels);
+    let mut tree = Octree::from(voxels);
     tree.balance(true);
     tree.defeature(min_num_voxels);
-    let mut voxels = Voxels::from_octree(nel, tree);
+    let mut voxels = Voxels::from(tree);
     extract_voxels(&mut voxels, Extraction::from(nel_0));
     voxels
 }
 
-fn filter_voxel_data(data: &VoxelData, remove: Option<Blocks>) -> (VoxelDataSized<NSD>, Blocks) {
+fn filter_voxel_data(data: VoxelData, remove: Remove) -> (Indices, Blocks) {
     #[cfg(feature = "profile")]
     let time = Instant::now();
-    let mut removed_data = remove.unwrap_or_default();
+    let mut removed_data = match remove {
+        Remove::Some(blocks) => blocks,
+        Remove::None => Vec::new(),
+    };
     removed_data.sort();
     removed_data.dedup();
     let (filtered_voxel_data, element_blocks) = data
@@ -397,7 +520,7 @@ fn filter_voxel_data(data: &VoxelData, remove: Option<Blocks>) -> (VoxelDataSize
 }
 
 fn initial_element_node_connectivity(
-    filtered_voxel_data: &VoxelDataSized<NSD>,
+    filtered_voxel_data: &Indices,
     nelxplus1: &usize,
     nelyplus1: &usize,
 ) -> Connectivity<HEX> {
@@ -435,11 +558,11 @@ fn initial_element_node_connectivity(
 
 fn initial_nodal_coordinates(
     element_node_connectivity: &Connectivity<HEX>,
-    filtered_voxel_data: &VoxelDataSized<NSD>,
+    filtered_voxel_data: &Indices,
     number_of_nodes_unfiltered: usize,
     scale: Scale,
     translate: Translate,
-) -> Result<InitialNodalCoordinates, String> {
+) -> InitialNodalCoordinates {
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let mut nodal_coordinates: InitialNodalCoordinates = vec![None; number_of_nodes_unfiltered];
@@ -493,7 +616,7 @@ fn initial_nodal_coordinates(
         "             \x1b[1;93mNodal coordinates\x1b[0m {:?}",
         time.elapsed()
     );
-    Ok(nodal_coordinates)
+    nodal_coordinates
 }
 
 fn renumber_nodes(
@@ -531,11 +654,11 @@ fn renumber_nodes(
 }
 
 fn finite_element_data_from_data(
-    data: &VoxelData,
-    remove: Option<Blocks>,
+    data: VoxelData,
+    remove: Remove,
     scale: Scale,
     translate: Translate,
-) -> Result<(Blocks, Connectivity<HEX>, Coordinates), String> {
+) -> (Blocks, Connectivity<HEX>, Coordinates) {
     let shape = data.shape();
     let nelxplus1 = shape[0] + 1;
     let nelyplus1 = shape[1] + 1;
@@ -550,13 +673,13 @@ fn finite_element_data_from_data(
         number_of_nodes_unfiltered,
         scale,
         translate,
-    )?;
+    );
     let nodal_coordinates = renumber_nodes(
         &mut element_node_connectivity,
         initial_nodal_coordinates,
         number_of_nodes_unfiltered,
     );
-    Ok((element_blocks, element_node_connectivity, nodal_coordinates))
+    (element_blocks, element_node_connectivity, nodal_coordinates)
 }
 
 pub struct IntermediateError {
