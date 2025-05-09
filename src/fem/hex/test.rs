@@ -2906,7 +2906,6 @@ fn valence_3_and_4_noised() {
     // We test both of the noised elements, valence_03' (noised)
     // valence_04' (noised)
 
-    // Gold values
     let maximum_edge_ratios_gold = [1.2922598186116965, 1.167883631481492];
     let mininum_scaled_jacobians_gold = [0.19173666980464177, 0.3743932367172326];
     let maximum_skews_gold = [0.6797482929789989, 0.4864935739781938];
@@ -2941,85 +2940,35 @@ fn valence_3_and_4_noised() {
 
     nodal_coordinates_set
         .into_iter()
-        .zip(maximum_edge_ratios_gold)
-        .for_each(|(nodal_coordinates, maximum_edge_ratio_gold)| {
-            let block = HexahedralFiniteElements::from_data(
-                blocks.clone(),
-                element_node_connectivity.clone(),
+        .zip(
+            maximum_edge_ratios_gold.into_iter().zip(
+                maximum_skews_gold.into_iter().zip(
+                    mininum_scaled_jacobians_gold
+                        .into_iter()
+                        .zip(element_volumes_gold),
+                ),
+            ),
+        )
+        .for_each(
+            |(
                 nodal_coordinates,
-            );
-            assert!((block.maximum_edge_ratios()[0] - maximum_edge_ratio_gold).abs() < EPSILON);
-        });
-
-    // let maximum_edge_ratios: Vec<f64> = nodal_coordinates
-    //     .iter()
-    //     .flat_map(|x| HexahedralFiniteElements::from_data(blocks.clone(), element_node_connectivity.clone(), x.clone()).maximum_edge_ratios().to_vec())
-    // .collect();
-
-    // let minimum_scaled_jacobians: Vec<f64> = nodal_coordinates
-    //     .iter()
-    //     .flat_map(|x| calculate_minimum_scaled_jacobians(&element_node_connectivity, x).to_vec())
-    //     .collect();
-
-    // let maximum_skews: Vec<f64> = nodal_coordinates
-    //     .iter()
-    //     .flat_map(|x| calculate_maximum_skews(&element_node_connectivity, x).to_vec())
-    //     .collect();
-
-    // // measures in 3D are volumes
-    // let element_volumes: Vec<f64> = nodal_coordinates
-    //     .iter()
-    //     .flat_map(|x| calculate_element_volumes_hex(&element_node_connectivity, x).to_vec())
-    //     .collect();
-
-    // Assert that the calculated values are approximately equal to the gold values
-    // assert_eq!(maximum_edge_ratios.len(), maximum_edge_ratios_gold.len(),);
-    // assert_eq!(
-    //     minimum_scaled_jacobians.len(),
-    //     mininum_scaled_jacobians_gold.len(),
-    // );
-    // assert_eq!(maximum_skews.len(), maximum_skews_gold.len(),);
-    // assert_eq!(element_volumes.len(), element_volumes_gold.len(),);
-
-    // for in alternative
-    // for (calculated, gold) in maximum_edge_ratios
-    //     .iter()
-    //     .zip(maximum_edge_ratios_gold.iter())
-    // {
-    //     assert!(
-    //         (calculated - gold).abs() < EPSILON,
-    //         "Calculated maximum edge ratio {} is not approximately equal to gold value {}",
-    //         calculated,
-    //         gold
-    //     );
-    // }
-
-    // foreach alternative
-    // maximum_edge_ratios
-    // .iter()
-    // .zip(maximum_edge_ratios_gold.iter())
-    // .for_each(|(calculated, gold)| {
-    //     assert!((calculated - gold).abs() < EPSILON,);
-    // });
-
-    // minimum_scaled_jacobians
-    //     .iter()
-    //     .zip(mininum_scaled_jacobians_gold.iter())
-    //     .for_each(|(calculated, gold)| {
-    //         assert!((calculated - gold).abs() < EPSILON,);
-    //     });
-
-    // maximum_skews
-    //     .iter()
-    //     .zip(maximum_skews_gold.iter())
-    //     .for_each(|(calculated, gold)| {
-    //         assert!((calculated - gold).abs() < EPSILON,);
-    //     });
-
-    // element_volumes
-    //     .iter()
-    //     .zip(element_volumes_gold.iter())
-    //     .for_each(|(calculated, gold)| {
-    //         assert!((calculated - gold).abs() < EPSILON,);
-    //     });
+                (
+                    maximum_edge_ratio_gold,
+                    (maximum_skew_gold, (mininum_scaled_jacobian_gold, element_volume_gold)),
+                ),
+            )| {
+                let block = HexahedralFiniteElements::from_data(
+                    blocks.clone(),
+                    element_node_connectivity.clone(),
+                    nodal_coordinates,
+                );
+                assert!((block.maximum_edge_ratios()[0] - maximum_edge_ratio_gold).abs() < EPSILON);
+                assert!((block.maximum_skews()[0] - maximum_skew_gold).abs() < EPSILON);
+                assert!(
+                    (block.minimum_scaled_jacobians()[0] - mininum_scaled_jacobian_gold).abs()
+                        < EPSILON
+                );
+                assert!((block.volumes()[0] - element_volume_gold).abs() < EPSILON);
+            },
+        );
 }
