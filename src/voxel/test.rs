@@ -1,3 +1,5 @@
+use crate::{Scale, Translate};
+
 use super::{filter_voxel_data, Nel, Voxels};
 
 const NUM_ELEMENTS: usize = 39;
@@ -47,7 +49,12 @@ const VOXELS_GOLD: [[usize; 3]; NUM_ELEMENTS] = [
 
 #[test]
 fn filter() {
-    let spn = Voxels::from_npy("tests/input/letter_f_3d.npy").unwrap();
+    let spn = Voxels::from_npy(
+        "tests/input/letter_f_3d.npy",
+        Scale::default(),
+        Translate::default(),
+    )
+    .unwrap();
     let (filtered_voxel_data, element_blocks) = filter_voxel_data(spn.get_data(), Some(vec![0]));
     assert_eq!(element_blocks.len(), NUM_ELEMENTS);
     BLOCKS_GOLD

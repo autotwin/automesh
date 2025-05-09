@@ -255,6 +255,8 @@ impl From<Nel> for Extraction {
 /// The voxels type.
 pub struct Voxels {
     data: VoxelData,
+    scale: Scale,
+    translate: Translate,
 }
 
 impl Voxels {
@@ -267,9 +269,15 @@ impl Voxels {
         extract_voxels(self, extraction)
     }
     /// Constructs and returns a new voxels type from an NPY file.
-    pub fn from_npy(file_path: &str) -> Result<Self, ReadNpyError> {
+    pub fn from_npy(
+        file_path: &str,
+        scale: Scale,
+        translate: Translate,
+    ) -> Result<Self, ReadNpyError> {
         Ok(Self {
             data: voxel_data_from_npy(file_path)?,
+            scale,
+            translate,
         })
     }
     /// Constructs and returns a new voxels type from an Octree.
@@ -293,7 +301,11 @@ impl Voxels {
                 })
             })
         });
-        let voxels = Self { data };
+        let voxels = Self {
+            data,
+            scale: Scale::default(),
+            translate: Translate::default(),
+        };
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mOctree to voxels\x1b[0m {:?}",
@@ -302,9 +314,16 @@ impl Voxels {
         voxels
     }
     /// Constructs and returns a new voxels type from an SPN file.
-    pub fn from_spn(file_path: &str, nel: Nel) -> Result<Self, String> {
+    pub fn from_spn(
+        file_path: &str,
+        nel: Nel,
+        scale: Scale,
+        translate: Translate,
+    ) -> Result<Self, String> {
         Ok(Self {
             data: voxel_data_from_spn(file_path, nel)?,
+            scale,
+            translate,
         })
     }
     /// Returns a reference to the internal voxels data.
@@ -335,6 +354,18 @@ impl Voxels {
         write_voxels_to_spn(self.get_data(), file_path)
     }
 }
+
+// impl From<Voxels> for HexahedralFiniteElements {
+//     fn from(voxels: Voxels) -> HexahedralFiniteElements {
+//         let (element_blocks, element_node_connectivity, nodal_coordinates) =
+//             finite_element_data_from_data(voxels.get_data(), remove, scale, translate)?;
+//         Self::from_data(
+//             element_blocks,
+//             element_node_connectivity,
+//             nodal_coordinates,
+//         )
+//     }
+// }
 
 fn extract_voxels(
     voxels: &mut Voxels,
