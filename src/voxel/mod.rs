@@ -7,6 +7,8 @@ pub mod test;
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
+use crate::TetrahedralFiniteElements;
+
 use super::{
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HexahedralFiniteElements, HEX,
@@ -318,7 +320,7 @@ pub struct Voxels {
 }
 
 impl Voxels {
-    /// Moves and returns the data associated with the voxels.
+    /// Returns and moves the data associated with the voxels.
     pub fn data(self) -> (VoxelData, Remove, Scale, Translate) {
         (self.data, self.remove, self.scale, self.translate)
     }
@@ -408,7 +410,7 @@ impl Voxels {
 }
 
 impl From<Voxels> for HexahedralFiniteElements {
-    fn from(voxels: Voxels) -> HexahedralFiniteElements {
+    fn from(voxels: Voxels) -> Self {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_data(
                 voxels.data,
@@ -417,6 +419,12 @@ impl From<Voxels> for HexahedralFiniteElements {
                 voxels.translate,
             );
         Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+    }
+}
+
+impl From<Voxels> for TetrahedralFiniteElements {
+    fn from(voxels: Voxels) -> Self {
+        HexahedralFiniteElements::from(voxels).into()
     }
 }
 

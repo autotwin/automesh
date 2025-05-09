@@ -72,6 +72,8 @@ pub trait FiniteElementMethods<const N: usize>
 where
     Self: FiniteElementSpecifics + Sized,
 {
+    /// Returns and moves the data associated with the finite elements.
+    fn data(self) -> (Blocks, Connectivity<N>, Coordinates);
     /// Constructs and returns a new finite elements type from data.
     fn from_data(
         element_blocks: Blocks,
@@ -142,6 +144,13 @@ impl<const N: usize> FiniteElementMethods<N> for FiniteElements<N>
 where
     Self: FiniteElementSpecifics + Sized,
 {
+    fn data(self) -> (Blocks, Connectivity<N>, Coordinates) {
+        (
+            self.element_blocks,
+            self.element_node_connectivity,
+            self.nodal_coordinates,
+        )
+    }
     fn from_data(
         element_blocks: Blocks,
         element_node_connectivity: Connectivity<N>,
@@ -758,6 +767,7 @@ fn write_finite_elements_to_exodus<const N: usize>(
             )?;
             match N {
                 HEX => connectivities.put_attribute("elem_type", "HEX8")?,
+                TET => connectivities.put_attribute("elem_type", "TET4")?,
                 TRI => connectivities.put_attribute("elem_type", "TRI3")?,
                 _ => panic!(),
             };

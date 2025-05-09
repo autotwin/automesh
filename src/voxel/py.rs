@@ -1,6 +1,6 @@
 use super::{
     super::{
-        fem::py::HexahedralFiniteElements,
+        fem::py::{HexahedralFiniteElements, TetrahedralFiniteElements},
         py::{IntoFoo, PyIntermediateError},
         Blocks, NSD,
     },
@@ -40,7 +40,7 @@ impl Voxels {
             nodal_coordinates.as_foo(),
         ))
     }
-    /// Converts the voxels type into a finite elements type.
+    /// Converts the voxels type into hexahedral finite elements.
     #[pyo3(signature = (remove=[].to_vec(), scale=[1.0, 1.0, 1.0], translate=[0.0, 0.0, 0.0]))]
     pub fn as_finite_elements(
         &self,
@@ -56,6 +56,27 @@ impl Voxels {
                 translate.into(),
             );
         Ok(HexahedralFiniteElements::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates.as_foo(),
+        ))
+    }
+    /// Converts the voxels type into tetrahedral finite elements.
+    #[pyo3(signature = (remove=[].to_vec(), scale=[1.0, 1.0, 1.0], translate=[0.0, 0.0, 0.0]))]
+    pub fn as_tetrahedra(
+        &self,
+        remove: Blocks,
+        scale: [f64; NSD],
+        translate: [f64; NSD],
+    ) -> Result<TetrahedralFiniteElements, PyIntermediateError> {
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_element_data_from_data(
+                self.data.clone(),
+                remove.into(),
+                scale.into(),
+                translate.into(),
+            );
+        Ok(TetrahedralFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
