@@ -1,7 +1,7 @@
 use automesh::{
     Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
-    Nel, Octree, Remove, Scale, Smoothing, Tessellation, Translate, Tree, TriangularFiniteElements,
-    Voxels, HEX, TRI,
+    Nel, Octree, Remove, Scale, Smoothing, Tessellation, TetrahedralFiniteElements, Translate,
+    Tree, TriangularFiniteElements, Voxels, HEX, TET, TRI,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -290,12 +290,99 @@ struct ConvertSegmentationArgs {
 enum MeshSubcommand {
     /// Creates an all-hexahedral mesh from a segmentation
     Hex(MeshHexArgs),
+    /// Creates an all-tetrahedrak mesh from a segmentation
+    Tet(MeshTetArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshTriArgs),
 }
 
 #[derive(clap::Args)]
 struct MeshHexArgs {
+    #[command(subcommand)]
+    smoothing: Option<MeshSmoothCommands>,
+
+    /// Segmentation input file (npy | spn)
+    #[arg(long, short, value_name = "FILE")]
+    input: String,
+
+    /// Mesh output file (exo | inp | mesh | vtk)
+    #[arg(long, short, value_name = "FILE")]
+    output: String,
+
+    /// Defeature clusters with less than NUM voxels
+    #[arg(long, short, value_name = "NUM")]
+    defeature: Option<usize>,
+
+    /// Number of voxels in the x-direction
+    #[arg(long, short = 'x', value_name = "NEL")]
+    nelx: Option<usize>,
+
+    /// Number of voxels in the y-direction
+    #[arg(long, short = 'y', value_name = "NEL")]
+    nely: Option<usize>,
+
+    /// Number of voxels in the z-direction
+    #[arg(long, short = 'z', value_name = "NEL")]
+    nelz: Option<usize>,
+
+    /// Voxel IDs to remove from the mesh
+    #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
+    remove: Option<Vec<usize>>,
+
+    /// Scaling (> 0.0) in the x-direction, applied before translation
+    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
+    xscale: f64,
+
+    /// Scaling (> 0.0) in the y-direction, applied before translation
+    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
+    yscale: f64,
+
+    /// Scaling (> 0.0) in the z-direction, applied before translation
+    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
+    zscale: f64,
+
+    /// Translation in the x-direction
+    #[arg(
+        long,
+        default_value_t = 0.0,
+        allow_negative_numbers = true,
+        value_name = "VAL"
+    )]
+    xtranslate: f64,
+
+    /// Translation in the y-direction
+    #[arg(
+        long,
+        default_value_t = 0.0,
+        allow_negative_numbers = true,
+        value_name = "VAL"
+    )]
+    ytranslate: f64,
+
+    /// Translation in the z-direction
+    #[arg(
+        long,
+        default_value_t = 0.0,
+        allow_negative_numbers = true,
+        value_name = "VAL"
+    )]
+    ztranslate: f64,
+
+    /// Quality metrics output file (csv | npy)
+    #[arg(long, value_name = "FILE")]
+    metrics: Option<String>,
+
+    /// Pass to quiet the terminal output
+    #[arg(action, long, short)]
+    quiet: bool,
+
+    /// Pass to mesh using dualization
+    #[arg(action, hide = true, long)]
+    dual: bool,
+}
+
+#[derive(clap::Args)]
+struct MeshTetArgs {
     #[command(subcommand)]
     smoothing: Option<MeshSmoothCommands>,
 
@@ -494,12 +581,53 @@ enum MeshSmoothCommands {
 enum SmoothSubcommand {
     /// Smooths an all-hexahedral mesh
     Hex(SmoothHexArgs),
+    /// Smooths an all-tetrahedral mesh
+    Tet(SmoothTetArgs),
     /// Smooths an all-triangular mesh
     Tri(SmoothTriArgs),
 }
 
 #[derive(clap::Args)]
 struct SmoothHexArgs {
+    /// Pass to enable hierarchical control
+    #[arg(action, long, short = 'c')]
+    hierarchical: bool,
+
+    /// Mesh input file (inp)
+    #[arg(long, short, value_name = "FILE")]
+    input: String,
+
+    /// Smoothed mesh output file (exo | inp | mesh | vtk)
+    #[arg(long, short, value_name = "FILE")]
+    output: String,
+
+    /// Number of smoothing iterations
+    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+    iterations: usize,
+
+    /// Smoothing method (Laplace | Taubin) [default: Taubin]
+    #[arg(long, short, value_name = "NAME")]
+    method: Option<String>,
+
+    /// Pass-band frequency (for Taubin only)
+    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+    pass_band: f64,
+
+    /// Scaling parameter for all smoothing methods
+    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+    scale: f64,
+
+    /// Quality metrics output file (csv | npy)
+    #[arg(long, value_name = "FILE")]
+    metrics: Option<String>,
+
+    /// Pass to quiet the terminal output
+    #[arg(action, long, short)]
+    quiet: bool,
+}
+
+#[derive(clap::Args)]
+struct SmoothTetArgs {
     /// Pass to enable hierarchical control
     #[arg(action, long, short = 'c')]
     hierarchical: bool,
@@ -756,6 +884,28 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.dual,
                 )
             }
+            MeshSubcommand::Tet(args) => {
+                is_quiet = args.quiet;
+                mesh::<TET, TetrahedralFiniteElements>(
+                    args.smoothing,
+                    args.input,
+                    args.output,
+                    args.defeature,
+                    args.nelx,
+                    args.nely,
+                    args.nelz,
+                    args.remove,
+                    args.xscale,
+                    args.yscale,
+                    args.zscale,
+                    args.xtranslate,
+                    args.ytranslate,
+                    args.ztranslate,
+                    args.metrics,
+                    args.quiet,
+                    args.dual,
+                )
+            }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
                 mesh::<TRI, TriangularFiniteElements>(
@@ -814,6 +964,20 @@ fn main() -> Result<(), ErrorWrapper> {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
                 smooth::<HEX, HexahedralFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.iterations,
+                    args.method,
+                    args.hierarchical,
+                    args.pass_band,
+                    args.scale,
+                    args.metrics,
+                    args.quiet,
+                )
+            }
+            SmoothSubcommand::Tet(args) => {
+                is_quiet = args.quiet;
+                smooth::<TET, TetrahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -1131,6 +1295,71 @@ where
             } else {
                 input_type.into()
             };
+            if !quiet {
+                let mut blocks = output_type.get_element_blocks().clone();
+                let elements = blocks.len();
+                blocks.sort();
+                blocks.dedup();
+                println!(
+                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+                    time.elapsed(),
+                    blocks.len(),
+                    elements,
+                    output_type.get_nodal_coordinates().len()
+                );
+            }
+            if let Some(options) = smoothing {
+                match options {
+                    MeshSmoothCommands::Smooth {
+                        iterations,
+                        method,
+                        hierarchical,
+                        pass_band,
+                        scale,
+                    } => {
+                        apply_smoothing_method(
+                            &mut output_type,
+                            iterations,
+                            method,
+                            hierarchical,
+                            pass_band,
+                            scale,
+                            quiet,
+                        )?;
+                    }
+                }
+            }
+            if let Some(file) = metrics {
+                metrics_inner(&output_type, file, quiet)?
+            }
+            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+            match output_extension {
+                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
+                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
+                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
+                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
+                _ => invalid_output(&output, output_extension)?,
+            }
+        }
+        TET => {
+            if let Some(min_num_voxels) = defeature {
+                if !quiet {
+                    time = Instant::now();
+                    println!(
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
+                        min_num_voxels
+                    );
+                }
+                input_type = input_type.defeature(min_num_voxels);
+                if !quiet {
+                    println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+                }
+            }
+            if !quiet {
+                time = Instant::now();
+                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+            }
+            let mut output_type: TetrahedralFiniteElements = input_type.into();
             if !quiet {
                 let mut blocks = output_type.get_element_blocks().clone();
                 let elements = blocks.len();
