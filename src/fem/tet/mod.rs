@@ -79,7 +79,7 @@ impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
                         connectivity[7],
                         connectivity[5],
                         connectivity[4],
-                        connectivity[3],
+                        connectivity[2],
                     ],
                     [
                         connectivity[1],
