@@ -43,9 +43,10 @@ source $HOME/.cargo/env
 
 #### Windows
 
-1. Download and run the [Rust installer](https://www.rust-lang.org/tools/install).
+1. Download `rustup-init.exe` from run the [Rust installer](https://www.rust-lang.org/tools/install).
 2. Follow the installation instructions in the command prompt.
-    * Use the default settings to add to your `PATH`.
+    * Use the default settings (`standard installation`) to add `cargo`, `rustc`, `rustup` to your `PATH`.
+    * The Cargo home directory is, e.g., `C:\Users\<User>\.cargo`, which can be modified with the `CARGO_HOME` environment variable.
     * You may need to restart your command prompt or system.
     * Ensure that Cargo's bin directory is in your `PATH`.
 3. Additional Windows installation details are available in [The rustup book](https://rust-lang.github.io/rustup/installation/windows.html).
