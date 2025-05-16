@@ -290,7 +290,7 @@ struct ConvertSegmentationArgs {
 enum MeshSubcommand {
     /// Creates an all-hexahedral mesh from a segmentation
     Hex(MeshHexArgs),
-    /// Creates an all-tetrahedrak mesh from a segmentation
+    /// Creates an all-tetrahedral mesh from a segmentation
     Tet(MeshTetArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshTriArgs),
@@ -1359,7 +1359,13 @@ where
                 time = Instant::now();
                 mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut output_type: TetrahedralFiniteElements = input_type.into();
+            let mut output_type: TetrahedralFiniteElements = if dual {
+                let mut tree = Octree::from(input_type);
+                tree.balance(true); // CANT YOU DO TETMESHING WITH WEAK BALANCING???
+                tree.into()
+            } else {
+                input_type.into()
+            };
             if !quiet {
                 let mut blocks = output_type.get_element_blocks().clone();
                 let elements = blocks.len();

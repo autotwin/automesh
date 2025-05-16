@@ -346,40 +346,6 @@ impl Voxels {
             translate,
         })
     }
-    /// Constructs and returns a new voxels type from an Octree.
-    pub fn from_octree(nel: Nel, mut tree: Octree) -> Self {
-        let mut data = VoxelData::from(nel);
-        let mut length = 0;
-        let mut x = 0;
-        let mut y = 0;
-        let mut z = 0;
-        tree.prune();
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        tree.iter().for_each(|cell| {
-            x = *cell.get_min_x() as usize;
-            y = *cell.get_min_y() as usize;
-            z = *cell.get_min_z() as usize;
-            length = *cell.get_lngth() as usize;
-            (0..length).for_each(|i| {
-                (0..length).for_each(|j| {
-                    (0..length).for_each(|k| data[[x + i, y + j, z + k]] = cell.get_block())
-                })
-            })
-        });
-        let voxels = Self {
-            data,
-            remove: Remove::default(),
-            scale: Scale::default(),
-            translate: Translate::default(),
-        };
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mOctree to voxels\x1b[0m {:?}",
-            time.elapsed()
-        );
-        voxels
-    }
     /// Constructs and returns a new voxels type from an SPN file.
     pub fn from_spn(
         file_path: &str,
