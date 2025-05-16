@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use super::{
     fem::{
-        Blocks, FiniteElementMethods, HexahedralFiniteElements, TriangularFiniteElements, HEX,
+        Blocks, FiniteElementMethods, HexahedralFiniteElements, TetrahedralFiniteElements, TriangularFiniteElements, HEX,
         NODE_NUMBERING_OFFSET,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
@@ -123,6 +123,7 @@ type Supercells = Vec<Option<[usize; 2]>>;
 pub trait Tree {
     fn balance(&mut self, strong: bool);
     fn boundaries(&mut self);
+    fn check_leaves(&self, cells: &[usize]) -> bool;
     fn clusters(&self, remove: Option<&Blocks>, supercells: Option<&Supercells>) -> Clusters;
     fn defeature(&mut self, min_num_voxels: usize);
     fn nel(&self) -> Nel;
@@ -918,6 +919,11 @@ impl Tree for Octree {
         }
         self.balance(true);
     }
+    fn check_leaves(&self, cells: &[usize]) -> bool {
+        cells
+            .iter()
+            .all(|&subcell| self[subcell].is_leaf())
+    }
     fn clusters(&self, remove: Option<&Blocks>, supercells_opt: Option<&Supercells>) -> Clusters {
         #[cfg(feature = "profile")]
         let time = Instant::now();
@@ -1423,8 +1429,31 @@ impl Tree for Octree {
     }
 }
 
+impl From<Octree> for TetrahedralFiniteElements {
+    fn from(mut tree: Octree) -> Self {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        // let mut element_blocks = vec![];
+        let mut element_node_connectivity = vec![];
+        let element_blocks = vec![1; element_node_connectivity.len()];
+        let mut nodal_coordinates = Coordinates::zero(0);
+        
+        let fem = TetrahedralFiniteElements::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates,
+        );
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93m...foo?\x1b[0m {:?} ",
+            time.elapsed()
+        );
+        fem
+    }
+}
+
 impl From<Octree> for TriangularFiniteElements {
-    fn from(mut tree: Octree) -> TriangularFiniteElements {
+    fn from(mut tree: Octree) -> Self {
         let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
         tree.boundaries();
@@ -1767,8 +1796,60 @@ impl From<Octree> for TriangularFiniteElements {
     }
 }
 
+fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> Vec<Vec<usize>> {
+    let mut node_face_connectivity = vec![vec![]; num_nodes];
+    faces_connectivity
+        .iter()
+        .enumerate()
+        .for_each(|(face, connectivity)| {
+            connectivity
+                .iter()
+                .for_each(|node| node_face_connectivity[node - NODE_NUMBERING_OFFSET].push(face))
+        });
+    node_face_connectivity
+}
+
+fn edges(faces_connectivity: &[[usize; 4]]) -> Edges {
+    let mut edges: Edges = faces_connectivity
+        .iter()
+        .flat_map(|connectivity| {
+            [
+                [connectivity[0], connectivity[1]],
+                [connectivity[1], connectivity[2]],
+                [connectivity[2], connectivity[3]],
+                [connectivity[3], connectivity[0]],
+            ]
+            .into_iter()
+        })
+        .collect();
+    edges.iter_mut().for_each(|edge| edge.sort());
+    edges.sort();
+    edges.dedup();
+    edges
+}
+
+fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec<usize>]) -> Edges {
+    edges(faces_connectivity)
+        .iter()
+        .flat_map(|&edge| {
+            if node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET]
+                .iter()
+                .filter(|face_a| {
+                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
+                })
+                .count()
+                == 4
+            {
+                Some(edge)
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 impl From<Octree> for HexahedralFiniteElements {
-    fn from(tree: Octree) -> HexahedralFiniteElements {
+    fn from(tree: Octree) -> Self {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut element_node_connectivity = vec![];
@@ -1800,11 +1881,7 @@ impl From<Octree> for HexahedralFiniteElements {
         let mut face_0_faces = &[None; NUM_FACES];
         tree.iter().for_each(|cell| {
             if let Some(cell_subcells) = cell.get_cells() {
-                if cell_subcells
-                    .iter()
-                    .filter(|&&subcell| tree[subcell].is_leaf())
-                    .count()
-                    == NUM_OCTANTS
+                if tree.check_leaves(cell_subcells)
                 {
                     element_node_connectivity.push([
                         cells_nodes[cell_subcells[0]],
@@ -1889,11 +1966,7 @@ impl From<Octree> for HexahedralFiniteElements {
                             if let Some(diag_subcells) =
                                 tree[tree[*face_1].get_faces()[4].unwrap()].get_cells()
                             {
-                                if diag_subcells
-                                    .iter()
-                                    .filter(|&&subcell| tree[subcell].is_leaf())
-                                    .count()
-                                    == NUM_OCTANTS
+                                if tree.check_leaves(diag_subcells)
                                 {
                                     d_14_subcells = Some(diag_subcells);
                                 }
@@ -1906,11 +1979,7 @@ impl From<Octree> for HexahedralFiniteElements {
                         if connected_faces[1].is_some() {
                             if let Some(diag_subcells) = tree[face_0_faces[1].unwrap()].get_cells()
                             {
-                                if diag_subcells
-                                    .iter()
-                                    .filter(|&&subcell| tree[subcell].is_leaf())
-                                    .count()
-                                    == NUM_OCTANTS
+                                if tree.check_leaves(diag_subcells)
                                 {
                                     d_01_subcells = Some(diag_subcells);
                                 }
@@ -1919,25 +1988,17 @@ impl From<Octree> for HexahedralFiniteElements {
                         if connected_faces[4].is_some() {
                             if let Some(diag_subcells) = tree[face_0_faces[4].unwrap()].get_cells()
                             {
-                                if diag_subcells
-                                    .iter()
-                                    .filter(|&&subcell| tree[subcell].is_leaf())
-                                    .count()
-                                    == NUM_OCTANTS
+                                if tree.check_leaves(diag_subcells)
                                 {
                                     d_04_subcells = Some(diag_subcells);
                                     if d_01_subcells.is_some() && d_01_subcells.is_some() {
-                                        if let Some(diag_subcells) = tree
+                                        if let Some(diag_subcells_also) = tree
                                             [tree[face_0_faces[1].unwrap()].get_faces()[4].unwrap()]
                                         .get_cells()
                                         {
-                                            if diag_subcells
-                                                .iter()
-                                                .filter(|&&subcell| tree[subcell].is_leaf())
-                                                .count()
-                                                == NUM_OCTANTS
+                                            if tree.check_leaves(diag_subcells_also)
                                             {
-                                                d014_subcells = Some(diag_subcells)
+                                                d014_subcells = Some(diag_subcells_also)
                                             }
                                         }
                                     }
@@ -2003,61 +2064,9 @@ impl From<Octree> for HexahedralFiniteElements {
         );
         #[cfg(feature = "profile")]
         println!(
-            "           \x1b[1;93m  Dualization of primal\x1b[0m {:?} ",
+            "             \x1b[1;93mDualization of primal\x1b[0m {:?} ",
             time.elapsed()
         );
         fem
     }
-}
-
-fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> Vec<Vec<usize>> {
-    let mut node_face_connectivity = vec![vec![]; num_nodes];
-    faces_connectivity
-        .iter()
-        .enumerate()
-        .for_each(|(face, connectivity)| {
-            connectivity
-                .iter()
-                .for_each(|node| node_face_connectivity[node - NODE_NUMBERING_OFFSET].push(face))
-        });
-    node_face_connectivity
-}
-
-fn edges(faces_connectivity: &[[usize; 4]]) -> Edges {
-    let mut edges: Edges = faces_connectivity
-        .iter()
-        .flat_map(|connectivity| {
-            [
-                [connectivity[0], connectivity[1]],
-                [connectivity[1], connectivity[2]],
-                [connectivity[2], connectivity[3]],
-                [connectivity[3], connectivity[0]],
-            ]
-            .into_iter()
-        })
-        .collect();
-    edges.iter_mut().for_each(|edge| edge.sort());
-    edges.sort();
-    edges.dedup();
-    edges
-}
-
-fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec<usize>]) -> Edges {
-    edges(faces_connectivity)
-        .iter()
-        .flat_map(|&edge| {
-            if node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET]
-                .iter()
-                .filter(|face_a| {
-                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
-                })
-                .count()
-                == 4
-            {
-                Some(edge)
-            } else {
-                None
-            }
-        })
-        .collect()
 }
