@@ -1437,7 +1437,33 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut element_node_connectivity = vec![];
         let element_blocks = vec![1; element_node_connectivity.len()];
         let mut nodal_coordinates = Coordinates::zero(0);
+        // let mut cells_nodes = vec![0; tree.len()];
+        // let mut node_index = 1;
+        // tree.iter().enumerate().for_each(|(cell_index, cell)| {
+        //     if cell.is_leaf() {
+        //         cells_nodes[cell_index] = node_index;
+        //         nodal_coordinates.append(&mut TensorRank1Vec::new(&[[
+        //             0.5 * (2 * cell.get_min_x() + cell.get_lngth()) as f64 * tree.scale.x()
+        //                 + tree.translate.x(),
+        //             0.5 * (2 * cell.get_min_y() + cell.get_lngth()) as f64 * tree.scale.y()
+        //                 + tree.translate.y(),
+        //             0.5 * (2 * cell.get_min_z() + cell.get_lngth()) as f64 * tree.scale.z()
+        //                 + tree.translate.z(),
+        //         ]]));
+        //         node_index += 1;
+        //     }
+        // });
+        //
+        // Can you place nodes at the 8 corners of every leaf?
+        // And getting that connectivity right from the start will help a ton.
+        // For example, the simple template mergedness will be set already.
+        //
+        // tree.iter().for_each(|cell| {
+        //     if cell.is_leaf() {
 
+        //     }
+        // });
+        
         let fem = TetrahedralFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
@@ -1904,11 +1930,7 @@ impl From<Octree> for HexahedralFiniteElements {
                         .for_each(|(face_index, face_cell)| {
                             if let Some(face_cell_index) = face_cell {
                                 if let Some(face_subcells) = tree[*face_cell_index].get_cells() {
-                                    if face_subcells
-                                        .iter()
-                                        .filter(|&&subcell| tree[subcell].is_leaf())
-                                        .count()
-                                        == NUM_OCTANTS
+                                    if tree.check_leaves(face_subcells)
                                     {
                                         match face_index {
                                             0 => {
