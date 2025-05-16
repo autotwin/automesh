@@ -41,7 +41,7 @@ impl FiniteElementSpecifics for TetrahedralFiniteElements {
 }
 
 impl TetrahedralFiniteElements {
-    fn hex_to_tet(connectivity: &[usize; HEX]) -> [[usize; TET]; NUM_TETS_PER_HEX] {
+    pub fn hex_to_tet(connectivity: &[usize; HEX]) -> [[usize; TET]; NUM_TETS_PER_HEX] {
         [
             [
                 connectivity[0],
