@@ -1437,7 +1437,7 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut element_node_connectivity = vec![];
         let element_blocks = vec![1; element_node_connectivity.len()];
         let mut nodal_coordinates = Coordinates::zero(0);
-        
+
         let fem = TetrahedralFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
