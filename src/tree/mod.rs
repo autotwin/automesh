@@ -1,6 +1,8 @@
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
+use crate::Connectivity;
+
 use super::{
     Coordinate, Coordinates, NSD,
     fem::{
@@ -20,6 +22,7 @@ pub const PADDING: u8 = 255;
 
 const NUM_FACES: usize = 6;
 const NUM_OCTANTS: usize = 8;
+const NUM_NODES_CELL: usize = 8;
 const NUM_NODES_FACE: usize = 4;
 const NUM_SUBCELLS_FACE: usize = 4;
 
@@ -185,6 +188,50 @@ impl Cell {
     }
     pub fn get_max_z(&self) -> u16 {
         self.min_z + self.lngth
+    }
+    pub fn get_nodal_indices_cell(&self) -> [[usize; NSD]; NUM_NODES_CELL] {
+        [
+            [
+                *self.get_min_x() as usize,
+                *self.get_min_y() as usize,
+                *self.get_min_z() as usize,
+            ],
+            [
+                self.get_max_x() as usize,
+                *self.get_min_y() as usize,
+                *self.get_min_z() as usize,
+            ],
+            [
+                self.get_max_x() as usize,
+                self.get_max_y() as usize,
+                *self.get_min_z() as usize,
+            ],
+            [
+                *self.get_min_x() as usize,
+                self.get_max_y() as usize,
+                *self.get_min_z() as usize,
+            ],
+            [
+                *self.get_min_x() as usize,
+                *self.get_min_y() as usize,
+                self.get_max_z() as usize,
+            ],
+            [
+                self.get_max_x() as usize,
+                *self.get_min_y() as usize,
+                self.get_max_z() as usize,
+            ],
+            [
+                self.get_max_x() as usize,
+                self.get_max_y() as usize,
+                self.get_max_z() as usize,
+            ],
+            [
+                *self.get_min_x() as usize,
+                self.get_max_y() as usize,
+                self.get_max_z() as usize,
+            ],
+        ]
     }
     pub fn get_nodal_indices_face(&self, face_index: &usize) -> [[u16; NSD]; NUM_NODES_FACE] {
         match face_index {
@@ -1428,34 +1475,80 @@ impl Tree for Octree {
 }
 
 impl From<Octree> for TetrahedralFiniteElements {
-    fn from(mut tree: Octree) -> Self {
+    fn from(tree: Octree) -> Self {
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        // let mut element_blocks = vec![];
-        let mut element_node_connectivity = vec![];
-        let element_blocks = vec![1; element_node_connectivity.len()];
-        let mut nodal_coordinates = Coordinates::zero(0);
-        //
-        // Can you place nodes at the 8 corners of every leaf?
-        // And getting that connectivity right from the start will help a ton.
-        // For example, the simple template mergedness will be set already.
-        //
-        // Use a segmentation as the background, i.e., redudantly fill out coords by index (or the reverse) and push into nodal_coordinates afterwards.
-        //
-        // tree.iter().for_each(|cell| {
-        //     if cell.is_leaf() {
-
-        //     }
-        // });
-
-        let fem = TetrahedralFiniteElements::from_data(
-            element_blocks,
-            element_node_connectivity,
-            nodal_coordinates,
-        );
+        let mut removed_data: Blocks = (&tree.remove).into();
+        removed_data.push(PADDING);
+        let mut element_blocks = vec![];
+        let mut indexed_nodal_coordinates =
+            vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
+        let mut indexed_nodes =
+            vec![vec![vec![None; *tree.nel.z() + 1]; *tree.nel.y() + 1]; *tree.nel.x() + 1];
+        let mut node_index: usize = NODE_NUMBERING_OFFSET;
+        tree.iter()
+            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
+            .for_each(|leaf| {
+                leaf.get_nodal_indices_cell()
+                    .into_iter()
+                    .for_each(|[i, j, k]| {
+                        if indexed_nodal_coordinates[i][j][k].is_none()
+                            && indexed_nodes[i][j][k].is_none()
+                        {
+                            element_blocks.push(leaf.get_block());
+                            indexed_nodal_coordinates[i][j][k] = Some(Coordinate::new([
+                                i as f64 * tree.scale.x() + tree.translate.x(),
+                                j as f64 * tree.scale.y() + tree.translate.y(),
+                                k as f64 * tree.scale.z() + tree.translate.z(),
+                            ]));
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        } else if indexed_nodal_coordinates[i][j][k].is_none()
+                            || indexed_nodes[i][j][k].is_none()
+                        {
+                            panic!()
+                        }
+                    });
+            });
+        // let element_node_connectivity = tree
+        let element_node_connectivity: Connectivity<4> = tree
+            .iter()
+            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
+            .flat_map(|leaf| {
+                Self::hex_to_tet(
+                    &leaf
+                        .get_nodal_indices_cell()
+                        .into_iter()
+                        .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
+                        .collect::<Vec<usize>>()
+                        .try_into()
+                        .unwrap(),
+                )
+            })
+            .collect();
+        let mut nodal_coordinates =
+            Coordinates::zero(indexed_nodes.iter().flatten().flatten().flatten().count());
+        indexed_nodes
+            .into_iter()
+            .flatten()
+            .flatten()
+            .flatten()
+            .zip(
+                indexed_nodal_coordinates
+                    .into_iter()
+                    .flatten()
+                    .flatten()
+                    .flatten(),
+            )
+            .for_each(|(node, coordinates)| {
+                nodal_coordinates[node - NODE_NUMBERING_OFFSET] = coordinates
+            });
+        println!("Blocks ({}) {:?}", element_blocks.len(), element_blocks);
+        println!("Connectivity ({}) {:?}", element_node_connectivity.len(), element_node_connectivity);
+        let fem = Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates);
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93m...foo?\x1b[0m {:?} ",
+            "             \x1b[1;93mTetrahedral finite elements\x1b[0m {:?} ",
             time.elapsed()
         );
         fem
@@ -1795,14 +1888,10 @@ impl From<Octree> for TriangularFiniteElements {
         });
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mSurface finite elements\x1b[0m {:?} ",
+            "             \x1b[1;93mTriangular finite elements\x1b[0m {:?} ",
             time.elapsed()
         );
-        TriangularFiniteElements::from_data(
-            element_blocks,
-            element_node_connectivity,
-            nodal_coordinates,
-        )
+        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
     }
 }
 
@@ -1865,18 +1954,18 @@ impl From<Octree> for HexahedralFiniteElements {
         let mut element_node_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut cells_nodes = vec![0; tree.len()];
-        let mut node_index = 1;
+        let mut node_index = NODE_NUMBERING_OFFSET;
         tree.iter()
             .enumerate()
             .filter(|(_, cell)| cell.is_leaf())
-            .for_each(|(cell_index, cell)| {
-                cells_nodes[cell_index] = node_index;
+            .for_each(|(leaf_index, leaf)| {
+                cells_nodes[leaf_index] = node_index;
                 nodal_coordinates.append(&mut TensorRank1Vec::new(&[[
-                    0.5 * (2 * cell.get_min_x() + cell.get_lngth()) as f64 * tree.scale.x()
+                    0.5 * (2 * leaf.get_min_x() + leaf.get_lngth()) as f64 * tree.scale.x()
                         + tree.translate.x(),
-                    0.5 * (2 * cell.get_min_y() + cell.get_lngth()) as f64 * tree.scale.y()
+                    0.5 * (2 * leaf.get_min_y() + leaf.get_lngth()) as f64 * tree.scale.y()
                         + tree.translate.y(),
-                    0.5 * (2 * cell.get_min_z() + cell.get_lngth()) as f64 * tree.scale.z()
+                    0.5 * (2 * leaf.get_min_z() + leaf.get_lngth()) as f64 * tree.scale.z()
                         + tree.translate.z(),
                 ]]));
                 node_index += 1;
@@ -2058,7 +2147,7 @@ impl From<Octree> for HexahedralFiniteElements {
                 }
             }
         });
-        let fem = HexahedralFiniteElements::from_data(
+        let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
             nodal_coordinates,

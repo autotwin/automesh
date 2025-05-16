@@ -90,10 +90,8 @@ impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
             .into_iter()
             .flat_map(|hex_block| repeat_n(hex_block, NUM_TETS_PER_HEX))
             .collect();
-        let element_node_connectivity = hex_connectivity
-            .iter()
-            .flat_map(|connectivity| Self::hex_to_tet(connectivity))
-            .collect();
+        let element_node_connectivity =
+            hex_connectivity.iter().flat_map(Self::hex_to_tet).collect();
         Self::from_data(blocks, element_node_connectivity, nodal_coordinates)
     }
 }
