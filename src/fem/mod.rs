@@ -4,29 +4,29 @@ pub mod py;
 pub mod hex;
 pub mod tet;
 pub mod tri;
-pub use hex::{HexahedralFiniteElements, HEX};
-pub use tet::{TetrahedralFiniteElements, TET};
-pub use tri::{TriangularFiniteElements, TRI};
+pub use hex::{HEX, HexahedralFiniteElements};
+pub use tet::{TET, TetrahedralFiniteElements};
+pub use tri::{TRI, TriangularFiniteElements};
 
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use super::{Coordinate, Coordinates, Tessellation, Vector, NSD};
+use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
 use chrono::Utc;
 use conspire::math::{Tensor, TensorArray, TensorVec};
-use ndarray::{parallel::prelude::*, Array1};
-use netcdf::{create, Error as ErrorNetCDF};
+use ndarray::{Array1, parallel::prelude::*};
+use netcdf::{Error as ErrorNetCDF, create};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
     path::PathBuf,
 };
 use vtkio::{
+    Error as ErrorVtk,
     model::{
         Attributes, ByteOrder, CellType, Cells, DataSet, IOBuffer, UnstructuredGridPiece, Version,
         VertexNumbers, Vtk,
     },
-    Error as ErrorVtk,
 };
 
 const ELEMENT_NUMBERING_OFFSET: usize = 1;

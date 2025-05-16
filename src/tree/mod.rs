@@ -2,15 +2,15 @@
 use std::time::Instant;
 
 use super::{
+    Coordinate, Coordinates, NSD,
     fem::{
-        Blocks, FiniteElementMethods, HexahedralFiniteElements, TriangularFiniteElements, HEX,
-        NODE_NUMBERING_OFFSET,
+        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
+        TriangularFiniteElements,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
-    Coordinate, Coordinates, NSD,
 };
 use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
-use ndarray::{parallel::prelude::*, s, Axis};
+use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
     ops::{Deref, DerefMut},

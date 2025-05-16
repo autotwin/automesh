@@ -3,7 +3,7 @@ use super::{
         Blocks, Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, Nodes,
         Smoothing, VecConnectivity,
     },
-    HexahedralFiniteElements, HEX,
+    HEX, HexahedralFiniteElements,
 };
 use conspire::math::{Tensor, TensorVec};
 

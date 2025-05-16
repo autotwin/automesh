@@ -1,6 +1,6 @@
-use crate::{Remove, Scale, Translate, NSD};
+use crate::{NSD, Remove, Scale, Translate};
 
-use super::{filter_voxel_data, Nel, Voxels};
+use super::{Nel, Voxels, filter_voxel_data};
 
 const NUM_ELEMENTS: usize = 39;
 
