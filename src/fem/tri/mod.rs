@@ -5,11 +5,11 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, Tessellation, Vector,
-    NODE_NUMBERING_OFFSET,
+    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET,
+    Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
-use ndarray::{s, Array2};
+use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
     fs::File,

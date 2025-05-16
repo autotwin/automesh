@@ -4,15 +4,15 @@ use std::time::Instant;
 use crate::Connectivity;
 
 use super::{
+    Coordinate, Coordinates, NSD,
     fem::{
-        Blocks, FiniteElementMethods, HexahedralFiniteElements, TetrahedralFiniteElements,
-        TriangularFiniteElements, HEX, NODE_NUMBERING_OFFSET,
+        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
+        TetrahedralFiniteElements, TriangularFiniteElements,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
-    Coordinate, Coordinates, NSD,
 };
 use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
-use ndarray::{parallel::prelude::*, s, Axis};
+use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
     ops::{Deref, DerefMut},
@@ -1544,7 +1544,11 @@ impl From<Octree> for TetrahedralFiniteElements {
                 nodal_coordinates[node - NODE_NUMBERING_OFFSET] = coordinates
             });
         println!("Blocks ({}) {:?}", element_blocks.len(), element_blocks);
-        println!("Connectivity ({}) {:?}", element_node_connectivity.len(), element_node_connectivity);
+        println!(
+            "Connectivity ({}) {:?}",
+            element_node_connectivity.len(),
+            element_node_connectivity
+        );
         let fem = Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates);
         #[cfg(feature = "profile")]
         println!(

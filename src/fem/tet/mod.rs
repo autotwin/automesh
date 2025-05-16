@@ -1,7 +1,7 @@
 use crate::FiniteElementMethods;
 
 use super::{
-    FiniteElementSpecifics, FiniteElements, HexahedralFiniteElements, Metrics, Tessellation, HEX,
+    FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics, Tessellation,
 };
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
