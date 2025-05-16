@@ -1,7 +1,7 @@
 use automesh::{
-    Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
-    Nel, Octree, Remove, Scale, Smoothing, Tessellation, TetrahedralFiniteElements, Translate,
-    Tree, TriangularFiniteElements, Voxels, HEX, TET, TRI,
+    Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX,
+    HexahedralFiniteElements, Nel, Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation,
+    TetrahedralFiniteElements, Translate, Tree, TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -1432,7 +1432,13 @@ where
                 let elements = blocks.len();
                 blocks.sort();
                 blocks.dedup();
-                println!("        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m", time.elapsed(), blocks.len(), elements, output_type.get_nodal_coordinates().len());
+                println!(
+                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+                    time.elapsed(),
+                    blocks.len(),
+                    elements,
+                    output_type.get_nodal_coordinates().len()
+                );
             }
             if let Some(options) = smoothing {
                 match options {

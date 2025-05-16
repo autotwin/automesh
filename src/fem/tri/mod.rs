@@ -5,11 +5,11 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, Tessellation, Vector,
-    NODE_NUMBERING_OFFSET,
+    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET,
+    Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
-use ndarray::{s, Array2};
+use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
     fs::File,
@@ -84,8 +84,7 @@ impl FiniteElementSpecifics for TriangularFiniteElements {
         let mut l0 = 0.0;
         let mut l1 = 0.0;
         let mut l2 = 0.0;
-        let maximum_edge_ratios = self
-            .get_element_node_connectivity()
+        self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
                 l0 = (&nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
@@ -100,26 +99,22 @@ impl FiniteElementSpecifics for TriangularFiniteElements {
                 [l0, l1, l2].into_iter().reduce(f64::max).unwrap()
                     / [l0, l1, l2].into_iter().reduce(f64::min).unwrap()
             })
-            .collect();
-        maximum_edge_ratios
+            .collect()
     }
     fn maximum_skews(&self) -> Metrics {
         let deg_to_rad = std::f64::consts::PI / 180.0;
         let equilateral_rad = 60.0 * deg_to_rad;
         let minimum_angles = self.minimum_angles();
-        let maximum_skews = minimum_angles
+        minimum_angles
             .iter()
             .map(|angle| (equilateral_rad - angle) / (equilateral_rad))
-            .collect();
-        maximum_skews
+            .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let minimum_scaled_jacobians = self
-            .minimum_angles()
+        self.minimum_angles()
             .iter()
             .map(|angle| (angle.sin() / J_EQUILATERAL))
-            .collect();
-        minimum_scaled_jacobians
+            .collect()
     }
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
         let areas = self.areas();
@@ -208,8 +203,7 @@ impl TriangularFiniteElements {
         let nodal_coordinates = self.get_nodal_coordinates();
         let mut l0 = Vector::zero();
         let mut l1 = Vector::zero();
-        let element_areas = self
-            .get_element_node_connectivity()
+        self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
                 l0 = &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
@@ -218,8 +212,7 @@ impl TriangularFiniteElements {
                     - &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET];
                 0.5 * (l0.cross(&l1)).norm()
             })
-            .collect();
-        element_areas
+            .collect()
     }
     fn minimum_angles(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();
@@ -227,8 +220,7 @@ impl TriangularFiniteElements {
         let mut l1 = Vector::zero();
         let mut l2 = Vector::zero();
         let flip = -1.0;
-        let minimum_angles = self
-            .get_element_node_connectivity()
+        self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
                 l0 = &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
@@ -249,7 +241,6 @@ impl TriangularFiniteElements {
                 .reduce(f64::min)
                 .unwrap()
             })
-            .collect();
-        minimum_angles
+            .collect()
     }
 }

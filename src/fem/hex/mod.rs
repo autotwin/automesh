@@ -5,11 +5,11 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, Tessellation, Vector,
-    NODE_NUMBERING_OFFSET,
+    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET,
+    Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
-use ndarray::{s, Array2};
+use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
     fs::File,
@@ -45,8 +45,7 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
         let mut l1 = 0.0;
         let mut l2 = 0.0;
         let mut l3 = 0.0;
-        let maximum_edge_ratios = self
-            .get_element_node_connectivity()
+        self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
                 l1 = (&nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
@@ -79,15 +78,13 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
                 [l1, l2, l3].into_iter().reduce(f64::max).unwrap()
                     / [l1, l2, l3].into_iter().reduce(f64::min).unwrap()
             })
-            .collect();
-        maximum_edge_ratios
+            .collect()
     }
     fn maximum_skews(&self) -> Metrics {
         let mut x1 = Vector::zero();
         let mut x2 = Vector::zero();
         let mut x3 = Vector::zero();
-        let maximum_skews = self
-            .get_element_node_connectivity()
+        self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
                 (x1, x2, x3) = self.principal_axes(connectivity);
@@ -99,8 +96,7 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
                     .reduce(f64::max)
                     .unwrap()
             })
-            .collect();
-        maximum_skews
+            .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();
@@ -108,8 +104,7 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
         let mut v = Vector::zero();
         let mut w = Vector::zero();
         let mut n = Vector::zero();
-        let minimum_scaled_jacobians = self
-            .get_element_node_connectivity()
+        self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
                 connectivity
@@ -191,8 +186,7 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
                     .reduce(f64::min)
                     .unwrap()
             })
-            .collect();
-        minimum_scaled_jacobians
+            .collect()
     }
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
         let maximum_edge_ratios = self.maximum_edge_ratios();
@@ -301,14 +295,12 @@ impl HexahedralFiniteElements {
         let mut x1 = Vector::zero();
         let mut x2 = Vector::zero();
         let mut x3 = Vector::zero();
-        let element_volumes = self
-            .get_element_node_connectivity()
+        self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
                 (x1, x2, x3) = self.principal_axes(connectivity);
                 &x2.cross(&x3) * &x1 / 64.0
             })
-            .collect();
-        element_volumes
+            .collect()
     }
 }

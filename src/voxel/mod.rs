@@ -10,14 +10,14 @@ use std::time::Instant;
 use crate::TetrahedralFiniteElements;
 
 use super::{
+    Coordinate, Coordinates, NSD, Octree, Tree, Vector,
     fem::{
-        Blocks, Connectivity, FiniteElementMethods, HexahedralFiniteElements, HEX,
+        Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
         NODE_NUMBERING_OFFSET,
     },
-    Coordinate, Coordinates, Octree, Tree, Vector, NSD,
 };
 use conspire::math::TensorArray;
-use ndarray::{parallel::prelude::*, s, Array3, Axis};
+use ndarray::{Array3, Axis, parallel::prelude::*, s};
 use ndarray_npy::{ReadNpyError, ReadNpyExt, WriteNpyError, WriteNpyExt};
 use std::{
     fs::File,

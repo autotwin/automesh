@@ -1,5 +1,5 @@
 use automesh::{
-    FiniteElementMethods, HexahedralFiniteElements, Nel, Remove, Scale, Translate, Voxels, NSD,
+    FiniteElementMethods, HexahedralFiniteElements, NSD, Nel, Remove, Scale, Translate, Voxels,
 };
 use conspire::math::{Tensor, TensorVec};
 
