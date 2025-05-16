@@ -43,7 +43,7 @@ jobs:
       - name: Install
         run: cargo install cargo-llvm-cov
       - name: Coverage
-        run: rustup run nightly cargo llvm-cov --profile release --fail-under-functions 49 --fail-under-lines 65 --fail-under-regions 34
+        run: rustup run nightly cargo llvm-cov --profile release --fail-under-functions 59 --fail-under-lines 64 --fail-under-regions 55
   Package:
     runs-on: ubuntu-latest
     steps:
