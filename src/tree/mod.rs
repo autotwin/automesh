@@ -1882,8 +1882,7 @@ impl From<Octree> for HexahedralFiniteElements {
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut cells_nodes = vec![0; tree.len()];
         let mut node_index = 1;
-        tree.iter().enumerate().for_each(|(cell_index, cell)| {
-            if cell.is_leaf() {
+        tree.iter().enumerate().filter(|(_, cell)| cell.is_leaf()).for_each(|(cell_index, cell)| {
                 cells_nodes[cell_index] = node_index;
                 nodal_coordinates.append(&mut TensorRank1Vec::new(&[[
                     0.5 * (2 * cell.get_min_x() + cell.get_lngth()) as f64 * tree.scale.x()
@@ -1894,7 +1893,6 @@ impl From<Octree> for HexahedralFiniteElements {
                         + tree.translate.z(),
                 ]]));
                 node_index += 1;
-            }
         });
         let mut connected_faces = [None; NUM_FACES];
         let mut d_01_subcells = None;
