@@ -290,7 +290,7 @@ struct ConvertSegmentationArgs {
 enum MeshSubcommand {
     /// Creates an all-hexahedral mesh from a segmentation
     Hex(MeshHexArgs),
-    /// Creates an all-tetrahedrak mesh from a segmentation
+    /// Creates an all-tetrahedral mesh from a segmentation
     Tet(MeshTetArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshTriArgs),
@@ -376,9 +376,9 @@ struct MeshHexArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh using dualization
+    /// Pass to mesh adaptively.
     #[arg(action, hide = true, long)]
-    dual: bool,
+    adapt: bool,
 }
 
 #[derive(clap::Args)]
@@ -461,9 +461,9 @@ struct MeshTetArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh using dualization
+    /// Pass to mesh adaptively
     #[arg(action, hide = true, long)]
-    dual: bool,
+    adapt: bool,
 }
 
 #[derive(clap::Args)]
@@ -546,9 +546,9 @@ struct MeshTriArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh using dualization
+    /// Pass to mesh adaptively
     #[arg(action, hide = true, long)]
-    dual: bool,
+    adapt: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -881,7 +881,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.dual,
+                    args.adapt,
                 )
             }
             MeshSubcommand::Tet(args) => {
@@ -903,7 +903,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.dual,
+                    args.adapt,
                 )
             }
             MeshSubcommand::Tri(args) => {
@@ -925,7 +925,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.dual,
+                    args.adapt,
                 )
             }
         },
@@ -1244,7 +1244,7 @@ fn mesh<const N: usize, T>(
     ztranslate: f64,
     metrics: Option<String>,
     quiet: bool,
-    dual: bool,
+    adapt: bool,
 ) -> Result<(), ErrorWrapper>
 where
     T: FiniteElementMethods<N>,
@@ -1287,7 +1287,7 @@ where
                 time = Instant::now();
                 mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut output_type: HexahedralFiniteElements = if dual {
+            let mut output_type: HexahedralFiniteElements = if adapt {
                 let mut tree = Octree::from(input_type);
                 tree.balance(true);
                 tree.pair();
@@ -1359,7 +1359,16 @@ where
                 time = Instant::now();
                 mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut output_type: TetrahedralFiniteElements = input_type.into();
+            let mut output_type: TetrahedralFiniteElements = if adapt {
+                let mut tree = Octree::from(input_type);
+                println!(
+                    "             \x1b[1;91mNeed to try adaptive tetmeshing with weak balancing!\x1b[0m"
+                );
+                tree.balance(true);
+                tree.into()
+            } else {
+                input_type.into()
+            };
             if !quiet {
                 let mut blocks = output_type.get_element_blocks().clone();
                 let elements = blocks.len();
@@ -1582,6 +1591,9 @@ fn octree(
     pair: bool,
     strong: bool,
 ) -> Result<(), ErrorWrapper> {
+    let remove_temporary = remove
+        .clone()
+        .map(|removal| removal.iter().map(|&entry| entry as u8).collect());
     let scale_temporary = Scale::from([xscale, yscale, zscale]);
     let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
     let scale = [xscale, yscale, zscale].into();
@@ -1612,7 +1624,8 @@ fn octree(
     }
     tree.prune();
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    let output_type = HexahedralFiniteElements::from(tree);
+    let output_type =
+        tree.octree_into_finite_elements(remove_temporary, scale_temporary, translate_temporary)?;
     if !quiet {
         let mut blocks = output_type.get_element_blocks().clone();
         let elements = blocks.len();
