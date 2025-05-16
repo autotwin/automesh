@@ -1435,26 +1435,12 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut element_node_connectivity = vec![];
         let element_blocks = vec![1; element_node_connectivity.len()];
         let mut nodal_coordinates = Coordinates::zero(0);
-        // let mut cells_nodes = vec![0; tree.len()];
-        // let mut node_index = 1;
-        // tree.iter().enumerate().for_each(|(cell_index, cell)| {
-        //     if cell.is_leaf() {
-        //         cells_nodes[cell_index] = node_index;
-        //         nodal_coordinates.append(&mut TensorRank1Vec::new(&[[
-        //             0.5 * (2 * cell.get_min_x() + cell.get_lngth()) as f64 * tree.scale.x()
-        //                 + tree.translate.x(),
-        //             0.5 * (2 * cell.get_min_y() + cell.get_lngth()) as f64 * tree.scale.y()
-        //                 + tree.translate.y(),
-        //             0.5 * (2 * cell.get_min_z() + cell.get_lngth()) as f64 * tree.scale.z()
-        //                 + tree.translate.z(),
-        //         ]]));
-        //         node_index += 1;
-        //     }
-        // });
         //
         // Can you place nodes at the 8 corners of every leaf?
         // And getting that connectivity right from the start will help a ton.
         // For example, the simple template mergedness will be set already.
+        //
+        // Use a segmentation as the background, i.e., redudantly fill out coords by index (or the reverse) and push into nodal_coordinates afterwards.
         //
         // tree.iter().for_each(|cell| {
         //     if cell.is_leaf() {

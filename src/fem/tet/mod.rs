@@ -1,7 +1,7 @@
 use crate::FiniteElementMethods;
 
 use super::{
-    FiniteElementSpecifics, FiniteElements, HexahedralFiniteElements, Metrics, Tessellation,
+    FiniteElementSpecifics, FiniteElements, HexahedralFiniteElements, Metrics, Tessellation, HEX,
 };
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
@@ -40,6 +40,49 @@ impl FiniteElementSpecifics for TetrahedralFiniteElements {
     }
 }
 
+impl TetrahedralFiniteElements {
+    fn hex_to_tet(connectivity: &[usize; HEX]) -> [[usize; TET]; NUM_TETS_PER_HEX] {
+        [
+            [
+                connectivity[0],
+                connectivity[1],
+                connectivity[3],
+                connectivity[4],
+            ],
+            [
+                connectivity[4],
+                connectivity[5],
+                connectivity[1],
+                connectivity[2],
+            ],
+            [
+                connectivity[5],
+                connectivity[6],
+                connectivity[2],
+                connectivity[7],
+            ],
+            [
+                connectivity[2],
+                connectivity[3],
+                connectivity[4],
+                connectivity[7],
+            ],
+            [
+                connectivity[7],
+                connectivity[5],
+                connectivity[4],
+                connectivity[2],
+            ],
+            [
+                connectivity[1],
+                connectivity[2],
+                connectivity[3],
+                connectivity[4],
+            ],
+        ]
+    }
+}
+
 impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
     fn from(hexes: HexahedralFiniteElements) -> Self {
         let (hex_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
@@ -49,46 +92,7 @@ impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
             .collect();
         let element_node_connectivity = hex_connectivity
             .iter()
-            .flat_map(|connectivity| {
-                [
-                    [
-                        connectivity[0],
-                        connectivity[1],
-                        connectivity[3],
-                        connectivity[4],
-                    ],
-                    [
-                        connectivity[4],
-                        connectivity[5],
-                        connectivity[1],
-                        connectivity[2],
-                    ],
-                    [
-                        connectivity[5],
-                        connectivity[6],
-                        connectivity[2],
-                        connectivity[7],
-                    ],
-                    [
-                        connectivity[2],
-                        connectivity[3],
-                        connectivity[4],
-                        connectivity[7],
-                    ],
-                    [
-                        connectivity[7],
-                        connectivity[5],
-                        connectivity[4],
-                        connectivity[2],
-                    ],
-                    [
-                        connectivity[1],
-                        connectivity[2],
-                        connectivity[3],
-                        connectivity[4],
-                    ],
-                ]
-            })
+            .flat_map(|connectivity| Self::hex_to_tet(connectivity))
             .collect();
         Self::from_data(blocks, element_node_connectivity, nodal_coordinates)
     }
