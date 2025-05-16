@@ -124,9 +124,10 @@ type Supercells = Vec<Option<[usize; 2]>>;
 pub trait Tree {
     fn balance(&mut self, strong: bool);
     fn boundaries(&mut self);
-    fn check_leaves(&self, cells: &[usize]) -> bool;
     fn clusters(&self, remove: Option<&Blocks>, supercells: Option<&Supercells>) -> Clusters;
     fn defeature(&mut self, min_num_voxels: usize);
+    fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool;
+    fn just_leaves(&self, cells: &[usize]) -> bool;
     fn nel(&self) -> Nel;
     fn octree_into_finite_elements(
         self,
@@ -964,9 +965,6 @@ impl Tree for Octree {
         }
         self.balance(true);
     }
-    fn check_leaves(&self, cells: &[usize]) -> bool {
-        cells.iter().all(|&subcell| self[subcell].is_leaf())
-    }
     fn clusters(&self, remove: Option<&Blocks>, supercells_opt: Option<&Supercells>) -> Clusters {
         #[cfg(feature = "profile")]
         let time = Instant::now();
@@ -1230,10 +1228,23 @@ impl Tree for Octree {
             }
         }
     }
+    fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool {
+        cell.get_faces().iter().all(|face| {
+            if let Some(face_neighbor_cell) = face {
+                self[*face_neighbor_cell].is_leaf()
+            } else {
+                true
+            }
+        })
+    }
+    fn just_leaves(&self, cells: &[usize]) -> bool {
+        cells.iter().all(|&subcell| self[subcell].is_leaf())
+    }
     fn nel(&self) -> Nel {
         self.nel
     }
     fn octree_into_finite_elements(
+        // will eventually delete this method
         self,
         remove: Option<Blocks>,
         scale: Scale,
@@ -1509,11 +1520,13 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut element_blocks = vec![];
         let element_node_connectivity = tree
             .iter()
-            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
+            .filter(|&cell| {
+                cell.is_leaf()
+                    && removed_data.binary_search(&cell.get_block()).is_err()
+                    && tree.face_neighbors_not_smaller(cell)
+            })
             .flat_map(|leaf| {
-                (0..NUM_TETS_PER_HEX).for_each(|_|
-                    element_blocks.push(leaf.get_block())
-                );
+                (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
                 Self::hex_to_tet(
                     &leaf
                         .get_nodal_indices_cell()
@@ -1978,7 +1991,7 @@ impl From<Octree> for HexahedralFiniteElements {
         let mut face_0_faces = &[None; NUM_FACES];
         tree.iter().for_each(|cell| {
             if let Some(cell_subcells) = cell.get_cells() {
-                if tree.check_leaves(cell_subcells) {
+                if tree.just_leaves(cell_subcells) {
                     element_node_connectivity.push([
                         cells_nodes[cell_subcells[0]],
                         cells_nodes[cell_subcells[1]],
@@ -2000,7 +2013,7 @@ impl From<Octree> for HexahedralFiniteElements {
                         .for_each(|(face_index, face_cell)| {
                             if let Some(face_cell_index) = face_cell {
                                 if let Some(face_subcells) = tree[*face_cell_index].get_cells() {
-                                    if tree.check_leaves(face_subcells) {
+                                    if tree.just_leaves(face_subcells) {
                                         match face_index {
                                             0 => {
                                                 element_node_connectivity.push([
@@ -2057,7 +2070,7 @@ impl From<Octree> for HexahedralFiniteElements {
                             if let Some(diag_subcells) =
                                 tree[tree[*face_1].get_faces()[4].unwrap()].get_cells()
                             {
-                                if tree.check_leaves(diag_subcells) {
+                                if tree.just_leaves(diag_subcells) {
                                     d_14_subcells = Some(diag_subcells);
                                 }
                             }
@@ -2069,7 +2082,7 @@ impl From<Octree> for HexahedralFiniteElements {
                         if connected_faces[1].is_some() {
                             if let Some(diag_subcells) = tree[face_0_faces[1].unwrap()].get_cells()
                             {
-                                if tree.check_leaves(diag_subcells) {
+                                if tree.just_leaves(diag_subcells) {
                                     d_01_subcells = Some(diag_subcells);
                                 }
                             }
@@ -2077,14 +2090,14 @@ impl From<Octree> for HexahedralFiniteElements {
                         if connected_faces[4].is_some() {
                             if let Some(diag_subcells) = tree[face_0_faces[4].unwrap()].get_cells()
                             {
-                                if tree.check_leaves(diag_subcells) {
+                                if tree.just_leaves(diag_subcells) {
                                     d_04_subcells = Some(diag_subcells);
                                     if d_01_subcells.is_some() && d_01_subcells.is_some() {
                                         if let Some(diag_subcells_also) = tree
                                             [tree[face_0_faces[1].unwrap()].get_faces()[4].unwrap()]
                                         .get_cells()
                                         {
-                                            if tree.check_leaves(diag_subcells_also) {
+                                            if tree.just_leaves(diag_subcells_also) {
                                                 d014_subcells = Some(diag_subcells_also)
                                             }
                                         }

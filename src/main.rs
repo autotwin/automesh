@@ -1361,7 +1361,9 @@ where
             }
             let mut output_type: TetrahedralFiniteElements = if adapt {
                 let mut tree = Octree::from(input_type);
-                let foo = 1; // CANT YOU DO TETMESHING WITH WEAK BALANCING???
+                println!(
+                    "             \x1b[1;91mNeed to try adaptive tetmeshing with weak balancing!\x1b[0m"
+                );
                 tree.balance(true);
                 tree.into()
             } else {
@@ -1589,6 +1591,9 @@ fn octree(
     pair: bool,
     strong: bool,
 ) -> Result<(), ErrorWrapper> {
+    let remove_temporary = remove
+        .clone()
+        .map(|removal| removal.iter().map(|&entry| entry as u8).collect());
     let scale_temporary = Scale::from([xscale, yscale, zscale]);
     let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
     let scale = [xscale, yscale, zscale].into();
@@ -1619,7 +1624,8 @@ fn octree(
     }
     tree.prune();
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    let output_type = HexahedralFiniteElements::from(tree);
+    let output_type =
+        tree.octree_into_finite_elements(remove_temporary, scale_temporary, translate_temporary)?;
     if !quiet {
         let mut blocks = output_type.get_element_blocks().clone();
         let elements = blocks.len();
