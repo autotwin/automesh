@@ -1,13 +1,11 @@
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use crate::Connectivity;
-
 use super::{
     Coordinate, Coordinates, NSD,
     fem::{
         Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
-        TetrahedralFiniteElements, TriangularFiniteElements,
+        TetrahedralFiniteElements, TriangularFiniteElements, tet::NUM_TETS_PER_HEX,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
@@ -1480,7 +1478,6 @@ impl From<Octree> for TetrahedralFiniteElements {
         let time = Instant::now();
         let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
-        let mut element_blocks = vec![];
         let mut indexed_nodal_coordinates =
             vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
         let mut indexed_nodes =
@@ -1495,7 +1492,6 @@ impl From<Octree> for TetrahedralFiniteElements {
                         if indexed_nodal_coordinates[i][j][k].is_none()
                             && indexed_nodes[i][j][k].is_none()
                         {
-                            element_blocks.push(leaf.get_block());
                             indexed_nodal_coordinates[i][j][k] = Some(Coordinate::new([
                                 i as f64 * tree.scale.x() + tree.translate.x(),
                                 j as f64 * tree.scale.y() + tree.translate.y(),
@@ -1510,11 +1506,14 @@ impl From<Octree> for TetrahedralFiniteElements {
                         }
                     });
             });
-        // let element_node_connectivity = tree
-        let element_node_connectivity: Connectivity<4> = tree
+        let mut element_blocks = vec![];
+        let element_node_connectivity = tree
             .iter()
             .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
             .flat_map(|leaf| {
+                (0..NUM_TETS_PER_HEX).for_each(|_|
+                    element_blocks.push(leaf.get_block())
+                );
                 Self::hex_to_tet(
                     &leaf
                         .get_nodal_indices_cell()
@@ -1543,12 +1542,6 @@ impl From<Octree> for TetrahedralFiniteElements {
             .for_each(|(node, coordinates)| {
                 nodal_coordinates[node - NODE_NUMBERING_OFFSET] = coordinates
             });
-        println!("Blocks ({}) {:?}", element_blocks.len(), element_blocks);
-        println!(
-            "Connectivity ({}) {:?}",
-            element_node_connectivity.len(),
-            element_node_connectivity
-        );
         let fem = Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates);
         #[cfg(feature = "profile")]
         println!(

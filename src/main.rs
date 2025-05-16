@@ -376,9 +376,9 @@ struct MeshHexArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh using dualization
+    /// Pass to mesh adaptively.
     #[arg(action, hide = true, long)]
-    dual: bool,
+    adapt: bool,
 }
 
 #[derive(clap::Args)]
@@ -461,9 +461,9 @@ struct MeshTetArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh using dualization
+    /// Pass to mesh adaptively
     #[arg(action, hide = true, long)]
-    dual: bool,
+    adapt: bool,
 }
 
 #[derive(clap::Args)]
@@ -546,9 +546,9 @@ struct MeshTriArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh using dualization
+    /// Pass to mesh adaptively
     #[arg(action, hide = true, long)]
-    dual: bool,
+    adapt: bool,
 }
 
 #[derive(Subcommand, Debug)]
@@ -881,7 +881,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.dual,
+                    args.adapt,
                 )
             }
             MeshSubcommand::Tet(args) => {
@@ -903,7 +903,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.dual,
+                    args.adapt,
                 )
             }
             MeshSubcommand::Tri(args) => {
@@ -925,7 +925,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.dual,
+                    args.adapt,
                 )
             }
         },
@@ -1244,7 +1244,7 @@ fn mesh<const N: usize, T>(
     ztranslate: f64,
     metrics: Option<String>,
     quiet: bool,
-    dual: bool,
+    adapt: bool,
 ) -> Result<(), ErrorWrapper>
 where
     T: FiniteElementMethods<N>,
@@ -1287,7 +1287,7 @@ where
                 time = Instant::now();
                 mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut output_type: HexahedralFiniteElements = if dual {
+            let mut output_type: HexahedralFiniteElements = if adapt {
                 let mut tree = Octree::from(input_type);
                 tree.balance(true);
                 tree.pair();
@@ -1359,9 +1359,10 @@ where
                 time = Instant::now();
                 mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut output_type: TetrahedralFiniteElements = if dual {
+            let mut output_type: TetrahedralFiniteElements = if adapt {
                 let mut tree = Octree::from(input_type);
-                tree.balance(true); // CANT YOU DO TETMESHING WITH WEAK BALANCING???
+                let foo = 1; // CANT YOU DO TETMESHING WITH WEAK BALANCING???
+                tree.balance(true);
                 tree.into()
             } else {
                 input_type.into()

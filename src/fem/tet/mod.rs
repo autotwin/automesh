@@ -11,7 +11,7 @@ pub const TET: usize = 4;
 /// The tetrahedral finite elements type.
 pub type TetrahedralFiniteElements = FiniteElements<TET>;
 
-const NUM_TETS_PER_HEX: usize = 6;
+pub const NUM_TETS_PER_HEX: usize = 6;
 
 impl FiniteElementSpecifics for TetrahedralFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
