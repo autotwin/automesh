@@ -28,7 +28,7 @@ Install Rust and Cargo for your operating system:
 
 #### macOS and Linux
 
-1. Open a terminal.  Install Rust using [`rustup`](https://rustup.rs/):
+1. Open a terminal.  Install Rust using [`rustup`](https://www.rust-lang.org/tools/install):
 
 ```sh
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -43,9 +43,13 @@ source $HOME/.cargo/env
 
 #### Windows
 
-1. Download and run the [Rust installer](https://rustup.rs).
-2. Follow the installation instructions in the command prompt.  Additional Windows installation details are available in [The rustup book](https://rust-lang.github.io/rustup/installation/windows.html).
-3. Ensure that Cargo's bin directory is in your `PATH`. You may need to restart your command prompt or system.
+1. Download `rustup-init.exe` from run the [Rust installer](https://www.rust-lang.org/tools/install).
+2. Follow the installation instructions in the command prompt.
+    * Use the default settings (`standard installation`) to add `cargo`, `rustc`, `rustup` to your `PATH`.
+    * The Cargo home directory is, e.g., `C:\Users\<User>\.cargo`, which can be modified with the `CARGO_HOME` environment variable.
+    * You may need to restart your command prompt or system.
+    * Ensure that Cargo's bin directory is in your `PATH`.
+3. Additional Windows installation details are available in [The rustup book](https://rust-lang.github.io/rustup/installation/windows.html).
 
 ### Python Prerequisites
 
