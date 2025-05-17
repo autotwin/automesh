@@ -4,6 +4,24 @@
 
 *In order of most recent to least recent.*
 
+## 2025-05-16
+
+* Rayon
+  * ndarray also has parallel
+  * multi-threading API
+* Tets
+  * `dual` change to `adaptive` in API
+  * Structured
+  * Unstructured
+  * Refactor
+* JOSS 2025
+  * Papers
+    * All papers
+    * Active papers
+* Preparation for ONR annual review
+* `autosim` workflow
+  * `.inp` update
+
 ## 2025-03-30
 
 * Extraction
