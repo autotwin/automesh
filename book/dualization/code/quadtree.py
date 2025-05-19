@@ -1,7 +1,7 @@
 """This module, quadtree.py, creates a simple quadtree and plots it."""
 
 from pathlib import Path
-from typing import NamedTuple
+# from typing import NamedTuple
 
 import matplotlib.pyplot as plt
 from matplotlib import patches

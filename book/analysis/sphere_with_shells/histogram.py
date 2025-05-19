@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-import numpy as np
+# import numpy as np
 
 from pathlib import Path
 
@@ -13,7 +13,6 @@ filenames = [
     # "res_4_iter_05.csv",
 ]
 for filename in filenames:
-
     with open(Path(filename).expanduser(), "r") as file:
         data = file.read()
 

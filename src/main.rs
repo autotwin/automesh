@@ -1361,9 +1361,6 @@ where
             }
             let mut output_type: TetrahedralFiniteElements = if adapt {
                 let mut tree = Octree::from(input_type);
-                println!(
-                    "             \x1b[1;91mNeed to try adaptive tetmeshing with weak balancing!\x1b[0m"
-                );
                 tree.balance(true);
                 tree.into()
             } else {

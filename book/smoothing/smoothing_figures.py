@@ -14,7 +14,6 @@ from typing import Final
 
 from matplotlib.colors import LightSource
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 import smoothing as sm
@@ -91,8 +90,7 @@ zs_l = [v.z for v in vertices_laplace]
 # draw edge lines
 ep = sm.edge_pairs(ex.elements)  # edge pairs
 line_segments = [
-    (sm.xyz(ex.vertices[p1 - 1]), sm.xyz(ex.vertices[p2 - 1]))
-    for (p1, p2) in ep
+    (sm.xyz(ex.vertices[p1 - 1]), sm.xyz(ex.vertices[p2 - 1])) for (p1, p2) in ep
 ]
 line_segments_laplace = [
     (sm.xyz(vertices_laplace[p1 - 1]), sm.xyz(vertices_laplace[p2 - 1]))
