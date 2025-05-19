@@ -32,9 +32,7 @@ def plot_tetrahedron(tet: Tetrahedron):
     ax = fig.add_subplot(111, projection="3d")
 
     # Create a Poly3DCollection for the faces
-    tetrahedron = Poly3DCollection(
-        faces, alpha=0.5, linewidths=1, edgecolors="r"
-    )
+    tetrahedron = Poly3DCollection(faces, alpha=0.5, linewidths=1, edgecolors="r")
     ax.add_collection3d(tetrahedron)
 
     # Set limits and labels

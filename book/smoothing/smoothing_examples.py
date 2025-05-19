@@ -187,16 +187,12 @@ bracket = Example(
         (6, Vertex(0, 1, 0)),
         (
             10,
-            Vertex(
-                4.5 * math.cos(15 * DEG2RAD), 4.5 * math.sin(15 * DEG2RAD), 0
-            ),
+            Vertex(4.5 * math.cos(15 * DEG2RAD), 4.5 * math.sin(15 * DEG2RAD), 0),
         ),
         (11, Vertex(0, 2, 0)),
         (
             15,
-            Vertex(
-                4.5 * math.cos(30 * DEG2RAD), 4.5 * math.sin(30 * DEG2RAD), 0
-            ),
+            Vertex(4.5 * math.cos(30 * DEG2RAD), 4.5 * math.sin(30 * DEG2RAD), 0),
         ),
         (16, Vertex(0, 3, 0)),
         (19, Vertex(0, 4, 0)),
@@ -210,16 +206,12 @@ bracket = Example(
         (27, Vertex(0, 1, 1)),
         (
             31,
-            Vertex(
-                4.5 * math.cos(15 * DEG2RAD), 4.5 * math.sin(15 * DEG2RAD), 1
-            ),
+            Vertex(4.5 * math.cos(15 * DEG2RAD), 4.5 * math.sin(15 * DEG2RAD), 1),
         ),
         (32, Vertex(0, 2, 1)),
         (
             36,
-            Vertex(
-                4.5 * math.cos(30 * DEG2RAD), 4.5 * math.sin(30 * DEG2RAD), 1
-            ),
+            Vertex(4.5 * math.cos(30 * DEG2RAD), 4.5 * math.sin(30 * DEG2RAD), 1),
         ),
         (37, Vertex(0, 3, 1)),
         (40, Vertex(0, 4, 1)),

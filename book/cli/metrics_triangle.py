@@ -95,9 +95,9 @@ for element in element_node_connectivity:
     for pair in pairs:
         print(f"    pair {pair}")
         aa, bb = pair
-        edge = np.array(
-            nodal_coordinates[bb - NODE_NUMBERING_OFFSET]
-        ) - np.array(nodal_coordinates[aa - NODE_NUMBERING_OFFSET])
+        edge = np.array(nodal_coordinates[bb - NODE_NUMBERING_OFFSET]) - np.array(
+            nodal_coordinates[aa - NODE_NUMBERING_OFFSET]
+        )
         edge_vectors = edge_vectors + (edge,)
         edge_length = np.linalg.norm(edge)
         # print(f"    lens {edge_length}")
@@ -116,9 +116,7 @@ for element in element_node_connectivity:
     mesh_element_edge_ratios.append(ratio)
 
     # edge vectors and then angles
-    edge_vectors_pairs = tuple(
-        zip(edge_vectors, edge_vectors[1:] + (edge_vectors[0],))
-    )
+    edge_vectors_pairs = tuple(zip(edge_vectors, edge_vectors[1:] + (edge_vectors[0],)))
     # print(f"  edge vectors pairs {edge_vectors_pairs}")
 
     for item in edge_vectors_pairs:

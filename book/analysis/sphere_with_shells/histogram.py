@@ -13,7 +13,6 @@ filenames = [
     # "res_4_iter_05.csv",
 ]
 for filename in filenames:
-
     with open(Path(filename).expanduser(), "r") as file:
         data = file.read()
 

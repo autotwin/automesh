@@ -14,9 +14,7 @@ import random
 
 
 FILE_INPUT: Final[Path] = Path(__file__).parent.joinpath("sphere_res_1cm.inp")
-FILE_OUTPUT: Final[Path] = Path(__file__).parent.joinpath(
-    "sphere_res_1cm_noised.inp"
-)
+FILE_OUTPUT: Final[Path] = Path(__file__).parent.joinpath("sphere_res_1cm_noised.inp")
 SEED_VALUE: Final[int] = 42  # set a seed value for reproducibility
 random.seed(SEED_VALUE)
 # AMP: Final[float] = 0.0  # the amplitude of the noise, debug
@@ -28,10 +26,7 @@ def has_e_plus_minus(string_in: str) -> bool:
     "E+", "e+", "E-", or "E-", then return True, otherwise False.
     """
     return (
-        "E+" in string_in
-        or "e+" in string_in
-        or "E-" in string_in
-        or "e-" in string_in
+        "E+" in string_in or "e+" in string_in or "E-" in string_in or "e-" in string_in
     )
 
 
@@ -55,7 +50,6 @@ with (
 
             # if all coordinates have the E+/e+ or E-/e- notation
             if all(has_e_plus_minus(k) for k in [px, py, pz]):
-
                 # we noise only coordinates on the positive x half-space
                 if float(px) > 0.0:
                     # Pick three random number between -1 and 1

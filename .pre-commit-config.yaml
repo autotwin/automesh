@@ -26,10 +26,3 @@ repos:
   hooks:
     - id: ruff-check
     - id: ruff-format
--   repo: local
-    hooks:
-    -   id: pycodestyle
-        name: pycodestyle
-        entry: pycodestyle book/ tests/
-        language: system
-        pass_filenames: false

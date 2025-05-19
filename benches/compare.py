@@ -52,19 +52,23 @@ with open("benches/compare/automesh_remov.out", "r") as file:
             sum += float(entry)
         data_p += (sum / count,)
 
-np.savetxt(
-    "benches/compare/spheres.csv", np.vstack((numb_p, numb_q, data_p)).T
-)
+np.savetxt("benches/compare/spheres.csv", np.vstack((numb_p, numb_q, data_p)).T)
 
-print("automesh:",
-      "{0:.2f}".format(np.mean(np.diff(numb_a) / np.diff(data_a)) / 1e6),
-      "million voxels/second")
-print("automesh (removal):",
-      "{0:.2f}".format(np.mean(np.diff(numb_p) / np.diff(data_p)) / 1e6),
-      "million voxels/second")
-print("SCULPT:",
-      "{0:.2f}".format(np.mean(np.diff(numb_s) / np.diff(data_s)) / 1e6),
-      "million voxels/second")
+print(
+    "automesh:",
+    "{0:.2f}".format(np.mean(np.diff(numb_a) / np.diff(data_a)) / 1e6),
+    "million voxels/second",
+)
+print(
+    "automesh (removal):",
+    "{0:.2f}".format(np.mean(np.diff(numb_p) / np.diff(data_p)) / 1e6),
+    "million voxels/second",
+)
+print(
+    "SCULPT:",
+    "{0:.2f}".format(np.mean(np.diff(numb_s) / np.diff(data_s)) / 1e6),
+    "million voxels/second",
+)
 
 plt.loglog(numb_a, data_a, label="automesh")
 plt.loglog(numb_p, data_p, label="automesh (removal)")

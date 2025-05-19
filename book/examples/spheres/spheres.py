@@ -62,9 +62,9 @@ def sphere(radius: int, dtype=np.uint8) -> np.ndarray:
 
     n_voxels_per_side = 2 * radius + 1
     vox_z, vox_y, vox_x = np.mgrid[
-        -radius: radius: n_voxels_per_side * 1j,
-        -radius: radius: n_voxels_per_side * 1j,
-        -radius: radius: n_voxels_per_side * 1j,
+        -radius : radius : n_voxels_per_side * 1j,
+        -radius : radius : n_voxels_per_side * 1j,
+        -radius : radius : n_voxels_per_side * 1j,
     ]
     voxel_radius_squared = vox_x**2 + vox_y**2 + vox_z**2
     result = np.array(voxel_radius_squared <= radius * radius, dtype=dtype)

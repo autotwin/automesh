@@ -25,9 +25,7 @@ import numpy as np
 
 
 # Visualize on a cutting plane
-def plot_cutting_plane(
-    ax, key, data, plane="z", index=None, cmap=None, alpha=None
-):
+def plot_cutting_plane(ax, key, data, plane="z", index=None, cmap=None, alpha=None):
     """Plots a 2D cutting plane slice of a 3D dataset on the specified axis.
 
     This function visualizes a slice of the 3D data array along a specified
@@ -163,9 +161,9 @@ def sphere(resolution: int, dtype=np.uint8) -> np.ndarray:
     # nvps = 2 * r12 * resolution + 1
     nvps = 2 * r12 * resolution
     vox_z, vox_y, vox_x = np.mgrid[
-        -r12:r12:nvps * 1j,
-        -r12:r12:nvps * 1j,
-        -r12:r12:nvps * 1j,
+        -r12 : r12 : nvps * 1j,
+        -r12 : r12 : nvps * 1j,
+        -r12 : r12 : nvps * 1j,
     ]
     domain = vox_x**2 + vox_y**2 + vox_z**2
 
@@ -197,7 +195,7 @@ def main():
 
     # User input begin
     spheres = {
-        f"resolution_{i+1}": sphere(resolution=res) for i, res in enumerate(rr)
+        f"resolution_{i + 1}": sphere(resolution=res) for i, res in enumerate(rr)
     }
 
     aa = Path(__file__)
@@ -237,9 +235,7 @@ def main():
             print(f"index: {index}")
             print(f"key: {key}")
             # print(f"value: {value}")
-            ax = fig.add_subplot(
-                1, N_SUBPLOTS, index + 1, projection=Axes3D.name
-            )
+            ax = fig.add_subplot(1, N_SUBPLOTS, index + 1, projection=Axes3D.name)
             # Create an array for face colors based on the values in the
             # `value` array
             facecolors = np.empty(
@@ -297,7 +293,6 @@ def main():
 
     # Plot along a cutting plane
     if SHOW:
-
         for index, (key, value) in enumerate(spheres.items()):
             print(f"index: {index}")
             print(f"key: {key}")

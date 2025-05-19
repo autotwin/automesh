@@ -23,9 +23,7 @@ logging.basicConfig(
 )
 
 
-def create_spheres(
-    data: np.ndarray, num_spheres: int, radius_max: int
-) -> None:
+def create_spheres(data: np.ndarray, num_spheres: int, radius_max: int) -> None:
     """Creates random spheres in a 3D binary array.
 
     Parameters:
@@ -133,22 +131,19 @@ def run_commands(commands: list) -> None:
     """
     for command in commands:
         try:
-            logging.info("Running command: %s", ' '.join(command))
-            result = subprocess.run(
-                command, check=True, capture_output=True, text=True
-            )
+            logging.info("Running command: %s", " ".join(command))
+            result = subprocess.run(command, check=True, capture_output=True, text=True)
             logging.info("Command output: %s", result.stdout)
         except subprocess.CalledProcessError as e:
             logging.error("Error running command:")
-            logging.error("Command: %s", ' '.join(command))
+            logging.error("Command: %s", " ".join(command))
             logging.error("Return code: %s", e.returncode)
             logging.error("Standard Output: %s", e.stdout)
             logging.error("Standard Error: %s", e.stderr)
 
 
 def spheres():
-    """Create and save a 3D binary array with random spheres.
-    """
+    """Create and save a 3D binary array with random spheres."""
     # Initialize the domain filled with zeros
     domain = np.zeros((DOMAIN_SIZE, DOMAIN_SIZE, DOMAIN_SIZE), dtype=np.uint8)
 
@@ -197,8 +192,7 @@ def spheres():
 
 
 def blobs():
-    """Create and save a 3D binary array with random blobs.
-    """
+    """Create and save a 3D binary array with random blobs."""
 
     # Initialize the domain filled with zeros
     domain = np.zeros((DOMAIN_SIZE, DOMAIN_SIZE, DOMAIN_SIZE), dtype=np.uint8)
@@ -282,6 +276,5 @@ def blobs():
 
 
 if __name__ == "__main__":
-
     spheres()
     blobs()

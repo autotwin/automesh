@@ -40,13 +40,9 @@ class VertexSpherical:
         if self.r < 0.0:
             raise ValueError("Radial distance r must be non-negative.")
         if not 0 <= self.theta <= 180.0:
-            raise ValueError(
-                "Polar angle theta must be in the range [0, 180]."
-            )
+            raise ValueError("Polar angle theta must be in the range [0, 180].")
         if not 0 <= self.phi < 360.0:
-            raise ValueError(
-                "Azimuthal angle phi must be in the range [0, 360)."
-            )
+            raise ValueError("Azimuthal angle phi must be in the range [0, 360).")
 
 
 @dataclass

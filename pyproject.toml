@@ -26,9 +26,9 @@ dev = [
   "black",
   "pdoc",
   "pre-commit",
-  "pycodestyle",
   "pytest",
   "pytest-cov",
+  "ruff",
 ]
 
 [project.urls]

@@ -298,8 +298,7 @@ def smooth(
 
     # breakpoint()
     for k in range(num_iters):
-
-        print(f"Iteration: {k+1}")
+        print(f"Iteration: {k + 1}")
         vertices_new = []
 
         for vertex, neighbors in zip(vertices_old, nn):

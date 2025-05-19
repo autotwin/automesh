@@ -44,9 +44,7 @@ def test_zero_radius():
 
 def test_negative_radius():
     """Test conversion with negative radius."""
-    with pytest.raises(
-        ValueError, match="Radial distance r must be non-negative."
-    ):
+    with pytest.raises(ValueError, match="Radial distance r must be non-negative."):
         spherical_to_cartesian(VertexSpherical(r=-1.0, theta=45.0, phi=60.0))
 
 
@@ -81,18 +79,14 @@ def test_phi_out_of_bounds():
         ValueError,
         match=r"Azimuthal angle phi must be in the range \[0, 360\).",
     ):
-        spherical_to_cartesian(
-            VertexSpherical(r=1.0, theta=90.0, phi=-10.0)
-        )  # phi < 0
+        spherical_to_cartesian(VertexSpherical(r=1.0, theta=90.0, phi=-10.0))  # phi < 0
 
 
 def test_edge_case_theta_0():
     """Test conversion with theta = 0."""
     spherical_coords = VertexSpherical(r=1.0, theta=0.0, phi=0.0)
     cartesian_coords = spherical_to_cartesian(spherical_coords)
-    assert cartesian_coords == Vertex(
-        0.0, 0.0, 1.0
-    )  # Should point straight up
+    assert cartesian_coords == Vertex(0.0, 0.0, 1.0)  # Should point straight up
 
 
 def test_edge_case_theta_180():
@@ -129,9 +123,7 @@ def test_triangle_collinear():
     vb = Vertex(1.0, 1.0, 0.0)
     vc = Vertex(2.0, 2.0, 0.0)  # Collinear to vb
 
-    with pytest.raises(
-        ValueError, match="The three vertices must be non-colinear."
-    ):
+    with pytest.raises(ValueError, match="The three vertices must be non-colinear."):
         Triangle(va, vb, vc)
 
 
@@ -147,9 +139,9 @@ def test_triangle_normal_negative_coordinates():
     # The expected normal for this triangle is (0, 0, 1)
     expected_normal = np.array([0.0, 0.0, 1.0])
 
-    assert np.allclose(
-        normal, expected_normal
-    ), "Normal vector is incorrect for negative coordinates."
+    assert np.allclose(normal, expected_normal), (
+        "Normal vector is incorrect for negative coordinates."
+    )
 
 
 def test_triangle_normal_non_unit_normal():
@@ -164,6 +156,6 @@ def test_triangle_normal_non_unit_normal():
     # The expected normal for this triangle is (0, 0, 1)
     expected_normal = np.array([0.0, 0.0, 1.0])
 
-    assert np.allclose(
-        normal, expected_normal
-    ), "Normal vector is not normalized correctly."
+    assert np.allclose(normal, expected_normal), (
+        "Normal vector is not normalized correctly."
+    )
