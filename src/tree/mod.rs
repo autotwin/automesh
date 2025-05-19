@@ -1590,58 +1590,60 @@ impl From<Octree> for TetrahedralFiniteElements {
         let element_node_connectivity = tree
             .iter()
             .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
-            .flat_map(|leaf| match tree.neighbors_template(leaf) {
-                [
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                ] => {
-                    leaf.get_nodal_indices_cell()
-                        .into_iter()
-                        .for_each(|[i, j, k]| {
-                            if indexed_nodal_coordinates[i][j][k].is_none()
-                                && indexed_nodes[i][j][k].is_none()
-                            {
-                                indexed_nodal_coordinates[i][j][k] = Some(Coordinate::new([
-                                    i as f64 * tree.scale.x() + tree.translate.x(),
-                                    j as f64 * tree.scale.y() + tree.translate.y(),
-                                    k as f64 * tree.scale.z() + tree.translate.z(),
-                                ]));
-                                indexed_nodes[i][j][k] = Some(node_index);
-                                node_index += 1;
-                            } else if indexed_nodal_coordinates[i][j][k].is_none()
-                                || indexed_nodes[i][j][k].is_none()
-                            {
-                                panic!()
-                            }
-                        });
-                    (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
-                    Self::hex_to_tet(
-                        &leaf
-                            .get_nodal_indices_cell()
-                            .into_iter()
-                            .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
-                            .collect::<Vec<usize>>()
-                            .try_into()
-                            .unwrap(),
-                    )
-                    .to_vec()
-                }
-                [
-                    Neighbor::Face(_),
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                ] => {
-                    vec![]
-                }
-                _ => {
-                    vec![]
+            .flat_map(|leaf| {
+                leaf.get_nodal_indices_cell()
+                    .into_iter()
+                    .for_each(|[i, j, k]| {
+                        if indexed_nodal_coordinates[i][j][k].is_none()
+                            && indexed_nodes[i][j][k].is_none()
+                        {
+                            indexed_nodal_coordinates[i][j][k] = Some(Coordinate::new([
+                                i as f64 * tree.scale.x() + tree.translate.x(),
+                                j as f64 * tree.scale.y() + tree.translate.y(),
+                                k as f64 * tree.scale.z() + tree.translate.z(),
+                            ]));
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        } else if indexed_nodal_coordinates[i][j][k].is_none()
+                            || indexed_nodes[i][j][k].is_none()
+                        {
+                            panic!()
+                        }
+                    });
+                match tree.neighbors_template(leaf) {
+                    [
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                    ] => {
+                        (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
+                        Self::hex_to_tet(
+                            &leaf
+                                .get_nodal_indices_cell()
+                                .into_iter()
+                                .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
+                                .collect::<Vec<usize>>()
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .to_vec()
+                    }
+                    [
+                        Neighbor::Face(_),
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                    ] => {
+                        vec![]
+                    }
+                    _ => {
+                        vec![]
+                    }
                 }
             })
             .collect();
