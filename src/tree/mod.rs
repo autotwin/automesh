@@ -1319,7 +1319,11 @@ impl Tree for Octree {
                                         }
                                     }
                                 });
-                            *neighbor = Neighbor::Edges(edges);
+                            if edges == NeighborEdges::default() {
+                                *neighbor = Neighbor::None
+                            } else {
+                                *neighbor = Neighbor::Edges(edges)
+                            }
                         } else {
                             *neighbor = Neighbor::Face(face_neighbor_cell);
                         }
@@ -1577,62 +1581,68 @@ impl From<Octree> for TetrahedralFiniteElements {
         let time = Instant::now();
         let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
+        let mut element_blocks = vec![];
         let mut indexed_nodal_coordinates =
             vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
         let mut indexed_nodes =
             vec![vec![vec![None; *tree.nel.z() + 1]; *tree.nel.y() + 1]; *tree.nel.x() + 1];
         let mut node_index: usize = NODE_NUMBERING_OFFSET;
-        tree.iter()
-            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
-            .for_each(|leaf| {
-                leaf.get_nodal_indices_cell()
-                    .into_iter()
-                    .for_each(|[i, j, k]| {
-                        if indexed_nodal_coordinates[i][j][k].is_none()
-                            && indexed_nodes[i][j][k].is_none()
-                        {
-                            indexed_nodal_coordinates[i][j][k] = Some(Coordinate::new([
-                                i as f64 * tree.scale.x() + tree.translate.x(),
-                                j as f64 * tree.scale.y() + tree.translate.y(),
-                                k as f64 * tree.scale.z() + tree.translate.z(),
-                            ]));
-                            indexed_nodes[i][j][k] = Some(node_index);
-                            node_index += 1;
-                        } else if indexed_nodal_coordinates[i][j][k].is_none()
-                            || indexed_nodes[i][j][k].is_none()
-                        {
-                            panic!()
-                        }
-                    });
-            });
-        //
-        // Continue to use indexed nodes and coordinates to place nodes at centers and mid-edges of faces!
-        // Might be able to do it all at once:
-        //  Loop over each cell, call the neighors template function
-        //    Edit indexed_nodal_coordinates and indexed_nodes if None
-        //      Will not neet half-integer indexing since voxels will never have to transition to smaller cells
-        //      Built-in short-circuit is_voxel check is within neighors template function
-        //    Set up connectivity since all needed nodes will have been created at this point
-        //
-        let mut element_blocks = vec![];
         let element_node_connectivity = tree
             .iter()
-            .filter(|&cell| {
-                cell.is_leaf()
-                    && removed_data.binary_search(&cell.get_block()).is_err()
-                    && tree.edge_neighbors_not_smaller(cell)
-            })
-            .flat_map(|leaf| {
-                (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
-                Self::hex_to_tet(
-                    &leaf
-                        .get_nodal_indices_cell()
+            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
+            .flat_map(|leaf| match tree.neighbors_template(leaf) {
+                [
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                ] => {
+                    leaf.get_nodal_indices_cell()
                         .into_iter()
-                        .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
-                        .collect::<Vec<usize>>()
-                        .try_into()
-                        .unwrap(),
-                )
+                        .for_each(|[i, j, k]| {
+                            if indexed_nodal_coordinates[i][j][k].is_none()
+                                && indexed_nodes[i][j][k].is_none()
+                            {
+                                indexed_nodal_coordinates[i][j][k] = Some(Coordinate::new([
+                                    i as f64 * tree.scale.x() + tree.translate.x(),
+                                    j as f64 * tree.scale.y() + tree.translate.y(),
+                                    k as f64 * tree.scale.z() + tree.translate.z(),
+                                ]));
+                                indexed_nodes[i][j][k] = Some(node_index);
+                                node_index += 1;
+                            } else if indexed_nodal_coordinates[i][j][k].is_none()
+                                || indexed_nodes[i][j][k].is_none()
+                            {
+                                panic!()
+                            }
+                        });
+                    (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
+                    Self::hex_to_tet(
+                        &leaf
+                            .get_nodal_indices_cell()
+                            .into_iter()
+                            .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
+                            .collect::<Vec<usize>>()
+                            .try_into()
+                            .unwrap(),
+                    )
+                    .to_vec()
+                }
+                [
+                    Neighbor::Face(_),
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                ] => {
+                    vec![]
+                }
+                _ => {
+                    vec![]
+                }
             })
             .collect();
         let mut nodal_coordinates =
