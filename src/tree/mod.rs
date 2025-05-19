@@ -133,8 +133,18 @@ impl DerefMut for Octree {
     }
 }
 
+#[derive(Default)]
+pub enum Neighbor {
+    Edges(NeighborEdges),
+    Face(usize),
+    #[default]
+    None,
+}
+
 type Cluster = Vec<usize>;
 type Clusters = Vec<Cluster>;
+type NeighborEdges = [Option<usize>; NUM_EDGES_FACE];
+type Neighbors = [Neighbor; NUM_FACES];
 type Supercells = Vec<Option<[usize; 2]>>;
 
 /// Methods for trees such as quadtrees or octrees.
@@ -146,6 +156,7 @@ pub trait Tree {
     fn edge_neighbors_not_smaller(&self, cell: &Cell) -> bool;
     fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool;
     fn just_leaves(&self, cells: &[usize]) -> bool;
+    fn neighbors_template(&self, cell: &Cell) -> Neighbors;
     fn nel(&self) -> Nel;
     fn octree_into_finite_elements(
         self,
@@ -1282,6 +1293,41 @@ impl Tree for Octree {
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())
     }
+    fn neighbors_template(&self, cell: &Cell) -> Neighbors {
+        if cell.is_voxel() {
+            Neighbors::default()
+        } else {
+            let mut edges = NeighborEdges::default();
+            let mut neighbors = Neighbors::default();
+            cell.get_faces()
+                .iter()
+                .enumerate()
+                .zip(neighbors.iter_mut())
+                .for_each(|((face_index, &face), neighbor)| {
+                    if let Some(face_neighbor_cell) = face {
+                        if self[face_neighbor_cell].is_leaf() {
+                            edges = NeighborEdges::default();
+                            edge_neighbors(face_index)
+                                .into_iter()
+                                .zip(edges.iter_mut())
+                                .for_each(|(edge_neighbor, edge)| {
+                                    if let Some(edge_cell) =
+                                        self[face_neighbor_cell].get_faces()[edge_neighbor]
+                                    {
+                                        if !self[edge_cell].is_leaf() {
+                                            *edge = Some(edge_cell)
+                                        }
+                                    }
+                                });
+                            *neighbor = Neighbor::Edges(edges);
+                        } else {
+                            *neighbor = Neighbor::Face(face_neighbor_cell);
+                        }
+                    }
+                });
+            neighbors
+        }
+    }
     fn nel(&self) -> Nel {
         self.nel
     }
@@ -1559,6 +1605,15 @@ impl From<Octree> for TetrahedralFiniteElements {
                         }
                     });
             });
+        //
+        // Continue to use indexed nodes and coordinates to place nodes at centers and mid-edges of faces!
+        // Might be able to do it all at once:
+        //  Loop over each cell, call the neighors template function
+        //    Edit indexed_nodal_coordinates and indexed_nodes if None
+        //      Will not neet half-integer indexing since voxels will never have to transition to smaller cells
+        //      Built-in short-circuit is_voxel check is within neighors template function
+        //    Set up connectivity since all needed nodes will have been created at this point
+        //
         let mut element_blocks = vec![];
         let element_node_connectivity = tree
             .iter()
