@@ -1681,6 +1681,9 @@ impl From<Octree> for TetrahedralFiniteElements {
                         // else if indexed_nodal_coordinates[i][j][k].is_none() || indexed_nodes[i][j][k].is_none() {
                         //     panic!()
                         // }
+                        //
+                        // MAKE THE CONNECTIVITY PART SEPARATE AND PARALLELIZE IT?
+                        //
                         vec![
                             [
                                 indexed_nodes[*leaf.get_min_x() as usize][*leaf.get_min_y() as usize][*leaf.get_min_z() as usize].unwrap(),
