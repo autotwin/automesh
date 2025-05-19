@@ -22,6 +22,7 @@ const NUM_FACES: usize = 6;
 const NUM_OCTANTS: usize = 8;
 const NUM_NODES_CELL: usize = 8;
 const NUM_NODES_FACE: usize = 4;
+const NUM_EDGES_FACE: usize = 4;
 const NUM_SUBCELLS_FACE: usize = 4;
 
 type SubcellsOnFace = [usize; NUM_SUBCELLS_FACE];
@@ -31,6 +32,22 @@ const SUBCELLS_ON_OWN_FACE_2: SubcellsOnFace = [2, 3, 6, 7];
 const SUBCELLS_ON_OWN_FACE_3: SubcellsOnFace = [0, 2, 4, 6];
 const SUBCELLS_ON_OWN_FACE_4: SubcellsOnFace = [0, 1, 2, 3];
 const SUBCELLS_ON_OWN_FACE_5: SubcellsOnFace = [4, 5, 6, 7];
+
+type EdgeNeighbors = [usize; NUM_EDGES_FACE];
+const EDGE_NEIGHBORS_FROM_FACE_0_2_FACE_NEIGHBORS: EdgeNeighbors = [1, 3, 4, 5];
+const EDGE_NEIGHBORS_FROM_FACE_1_3_FACE_NEIGHBORS: EdgeNeighbors = [0, 2, 4, 5];
+const EDGE_NEIGHBORS_FROM_FACE_4_5_FACE_NEIGHBORS: EdgeNeighbors = [0, 1, 2, 3];
+
+const fn edge_neighbors(face: usize) -> EdgeNeighbors {
+    match face {
+        0 | 2 => EDGE_NEIGHBORS_FROM_FACE_0_2_FACE_NEIGHBORS,
+        1 | 3 => EDGE_NEIGHBORS_FROM_FACE_1_3_FACE_NEIGHBORS,
+        4 | 5 => EDGE_NEIGHBORS_FROM_FACE_4_5_FACE_NEIGHBORS,
+        _ => {
+            panic!()
+        }
+    }
+}
 
 const fn mirror_face(face: usize) -> usize {
     match face {
@@ -126,6 +143,7 @@ pub trait Tree {
     fn boundaries(&mut self);
     fn clusters(&self, remove: Option<&Blocks>, supercells: Option<&Supercells>) -> Clusters;
     fn defeature(&mut self, min_num_voxels: usize);
+    fn edge_neighbors_not_smaller(&self, cell: &Cell) -> bool;
     fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool;
     fn just_leaves(&self, cells: &[usize]) -> bool;
     fn nel(&self) -> Nel;
@@ -1228,10 +1246,34 @@ impl Tree for Octree {
             }
         }
     }
+    fn edge_neighbors_not_smaller(&self, cell: &Cell) -> bool {
+        cell.get_faces()
+            .iter()
+            .enumerate()
+            .all(|(face_index, &face)| {
+                if let Some(face_neighbor_cell) = face {
+                    if self[face_neighbor_cell].is_leaf() {
+                        edge_neighbors(face_index).into_iter().all(|edge_neighbor| {
+                            if let Some(edge_cell) =
+                                self[face_neighbor_cell].get_faces()[edge_neighbor]
+                            {
+                                self[edge_cell].is_leaf()
+                            } else {
+                                true
+                            }
+                        })
+                    } else {
+                        false
+                    }
+                } else {
+                    true
+                }
+            })
+    }
     fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool {
-        cell.get_faces().iter().all(|face| {
+        cell.get_faces().iter().all(|&face| {
             if let Some(face_neighbor_cell) = face {
-                self[*face_neighbor_cell].is_leaf()
+                self[face_neighbor_cell].is_leaf()
             } else {
                 true
             }
@@ -1523,7 +1565,7 @@ impl From<Octree> for TetrahedralFiniteElements {
             .filter(|&cell| {
                 cell.is_leaf()
                     && removed_data.binary_search(&cell.get_block()).is_err()
-                    && tree.face_neighbors_not_smaller(cell)
+                    && tree.edge_neighbors_not_smaller(cell)
             })
             .flat_map(|leaf| {
                 (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
