@@ -1604,11 +1604,11 @@ impl From<Octree> for TetrahedralFiniteElements {
                             ]));
                             indexed_nodes[i][j][k] = Some(node_index);
                             node_index += 1;
-                        } else if indexed_nodal_coordinates[i][j][k].is_none()
-                            || indexed_nodes[i][j][k].is_none()
-                        {
-                            panic!()
-                        }
+                        } 
+                        // else if indexed_nodal_coordinates[i][j][k].is_none() || indexed_nodes[i][j][k].is_none()
+                        // {
+                        //     panic!()
+                        // }
                     });
                 match tree.neighbors_template(leaf) {
                     [
@@ -1639,7 +1639,56 @@ impl From<Octree> for TetrahedralFiniteElements {
                         Neighbor::None,
                         Neighbor::None,
                     ] => {
-                        vec![]
+                        // (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
+                        (0..1).for_each(|_| element_blocks.push(leaf.get_block()));
+                        //
+                        // make 4 edge nodes, 1 center face node, and 1 inner node
+                        // those 6 nodes plus the original 8 make the total 14
+                        // make the connectivities for the 20 tets
+                        // unsure if this is the minimal template in this case or not
+                        //
+                        let i1 = (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
+                        let j1 = *leaf.get_min_y() as usize;
+                        let k1 = *leaf.get_min_z() as usize;
+                        //
+                        // should make the below checks and coordinate creation etc. a function somewhere else?
+                        // and maybe indexed nodes and indexed_nodal_coordinates into one type?
+                        //
+                        if indexed_nodal_coordinates[i1][j1][k1].is_none() && indexed_nodes[i1][j1][k1].is_none() {
+                            indexed_nodal_coordinates[i1][j1][k1] = Some(Coordinate::new([
+                                i1 as f64 * tree.scale.x() + tree.translate.x(),
+                                j1 as f64 * tree.scale.y() + tree.translate.y(),
+                                k1 as f64 * tree.scale.z() + tree.translate.z(),
+                            ]));
+                            indexed_nodes[i1][j1][k1] = Some(node_index);
+                            node_index += 1;
+                        }
+                        // else if indexed_nodal_coordinates[i][j][k].is_none() || indexed_nodes[i][j][k].is_none() {
+                        //     panic!()
+                        // }
+                        let i2 = *leaf.get_min_x() as usize;
+                        let j2 = *leaf.get_min_y() as usize;
+                        let k2 = (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
+                        if indexed_nodal_coordinates[i2][j2][k2].is_none() && indexed_nodes[i2][j2][k2].is_none() {
+                            indexed_nodal_coordinates[i2][j2][k2] = Some(Coordinate::new([
+                                i2 as f64 * tree.scale.x() + tree.translate.x(),
+                                j2 as f64 * tree.scale.y() + tree.translate.y(),
+                                k2 as f64 * tree.scale.z() + tree.translate.z(),
+                            ]));
+                            indexed_nodes[i2][j2][k2] = Some(node_index);
+                            node_index += 1;
+                        }
+                        // else if indexed_nodal_coordinates[i][j][k].is_none() || indexed_nodes[i][j][k].is_none() {
+                        //     panic!()
+                        // }
+                        vec![
+                            [
+                                indexed_nodes[*leaf.get_min_x() as usize][*leaf.get_min_y() as usize][*leaf.get_min_z() as usize].unwrap(),
+                                indexed_nodes[i2][j2][k2].unwrap(),
+                                indexed_nodes[i1][j1][k1].unwrap(),
+                                indexed_nodes[*leaf.get_min_x() as usize][leaf.get_max_y() as usize][*leaf.get_min_z() as usize].unwrap(),
+                            ]
+                        ]
                     }
                     _ => {
                         vec![]
