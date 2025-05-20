@@ -1582,36 +1582,17 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
         let mut element_blocks = vec![];
-        #[cfg(feature = "profile")]
-        let temporary = Instant::now();
-        let mut indexed_nodal_coordinates =
-            vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;91m✰ Allocation 1\x1b[0m {:?} ",
-            temporary.elapsed()
-        );
+        let mut indexed_nodal_coordinates= vec![];
         #[cfg(feature = "profile")]
         let temporary = Instant::now();
         let mut indexed_nodes =
             vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
-        // let mut indexed_nodes: Vec<Vec<Vec<Option<usize>>>> =
-        //     vec![vec![Vec::with_capacity(nelzplus1); nelyplus1]; nelxplus1];
-        let mut node_index: usize = NODE_NUMBERING_OFFSET;
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;91m✰ Allocation 2\x1b[0m {:?} ",
+            "             \x1b[1;91m✰ Indexed nodes\x1b[0m {:?} ",
             temporary.elapsed()
         );
-        // #[cfg(feature = "profile")]
-        // let temporary = Instant::now();
-        // let mut foo: Vec<Vec<Vec<Option<usize>>>> =
-        //     vec![vec![Vec::with_capacity(nelzplus1); nelyplus1]; nelxplus1];
-        // #[cfg(feature = "profile")]
-        // println!(
-        //     "             \x1b[1;91m✰ Allocation 3\x1b[0m {:?} ",
-        //     temporary.elapsed()
-        // );
+        let mut node_index: usize = NODE_NUMBERING_OFFSET;
         #[cfg(feature = "profile")]
         let temporary = Instant::now();
         tree
@@ -1621,21 +1602,12 @@ impl From<Octree> for TetrahedralFiniteElements {
                 leaf.get_nodal_indices_cell()
                     .into_iter()
                     .for_each(|[i, j, k]| {
-                        if indexed_nodal_coordinates[i][j][k].is_none()
-                            && indexed_nodes[i][j][k].is_none()
+                        if indexed_nodes[i][j][k].is_none()
                         {
-                            indexed_nodal_coordinates[i][j][k] = Some(Coordinate::new([
-                                i as f64 * tree.scale.x() + tree.translate.x(),
-                                j as f64 * tree.scale.y() + tree.translate.y(),
-                                k as f64 * tree.scale.z() + tree.translate.z(),
-                            ]));
+                            indexed_nodal_coordinates.push([node_index, i, j, k]);
                             indexed_nodes[i][j][k] = Some(node_index);
                             node_index += 1;
                         } 
-                        // else if indexed_nodal_coordinates[i][j][k].is_none() || indexed_nodes[i][j][k].is_none()
-                        // {
-                        //     panic!()
-                        // }
                     });
                 match tree.neighbors_template(leaf) {
                     [
@@ -1671,34 +1643,19 @@ impl From<Octree> for TetrahedralFiniteElements {
                         // should make the below checks and coordinate creation etc. a function somewhere else?
                         // and maybe indexed nodes and indexed_nodal_coordinates into one type?
                         //
-                        if indexed_nodal_coordinates[i1][j1][k1].is_none() && indexed_nodes[i1][j1][k1].is_none() {
-                            indexed_nodal_coordinates[i1][j1][k1] = Some(Coordinate::new([
-                                i1 as f64 * tree.scale.x() + tree.translate.x(),
-                                j1 as f64 * tree.scale.y() + tree.translate.y(),
-                                k1 as f64 * tree.scale.z() + tree.translate.z(),
-                            ]));
+                        if indexed_nodes[i1][j1][k1].is_none() {
+                            indexed_nodal_coordinates.push([node_index, i1, j1, k1]);
                             indexed_nodes[i1][j1][k1] = Some(node_index);
                             node_index += 1;
                         }
-                        // else if indexed_nodal_coordinates[i][j][k].is_none() || indexed_nodes[i][j][k].is_none() {
-                        //     panic!()
-                        // }
                         let i2 = *leaf.get_min_x() as usize;
                         let j2 = *leaf.get_min_y() as usize;
                         let k2 = (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
-                        if indexed_nodal_coordinates[i2][j2][k2].is_none() && indexed_nodes[i2][j2][k2].is_none() {
-                            indexed_nodal_coordinates[i2][j2][k2] = Some(Coordinate::new([
-                                i2 as f64 * tree.scale.x() + tree.translate.x(),
-                                j2 as f64 * tree.scale.y() + tree.translate.y(),
-                                k2 as f64 * tree.scale.z() + tree.translate.z(),
-                            ]));
+                        if indexed_nodes[i2][j2][k2].is_none() {
+                            indexed_nodal_coordinates.push([node_index, i2, j2, k2]);
                             indexed_nodes[i2][j2][k2] = Some(node_index);
                             node_index += 1;
                         }
-                        // else if indexed_nodal_coordinates[i][j][k].is_none() || indexed_nodes[i][j][k].is_none() {
-                        //     panic!()
-                        // }
-                        //
                     }
                     _ => {}
                 }
@@ -1770,22 +1727,15 @@ impl From<Octree> for TetrahedralFiniteElements {
         );
         #[cfg(feature = "profile")]
         let temporary = Instant::now();
-        let mut nodal_coordinates =
-            Coordinates::zero(indexed_nodes.iter().flatten().flatten().flatten().count());
-        indexed_nodes
+        let mut nodal_coordinates = Coordinates::zero(indexed_nodal_coordinates.len());
+        indexed_nodal_coordinates
             .into_iter()
-            .flatten()
-            .flatten()
-            .flatten()
-            .zip(
-                indexed_nodal_coordinates
-                    .into_iter()
-                    .flatten()
-                    .flatten()
-                    .flatten(),
-            )
-            .for_each(|(node, coordinates)| {
-                nodal_coordinates[node - NODE_NUMBERING_OFFSET] = coordinates
+            .for_each(|[node, i, j, k]| {
+                nodal_coordinates[node - NODE_NUMBERING_OFFSET] = Coordinate::new([
+                        i as f64 * tree.scale.x() + tree.translate.x(),
+                        j as f64 * tree.scale.y() + tree.translate.y(),
+                        k as f64 * tree.scale.z() + tree.translate.z(),
+                    ])
             });
         #[cfg(feature = "profile")]
         println!(
