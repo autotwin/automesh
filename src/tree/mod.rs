@@ -1584,7 +1584,7 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut element_blocks = vec![];
         #[cfg(feature = "profile")]
         let temporary = Instant::now();
-        let mut indexed_nodal_coordinates: Vec<Vec<Vec<Option<conspire::math::TensorRank1<3, 1>>>>> =
+        let mut indexed_nodal_coordinates =
             vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
         #[cfg(feature = "profile")]
         println!(
