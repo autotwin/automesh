@@ -67,6 +67,14 @@ pub fn connectivity(
                 Neighbor::None,
                 Neighbor::None,
             ] => connectivity_000f00(leaf, &indexed_nodes),
+            [
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Face(_),
+                Neighbor::None,
+            ] => connectivity_0000f0(leaf, &indexed_nodes),
             _ => {
                 vec![]
             }
@@ -118,6 +126,9 @@ fn connectivity_0f0000(
     cell: &Cell,
     indexed_nodes: &Vec<Vec<Vec<Option<usize>>>>,
 ) -> Vec<[usize; TET]> {
+    //
+    // NEED TO SPIN
+    //
     let [
         min_x,
         haf_x,
@@ -212,6 +223,44 @@ fn connectivity_000f00(
         indexed_nodes[min_x][min_y][haf_z].unwrap(),
         indexed_nodes[min_x][haf_y][haf_z].unwrap(),
         indexed_nodes[haf_x][haf_y][haf_z].unwrap(),
+    ];
+    TetrahedralTransition::one_face(nodes)
+}
+
+fn connectivity_0000f0(
+    cell: &Cell,
+    indexed_nodes: &Vec<Vec<Vec<Option<usize>>>>,
+) -> Vec<[usize; TET]> {
+    //
+    // NEED TO SPIN
+    //
+    let [
+        min_x,
+        haf_x,
+        max_x,
+        min_y,
+        haf_y,
+        max_y,
+        min_z,
+        haf_z,
+        max_z,
+    ] = cell.get_all();
+    let nodes = [
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[haf_x][max_y][min_z].unwrap(),
+        indexed_nodes[haf_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][haf_y][min_z].unwrap(),
+        indexed_nodes[min_x][haf_y][min_z].unwrap(),
+        indexed_nodes[haf_x][haf_y][min_z].unwrap(),
+        indexed_nodes[haf_x][haf_y][haf_z].unwrap(),
+
     ];
     TetrahedralTransition::one_face(nodes)
 }
@@ -325,6 +374,23 @@ pub fn coordinates(
                         }
                     });
                 }
+                [
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Face(_),
+                    Neighbor::None,
+                ] => {
+                    (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_0000f0(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
                 _ => {}
             }
         });
@@ -381,6 +447,18 @@ const fn coordinates_000f00(cell: &Cell) -> [[usize; 3]; 6] {
         [min_x, min_y, haf_z],
         [min_x, max_y, haf_z],
         [min_x, haf_y, haf_z],
+        [haf_x, haf_y, haf_z],
+    ]
+}
+
+const fn coordinates_0000f0(cell: &Cell) -> [[usize; 3]; 6] {
+    let [min_x, haf_x, max_x, min_y, haf_y, max_y, min_z, haf_z, _] = cell.get_all();
+    [
+        [haf_x, max_y, min_z],
+        [haf_x, min_y, min_z],
+        [min_x, haf_y, min_z],
+        [max_x, haf_y, min_z],
+        [haf_x, haf_y, min_z],
         [haf_x, haf_y, haf_z],
     ]
 }
