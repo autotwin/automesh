@@ -45,12 +45,28 @@ pub fn connectivity(
             ] => connectivity_f00000(leaf, &indexed_nodes),
             [
                 Neighbor::None,
+                Neighbor::Face(_),
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+            ] => connectivity_0f0000(leaf, &indexed_nodes),
+            [
+                Neighbor::None,
                 Neighbor::None,
                 Neighbor::Face(_),
                 Neighbor::None,
                 Neighbor::None,
                 Neighbor::None,
             ] => connectivity_00f000(leaf, &indexed_nodes),
+            [
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Face(_),
+                Neighbor::None,
+                Neighbor::None,
+            ] => connectivity_000f00(leaf, &indexed_nodes),
             _ => {
                 vec![]
             }
@@ -98,6 +114,40 @@ fn connectivity_f00000(
     TetrahedralTransition::one_face(nodes)
 }
 
+fn connectivity_0f0000(
+    cell: &Cell,
+    indexed_nodes: &Vec<Vec<Vec<Option<usize>>>>,
+) -> Vec<[usize; TET]> {
+    let [
+        min_x,
+        haf_x,
+        max_x,
+        min_y,
+        haf_y,
+        max_y,
+        min_z,
+        haf_z,
+        max_z,
+    ] = cell.get_all();
+    let nodes = [
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][haf_y][max_z].unwrap(),
+        indexed_nodes[max_x][haf_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][haf_z].unwrap(),
+        indexed_nodes[max_x][max_y][haf_z].unwrap(),
+        indexed_nodes[max_x][haf_y][haf_z].unwrap(),
+        indexed_nodes[haf_x][haf_y][haf_z].unwrap(),
+    ];
+    TetrahedralTransition::one_face(nodes)
+}
+
 fn connectivity_00f000(
     cell: &Cell,
     indexed_nodes: &Vec<Vec<Vec<Option<usize>>>>,
@@ -127,6 +177,40 @@ fn connectivity_00f000(
         indexed_nodes[min_x][max_y][haf_z].unwrap(),
         indexed_nodes[max_x][max_y][haf_z].unwrap(),
         indexed_nodes[haf_x][max_y][haf_z].unwrap(),
+        indexed_nodes[haf_x][haf_y][haf_z].unwrap(),
+    ];
+    TetrahedralTransition::one_face(nodes)
+}
+
+fn connectivity_000f00(
+    cell: &Cell,
+    indexed_nodes: &Vec<Vec<Vec<Option<usize>>>>,
+) -> Vec<[usize; TET]> {
+    let [
+        min_x,
+        haf_x,
+        max_x,
+        min_y,
+        haf_y,
+        max_y,
+        min_z,
+        haf_z,
+        max_z,
+    ] = cell.get_all();
+    let nodes = [
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][haf_y][max_z].unwrap(),
+        indexed_nodes[min_x][haf_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][haf_z].unwrap(),
+        indexed_nodes[min_x][min_y][haf_z].unwrap(),
+        indexed_nodes[min_x][haf_y][haf_z].unwrap(),
         indexed_nodes[haf_x][haf_y][haf_z].unwrap(),
     ];
     TetrahedralTransition::one_face(nodes)
@@ -192,6 +276,23 @@ pub fn coordinates(
                 }
                 [
                     Neighbor::None,
+                    Neighbor::Face(_),
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                ] => {
+                    (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_0f0000(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
+                [
+                    Neighbor::None,
                     Neighbor::None,
                     Neighbor::Face(_),
                     Neighbor::None,
@@ -200,6 +301,23 @@ pub fn coordinates(
                 ] => {
                     (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
                     coordinates_00f000(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
+                [
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Face(_),
+                    Neighbor::None,
+                    Neighbor::None,
+                ] => {
+                    (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_000f00(leaf).into_iter().for_each(|[i, j, k]| {
                         if indexed_nodes[i][j][k].is_none() {
                             indexed_coordinates.push([node_index, i, j, k]);
                             indexed_nodes[i][j][k] = Some(node_index);
@@ -221,23 +339,48 @@ pub fn coordinates(
 const fn coordinates_f00000(cell: &Cell) -> [[usize; 3]; 6] {
     let [min_x, haf_x, max_x, min_y, haf_y, _, min_z, haf_z, max_z] = cell.get_all();
     [
-        [haf_x, min_y, min_z],
-        [haf_x, min_y, haf_z],
         [haf_x, min_y, max_z],
+        [haf_x, min_y, min_z],
         [min_x, min_y, haf_z],
         [max_x, min_y, haf_z],
+        [haf_x, min_y, haf_z],
         [haf_x, haf_y, haf_z],
     ]
 }
 
+const fn coordinates_0f0000(cell: &Cell) -> [[usize; 3]; 6] {
+    let [_, haf_x, max_x, min_y, haf_y, max_y, min_z, haf_z, max_z] = cell.get_all();
+    [
+        [max_x, haf_y, max_z],
+        [max_x, haf_y, min_z],
+        [max_x, min_y, haf_z],
+        [max_x, max_y, haf_z],
+        [max_x, haf_y, haf_z],
+        [haf_x, haf_y, haf_z],
+    ]
+}
+
+
 const fn coordinates_00f000(cell: &Cell) -> [[usize; 3]; 6] {
     let [min_x, haf_x, max_x, _, haf_y, max_y, min_z, haf_z, max_z] = cell.get_all();
     [
-        [haf_x, max_y, min_z],
-        [haf_x, max_y, haf_z],
         [haf_x, max_y, max_z],
+        [haf_x, max_y, min_z],
         [min_x, max_y, haf_z],
         [max_x, max_y, haf_z],
+        [haf_x, max_y, haf_z],
+        [haf_x, haf_y, haf_z],
+    ]
+}
+
+const fn coordinates_000f00(cell: &Cell) -> [[usize; 3]; 6] {
+    let [min_x, haf_x, _, min_y, haf_y, max_y, min_z, haf_z, max_z] = cell.get_all();
+    [
+        [min_x, haf_y, max_z],
+        [min_x, haf_y, min_z],
+        [min_x, min_y, haf_z],
+        [min_x, max_y, haf_z],
+        [min_x, haf_y, haf_z],
         [haf_x, haf_y, haf_z],
     ]
 }
