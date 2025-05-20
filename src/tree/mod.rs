@@ -1,11 +1,13 @@
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
+mod tet;
+
 use super::{
     Coordinate, Coordinates, NSD,
     fem::{
         Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
-        TetrahedralFiniteElements, TriangularFiniteElements, tet::NUM_TETS_PER_HEX,
+        TetrahedralFiniteElements, TriangularFiniteElements,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
@@ -183,6 +185,20 @@ pub struct Cell {
 }
 
 impl Cell {
+    const fn get_all(&self) -> [usize; 9] {
+        let min_x = self.min_x as usize;
+        let min_y = self.min_y as usize;
+        let min_z = self.min_z as usize;
+        let haf_x = (self.min_x + self.lngth / 2) as usize;
+        let haf_y = (self.min_y + self.lngth / 2) as usize;
+        let haf_z = (self.min_z + self.lngth / 2) as usize;
+        let max_x = (self.min_x + self.lngth) as usize;
+        let max_y = (self.min_y + self.lngth) as usize;
+        let max_z = (self.min_z + self.lngth) as usize;
+        [
+            min_x, haf_x, max_x, min_y, haf_y, max_y, min_z, haf_z, max_z,
+        ]
+    }
     pub fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
             block
@@ -1581,160 +1597,19 @@ impl From<Octree> for TetrahedralFiniteElements {
         let time = Instant::now();
         let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
-        let mut element_blocks = vec![];
-        let mut indexed_nodal_coordinates = vec![];
+        let (element_blocks, indexed_coordinates, indexed_nodes) =
+            tet::coordinates(&tree, &removed_data);
+        let element_node_connectivity = tet::connectivity(&tree, &indexed_nodes, &removed_data);
         #[cfg(feature = "profile")]
         let temporary = Instant::now();
-        let mut indexed_nodes =
-            vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;91m✰ Indexed nodes\x1b[0m {:?} ",
-            temporary.elapsed()
-        );
-        let mut node_index: usize = NODE_NUMBERING_OFFSET;
-        #[cfg(feature = "profile")]
-        let temporary = Instant::now();
-        tree.iter()
-            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
-            .for_each(|leaf| {
-                leaf.get_nodal_indices_cell()
-                    .into_iter()
-                    .for_each(|[i, j, k]| {
-                        if indexed_nodes[i][j][k].is_none() {
-                            indexed_nodal_coordinates.push([node_index, i, j, k]);
-                            indexed_nodes[i][j][k] = Some(node_index);
-                            node_index += 1;
-                        }
-                    });
-                match tree.neighbors_template(leaf) {
-                    [
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                    ] => {
-                        (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
-                    }
-                    [
-                        Neighbor::Face(_),
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                    ] => {
-                        // (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
-                        (0..1).for_each(|_| element_blocks.push(leaf.get_block()));
-                        //
-                        // make 4 edge nodes, 1 center face node, and 1 inner node
-                        // those 6 nodes plus the original 8 make the total 14
-                        // make the connectivities for the 20 tets
-                        // unsure if this is the minimal template in this case or not
-                        //
-                        let i1 =
-                            (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
-                        let j1 = *leaf.get_min_y() as usize;
-                        let k1 = *leaf.get_min_z() as usize;
-                        //
-                        // should make the below checks and coordinate creation etc. a function somewhere else?
-                        // and maybe indexed nodes and indexed_nodal_coordinates into one type?
-                        //
-                        if indexed_nodes[i1][j1][k1].is_none() {
-                            indexed_nodal_coordinates.push([node_index, i1, j1, k1]);
-                            indexed_nodes[i1][j1][k1] = Some(node_index);
-                            node_index += 1;
-                        }
-                        let i2 = *leaf.get_min_x() as usize;
-                        let j2 = *leaf.get_min_y() as usize;
-                        let k2 =
-                            (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
-                        if indexed_nodes[i2][j2][k2].is_none() {
-                            indexed_nodal_coordinates.push([node_index, i2, j2, k2]);
-                            indexed_nodes[i2][j2][k2] = Some(node_index);
-                            node_index += 1;
-                        }
-                    }
-                    _ => {}
-                }
-            });
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;91m✰ Initial coordinates\x1b[0m {:?} ",
-            temporary.elapsed()
-        );
-        #[cfg(feature = "profile")]
-        let temporary = Instant::now();
-        let element_node_connectivity = tree
-            .par_iter()
-            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
-            .flat_map(|leaf| match tree.neighbors_template(leaf) {
-                [
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                ] => Self::hex_to_tet(
-                    &leaf
-                        .get_nodal_indices_cell()
-                        .into_iter()
-                        .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
-                        .collect::<Vec<usize>>()
-                        .try_into()
-                        .unwrap(),
-                )
-                .to_vec(),
-                [
-                    Neighbor::Face(_),
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                ] => {
-                    let i1 = (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
-                    let j1 = *leaf.get_min_y() as usize;
-                    let k1 = *leaf.get_min_z() as usize;
-                    let i2 = *leaf.get_min_x() as usize;
-                    let j2 = *leaf.get_min_y() as usize;
-                    let k2 = (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
-                    vec![[
-                        indexed_nodes[*leaf.get_min_x() as usize][*leaf.get_min_y() as usize]
-                            [*leaf.get_min_z() as usize]
-                            .unwrap(),
-                        indexed_nodes[i2][j2][k2].unwrap(),
-                        indexed_nodes[i1][j1][k1].unwrap(),
-                        indexed_nodes[*leaf.get_min_x() as usize][leaf.get_max_y() as usize]
-                            [*leaf.get_min_z() as usize]
-                            .unwrap(),
-                    ]]
-                }
-                _ => {
-                    vec![]
-                }
-            })
-            .collect();
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;91m✰ Connectivity\x1b[0m {:?} ",
-            temporary.elapsed()
-        );
-        #[cfg(feature = "profile")]
-        let temporary = Instant::now();
-        let mut nodal_coordinates = Coordinates::zero(indexed_nodal_coordinates.len());
-        indexed_nodal_coordinates
-            .into_iter()
-            .for_each(|[node, i, j, k]| {
-                nodal_coordinates[node - NODE_NUMBERING_OFFSET] = Coordinate::new([
-                    i as f64 * tree.scale.x() + tree.translate.x(),
-                    j as f64 * tree.scale.y() + tree.translate.y(),
-                    k as f64 * tree.scale.z() + tree.translate.z(),
-                ])
-            });
+        let mut nodal_coordinates = Coordinates::zero(indexed_coordinates.len());
+        indexed_coordinates.into_iter().for_each(|[node, i, j, k]| {
+            nodal_coordinates[node - NODE_NUMBERING_OFFSET] = Coordinate::new([
+                i as f64 * tree.scale.x() + tree.translate.x(),
+                j as f64 * tree.scale.y() + tree.translate.y(),
+                k as f64 * tree.scale.z() + tree.translate.z(),
+            ])
+        });
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;91m✰ Nodal coordinates\x1b[0m {:?} ",
