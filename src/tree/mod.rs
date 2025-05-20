@@ -1582,15 +1582,42 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
         let mut element_blocks = vec![];
-        let mut indexed_nodal_coordinates =
+        #[cfg(feature = "profile")]
+        let temporary = Instant::now();
+        let mut indexed_nodal_coordinates: Vec<Vec<Vec<Option<conspire::math::TensorRank1<3, 1>>>>> =
             vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;91m✰ Allocation 1\x1b[0m {:?} ",
+            temporary.elapsed()
+        );
+        #[cfg(feature = "profile")]
+        let temporary = Instant::now();
         let mut indexed_nodes =
-            vec![vec![vec![None; *tree.nel.z() + 1]; *tree.nel.y() + 1]; *tree.nel.x() + 1];
+            vec![vec![vec![None; tree.nel.z() + 1]; tree.nel.y() + 1]; tree.nel.x() + 1];
+        // let mut indexed_nodes: Vec<Vec<Vec<Option<usize>>>> =
+        //     vec![vec![Vec::with_capacity(nelzplus1); nelyplus1]; nelxplus1];
         let mut node_index: usize = NODE_NUMBERING_OFFSET;
-        let element_node_connectivity = tree
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;91m✰ Allocation 2\x1b[0m {:?} ",
+            temporary.elapsed()
+        );
+        // #[cfg(feature = "profile")]
+        // let temporary = Instant::now();
+        // let mut foo: Vec<Vec<Vec<Option<usize>>>> =
+        //     vec![vec![Vec::with_capacity(nelzplus1); nelyplus1]; nelxplus1];
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "             \x1b[1;91m✰ Allocation 3\x1b[0m {:?} ",
+        //     temporary.elapsed()
+        // );
+        #[cfg(feature = "profile")]
+        let temporary = Instant::now();
+        tree
             .iter()
             .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
-            .flat_map(|leaf| {
+            .for_each(|leaf| {
                 leaf.get_nodal_indices_cell()
                     .into_iter()
                     .for_each(|[i, j, k]| {
@@ -1620,16 +1647,6 @@ impl From<Octree> for TetrahedralFiniteElements {
                         Neighbor::None,
                     ] => {
                         (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
-                        Self::hex_to_tet(
-                            &leaf
-                                .get_nodal_indices_cell()
-                                .into_iter()
-                                .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
-                                .collect::<Vec<usize>>()
-                                .try_into()
-                                .unwrap(),
-                        )
-                        .to_vec()
                     }
                     [
                         Neighbor::Face(_),
@@ -1682,8 +1699,55 @@ impl From<Octree> for TetrahedralFiniteElements {
                         //     panic!()
                         // }
                         //
-                        // MAKE THE CONNECTIVITY PART SEPARATE AND PARALLELIZE IT?
-                        //
+                    }
+                    _ => {}
+                }
+            });
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;91m✰ Initial coordinates\x1b[0m {:?} ",
+            temporary.elapsed()
+        );
+        #[cfg(feature = "profile")]
+        let temporary = Instant::now();
+        let element_node_connectivity = tree
+            .par_iter()
+            .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
+            .flat_map(|leaf|
+                match tree.neighbors_template(leaf) {
+                    [
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                    ] => {
+                        Self::hex_to_tet(
+                            &leaf
+                                .get_nodal_indices_cell()
+                                .into_iter()
+                                .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
+                                .collect::<Vec<usize>>()
+                                .try_into()
+                                .unwrap(),
+                        )
+                        .to_vec()
+                    }
+                    [
+                        Neighbor::Face(_),
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                        Neighbor::None,
+                    ] => {
+                        let i1 = (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
+                        let j1 = *leaf.get_min_y() as usize;
+                        let k1 = *leaf.get_min_z() as usize;
+                        let i2 = *leaf.get_min_x() as usize;
+                        let j2 = *leaf.get_min_y() as usize;
+                        let k2 = (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
                         vec![
                             [
                                 indexed_nodes[*leaf.get_min_x() as usize][*leaf.get_min_y() as usize][*leaf.get_min_z() as usize].unwrap(),
@@ -1697,8 +1761,15 @@ impl From<Octree> for TetrahedralFiniteElements {
                         vec![]
                     }
                 }
-            })
+            )
             .collect();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;91m✰ Connectivity\x1b[0m {:?} ",
+            temporary.elapsed()
+        );
+        #[cfg(feature = "profile")]
+        let temporary = Instant::now();
         let mut nodal_coordinates =
             Coordinates::zero(indexed_nodes.iter().flatten().flatten().flatten().count());
         indexed_nodes
@@ -1716,7 +1787,19 @@ impl From<Octree> for TetrahedralFiniteElements {
             .for_each(|(node, coordinates)| {
                 nodal_coordinates[node - NODE_NUMBERING_OFFSET] = coordinates
             });
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;91m✰ Nodal coordinates\x1b[0m {:?} ",
+            temporary.elapsed()
+        );
+        #[cfg(feature = "profile")]
+        let temporary = Instant::now();
         let fem = Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates);
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;91m✰ Finite elements\x1b[0m {:?} ",
+            temporary.elapsed()
+        );
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mTetrahedral finite elements\x1b[0m {:?} ",
