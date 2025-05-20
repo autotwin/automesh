@@ -1582,7 +1582,7 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut removed_data: Blocks = (&tree.remove).into();
         removed_data.push(PADDING);
         let mut element_blocks = vec![];
-        let mut indexed_nodal_coordinates= vec![];
+        let mut indexed_nodal_coordinates = vec![];
         #[cfg(feature = "profile")]
         let temporary = Instant::now();
         let mut indexed_nodes =
@@ -1595,19 +1595,17 @@ impl From<Octree> for TetrahedralFiniteElements {
         let mut node_index: usize = NODE_NUMBERING_OFFSET;
         #[cfg(feature = "profile")]
         let temporary = Instant::now();
-        tree
-            .iter()
+        tree.iter()
             .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
             .for_each(|leaf| {
                 leaf.get_nodal_indices_cell()
                     .into_iter()
                     .for_each(|[i, j, k]| {
-                        if indexed_nodes[i][j][k].is_none()
-                        {
+                        if indexed_nodes[i][j][k].is_none() {
                             indexed_nodal_coordinates.push([node_index, i, j, k]);
                             indexed_nodes[i][j][k] = Some(node_index);
                             node_index += 1;
-                        } 
+                        }
                     });
                 match tree.neighbors_template(leaf) {
                     [
@@ -1636,7 +1634,8 @@ impl From<Octree> for TetrahedralFiniteElements {
                         // make the connectivities for the 20 tets
                         // unsure if this is the minimal template in this case or not
                         //
-                        let i1 = (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
+                        let i1 =
+                            (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
                         let j1 = *leaf.get_min_y() as usize;
                         let k1 = *leaf.get_min_z() as usize;
                         //
@@ -1650,7 +1649,8 @@ impl From<Octree> for TetrahedralFiniteElements {
                         }
                         let i2 = *leaf.get_min_x() as usize;
                         let j2 = *leaf.get_min_y() as usize;
-                        let k2 = (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
+                        let k2 =
+                            (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
                         if indexed_nodes[i2][j2][k2].is_none() {
                             indexed_nodal_coordinates.push([node_index, i2, j2, k2]);
                             indexed_nodes[i2][j2][k2] = Some(node_index);
@@ -1670,55 +1670,53 @@ impl From<Octree> for TetrahedralFiniteElements {
         let element_node_connectivity = tree
             .par_iter()
             .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
-            .flat_map(|leaf|
-                match tree.neighbors_template(leaf) {
-                    [
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                    ] => {
-                        Self::hex_to_tet(
-                            &leaf
-                                .get_nodal_indices_cell()
-                                .into_iter()
-                                .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
-                                .collect::<Vec<usize>>()
-                                .try_into()
-                                .unwrap(),
-                        )
-                        .to_vec()
-                    }
-                    [
-                        Neighbor::Face(_),
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                        Neighbor::None,
-                    ] => {
-                        let i1 = (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
-                        let j1 = *leaf.get_min_y() as usize;
-                        let k1 = *leaf.get_min_z() as usize;
-                        let i2 = *leaf.get_min_x() as usize;
-                        let j2 = *leaf.get_min_y() as usize;
-                        let k2 = (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
-                        vec![
-                            [
-                                indexed_nodes[*leaf.get_min_x() as usize][*leaf.get_min_y() as usize][*leaf.get_min_z() as usize].unwrap(),
-                                indexed_nodes[i2][j2][k2].unwrap(),
-                                indexed_nodes[i1][j1][k1].unwrap(),
-                                indexed_nodes[*leaf.get_min_x() as usize][leaf.get_max_y() as usize][*leaf.get_min_z() as usize].unwrap(),
-                            ]
-                        ]
-                    }
-                    _ => {
-                        vec![]
-                    }
+            .flat_map(|leaf| match tree.neighbors_template(leaf) {
+                [
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                ] => Self::hex_to_tet(
+                    &leaf
+                        .get_nodal_indices_cell()
+                        .into_iter()
+                        .filter_map(|[i, j, k]| indexed_nodes[i][j][k])
+                        .collect::<Vec<usize>>()
+                        .try_into()
+                        .unwrap(),
+                )
+                .to_vec(),
+                [
+                    Neighbor::Face(_),
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                ] => {
+                    let i1 = (*leaf.get_min_x() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
+                    let j1 = *leaf.get_min_y() as usize;
+                    let k1 = *leaf.get_min_z() as usize;
+                    let i2 = *leaf.get_min_x() as usize;
+                    let j2 = *leaf.get_min_y() as usize;
+                    let k2 = (*leaf.get_min_z() as f64 + 0.5 * *leaf.get_lngth() as f64) as usize;
+                    vec![[
+                        indexed_nodes[*leaf.get_min_x() as usize][*leaf.get_min_y() as usize]
+                            [*leaf.get_min_z() as usize]
+                            .unwrap(),
+                        indexed_nodes[i2][j2][k2].unwrap(),
+                        indexed_nodes[i1][j1][k1].unwrap(),
+                        indexed_nodes[*leaf.get_min_x() as usize][leaf.get_max_y() as usize]
+                            [*leaf.get_min_z() as usize]
+                            .unwrap(),
+                    ]]
                 }
-            )
+                _ => {
+                    vec![]
+                }
+            })
             .collect();
         #[cfg(feature = "profile")]
         println!(
@@ -1732,10 +1730,10 @@ impl From<Octree> for TetrahedralFiniteElements {
             .into_iter()
             .for_each(|[node, i, j, k]| {
                 nodal_coordinates[node - NODE_NUMBERING_OFFSET] = Coordinate::new([
-                        i as f64 * tree.scale.x() + tree.translate.x(),
-                        j as f64 * tree.scale.y() + tree.translate.y(),
-                        k as f64 * tree.scale.z() + tree.translate.z(),
-                    ])
+                    i as f64 * tree.scale.x() + tree.translate.x(),
+                    j as f64 * tree.scale.y() + tree.translate.y(),
+                    k as f64 * tree.scale.z() + tree.translate.z(),
+                ])
             });
         #[cfg(feature = "profile")]
         println!(
