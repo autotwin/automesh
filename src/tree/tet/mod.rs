@@ -51,30 +51,30 @@ pub fn connectivity(
                 Neighbor::None,
                 Neighbor::None,
             ] => connectivity_0f0000(leaf, &indexed_nodes),
-            [
-                Neighbor::None,
-                Neighbor::None,
-                Neighbor::Face(_),
-                Neighbor::None,
-                Neighbor::None,
-                Neighbor::None,
-            ] => connectivity_00f000(leaf, &indexed_nodes),
-            [
-                Neighbor::None,
-                Neighbor::None,
-                Neighbor::None,
-                Neighbor::Face(_),
-                Neighbor::None,
-                Neighbor::None,
-            ] => connectivity_000f00(leaf, &indexed_nodes),
-            [
-                Neighbor::None,
-                Neighbor::None,
-                Neighbor::None,
-                Neighbor::None,
-                Neighbor::Face(_),
-                Neighbor::None,
-            ] => connectivity_0000f0(leaf, &indexed_nodes),
+            // [
+            //     Neighbor::None,
+            //     Neighbor::None,
+            //     Neighbor::Face(_),
+            //     Neighbor::None,
+            //     Neighbor::None,
+            //     Neighbor::None,
+            // ] => connectivity_00f000(leaf, &indexed_nodes),
+            // [
+            //     Neighbor::None,
+            //     Neighbor::None,
+            //     Neighbor::None,
+            //     Neighbor::Face(_),
+            //     Neighbor::None,
+            //     Neighbor::None,
+            // ] => connectivity_000f00(leaf, &indexed_nodes),
+            // [
+            //     Neighbor::None,
+            //     Neighbor::None,
+            //     Neighbor::None,
+            //     Neighbor::None,
+            //     Neighbor::Face(_),
+            //     Neighbor::None,
+            // ] => connectivity_0000f0(leaf, &indexed_nodes),
             _ => {
                 vec![]
             }
@@ -126,9 +126,6 @@ fn connectivity_0f0000(
     cell: &Cell,
     indexed_nodes: &Vec<Vec<Vec<Option<usize>>>>,
 ) -> Vec<[usize; TET]> {
-    //
-    // NEED TO SPIN
-    //
     let [
         min_x,
         haf_x,
@@ -340,57 +337,57 @@ pub fn coordinates(
                         }
                     });
                 }
-                [
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::Face(_),
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                ] => {
-                    (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
-                    coordinates_00f000(leaf).into_iter().for_each(|[i, j, k]| {
-                        if indexed_nodes[i][j][k].is_none() {
-                            indexed_coordinates.push([node_index, i, j, k]);
-                            indexed_nodes[i][j][k] = Some(node_index);
-                            node_index += 1;
-                        }
-                    });
-                }
-                [
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::Face(_),
-                    Neighbor::None,
-                    Neighbor::None,
-                ] => {
-                    (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
-                    coordinates_000f00(leaf).into_iter().for_each(|[i, j, k]| {
-                        if indexed_nodes[i][j][k].is_none() {
-                            indexed_coordinates.push([node_index, i, j, k]);
-                            indexed_nodes[i][j][k] = Some(node_index);
-                            node_index += 1;
-                        }
-                    });
-                }
-                [
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::None,
-                    Neighbor::Face(_),
-                    Neighbor::None,
-                ] => {
-                    (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
-                    coordinates_0000f0(leaf).into_iter().for_each(|[i, j, k]| {
-                        if indexed_nodes[i][j][k].is_none() {
-                            indexed_coordinates.push([node_index, i, j, k]);
-                            indexed_nodes[i][j][k] = Some(node_index);
-                            node_index += 1;
-                        }
-                    });
-                }
+                // [
+                //     Neighbor::None,
+                //     Neighbor::None,
+                //     Neighbor::Face(_),
+                //     Neighbor::None,
+                //     Neighbor::None,
+                //     Neighbor::None,
+                // ] => {
+                //     (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
+                //     coordinates_00f000(leaf).into_iter().for_each(|[i, j, k]| {
+                //         if indexed_nodes[i][j][k].is_none() {
+                //             indexed_coordinates.push([node_index, i, j, k]);
+                //             indexed_nodes[i][j][k] = Some(node_index);
+                //             node_index += 1;
+                //         }
+                //     });
+                // }
+                // [
+                //     Neighbor::None,
+                //     Neighbor::None,
+                //     Neighbor::None,
+                //     Neighbor::Face(_),
+                //     Neighbor::None,
+                //     Neighbor::None,
+                // ] => {
+                //     (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
+                //     coordinates_000f00(leaf).into_iter().for_each(|[i, j, k]| {
+                //         if indexed_nodes[i][j][k].is_none() {
+                //             indexed_coordinates.push([node_index, i, j, k]);
+                //             indexed_nodes[i][j][k] = Some(node_index);
+                //             node_index += 1;
+                //         }
+                //     });
+                // }
+                // [
+                //     Neighbor::None,
+                //     Neighbor::None,
+                //     Neighbor::None,
+                //     Neighbor::None,
+                //     Neighbor::Face(_),
+                //     Neighbor::None,
+                // ] => {
+                //     (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
+                //     coordinates_0000f0(leaf).into_iter().for_each(|[i, j, k]| {
+                //         if indexed_nodes[i][j][k].is_none() {
+                //             indexed_coordinates.push([node_index, i, j, k]);
+                //             indexed_nodes[i][j][k] = Some(node_index);
+                //             node_index += 1;
+                //         }
+                //     });
+                // }
                 _ => {}
             }
         });
