@@ -137,7 +137,7 @@ impl DerefMut for Octree {
 
 #[derive(Default)]
 pub enum Neighbor {
-    Edges(NeighborEdges),
+    Edges(NeighborEdges), // MAY NOT NEED TO TRACK WHICH EDGES
     Face,
     #[default]
     None,
