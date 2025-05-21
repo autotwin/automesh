@@ -878,7 +878,7 @@ const fn coordinates_00000f(cell: &Cell) -> [[usize; 3]; 6] {
 }
 
 const fn coordinates_ee0000(cell: &Cell) -> [[usize; 3]; 1] {
-    let [_, max_x, _, min_y, _, _, _, haf_z, _] = cell.get_all();
+    let [_, _, max_x, min_y, _, _, _, haf_z, _] = cell.get_all();
     [[max_x, min_y, haf_z]]
 }
 
@@ -903,7 +903,7 @@ const fn coordinates_0e000e(cell: &Cell) -> [[usize; 3]; 1] {
 }
 
 const fn coordinates_00ee00(cell: &Cell) -> [[usize; 3]; 1] {
-    let [min_x, _, _, _, max_y, _, _, haf_z, _] = cell.get_all();
+    let [min_x, _, _, _, _, max_y, _, haf_z, _] = cell.get_all();
     [[min_x, max_y, haf_z]]
 }
 
@@ -913,6 +913,6 @@ const fn coordinates_00e00e(cell: &Cell) -> [[usize; 3]; 1] {
 }
 
 const fn coordinates_000ee0(cell: &Cell) -> [[usize; 3]; 1] {
-    let [min_x, _, _, _, _, haf_y, _, _, min_z] = cell.get_all();
+    let [min_x, _, _, _, haf_y, _, min_z, _, _] = cell.get_all();
     [[min_x, haf_y, min_z]]
 }
