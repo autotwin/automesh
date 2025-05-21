@@ -440,13 +440,13 @@ fn connectivity_e000e0(
     let [min_x, haf_x, max_x, min_y, _, max_y, min_z, _, max_z] = cell.get_all();
     let nodes = [
         indexed_nodes[min_x][min_y][min_z].unwrap(),
-        indexed_nodes[min_x][min_y][max_z].unwrap(),
-        indexed_nodes[min_x][max_y][max_z].unwrap(),
         indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
         indexed_nodes[max_x][min_y][min_z].unwrap(),
-        indexed_nodes[max_x][min_y][max_z].unwrap(),
-        indexed_nodes[max_x][max_y][max_z].unwrap(),
         indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
         indexed_nodes[haf_x][min_y][min_z].unwrap(),
     ];
     TetrahedralTransition::one_edge_a(nodes)
@@ -458,17 +458,17 @@ fn connectivity_e0000e(
 ) -> Vec<[usize; TET]> {
     let [min_x, haf_x, max_x, min_y, _, max_y, min_z, _, max_z] = cell.get_all();
     let nodes = [
-        indexed_nodes[max_x][max_y][max_z].unwrap(),
-        indexed_nodes[max_x][min_y][max_z].unwrap(),
-        indexed_nodes[max_x][min_y][min_z].unwrap(),
-        indexed_nodes[max_x][max_y][min_z].unwrap(),
         indexed_nodes[min_x][max_y][max_z].unwrap(),
         indexed_nodes[min_x][min_y][max_z].unwrap(),
         indexed_nodes[min_x][min_y][min_z].unwrap(),
         indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
         indexed_nodes[haf_x][min_y][max_z].unwrap(),
     ];
-    TetrahedralTransition::one_edge_b(nodes)
+    TetrahedralTransition::one_edge_c(nodes)
 }
 
 fn connectivity_0ee000(
@@ -496,17 +496,17 @@ fn connectivity_0e00e0(
 ) -> Vec<[usize; TET]> {
     let [min_x, _, max_x, min_y, haf_y, max_y, min_z, _, max_z] = cell.get_all();
     let nodes = [
-        indexed_nodes[max_x][max_y][max_z].unwrap(),
-        indexed_nodes[max_x][max_y][min_z].unwrap(),
-        indexed_nodes[min_x][max_y][min_z].unwrap(),
-        indexed_nodes[min_x][max_y][max_z].unwrap(),
         indexed_nodes[max_x][min_y][max_z].unwrap(),
         indexed_nodes[max_x][min_y][min_z].unwrap(),
         indexed_nodes[min_x][min_y][min_z].unwrap(),
         indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
         indexed_nodes[max_x][haf_y][min_z].unwrap(),
     ];
-    TetrahedralTransition::one_edge_b(nodes)
+    TetrahedralTransition::one_edge_c(nodes)
 }
 
 fn connectivity_0e000e(
@@ -516,13 +516,13 @@ fn connectivity_0e000e(
     let [min_x, _, max_x, min_y, haf_y, max_y, min_z, _, max_z] = cell.get_all();
     let nodes = [
         indexed_nodes[max_x][max_y][max_z].unwrap(),
-        indexed_nodes[max_x][max_y][min_z].unwrap(),
-        indexed_nodes[min_x][max_y][min_z].unwrap(),
         indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
         indexed_nodes[max_x][min_y][max_z].unwrap(),
-        indexed_nodes[max_x][min_y][min_z].unwrap(),
-        indexed_nodes[min_x][min_y][min_z].unwrap(),
         indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
         indexed_nodes[max_x][haf_y][max_z].unwrap(),
     ];
     TetrahedralTransition::one_edge_a(nodes)
@@ -534,17 +534,17 @@ fn connectivity_00ee00(
 ) -> Vec<[usize; TET]> {
     let [min_x, _, max_x, min_y, _, max_y, min_z, haf_z, max_z] = cell.get_all();
     let nodes = [
-        indexed_nodes[min_x][min_y][min_z].unwrap(),
-        indexed_nodes[min_x][max_y][min_z].unwrap(),
-        indexed_nodes[max_x][max_y][min_z].unwrap(),
-        indexed_nodes[max_x][min_y][min_z].unwrap(),
         indexed_nodes[min_x][min_y][max_z].unwrap(),
         indexed_nodes[min_x][max_y][max_z].unwrap(),
         indexed_nodes[max_x][max_y][max_z].unwrap(),
         indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
         indexed_nodes[min_x][max_y][haf_z].unwrap(),
     ];
-    TetrahedralTransition::one_edge_b(nodes)
+    TetrahedralTransition::one_edge_c(nodes)
 }
 
 fn connectivity_00e0e0(
@@ -573,13 +573,13 @@ fn connectivity_00e00e(
     let [min_x, haf_x, max_x, min_y, _, max_y, min_z, _, max_z] = cell.get_all();
     let nodes = [
         indexed_nodes[max_x][max_y][max_z].unwrap(),
-        indexed_nodes[max_x][min_y][max_z].unwrap(),
-        indexed_nodes[max_x][min_y][min_z].unwrap(),
         indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
         indexed_nodes[min_x][max_y][max_z].unwrap(),
-        indexed_nodes[min_x][min_y][max_z].unwrap(),
-        indexed_nodes[min_x][min_y][min_z].unwrap(),
         indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
         indexed_nodes[haf_x][max_y][max_z].unwrap(),
     ];
     TetrahedralTransition::one_edge_a(nodes)
