@@ -84,16 +84,13 @@ pub fn connectivity(
                 Neighbor::Face,
             ] => connectivity_00000f(leaf, indexed_nodes),
             [
-                Neighbor::Edges([false, true, false, false]),
+                Neighbor::Edges([false, true, false, false]), // may not need to track which edges
                 Neighbor::None,
                 Neighbor::None,
-                Neighbor::Edges([true, false, false, false]),
+                Neighbor::Edges([true, false, false, false]), // may not need to track which edges
                 Neighbor::None,
                 Neighbor::None,
-            ] => {
-                println!("hit");
-                vec![]
-            }
+            ] => connectivity_e00e00(leaf, indexed_nodes),
             _ => {
                 vec![]
             }
@@ -311,6 +308,25 @@ fn connectivity_00000f(
     TetrahedralTransition::one_face(nodes)
 }
 
+fn connectivity_e00e00(
+    cell: &Cell,
+    indexed_nodes: &[Vec<Vec<Option<usize>>>],
+) -> Vec<[usize; TET]> {
+    let [min_x, _, max_x, min_y, _, max_y, min_z, haf_z, max_z] = cell.get_all();
+    let nodes = [
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][haf_z].unwrap(),
+    ];
+    TetrahedralTransition::one_edge_a(nodes)
+}
+
 type CoordinatesOutput = (Blocks, Vec<[usize; 4]>, Vec<Vec<Vec<Option<usize>>>>);
 
 pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
@@ -453,6 +469,23 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                         }
                     });
                 }
+                [
+                    Neighbor::Edges([false, true, false, false]), // may not need to track which edges
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Edges([true, false, false, false]), // may not need to track which edges
+                    Neighbor::None,
+                    Neighbor::None,
+                ] => {
+                    (0..7).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_e00e00(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
                 _ => {}
             }
         });
@@ -534,4 +567,9 @@ const fn coordinates_00000f(cell: &Cell) -> [[usize; 3]; 6] {
         [haf_x, haf_y, max_z],
         [haf_x, haf_y, haf_z],
     ]
+}
+
+const fn coordinates_e00e00(cell: &Cell) -> [[usize; 3]; 1] {
+    let [min_x, _, _, min_y, _, _, _, haf_z, _] = cell.get_all();
+    [[min_x, min_y, haf_z]]
 }
