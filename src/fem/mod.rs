@@ -673,7 +673,7 @@ fn finite_element_data_from_inp<const N: usize>(
     let mut element_blocks: Blocks = vec![];
     let mut element_node_connectivity: Connectivity<N> = vec![];
     let mut element_numbers = vec![];
-    while buffer != "**\n" {
+    while buffer != "**" {
         if buffer.trim().chars().take(8).collect::<String>() == "*ELEMENT" {
             current_block = buffer.trim().chars().last().unwrap().to_digit(10).unwrap() as u8;
         } else {
@@ -823,12 +823,10 @@ fn write_finite_elements_to_abaqus<const N: usize>(
 }
 
 fn write_heading_to_inp(file: &mut BufWriter<File>) -> Result<(), ErrorIO> {
-    let prefix = "*HEADING\n";
-    let middle = automesh_header().replace(", ", "\n");
-    let postfix = "**\n";
-    let heading = format!("{}{}{}", prefix, middle, postfix);
-    file.write_all(heading.as_bytes())?;
-    end_section(file)
+    let postfix = "\n";
+    let middle = automesh_header().replace(", ", "\n** ");
+    let heading = format!("** {}{}", middle, postfix);
+    file.write_all(heading.as_bytes())
 }
 
 fn write_nodal_coordinates_to_inp(
@@ -925,16 +923,7 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
                 })?;
             newline(file)
         })?;
-    end_section(file)?;
-    let result = element_blocks_unique.iter().try_for_each(|block| {
-        file.write_all(
-            format!(
-                "*SOLID SECTION, ELSET=EB{}, MATERIAL=Default-Steel\n",
-                block
-            )
-            .as_bytes(),
-        )
-    });
+    let result = end_file(file);
     #[cfg(feature = "profile")]
     println!(
         "             \x1b[1;93mElement-to-node connectivity\x1b[0m {:?}",
@@ -945,6 +934,10 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
 
 fn end_section(file: &mut BufWriter<File>) -> Result<(), ErrorIO> {
     file.write_all(&[42, 42, 10])
+}
+
+fn end_file(file: &mut BufWriter<File>) -> Result<(), ErrorIO> {
+    file.write_all(&[42, 42])
 }
 
 fn delimiter(file: &mut BufWriter<File>) -> Result<(), ErrorIO> {
