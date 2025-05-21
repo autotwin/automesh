@@ -1615,14 +1615,7 @@ impl From<Octree> for TetrahedralFiniteElements {
             "             \x1b[1;91m✰ Nodal coordinates\x1b[0m {:?} ",
             temporary.elapsed()
         );
-        #[cfg(feature = "profile")]
-        let temporary = Instant::now();
         let fem = Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates);
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;91m✰ Finite elements\x1b[0m {:?} ",
-            temporary.elapsed()
-        );
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mTetrahedral finite elements\x1b[0m {:?} ",
