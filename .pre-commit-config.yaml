@@ -5,6 +5,7 @@ repos:
     -   id: check-yaml
     -   id: check-added-large-files
     -   id: end-of-file-fixer
+        exclude: '\.inp$'
     -   id: trailing-whitespace
 -   repo: https://github.com/backplane/pre-commit-rust-hooks
     rev: v1.1.0
