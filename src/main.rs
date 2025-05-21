@@ -376,7 +376,7 @@ struct MeshHexArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh adaptively.
+    /// Pass to mesh adaptively
     #[arg(action, hide = true, long)]
     adapt: bool,
 }
@@ -1285,14 +1285,21 @@ where
             }
             if !quiet {
                 time = Instant::now();
-                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
             let mut output_type: HexahedralFiniteElements = if adapt {
+                if !quiet {
+                    print!("     \x1b[1;96mMeshing\x1b[0m adaptive hexahedra");
+                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                }
                 let mut tree = Octree::from(input_type);
                 tree.balance(true);
                 tree.pair();
                 tree.into()
             } else {
+                if !quiet {
+                    print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
+                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                }
                 input_type.into()
             };
             if !quiet {
@@ -1357,13 +1364,20 @@ where
             }
             if !quiet {
                 time = Instant::now();
-                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
             let mut output_type: TetrahedralFiniteElements = if adapt {
+                if !quiet {
+                    print!("     \x1b[1;96mMeshing\x1b[0m adaptive tetrahedra");
+                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                }
                 let mut tree = Octree::from(input_type);
                 tree.balance(true);
                 tree.into()
             } else {
+                if !quiet {
+                    print!("     \x1b[1;96mMeshing\x1b[0m voxels into tetrahedra");
+                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                }
                 input_type.into()
             };
             if !quiet {
@@ -1489,14 +1503,12 @@ where
 fn mesh_print_info(basis: MeshBasis, scale: &Scale, translate: &Translate) {
     match basis {
         MeshBasis::Leaves => {
-            print!("     \x1b[1;96mMeshing\x1b[0m leaves into hexes")
+            print!("     \x1b[1;96mMeshing\x1b[0m leaves into hexahedra")
         }
         MeshBasis::Surfaces => {
             print!("     \x1b[1;96mMeshing\x1b[0m internal surfaces")
         }
-        MeshBasis::Voxels => {
-            print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexes");
-        }
+        MeshBasis::Voxels => {}
     }
     if scale != &Default::default() || translate != &Default::default() {
         print!(" \x1b[2m[");
