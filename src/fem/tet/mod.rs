@@ -134,4 +134,16 @@ impl TetrahedralTransition {
             [nodes[8], nodes[3], nodes[7], nodes[5]],
         ]
     }
+    pub fn one_edge_b(nodes: [usize; 9]) -> Vec<[usize; TET]> {
+        vec![
+            [nodes[8], nodes[1], nodes[0], nodes[3]],
+            [nodes[8], nodes[0], nodes[4], nodes[3]],
+            [nodes[8], nodes[4], nodes[5], nodes[7]],
+            [nodes[8], nodes[5], nodes[6], nodes[7]],
+            [nodes[8], nodes[6], nodes[2], nodes[7]],
+            [nodes[8], nodes[2], nodes[1], nodes[3]],
+            [nodes[8], nodes[7], nodes[2], nodes[3]],
+            [nodes[8], nodes[4], nodes[7], nodes[3]],
+        ]
+    }
 }
