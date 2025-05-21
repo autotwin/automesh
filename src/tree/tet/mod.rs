@@ -5,7 +5,6 @@ use super::{
     },
     Blocks, Cell, NODE_NUMBERING_OFFSET, Neighbor, Octree, Tree,
 };
-use ndarray::parallel::prelude::*;
 
 pub fn connectivity(
     tree: &Octree,
@@ -15,7 +14,7 @@ pub fn connectivity(
     #[cfg(feature = "profile")]
     let temporary = std::time::Instant::now();
     let element_node_connectivity = tree
-        .par_iter()
+        .iter()
         .filter(|cell| cell.is_leaf() && removed_data.binary_search(&cell.get_block()).is_err())
         .flat_map(|leaf| match tree.neighbors_template(leaf) {
             [
