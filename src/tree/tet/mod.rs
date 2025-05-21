@@ -100,6 +100,14 @@ pub fn connectivity(
                 Neighbor::None,
             ] => connectivity_e00e00(leaf, indexed_nodes),
             [
+                Neighbor::Edges(_),
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Edges(_),
+                Neighbor::None,
+            ] => connectivity_e000e0(leaf, indexed_nodes),
+            [
                 Neighbor::None,
                 Neighbor::Edges(_),
                 Neighbor::Edges(_),
@@ -109,14 +117,38 @@ pub fn connectivity(
             ] => connectivity_0ee000(leaf, indexed_nodes),
             [
                 Neighbor::None,
+                Neighbor::Edges(_),
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Edges(_),
+            ] => connectivity_0e000e(leaf, indexed_nodes),
+            [
+                Neighbor::None,
                 Neighbor::None,
                 Neighbor::Edges(_),
                 Neighbor::Edges(_),
                 Neighbor::None,
                 Neighbor::None,
             ] => connectivity_00ee00(leaf, indexed_nodes),
+            [
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Edges(_),
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Edges(_),
+            ] => connectivity_00e00e(leaf, indexed_nodes),
+            [
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Edges(_),
+                Neighbor::Edges(_),
+                Neighbor::None,
+            ] => connectivity_000ee0(leaf, indexed_nodes),
             _ => {
-                vec![]
+                vec![] // panic here to indicate a missing template
             }
         })
         .collect();
@@ -332,6 +364,25 @@ fn connectivity_00000f(
     TetrahedralTransition::one_face(nodes)
 }
 
+fn connectivity_ee0000(
+    cell: &Cell,
+    indexed_nodes: &[Vec<Vec<Option<usize>>>],
+) -> Vec<[usize; TET]> {
+    let [min_x, _, max_x, min_y, _, max_y, min_z, haf_z, max_z] = cell.get_all();
+    let nodes = [
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][haf_z].unwrap(),
+    ];
+    TetrahedralTransition::one_edge_b(nodes)
+}
+
 fn connectivity_e00e00(
     cell: &Cell,
     indexed_nodes: &[Vec<Vec<Option<usize>>>],
@@ -351,23 +402,23 @@ fn connectivity_e00e00(
     TetrahedralTransition::one_edge_a(nodes)
 }
 
-fn connectivity_ee0000(
+fn connectivity_e000e0(
     cell: &Cell,
     indexed_nodes: &[Vec<Vec<Option<usize>>>],
 ) -> Vec<[usize; TET]> {
-    let [min_x, _, max_x, min_y, _, max_y, min_z, haf_z, max_z] = cell.get_all();
+    let [min_x, haf_x, max_x, min_y, _, max_y, min_z, _, max_z] = cell.get_all();
     let nodes = [
         indexed_nodes[min_x][min_y][min_z].unwrap(),
-        indexed_nodes[max_x][min_y][min_z].unwrap(),
-        indexed_nodes[max_x][max_y][min_z].unwrap(),
-        indexed_nodes[min_x][max_y][min_z].unwrap(),
         indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
         indexed_nodes[max_x][min_y][max_z].unwrap(),
         indexed_nodes[max_x][max_y][max_z].unwrap(),
-        indexed_nodes[min_x][max_y][max_z].unwrap(),
-        indexed_nodes[max_x][min_y][haf_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[haf_x][min_y][min_z].unwrap(),
     ];
-    TetrahedralTransition::one_edge_b(nodes)
+    TetrahedralTransition::one_edge_a(nodes)
 }
 
 fn connectivity_0ee000(
@@ -389,6 +440,25 @@ fn connectivity_0ee000(
     TetrahedralTransition::one_edge_a(nodes)
 }
 
+fn connectivity_0e000e(
+    cell: &Cell,
+    indexed_nodes: &[Vec<Vec<Option<usize>>>],
+) -> Vec<[usize; TET]> {
+    let [min_x, _, max_x, min_y, haf_y, max_y, min_z, _, max_z] = cell.get_all();
+    let nodes = [
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][haf_y][max_z].unwrap(),
+    ];
+    TetrahedralTransition::one_edge_a(nodes)
+}
+
 fn connectivity_00ee00(
     cell: &Cell,
     indexed_nodes: &[Vec<Vec<Option<usize>>>],
@@ -406,6 +476,44 @@ fn connectivity_00ee00(
         indexed_nodes[min_x][max_y][haf_z].unwrap(),
     ];
     TetrahedralTransition::one_edge_b(nodes)
+}
+
+fn connectivity_00e00e(
+    cell: &Cell,
+    indexed_nodes: &[Vec<Vec<Option<usize>>>],
+) -> Vec<[usize; TET]> {
+    let [min_x, haf_x, max_x, min_y, _, max_y, min_z, _, max_z] = cell.get_all();
+    let nodes = [
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[haf_x][max_y][max_z].unwrap(),
+    ];
+    TetrahedralTransition::one_edge_a(nodes)
+}
+
+fn connectivity_000ee0(
+    cell: &Cell,
+    indexed_nodes: &[Vec<Vec<Option<usize>>>],
+) -> Vec<[usize; TET]> {
+    let [min_x, _, max_x, min_y, haf_y, max_y, min_z, _, max_z] = cell.get_all();
+    let nodes = [
+        indexed_nodes[min_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][max_z].unwrap(),
+        indexed_nodes[max_x][min_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][max_z].unwrap(),
+        indexed_nodes[max_x][max_y][min_z].unwrap(),
+        indexed_nodes[min_x][haf_y][min_z].unwrap(),
+    ];
+    TetrahedralTransition::one_edge_a(nodes)
 }
 
 type CoordinatesOutput = (Blocks, Vec<[usize; 4]>, Vec<Vec<Vec<Option<usize>>>>);
@@ -585,6 +693,23 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                     });
                 }
                 [
+                    Neighbor::Edges(_),
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Edges(_),
+                    Neighbor::None,
+                ] => {
+                    (0..7).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_e000e0(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
+                [
                     Neighbor::None,
                     Neighbor::Edges(_),
                     Neighbor::Edges(_),
@@ -594,6 +719,23 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                 ] => {
                     (0..7).for_each(|_| element_blocks.push(leaf.get_block()));
                     coordinates_0ee000(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
+                [
+                    Neighbor::None,
+                    Neighbor::Edges(_),
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Edges(_),
+                ] => {
+                    (0..7).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_0e000e(leaf).into_iter().for_each(|[i, j, k]| {
                         if indexed_nodes[i][j][k].is_none() {
                             indexed_coordinates.push([node_index, i, j, k]);
                             indexed_nodes[i][j][k] = Some(node_index);
@@ -618,7 +760,41 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                         }
                     });
                 }
-                _ => {}
+                [
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Edges(_),
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Edges(_),
+                ] => {
+                    (0..7).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_00e00e(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
+                [
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::None,
+                    Neighbor::Edges(_),
+                    Neighbor::Edges(_),
+                    Neighbor::None,
+                ] => {
+                    (0..7).for_each(|_| element_blocks.push(leaf.get_block()));
+                    coordinates_000ee0(leaf).into_iter().for_each(|[i, j, k]| {
+                        if indexed_nodes[i][j][k].is_none() {
+                            indexed_coordinates.push([node_index, i, j, k]);
+                            indexed_nodes[i][j][k] = Some(node_index);
+                            node_index += 1;
+                        }
+                    });
+                }
+                _ => {} // panic here to indicate a missing template
             }
         });
     #[cfg(feature = "profile")]
@@ -711,12 +887,32 @@ const fn coordinates_e00e00(cell: &Cell) -> [[usize; 3]; 1] {
     [[min_x, min_y, haf_z]]
 }
 
+const fn coordinates_e000e0(cell: &Cell) -> [[usize; 3]; 1] {
+    let [_, haf_x, _, min_y, _, _, min_z, _, _] = cell.get_all();
+    [[haf_x, min_y, min_z]]
+}
+
 const fn coordinates_0ee000(cell: &Cell) -> [[usize; 3]; 1] {
     let [_, _, max_x, _, _, max_y, _, haf_z, _] = cell.get_all();
     [[max_x, max_y, haf_z]]
 }
 
+const fn coordinates_0e000e(cell: &Cell) -> [[usize; 3]; 1] {
+    let [_, _, max_x, _, haf_y, _, _, _, max_z] = cell.get_all();
+    [[max_x, haf_y, max_z]]
+}
+
 const fn coordinates_00ee00(cell: &Cell) -> [[usize; 3]; 1] {
     let [min_x, _, _, _, max_y, _, _, haf_z, _] = cell.get_all();
     [[min_x, max_y, haf_z]]
+}
+
+const fn coordinates_00e00e(cell: &Cell) -> [[usize; 3]; 1] {
+    let [_, haf_x, _, _, _, max_y, _, _, max_z] = cell.get_all();
+    [[haf_x, max_y, max_z]]
+}
+
+const fn coordinates_000ee0(cell: &Cell) -> [[usize; 3]; 1] {
+    let [min_x, _, _, _, _, haf_y, _, _, min_z] = cell.get_all();
+    [[min_x, haf_y, min_z]]
 }
