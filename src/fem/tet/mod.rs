@@ -53,7 +53,19 @@ impl TetrahedralFiniteElements {
                 connectivity[4],
                 connectivity[5],
                 connectivity[1],
+                connectivity[7],
+            ],
+            [
+                connectivity[7],
+                connectivity[4],
+                connectivity[3],
+                connectivity[1],
+            ],
+            [
+                connectivity[1],
+                connectivity[5],
                 connectivity[2],
+                connectivity[7],
             ],
             [
                 connectivity[5],
@@ -62,23 +74,47 @@ impl TetrahedralFiniteElements {
                 connectivity[7],
             ],
             [
-                connectivity[2],
+                connectivity[7],
                 connectivity[3],
-                connectivity[4],
-                connectivity[7],
-            ],
-            [
-                connectivity[7],
-                connectivity[5],
-                connectivity[4],
                 connectivity[2],
-            ],
-            [
                 connectivity[1],
-                connectivity[2],
-                connectivity[3],
-                connectivity[4],
             ],
+            // [
+            //     connectivity[0],
+            //     connectivity[1],
+            //     connectivity[3],
+            //     connectivity[4],
+            // ],
+            // [
+            //     connectivity[4],
+            //     connectivity[5],
+            //     connectivity[1],
+            //     connectivity[2],
+            // ],
+            // [
+            //     connectivity[5],
+            //     connectivity[6],
+            //     connectivity[2],
+            //     connectivity[7],
+            // ],
+            // [
+            //     connectivity[2],
+            //     connectivity[3],
+            //     connectivity[4],
+            //     connectivity[7],
+            // ],
+            // [
+            //     connectivity[7],
+            //     connectivity[5],
+            //     connectivity[4],
+            //     connectivity[2],
+            // ],
+            // [
+            //     connectivity[1],
+            //     connectivity[2],
+            //     connectivity[3],
+            //     connectivity[4],
+            // ],
         ]
     }
 }
@@ -121,6 +157,56 @@ impl TetrahedralTransition {
             [nodes[9], nodes[13], nodes[1], nodes[2]],
             [nodes[13], nodes[11], nodes[1], nodes[2]],
             [nodes[13], nodes[6], nodes[11], nodes[2]],
+        ]
+    }
+    pub fn one_edge_a(nodes: [usize; 9]) -> Vec<[usize; TET]> {
+        vec![
+            //
+            // try to recycle the common 3 from hex_to_tet
+            //
+            [nodes[0], nodes[0], nodes[0], nodes[0]],
+            [nodes[0], nodes[0], nodes[0], nodes[0]],
+            [nodes[0], nodes[0], nodes[0], nodes[0]],
+            [nodes[0], nodes[0], nodes[0], nodes[0]],
+            [nodes[0], nodes[0], nodes[0], nodes[0]],
+            [nodes[0], nodes[0], nodes[0], nodes[0]],
+            [nodes[0], nodes[0], nodes[0], nodes[0]],
+// [
+//     connectivity[0],
+//     connectivity[1],
+//     connectivity[3],
+//     connectivity[4],
+// ],
+// [
+//     connectivity[4],
+//     connectivity[5],
+//     connectivity[1],
+//     connectivity[2],
+// ],
+            // [
+            //     connectivity[5],
+            //     connectivity[6],
+            //     connectivity[2],
+            //     connectivity[7],
+            // ],
+// [
+//     connectivity[2],
+//     connectivity[3],
+//     connectivity[4],
+//     connectivity[7],
+// ],
+            // [
+            //     connectivity[7],
+            //     connectivity[5],
+            //     connectivity[4],
+            //     connectivity[2],
+            // ],
+            // [
+            //     connectivity[1],
+            //     connectivity[2],
+            //     connectivity[3],
+            //     connectivity[4],
+            // ],
         ]
     }
 }
