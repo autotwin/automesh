@@ -36,7 +36,7 @@ pub fn connectivity(
             )
             .to_vec(),
             [
-                Neighbor::Face(_),
+                Neighbor::Face,
                 Neighbor::None,
                 Neighbor::None,
                 Neighbor::None,
@@ -45,7 +45,7 @@ pub fn connectivity(
             ] => connectivity_f00000(leaf, indexed_nodes),
             [
                 Neighbor::None,
-                Neighbor::Face(_),
+                Neighbor::Face,
                 Neighbor::None,
                 Neighbor::None,
                 Neighbor::None,
@@ -54,7 +54,7 @@ pub fn connectivity(
             [
                 Neighbor::None,
                 Neighbor::None,
-                Neighbor::Face(_),
+                Neighbor::Face,
                 Neighbor::None,
                 Neighbor::None,
                 Neighbor::None,
@@ -63,7 +63,7 @@ pub fn connectivity(
                 Neighbor::None,
                 Neighbor::None,
                 Neighbor::None,
-                Neighbor::Face(_),
+                Neighbor::Face,
                 Neighbor::None,
                 Neighbor::None,
             ] => connectivity_000f00(leaf, indexed_nodes),
@@ -72,7 +72,7 @@ pub fn connectivity(
                 Neighbor::None,
                 Neighbor::None,
                 Neighbor::None,
-                Neighbor::Face(_),
+                Neighbor::Face,
                 Neighbor::None,
             ] => connectivity_0000f0(leaf, indexed_nodes),
             [
@@ -81,8 +81,19 @@ pub fn connectivity(
                 Neighbor::None,
                 Neighbor::None,
                 Neighbor::None,
-                Neighbor::Face(_),
+                Neighbor::Face,
             ] => connectivity_00000f(leaf, indexed_nodes),
+            [
+                Neighbor::Edges([false, true, false, false]),
+                Neighbor::None,
+                Neighbor::None,
+                Neighbor::Edges([true, false, false, false]),
+                Neighbor::None,
+                Neighbor::None,
+            ] => {
+                println!("hit");
+                vec![]
+            }
             _ => {
                 vec![]
             }
@@ -341,7 +352,7 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                     (0..NUM_TETS_PER_HEX).for_each(|_| element_blocks.push(leaf.get_block()));
                 }
                 [
-                    Neighbor::Face(_),
+                    Neighbor::Face,
                     Neighbor::None,
                     Neighbor::None,
                     Neighbor::None,
@@ -359,7 +370,7 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                 }
                 [
                     Neighbor::None,
-                    Neighbor::Face(_),
+                    Neighbor::Face,
                     Neighbor::None,
                     Neighbor::None,
                     Neighbor::None,
@@ -377,7 +388,7 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                 [
                     Neighbor::None,
                     Neighbor::None,
-                    Neighbor::Face(_),
+                    Neighbor::Face,
                     Neighbor::None,
                     Neighbor::None,
                     Neighbor::None,
@@ -395,7 +406,7 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                     Neighbor::None,
                     Neighbor::None,
                     Neighbor::None,
-                    Neighbor::Face(_),
+                    Neighbor::Face,
                     Neighbor::None,
                     Neighbor::None,
                 ] => {
@@ -413,7 +424,7 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                     Neighbor::None,
                     Neighbor::None,
                     Neighbor::None,
-                    Neighbor::Face(_),
+                    Neighbor::Face,
                     Neighbor::None,
                 ] => {
                     (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
@@ -431,7 +442,7 @@ pub fn coordinates(tree: &Octree, removed_data: &Blocks) -> CoordinatesOutput {
                     Neighbor::None,
                     Neighbor::None,
                     Neighbor::None,
-                    Neighbor::Face(_),
+                    Neighbor::Face,
                 ] => {
                     (0..20).for_each(|_| element_blocks.push(leaf.get_block()));
                     coordinates_00000f(leaf).into_iter().for_each(|[i, j, k]| {

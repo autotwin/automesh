@@ -138,14 +138,14 @@ impl DerefMut for Octree {
 #[derive(Default)]
 pub enum Neighbor {
     Edges(NeighborEdges),
-    Face(usize),
+    Face,
     #[default]
     None,
 }
 
 type Cluster = Vec<usize>;
 type Clusters = Vec<Cluster>;
-type NeighborEdges = [Option<usize>; NUM_EDGES_FACE];
+type NeighborEdges = [bool; NUM_EDGES_FACE];
 type Neighbors = [Neighbor; NUM_FACES];
 type Supercells = Vec<Option<[usize; 2]>>;
 
@@ -1331,7 +1331,7 @@ impl Tree for Octree {
                                         self[face_neighbor_cell].get_faces()[edge_neighbor]
                                     {
                                         if !self[edge_cell].is_leaf() {
-                                            *edge = Some(edge_cell)
+                                            *edge = true
                                         }
                                     }
                                 });
@@ -1341,7 +1341,7 @@ impl Tree for Octree {
                                 *neighbor = Neighbor::Edges(edges)
                             }
                         } else {
-                            *neighbor = Neighbor::Face(face_neighbor_cell);
+                            *neighbor = Neighbor::Face;
                         }
                     }
                 });

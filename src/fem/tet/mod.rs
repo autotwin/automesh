@@ -79,42 +79,6 @@ impl TetrahedralFiniteElements {
                 connectivity[2],
                 connectivity[1],
             ],
-            // [
-            //     connectivity[0],
-            //     connectivity[1],
-            //     connectivity[3],
-            //     connectivity[4],
-            // ],
-            // [
-            //     connectivity[4],
-            //     connectivity[5],
-            //     connectivity[1],
-            //     connectivity[2],
-            // ],
-            // [
-            //     connectivity[5],
-            //     connectivity[6],
-            //     connectivity[2],
-            //     connectivity[7],
-            // ],
-            // [
-            //     connectivity[2],
-            //     connectivity[3],
-            //     connectivity[4],
-            //     connectivity[7],
-            // ],
-            // [
-            //     connectivity[7],
-            //     connectivity[5],
-            //     connectivity[4],
-            //     connectivity[2],
-            // ],
-            // [
-            //     connectivity[1],
-            //     connectivity[2],
-            //     connectivity[3],
-            //     connectivity[4],
-            // ],
         ]
     }
 }
@@ -161,52 +125,13 @@ impl TetrahedralTransition {
     }
     pub fn one_edge_a(nodes: [usize; 9]) -> Vec<[usize; TET]> {
         vec![
-            //
-            // try to recycle the common 3 from hex_to_tet
-            //
-            [nodes[0], nodes[0], nodes[0], nodes[0]],
-            [nodes[0], nodes[0], nodes[0], nodes[0]],
-            [nodes[0], nodes[0], nodes[0], nodes[0]],
-            [nodes[0], nodes[0], nodes[0], nodes[0]],
-            [nodes[0], nodes[0], nodes[0], nodes[0]],
-            [nodes[0], nodes[0], nodes[0], nodes[0]],
-            [nodes[0], nodes[0], nodes[0], nodes[0]],
-// [
-//     connectivity[0],
-//     connectivity[1],
-//     connectivity[3],
-//     connectivity[4],
-// ],
-// [
-//     connectivity[4],
-//     connectivity[5],
-//     connectivity[1],
-//     connectivity[2],
-// ],
-            // [
-            //     connectivity[5],
-            //     connectivity[6],
-            //     connectivity[2],
-            //     connectivity[7],
-            // ],
-// [
-//     connectivity[2],
-//     connectivity[3],
-//     connectivity[4],
-//     connectivity[7],
-// ],
-            // [
-            //     connectivity[7],
-            //     connectivity[5],
-            //     connectivity[4],
-            //     connectivity[2],
-            // ],
-            // [
-            //     connectivity[1],
-            //     connectivity[2],
-            //     connectivity[3],
-            //     connectivity[4],
-            // ],
+            [nodes[1], nodes[5], nodes[2], nodes[7]],
+            [nodes[5], nodes[6], nodes[2], nodes[7]],
+            [nodes[7], nodes[3], nodes[2], nodes[1]],
+            [nodes[8], nodes[1], nodes[0], nodes[3]],
+            [nodes[8], nodes[5], nodes[1], nodes[3]],
+            [nodes[8], nodes[4], nodes[5], nodes[7]],
+            [nodes[8], nodes[3], nodes[7], nodes[5]],
         ]
     }
 }
