@@ -84,7 +84,7 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         input: String,
 
-        /// Extractd segmentation output file (npy | spn)
+        /// Extracted segmentation output file (npy | spn)
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
