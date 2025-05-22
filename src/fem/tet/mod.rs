@@ -53,7 +53,19 @@ impl TetrahedralFiniteElements {
                 connectivity[4],
                 connectivity[5],
                 connectivity[1],
+                connectivity[7],
+            ],
+            [
+                connectivity[7],
+                connectivity[4],
+                connectivity[3],
+                connectivity[1],
+            ],
+            [
+                connectivity[1],
+                connectivity[5],
                 connectivity[2],
+                connectivity[7],
             ],
             [
                 connectivity[5],
@@ -62,22 +74,10 @@ impl TetrahedralFiniteElements {
                 connectivity[7],
             ],
             [
-                connectivity[2],
+                connectivity[7],
                 connectivity[3],
-                connectivity[4],
-                connectivity[7],
-            ],
-            [
-                connectivity[7],
-                connectivity[5],
-                connectivity[4],
                 connectivity[2],
-            ],
-            [
                 connectivity[1],
-                connectivity[2],
-                connectivity[3],
-                connectivity[4],
             ],
         ]
     }
@@ -93,5 +93,69 @@ impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
         let element_node_connectivity =
             hex_connectivity.iter().flat_map(Self::hex_to_tet).collect();
         Self::from_data(blocks, element_node_connectivity, nodal_coordinates)
+    }
+}
+
+pub struct TetrahedralTransition {}
+
+impl TetrahedralTransition {
+    pub fn one_face(nodes: [usize; 14]) -> Vec<[usize; TET]> {
+        vec![
+            [nodes[0], nodes[10], nodes[9], nodes[3]],
+            [nodes[10], nodes[13], nodes[9], nodes[3]],
+            [nodes[10], nodes[3], nodes[7], nodes[13]],
+            [nodes[4], nodes[13], nodes[10], nodes[7]],
+            [nodes[4], nodes[12], nodes[10], nodes[13]],
+            [nodes[10], nodes[12], nodes[9], nodes[13]],
+            [nodes[4], nodes[8], nodes[12], nodes[13]],
+            [nodes[4], nodes[8], nodes[13], nodes[7]],
+            [nodes[2], nodes[7], nodes[3], nodes[13]],
+            [nodes[6], nodes[7], nodes[13], nodes[8]],
+            [nodes[6], nodes[7], nodes[2], nodes[13]],
+            [nodes[8], nodes[11], nodes[12], nodes[13]],
+            [nodes[13], nodes[8], nodes[11], nodes[6]],
+            [nodes[8], nodes[5], nodes[11], nodes[6]],
+            [nodes[9], nodes[12], nodes[1], nodes[13]],
+            [nodes[12], nodes[11], nodes[1], nodes[13]],
+            [nodes[2], nodes[13], nodes[3], nodes[9]],
+            [nodes[9], nodes[13], nodes[1], nodes[2]],
+            [nodes[13], nodes[11], nodes[1], nodes[2]],
+            [nodes[13], nodes[6], nodes[11], nodes[2]],
+        ]
+    }
+    pub fn one_edge_a(nodes: [usize; 9]) -> Vec<[usize; TET]> {
+        vec![
+            [nodes[1], nodes[5], nodes[2], nodes[3]],
+            [nodes[5], nodes[6], nodes[2], nodes[7]],
+            [nodes[7], nodes[3], nodes[2], nodes[5]],
+            [nodes[8], nodes[1], nodes[0], nodes[3]],
+            [nodes[8], nodes[5], nodes[1], nodes[3]],
+            [nodes[8], nodes[4], nodes[5], nodes[7]],
+            [nodes[8], nodes[3], nodes[7], nodes[5]],
+        ]
+    }
+    pub fn one_edge_b(nodes: [usize; 9]) -> Vec<[usize; TET]> {
+        vec![
+            [nodes[8], nodes[1], nodes[0], nodes[3]],
+            [nodes[8], nodes[0], nodes[4], nodes[3]],
+            [nodes[8], nodes[4], nodes[5], nodes[7]],
+            [nodes[8], nodes[5], nodes[6], nodes[7]],
+            [nodes[8], nodes[6], nodes[2], nodes[7]],
+            [nodes[8], nodes[2], nodes[1], nodes[3]],
+            [nodes[8], nodes[7], nodes[2], nodes[3]],
+            [nodes[8], nodes[4], nodes[7], nodes[3]],
+        ]
+    }
+    pub fn one_edge_c(nodes: [usize; 9]) -> Vec<[usize; TET]> {
+        vec![
+            [nodes[8], nodes[1], nodes[0], nodes[3]],
+            [nodes[8], nodes[0], nodes[4], nodes[7]],
+            [nodes[8], nodes[4], nodes[5], nodes[7]],
+            [nodes[8], nodes[5], nodes[6], nodes[7]],
+            [nodes[8], nodes[6], nodes[2], nodes[3]],
+            [nodes[8], nodes[2], nodes[1], nodes[3]],
+            [nodes[8], nodes[0], nodes[7], nodes[3]],
+            [nodes[8], nodes[7], nodes[6], nodes[3]],
+        ]
     }
 }
