@@ -540,50 +540,30 @@ fn initial_nodal_coordinates(
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let mut nodal_coordinates: InitialNodalCoordinates = vec![None; number_of_nodes_unfiltered];
+    let offsets = [
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [0, 1, 1],
+    ];
     filtered_voxel_data
         .iter()
         .zip(element_node_connectivity.iter())
         .for_each(|(&[x, y, z], connectivity)| {
-            nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
+            offsets.iter().enumerate().for_each(|(node, [cx, cy, cz])| {
+                if nodal_coordinates[connectivity[node] - NODE_NUMBERING_OFFSET].is_none() {
+                    nodal_coordinates[connectivity[node] - NODE_NUMBERING_OFFSET] =
+                        Some(Coordinate::new([
+                            (x + cx) as f64 * scale.x() + translate.x(),
+                            (y + cy) as f64 * scale.y() + translate.y(),
+                            (z + cz) as f64 * scale.z() + translate.z(),
+                        ]))
+                }
+            })
         });
     #[cfg(feature = "profile")]
     println!(
