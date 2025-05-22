@@ -375,6 +375,32 @@ impl Voxels {
     }
 }
 
+impl<const I: usize, const J: usize, const K: usize> From<[[[u8; K]; J]; I]> for Voxels {
+    fn from(input: [[[u8; K]; J]; I]) -> Self {
+        let nel = Nel::from([I, J, K]);
+        let mut data = VoxelData::from(nel);
+        data.axis_iter_mut(Axis(2))
+            .zip(input)
+            .for_each(|(mut data_i, input_i)| {
+                data_i
+                    .axis_iter_mut(Axis(1))
+                    .zip(input_i)
+                    .for_each(|(mut data_ij, input_ij)| {
+                        data_ij
+                            .iter_mut()
+                            .zip(input_ij)
+                            .for_each(|(data_ijk, input_ijk)| *data_ijk = input_ijk)
+                    })
+            });
+        Self {
+            data,
+            remove: Remove::default(),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        }
+    }
+}
+
 impl From<Voxels> for HexahedralFiniteElements {
     fn from(voxels: Voxels) -> Self {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
