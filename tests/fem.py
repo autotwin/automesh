@@ -13,7 +13,6 @@ def line_by_line_equlity(gold_file: str, test_file: str) -> bool:
     """
     # with open("tests/input/letter_f_3d.inp") as gold, open(inp) as file:
     with open(gold_file) as gold, open(test_file) as file:
-        breakpoint()
         # 1st line
         assert gold.readline() == file.readline()  # autotwin.automesh
         # 2nd line
