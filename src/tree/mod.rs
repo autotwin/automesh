@@ -1515,7 +1515,7 @@ impl Tree for Octree {
                         ))
                     } else if count >= 4 {
                         match check {
-                            [true, true, false, false, true, true]
+                            [true, true, true, true, false, false]
                             | [true, false, true, false, true, true]
                             | [false, true, false, true, true, true] => {
                                 // println!("{}, {:?}", voxel_cell.get_block(), blocks);
