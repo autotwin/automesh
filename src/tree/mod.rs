@@ -1451,7 +1451,9 @@ impl Tree for Octree {
     fn protrusions(&mut self, supercells: &Supercells) -> bool {
         let mut blocks = vec![];
         let mut complete = true;
-        let mut counts: Vec<usize> = vec![];
+        let mut check = [false; NUM_FACES];
+        let mut count = 0;
+        let mut counts = vec![];
         let mut new_block = 0;
         let mut protrusions: Vec<(usize, Blocks)>;
         let mut unique_blocks = vec![];
@@ -1468,7 +1470,7 @@ impl Tree for Octree {
                         .get_faces()
                         .iter()
                         .enumerate()
-                        .flat_map(|(face_index, &face)| {
+                        .map(|(face_index, &face)| {
                             if let Some(face_cell_index) = face {
                                 Some(self[face_cell_index].get_block())
                             } else if let Some([parent, _]) = supercells[voxel_cell_index] {
@@ -1479,13 +1481,52 @@ impl Tree for Octree {
                             }
                         })
                         .collect();
-                    if blocks
+                    check = blocks
                         .iter()
-                        .filter(|&&face_block| voxel_cell.get_block() != face_block)
-                        .count()
-                        >= 5
-                    {
-                        Some((voxel_cell_index, blocks.clone()))
+                        .map(|face_block| {
+                            if let Some(block) = face_block {
+                                &voxel_cell.get_block() != block
+                            } else {
+                                false // true?
+                            }
+                        })
+                        .collect::<Vec<bool>>()
+                        .try_into()
+                        .unwrap();
+                    count = check.iter().filter(|&&entry| entry).count();
+                    // count = check.iter().filter(|&&face_block| face_block).count();
+                    // match check {
+                    //     [true, false, false, false, false, false] => {
+
+                    //     }
+                    //     _ => {
+                    //         None
+                    //     }
+                    // }
+                    // count = blocks
+                    //     .iter()
+                    //     .filter_map(|&face_block| face_block)
+                    //     .filter(|&face_block| voxel_cell.get_block() != face_block)
+                    //     .count();
+                    if count >= 5 {
+                        Some((
+                            voxel_cell_index,
+                            blocks.clone().into_iter().flatten().collect(),
+                        ))
+                    } else if count >= 4 {
+                        match check {
+                            [true, true, false, false, true, true]
+                            | [true, false, true, false, true, true]
+                            | [false, true, false, true, true, true] => {
+                                // println!("{}, {:?}", voxel_cell.get_block(), blocks);
+                                // None
+                                Some((
+                                    voxel_cell_index,
+                                    blocks.clone().into_iter().flatten().collect(),
+                                ))
+                            }
+                            _ => None,
+                        }
                     } else {
                         None
                     }
