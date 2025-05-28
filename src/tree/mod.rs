@@ -1487,27 +1487,13 @@ impl Tree for Octree {
                             if let Some(block) = face_block {
                                 &voxel_cell.get_block() != block
                             } else {
-                                false // true?
+                                false
                             }
                         })
                         .collect::<Vec<bool>>()
                         .try_into()
                         .unwrap();
                     count = check.iter().filter(|&&entry| entry).count();
-                    // count = check.iter().filter(|&&face_block| face_block).count();
-                    // match check {
-                    //     [true, false, false, false, false, false] => {
-
-                    //     }
-                    //     _ => {
-                    //         None
-                    //     }
-                    // }
-                    // count = blocks
-                    //     .iter()
-                    //     .filter_map(|&face_block| face_block)
-                    //     .filter(|&face_block| voxel_cell.get_block() != face_block)
-                    //     .count();
                     if count >= 5 {
                         Some((
                             voxel_cell_index,
@@ -1517,14 +1503,10 @@ impl Tree for Octree {
                         match check {
                             [true, true, true, true, false, false]
                             | [true, false, true, false, true, true]
-                            | [false, true, false, true, true, true] => {
-                                // println!("{}, {:?}", voxel_cell.get_block(), blocks);
-                                // None
-                                Some((
-                                    voxel_cell_index,
-                                    blocks.clone().into_iter().flatten().collect(),
-                                ))
-                            }
+                            | [false, true, false, true, true, true] => Some((
+                                voxel_cell_index,
+                                blocks.clone().into_iter().flatten().collect(),
+                            )),
                             _ => None,
                         }
                     } else {
