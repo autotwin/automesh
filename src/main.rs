@@ -78,6 +78,33 @@ enum Commands {
         quiet: bool,
     },
 
+    /// Show the difference between two segmentations
+    Diff {
+        /// Segmentation input files (npy | spn)
+        #[arg(long, num_args = 2, short, value_delimiter = ' ', value_name = "FILE")]
+        input: Vec<String>,
+
+        /// Segmentation difference output file (npy | spn)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of voxels in the x-direction
+        #[arg(long, short = 'x', value_name = "NEL")]
+        nelx: Option<usize>,
+
+        /// Number of voxels in the y-direction
+        #[arg(long, short = 'y', value_name = "NEL")]
+        nely: Option<usize>,
+
+        /// Number of voxels in the z-direction
+        #[arg(long, short = 'z', value_name = "NEL")]
+        nelz: Option<usize>,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+    },
+
     /// Extracts a specified range of voxels from a segmentation
     Extract {
         /// Segmentation input file (npy | spn)
@@ -842,6 +869,17 @@ fn main() -> Result<(), ErrorWrapper> {
             is_quiet = quiet;
             defeature(input, output, min, nelx, nely, nelz, quiet)
         }
+        Some(Commands::Diff {
+            input,
+            output,
+            nelx,
+            nely,
+            nelz,
+            quiet,
+        }) => {
+            is_quiet = quiet;
+            diff(input, output, nelx, nely, nelz, quiet)
+        }
         Some(Commands::Extract {
             input,
             output,
@@ -1024,6 +1062,7 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(finite_elements) => match output_extension {
             Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
@@ -1079,6 +1118,7 @@ fn convert_segmentation(
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
         InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => match output_extension {
@@ -1117,6 +1157,7 @@ fn defeature(
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
             Some("npy") => {
@@ -1168,6 +1209,58 @@ fn defeature(
     }
 }
 
+fn diff(
+    input: Vec<String>,
+    output: String,
+    nelx: Option<usize>,
+    nely: Option<usize>,
+    nelz: Option<usize>,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+    let voxels_1 = match read_input::<HEX, HexahedralFiniteElements>(
+        &input[0],
+        nelx,
+        nely,
+        nelz,
+        Remove::default(),
+        Scale::default(),
+        Translate::default(),
+        quiet,
+        true,
+    )? {
+        InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => voxels,
+        _ => return invalid_input(&output, output_extension),
+    };
+    let voxels_2 = match read_input::<HEX, HexahedralFiniteElements>(
+        &input[1],
+        nelx,
+        nely,
+        nelz,
+        Remove::default(),
+        Scale::default(),
+        Translate::default(),
+        quiet,
+        false,
+    )? {
+        InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => voxels,
+        _ => return invalid_input(&output, output_extension),
+    };
+    match output_extension {
+        Some("spn") => write_output(
+            output,
+            OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels_1.diff(&voxels_2)),
+            quiet,
+        ),
+        Some("npy") => write_output(
+            output,
+            OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels_1.diff(&voxels_2)),
+            quiet,
+        ),
+        _ => invalid_output(&output, output_extension),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn extract(
     input: String,
@@ -1195,6 +1288,7 @@ fn extract(
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
         InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
@@ -1255,19 +1349,20 @@ where
     let remove = Remove::from(remove);
     let scale = Scale::from([xscale, yscale, zscale]);
     let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let mut input_type =
-        match read_input::<N, T>(&input, nelx, nely, nelz, remove, scale, translate, quiet)? {
-            InputTypes::Npy(voxels) => voxels,
-            InputTypes::Spn(voxels) => voxels,
-            _ => {
-                let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-                Err(format!(
-                    "Invalid extension .{} from input file {}",
-                    input_extension.unwrap_or("UNDEFINED"),
-                    input
-                ))?
-            }
-        };
+    let mut input_type = match read_input::<N, T>(
+        &input, nelx, nely, nelz, remove, scale, translate, quiet, true,
+    )? {
+        InputTypes::Npy(voxels) => voxels,
+        InputTypes::Spn(voxels) => voxels,
+        _ => {
+            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+            Err(format!(
+                "Invalid extension .{} from input file {}",
+                input_extension.unwrap_or("UNDEFINED"),
+                input
+            ))?
+        }
+    };
     match N {
         HEX => {
             if let Some(min_num_voxels) = defeature {
@@ -1553,6 +1648,7 @@ where
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(finite_elements) => finite_elements,
         InputTypes::Npy(_) | InputTypes::Spn(_) => {
@@ -1609,7 +1705,7 @@ fn octree(
     let translate = [xtranslate, ytranslate, ztranslate].into();
     let remove = Remove::from(remove);
     let input_type = match read_input::<HEX, HexahedralFiniteElements>(
-        &input, nelx, nely, nelz, remove, scale, translate, quiet,
+        &input, nelx, nely, nelz, remove, scale, translate, quiet, true,
     )? {
         InputTypes::Npy(voxels) => voxels,
         InputTypes::Spn(voxels) => voxels,
@@ -1683,6 +1779,7 @@ where
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(mut finite_elements) => {
             apply_smoothing_method(
@@ -1812,17 +1909,20 @@ fn read_input<const N: usize, T>(
     scale: Scale,
     translate: Translate,
     quiet: bool,
+    title: bool,
 ) -> Result<InputTypes<N, T>, ErrorWrapper>
 where
     T: FiniteElementMethods<N>,
 {
     let time = Instant::now();
     if !quiet {
-        println!(
-            "\x1b[1m    {} {}\x1b[0m",
-            env!("CARGO_PKG_NAME"),
-            env!("CARGO_PKG_VERSION")
-        );
+        if title {
+            println!(
+                "\x1b[1m    {} {}\x1b[0m",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            );
+        }
         print!("     \x1b[1;96mReading\x1b[0m {}", input);
     }
     let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());

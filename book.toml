@@ -12,6 +12,10 @@ create-missing = false
 [rust]
 edition = "2021"
 
+[output.html.fold]
+enable = true
+level = 0
+
 [output.html]
 edit-url-template = "https://github.com/autotwin/automesh/edit/main/{path}"
 git-repository-url = "https://github.com/autotwin/automesh"

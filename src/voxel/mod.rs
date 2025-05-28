@@ -34,7 +34,7 @@ type Indices = Vec<[usize; NSD]>;
 pub type VoxelData = Array3<u8>;
 
 /// The number of voxels in each direction.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Nel {
     x: usize,
     y: usize,
@@ -328,6 +328,15 @@ impl Voxels {
     pub fn defeature(self, min_num_voxels: usize) -> Self {
         defeature_voxels(min_num_voxels, self)
     }
+    /// Shows the difference between two segmentations.
+    pub fn diff(&self, voxels: &Self) -> Self {
+        Self {
+            data: diff_voxels(self.get_data(), voxels.get_data()),
+            remove: Remove::default(),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        }
+    }
     /// Extract a specified range of voxels from the segmentation.
     pub fn extract(&mut self, extraction: Extraction) {
         extract_voxels(self, extraction)
@@ -481,6 +490,32 @@ fn defeature_voxels(min_num_voxels: usize, voxels: Voxels) -> Voxels {
     let mut voxels = Voxels::from(tree);
     extract_voxels(&mut voxels, Extraction::from(nel_0));
     voxels
+}
+
+fn diff_voxels(data_1: &VoxelData, data_2: &VoxelData) -> VoxelData {
+    let nel = Nel::from(data_1.shape());
+    assert_eq!(
+        nel,
+        Nel::from(data_2.shape()),
+        "Segmentations do not have the same dimensions"
+    );
+    let mut data = VoxelData::from(nel);
+    data.axis_iter_mut(Axis(2))
+        .zip(data_1.axis_iter(Axis(2)).zip(data_2.axis_iter(Axis(2))))
+        .for_each(|(mut data_i, (data_1_i, data_2_i))| {
+            data_i
+                .axis_iter_mut(Axis(1))
+                .zip(data_1_i.axis_iter(Axis(1)).zip(data_2_i.axis_iter(Axis(1))))
+                .for_each(|(mut data_ij, (data_1_ij, data_2_ij))| {
+                    data_ij
+                        .iter_mut()
+                        .zip(data_1_ij.iter().zip(data_2_ij.iter()))
+                        .for_each(|(data_ijk, (data_1_ijk, data_2_ijk))| {
+                            *data_ijk = (data_1_ijk != data_2_ijk) as u8
+                        })
+                })
+        });
+    data
 }
 
 fn filter_voxel_data(data: VoxelData, remove: Remove) -> (Indices, Blocks) {
