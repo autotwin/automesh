@@ -450,11 +450,12 @@ impl From<Octree> for Voxels {
                 })
             })
         });
+        let (remove, scale, translate) = tree.parameters();
         let voxels = Self {
             data,
-            remove: Remove::default(),
-            scale: Scale::default(),
-            translate: Translate::default(),
+            remove,
+            scale,
+            translate,
         };
         #[cfg(feature = "profile")]
         println!(

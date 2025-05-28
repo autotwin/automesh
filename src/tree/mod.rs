@@ -167,6 +167,7 @@ pub trait Tree {
         translate: Translate,
     ) -> Result<HexahedralFiniteElements, String>;
     fn pair(&mut self);
+    fn parameters(self) -> (Remove, Scale, Translate);
     fn protrusions(&mut self, supercells: &Supercells) -> bool;
     fn prune(&mut self);
     fn subdivide(&mut self, index: usize);
@@ -1447,6 +1448,9 @@ impl Tree for Octree {
             "           \x1b[1;93m  Pairing hanging nodes\x1b[0m {:?} ",
             time.elapsed()
         );
+    }
+    fn parameters(self) -> (Remove, Scale, Translate) {
+        (self.remove, self.scale, self.translate)
     }
     fn protrusions(&mut self, supercells: &Supercells) -> bool {
         let mut blocks = vec![];
