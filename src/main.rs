@@ -61,15 +61,15 @@ enum Commands {
         #[arg(long, short, value_name = "MIN")]
         min: usize,
 
-        /// Number of voxels in the x-direction
+        /// Number of voxels in the x-direction (spn)
         #[arg(long, short = 'x', value_name = "NEL")]
         nelx: Option<usize>,
 
-        /// Number of voxels in the y-direction
+        /// Number of voxels in the y-direction (spn)
         #[arg(long, short = 'y', value_name = "NEL")]
         nely: Option<usize>,
 
-        /// Number of voxels in the z-direction
+        /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
 
@@ -88,15 +88,15 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
-        /// Number of voxels in the x-direction
+        /// Number of voxels in the x-direction (spn)
         #[arg(long, short = 'x', value_name = "NEL")]
         nelx: Option<usize>,
 
-        /// Number of voxels in the y-direction
+        /// Number of voxels in the y-direction (spn)
         #[arg(long, short = 'y', value_name = "NEL")]
         nely: Option<usize>,
 
-        /// Number of voxels in the z-direction
+        /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
 
@@ -115,15 +115,15 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
-        /// Number of voxels in the x-direction
+        /// Number of voxels in the x-direction (spn)
         #[arg(long, short = 'x', value_name = "NEL")]
         nelx: Option<usize>,
 
-        /// Number of voxels in the y-direction
+        /// Number of voxels in the y-direction (spn)
         #[arg(long, short = 'y', value_name = "NEL")]
         nely: Option<usize>,
 
-        /// Number of voxels in the z-direction
+        /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
 
@@ -188,15 +188,15 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
-        /// Number of voxels in the x-direction
+        /// Number of voxels in the x-direction (spn)
         #[arg(long, short = 'x', value_name = "NEL")]
         nelx: Option<usize>,
 
-        /// Number of voxels in the y-direction
+        /// Number of voxels in the y-direction (spn)
         #[arg(long, short = 'y', value_name = "NEL")]
         nely: Option<usize>,
 
-        /// Number of voxels in the z-direction
+        /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
 
@@ -296,15 +296,15 @@ struct ConvertSegmentationArgs {
     #[arg(long, short, value_name = "FILE")]
     output: String,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
@@ -340,15 +340,15 @@ struct MeshHexArgs {
     #[arg(long, short, value_name = "NUM")]
     defeature: Option<usize>,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
@@ -425,15 +425,15 @@ struct MeshTetArgs {
     #[arg(long, short, value_name = "NUM")]
     defeature: Option<usize>,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
@@ -510,15 +510,15 @@ struct MeshTriArgs {
     #[arg(long, short, value_name = "NUM")]
     defeature: Option<usize>,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
