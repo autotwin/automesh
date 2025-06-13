@@ -1,5 +1,5 @@
 use automesh::{
-    Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX,
+    Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX,
     HexahedralFiniteElements, Nel, Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation,
     TetrahedralFiniteElements, Translate, TriangularFiniteElements, Voxels,
 };
