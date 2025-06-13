@@ -1,7 +1,7 @@
 use automesh::{
-    Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX,
-    HexahedralFiniteElements, Nel, Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation,
-    TetrahedralFiniteElements, Translate, Tree, TriangularFiniteElements, Voxels,
+    Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Nel,
+    Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
+    Tree, TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -1949,16 +1949,17 @@ where
         ))?,
     };
     if !quiet {
-        print!(
-            "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
-            time.elapsed()
-        );
         match &result {
             InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => {
-                let mut materials: Blocks = voxels.get_data().iter().copied().collect();
-                let voxels = materials.len();
-                materials.sort();
-                materials.dedup();
+                let data = voxels.get_data();
+                let mut materials = vec![false; u8::MAX as usize];
+                data.iter()
+                    .for_each(|&voxel| materials[voxel as usize] = true);
+                let voxels = data.iter().count();
+                print!(
+                    "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
+                    time.elapsed()
+                );
                 println!(
                     " \x1b[2m[{} materials, {} voxels]\x1b[0m",
                     materials.len(),
@@ -1966,7 +1967,10 @@ where
                 );
             }
             _ => {
-                println!();
+                println!(
+                    "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
+                    time.elapsed()
+                );
             }
         }
     }
