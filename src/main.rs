@@ -1,7 +1,7 @@
 use automesh::{
-    Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX,
-    HexahedralFiniteElements, Nel, Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation,
-    TetrahedralFiniteElements, Translate, TriangularFiniteElements, Voxels,
+    Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Nel,
+    Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
+    TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -1955,15 +1955,15 @@ where
                 let mut materials = vec![false; u8::MAX as usize];
                 data.iter()
                     .for_each(|&voxel| materials[voxel as usize] = true);
-                let voxels = data.iter().count();
+                let num_voxels = data.iter().count();
+                let num_materials = materials.iter().filter(|&&entry| entry).count();
                 print!(
                     "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
                     time.elapsed()
                 );
                 println!(
                     " \x1b[2m[{} materials, {} voxels]\x1b[0m",
-                    materials.len(),
-                    voxels
+                    num_materials, num_voxels
                 );
             }
             _ => {

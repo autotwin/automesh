@@ -2326,32 +2326,28 @@ impl From<Octree> for HexahedralFiniteElements {
                                             (
                                                 Coordinate::new([
                                                     0.0,
-                                                    -0.5
-                                                        * *tree[face_subsubcells[0]].get_lngth()
-                                                            as f64,
+                                                    -0.5 * *tree[face_subsubcells[0]].get_lngth()
+                                                        as f64,
                                                     0.0,
                                                 ]),
                                                 Coordinate::new([
                                                     0.0,
-                                                    -1.0
-                                                        * *tree[face_subsubcells[0]].get_lngth()
-                                                            as f64,
+                                                    -1.0 * *tree[face_subsubcells[0]].get_lngth()
+                                                        as f64,
                                                     0.0,
                                                 ]),
                                             )
                                         } else if face_index == 3 {
                                             (
                                                 Coordinate::new([
-                                                    0.5
-                                                        * *tree[face_subsubcells[0]].get_lngth()
-                                                            as f64,
+                                                    0.5 * *tree[face_subsubcells[0]].get_lngth()
+                                                        as f64,
                                                     0.0,
                                                     0.0,
                                                 ]),
                                                 Coordinate::new([
-                                                    1.0
-                                                        * *tree[face_subsubcells[0]].get_lngth()
-                                                            as f64,
+                                                    1.0 * *tree[face_subsubcells[0]].get_lngth()
+                                                        as f64,
                                                     0.0,
                                                     0.0,
                                                 ]),
@@ -2361,16 +2357,14 @@ impl From<Octree> for HexahedralFiniteElements {
                                                 Coordinate::new([
                                                     0.0,
                                                     0.0,
-                                                    0.5
-                                                        * *tree[face_subsubcells[0]].get_lngth()
-                                                            as f64,
+                                                    0.5 * *tree[face_subsubcells[0]].get_lngth()
+                                                        as f64,
                                                 ]),
                                                 Coordinate::new([
                                                     0.0,
                                                     0.0,
-                                                    1.0
-                                                        * *tree[face_subsubcells[0]].get_lngth()
-                                                            as f64,
+                                                    1.0 * *tree[face_subsubcells[0]].get_lngth()
+                                                        as f64,
                                                 ]),
                                             )
                                         } else {
