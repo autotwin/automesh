@@ -10,7 +10,7 @@ use std::time::Instant;
 use crate::TetrahedralFiniteElements;
 
 use super::{
-    Coordinate, Coordinates, NSD, Octree, Tree, Vector,
+    Coordinate, Coordinates, NSD, Octree, Vector,
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
         NODE_NUMBERING_OFFSET,

@@ -7,7 +7,7 @@ use super::{
     Coordinate, Coordinates, NSD,
     fem::{
         Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
-        TetrahedralFiniteElements, TriangularFiniteElements,
+        TetrahedralFiniteElements, TriangularFiniteElements, hex::HexConnectivity,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
@@ -148,31 +148,6 @@ type Clusters = Vec<Cluster>;
 type NeighborEdges = [bool; NUM_EDGES_FACE];
 type Neighbors = [Neighbor; NUM_FACES];
 type Supercells = Vec<Option<[usize; 2]>>;
-
-/// Methods for trees such as quadtrees or octrees.
-pub trait Tree {
-    fn balance(&mut self, strong: bool);
-    fn boundaries(&mut self);
-    fn clusters(&self, remove: Option<&Blocks>, supercells: Option<&Supercells>) -> Clusters;
-    fn defeature(&mut self, min_num_voxels: usize);
-    fn edge_neighbors_not_smaller(&self, cell: &Cell) -> bool;
-    fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool;
-    fn just_leaves(&self, cells: &[usize]) -> bool;
-    fn neighbors_template(&self, cell: &Cell) -> Neighbors;
-    fn nel(&self) -> Nel;
-    fn octree_into_finite_elements(
-        self,
-        remove: Option<Blocks>,
-        scale: Scale,
-        translate: Translate,
-    ) -> Result<HexahedralFiniteElements, String>;
-    fn pair(&mut self);
-    fn parameters(self) -> (Remove, Scale, Translate);
-    fn protrusions(&mut self, supercells: &Supercells) -> bool;
-    fn prune(&mut self);
-    fn subdivide(&mut self, index: usize);
-    fn supercells(&self) -> Supercells;
-}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Cell {
@@ -575,8 +550,8 @@ impl From<Voxels> for Octree {
     }
 }
 
-impl Tree for Octree {
-    fn balance(&mut self, strong: bool) {
+impl Octree {
+    pub fn balance(&mut self, strong: bool) {
         let mut balanced;
         let mut block;
         let mut edges: [bool; 8];
@@ -1121,7 +1096,49 @@ impl Tree for Octree {
         );
         clusters
     }
-    fn defeature(&mut self, min_num_voxels: usize) {
+    fn cell_contains_leaves<'a>(&self, cell: &'a Cell) -> Option<(&'a Indices, &'a Faces)> {
+        if let Some(cell_subcells) = cell.get_cells() {
+            if self.just_leaves(cell_subcells) {
+                Some((cell_subcells, cell.get_faces()))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    fn cell_subcells_contain_leaves<'a>(
+        &self,
+        cell: &'a Cell,
+        cell_index: usize,
+        face_index: usize,
+    ) -> Option<(usize, [usize; 16])> {
+        if let Some(cell_subcells) = cell.get_cells() {
+            if cell_subcells
+                .iter()
+                .all(|&subcell| self[subcell].get_cells().is_some())
+            {
+                // assumes pairing
+                let subcells = subcells_on_neighbor_face(face_index);
+                let foo = subcells
+                    .iter()
+                    .flat_map(|subcell_a| {
+                        subcells.iter().map(|&subcell_b| {
+                            self[cell_subcells[*subcell_a]].get_cells().unwrap()[subcell_b]
+                        })
+                    })
+                    .collect::<Vec<usize>>()
+                    .try_into()
+                    .unwrap();
+                Some((cell_index, foo))
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    pub fn defeature(&mut self, min_num_voxels: usize) {
         //
         // Should cells of a reassigned cluster be reassigned one at a time instead?
         //
@@ -1349,10 +1366,10 @@ impl Tree for Octree {
             neighbors
         }
     }
-    fn nel(&self) -> Nel {
+    pub fn nel(&self) -> Nel {
         self.nel
     }
-    fn octree_into_finite_elements(
+    pub fn octree_into_finite_elements(
         // will eventually delete this method
         self,
         remove: Option<Blocks>,
@@ -1368,7 +1385,7 @@ impl Tree for Octree {
         let mut removed_data = remove.unwrap_or_default();
         removed_data.sort();
         removed_data.dedup();
-        removed_data.push(PADDING);
+        // removed_data.push(PADDING);
         let num_elements = self
             .iter()
             .filter(|cell| removed_data.binary_search(&cell.get_block()).is_err())
@@ -1411,7 +1428,7 @@ impl Tree for Octree {
             nodal_coordinates,
         ))
     }
-    fn pair(&mut self) {
+    pub fn pair(&mut self) {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut block = 0;
@@ -1449,7 +1466,7 @@ impl Tree for Octree {
             time.elapsed()
         );
     }
-    fn parameters(self) -> (Remove, Scale, Translate) {
+    pub fn parameters(self) -> (Remove, Scale, Translate) {
         (self.remove, self.scale, self.translate)
     }
     fn protrusions(&mut self, supercells: &Supercells) -> bool {
@@ -1526,7 +1543,7 @@ impl Tree for Octree {
         }
         complete
     }
-    fn prune(&mut self) {
+    pub fn prune(&mut self) {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         self.retain(|cell| cell.is_leaf());
@@ -2023,9 +2040,12 @@ fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec
 
 impl From<Octree> for HexahedralFiniteElements {
     fn from(tree: Octree) -> Self {
+        //
+        // Eventually check the efficiency of parallelization here,
+        // but keep in mind the real overall bottlenecks.
+        //
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let mut element_node_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut cells_nodes = vec![0; tree.len()];
         let mut node_index = NODE_NUMBERING_OFFSET;
@@ -2053,174 +2073,494 @@ impl From<Octree> for HexahedralFiniteElements {
         let mut fa_1_subcells = [0; NUM_OCTANTS];
         let mut fa_4_subcells = [0; NUM_OCTANTS];
         let mut face_0_faces = &[None; NUM_FACES];
-        tree.iter().for_each(|cell| {
-            if let Some(cell_subcells) = cell.get_cells() {
-                if tree.just_leaves(cell_subcells) {
-                    element_node_connectivity.push([
-                        cells_nodes[cell_subcells[0]],
-                        cells_nodes[cell_subcells[1]],
-                        cells_nodes[cell_subcells[3]],
-                        cells_nodes[cell_subcells[2]],
-                        cells_nodes[cell_subcells[4]],
-                        cells_nodes[cell_subcells[5]],
-                        cells_nodes[cell_subcells[7]],
-                        cells_nodes[cell_subcells[6]],
-                    ]);
-                    connected_faces = [None; NUM_FACES];
-                    d_01_subcells = None;
-                    d_04_subcells = None;
-                    d_14_subcells = None;
-                    d014_subcells = None;
-                    cell.get_faces()
-                        .iter()
-                        .enumerate()
-                        .for_each(|(face_index, face_cell)| {
-                            if let Some(face_cell_index) = face_cell {
-                                if let Some(face_subcells) = tree[*face_cell_index].get_cells() {
-                                    if tree.just_leaves(face_subcells) {
-                                        match face_index {
-                                            0 => {
-                                                element_node_connectivity.push([
-                                                    cells_nodes[face_subcells[2]],
-                                                    cells_nodes[face_subcells[3]],
-                                                    cells_nodes[cell_subcells[1]],
-                                                    cells_nodes[cell_subcells[0]],
-                                                    cells_nodes[face_subcells[6]],
-                                                    cells_nodes[face_subcells[7]],
-                                                    cells_nodes[cell_subcells[5]],
-                                                    cells_nodes[cell_subcells[4]],
-                                                ]);
-                                                connected_faces[0] = Some(face_cell_index)
-                                            }
-                                            1 => {
-                                                element_node_connectivity.push([
-                                                    cells_nodes[cell_subcells[1]],
-                                                    cells_nodes[face_subcells[0]],
-                                                    cells_nodes[face_subcells[2]],
-                                                    cells_nodes[cell_subcells[3]],
-                                                    cells_nodes[cell_subcells[5]],
-                                                    cells_nodes[face_subcells[4]],
-                                                    cells_nodes[face_subcells[6]],
-                                                    cells_nodes[cell_subcells[7]],
-                                                ]);
-                                                connected_faces[1] = Some(face_cell_index)
-                                            }
-                                            4 => {
-                                                element_node_connectivity.push([
-                                                    cells_nodes[face_subcells[4]],
-                                                    cells_nodes[face_subcells[5]],
-                                                    cells_nodes[face_subcells[7]],
-                                                    cells_nodes[face_subcells[6]],
-                                                    cells_nodes[cell_subcells[0]],
-                                                    cells_nodes[cell_subcells[1]],
-                                                    cells_nodes[cell_subcells[3]],
-                                                    cells_nodes[cell_subcells[2]],
-                                                ]);
-                                                connected_faces[4] = Some(face_cell_index)
-                                            }
-                                            2 | 3 | 5 => {}
-                                            _ => panic!(),
+        //
+        // Split some of this up?
+        // Loop 0: hex in each cell containing only leaves.
+        // Loop 1: transition 1, single hexes between similar adjacent hexes.
+        // Loop 2: transition 2, the wineglass transition.
+        // ...
+        //
+        let mut element_node_connectivity: HexConnectivity = tree
+            .par_iter()
+            .filter_map(|cell| tree.cell_contains_leaves(cell))
+            .map(|(cell_subcells, _)| {
+                [
+                    cells_nodes[cell_subcells[0]],
+                    cells_nodes[cell_subcells[1]],
+                    cells_nodes[cell_subcells[3]],
+                    cells_nodes[cell_subcells[2]],
+                    cells_nodes[cell_subcells[4]],
+                    cells_nodes[cell_subcells[5]],
+                    cells_nodes[cell_subcells[7]],
+                    cells_nodes[cell_subcells[6]],
+                ]
+            })
+            .collect();
+        //
+        // Might be able to return the new connectivities from the closure in parallel and then append them afterwards.
+        //
+        tree.iter()
+            .filter_map(|cell| tree.cell_contains_leaves(cell))
+            .for_each(|(cell_subcells, cell_faces)| {
+                connected_faces = [None; NUM_FACES];
+                d_01_subcells = None;
+                d_04_subcells = None;
+                d_14_subcells = None;
+                d014_subcells = None;
+                cell_faces
+                    .iter()
+                    .enumerate()
+                    .for_each(|(face_index, face_cell)| {
+                        if let Some(face_cell_index) = face_cell {
+                            if let Some(face_subcells) = tree[*face_cell_index].get_cells() {
+                                if tree.just_leaves(face_subcells) {
+                                    match face_index {
+                                        0 => {
+                                            element_node_connectivity.push([
+                                                cells_nodes[face_subcells[2]],
+                                                cells_nodes[face_subcells[3]],
+                                                cells_nodes[cell_subcells[1]],
+                                                cells_nodes[cell_subcells[0]],
+                                                cells_nodes[face_subcells[6]],
+                                                cells_nodes[face_subcells[7]],
+                                                cells_nodes[cell_subcells[5]],
+                                                cells_nodes[cell_subcells[4]],
+                                            ]);
+                                            connected_faces[0] = Some(face_cell_index)
                                         }
-                                    }
-                                }
-                            }
-                        });
-                    if let Some(face_4) = connected_faces[4] {
-                        fa_4_subcells = tree[*face_4].get_cells().unwrap();
-                    }
-                    if let Some(face_1) = connected_faces[1] {
-                        fa_1_subcells = tree[*face_1].get_cells().unwrap();
-                        if connected_faces[4].is_some() {
-                            if let Some(diag_subcells) =
-                                tree[tree[*face_1].get_faces()[4].unwrap()].get_cells()
-                            {
-                                if tree.just_leaves(diag_subcells) {
-                                    d_14_subcells = Some(diag_subcells);
-                                }
-                            }
-                        }
-                    }
-                    if let Some(face_0) = connected_faces[0] {
-                        fa_0_subcells = tree[*face_0].get_cells().unwrap();
-                        face_0_faces = tree[*face_0].get_faces();
-                        if connected_faces[1].is_some() {
-                            if let Some(diag_subcells) = tree[face_0_faces[1].unwrap()].get_cells()
-                            {
-                                if tree.just_leaves(diag_subcells) {
-                                    d_01_subcells = Some(diag_subcells);
-                                }
-                            }
-                        }
-                        if connected_faces[4].is_some() {
-                            if let Some(diag_subcells) = tree[face_0_faces[4].unwrap()].get_cells()
-                            {
-                                if tree.just_leaves(diag_subcells) {
-                                    d_04_subcells = Some(diag_subcells);
-                                    if d_01_subcells.is_some() && d_01_subcells.is_some() {
-                                        if let Some(diag_subcells_also) = tree
-                                            [tree[face_0_faces[1].unwrap()].get_faces()[4].unwrap()]
-                                        .get_cells()
-                                        {
-                                            if tree.just_leaves(diag_subcells_also) {
-                                                d014_subcells = Some(diag_subcells_also)
-                                            }
+                                        1 => {
+                                            element_node_connectivity.push([
+                                                cells_nodes[cell_subcells[1]],
+                                                cells_nodes[face_subcells[0]],
+                                                cells_nodes[face_subcells[2]],
+                                                cells_nodes[cell_subcells[3]],
+                                                cells_nodes[cell_subcells[5]],
+                                                cells_nodes[face_subcells[4]],
+                                                cells_nodes[face_subcells[6]],
+                                                cells_nodes[cell_subcells[7]],
+                                            ]);
+                                            connected_faces[1] = Some(face_cell_index)
                                         }
+                                        4 => {
+                                            element_node_connectivity.push([
+                                                cells_nodes[face_subcells[4]],
+                                                cells_nodes[face_subcells[5]],
+                                                cells_nodes[face_subcells[7]],
+                                                cells_nodes[face_subcells[6]],
+                                                cells_nodes[cell_subcells[0]],
+                                                cells_nodes[cell_subcells[1]],
+                                                cells_nodes[cell_subcells[3]],
+                                                cells_nodes[cell_subcells[2]],
+                                            ]);
+                                            connected_faces[4] = Some(face_cell_index)
+                                        }
+                                        2 | 3 | 5 => {}
+                                        _ => panic!(),
                                     }
                                 }
                             }
                         }
-                    }
-                    if let Some(diag_subcells) = d_01_subcells {
-                        element_node_connectivity.push([
-                            cells_nodes[fa_0_subcells[3]],
-                            cells_nodes[diag_subcells[2]],
-                            cells_nodes[fa_1_subcells[0]],
-                            cells_nodes[cell_subcells[1]],
-                            cells_nodes[fa_0_subcells[7]],
-                            cells_nodes[diag_subcells[6]],
-                            cells_nodes[fa_1_subcells[4]],
-                            cells_nodes[cell_subcells[5]],
-                        ]);
-                    }
-                    if let Some(diag_subcells) = d_04_subcells {
-                        element_node_connectivity.push([
-                            cells_nodes[diag_subcells[6]],
-                            cells_nodes[diag_subcells[7]],
-                            cells_nodes[fa_4_subcells[5]],
-                            cells_nodes[fa_4_subcells[4]],
-                            cells_nodes[fa_0_subcells[2]],
-                            cells_nodes[fa_0_subcells[3]],
-                            cells_nodes[cell_subcells[1]],
-                            cells_nodes[cell_subcells[0]],
-                        ]);
-                    }
-                    if let Some(d_14_subcells) = d_14_subcells {
-                        element_node_connectivity.push([
-                            cells_nodes[fa_4_subcells[5]],
-                            cells_nodes[d_14_subcells[4]],
-                            cells_nodes[d_14_subcells[6]],
-                            cells_nodes[fa_4_subcells[7]],
-                            cells_nodes[cell_subcells[1]],
-                            cells_nodes[fa_1_subcells[0]],
-                            cells_nodes[fa_1_subcells[2]],
-                            cells_nodes[cell_subcells[3]],
-                        ]);
-                        if let Some(diag_subcells) = d014_subcells {
-                            element_node_connectivity.push([
-                                cells_nodes[d_04_subcells.unwrap()[7]],
-                                cells_nodes[diag_subcells[6]],
-                                cells_nodes[d_14_subcells[4]],
-                                cells_nodes[fa_4_subcells[5]],
-                                cells_nodes[fa_0_subcells[3]],
-                                cells_nodes[d_01_subcells.unwrap()[2]],
-                                cells_nodes[fa_1_subcells[0]],
-                                cells_nodes[cell_subcells[1]],
-                            ]);
+                    });
+                if let Some(face_4) = connected_faces[4] {
+                    fa_4_subcells = tree[*face_4].get_cells().unwrap();
+                }
+                if let Some(face_1) = connected_faces[1] {
+                    fa_1_subcells = tree[*face_1].get_cells().unwrap();
+                    if connected_faces[4].is_some() {
+                        if let Some(diag_subcells) =
+                            tree[tree[*face_1].get_faces()[4].unwrap()].get_cells()
+                        {
+                            if tree.just_leaves(diag_subcells) {
+                                d_14_subcells = Some(diag_subcells);
+                            }
                         }
                     }
                 }
-            }
-        });
+                if let Some(face_0) = connected_faces[0] {
+                    fa_0_subcells = tree[*face_0].get_cells().unwrap();
+                    face_0_faces = tree[*face_0].get_faces();
+                    if connected_faces[1].is_some() {
+                        if let Some(diag_subcells) = tree[face_0_faces[1].unwrap()].get_cells() {
+                            if tree.just_leaves(diag_subcells) {
+                                d_01_subcells = Some(diag_subcells);
+                            }
+                        }
+                    }
+                    if connected_faces[4].is_some() {
+                        if let Some(diag_subcells) = tree[face_0_faces[4].unwrap()].get_cells() {
+                            if tree.just_leaves(diag_subcells) {
+                                d_04_subcells = Some(diag_subcells);
+                                if d_01_subcells.is_some() && d_01_subcells.is_some() {
+                                    if let Some(diag_subcells_also) = tree
+                                        [tree[face_0_faces[1].unwrap()].get_faces()[4].unwrap()]
+                                    .get_cells()
+                                    {
+                                        if tree.just_leaves(diag_subcells_also) {
+                                            d014_subcells = Some(diag_subcells_also)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                if let Some(diag_subcells) = d_01_subcells {
+                    element_node_connectivity.push([
+                        cells_nodes[fa_0_subcells[3]],
+                        cells_nodes[diag_subcells[2]],
+                        cells_nodes[fa_1_subcells[0]],
+                        cells_nodes[cell_subcells[1]],
+                        cells_nodes[fa_0_subcells[7]],
+                        cells_nodes[diag_subcells[6]],
+                        cells_nodes[fa_1_subcells[4]],
+                        cells_nodes[cell_subcells[5]],
+                    ]);
+                }
+                if let Some(diag_subcells) = d_04_subcells {
+                    element_node_connectivity.push([
+                        cells_nodes[diag_subcells[6]],
+                        cells_nodes[diag_subcells[7]],
+                        cells_nodes[fa_4_subcells[5]],
+                        cells_nodes[fa_4_subcells[4]],
+                        cells_nodes[fa_0_subcells[2]],
+                        cells_nodes[fa_0_subcells[3]],
+                        cells_nodes[cell_subcells[1]],
+                        cells_nodes[cell_subcells[0]],
+                    ]);
+                }
+                if let Some(d_14_subcells) = d_14_subcells {
+                    element_node_connectivity.push([
+                        cells_nodes[fa_4_subcells[5]],
+                        cells_nodes[d_14_subcells[4]],
+                        cells_nodes[d_14_subcells[6]],
+                        cells_nodes[fa_4_subcells[7]],
+                        cells_nodes[cell_subcells[1]],
+                        cells_nodes[fa_1_subcells[0]],
+                        cells_nodes[fa_1_subcells[2]],
+                        cells_nodes[cell_subcells[3]],
+                    ]);
+                    if let Some(diag_subcells) = d014_subcells {
+                        element_node_connectivity.push([
+                            cells_nodes[d_04_subcells.unwrap()[7]],
+                            cells_nodes[diag_subcells[6]],
+                            cells_nodes[d_14_subcells[4]],
+                            cells_nodes[fa_4_subcells[5]],
+                            cells_nodes[fa_0_subcells[3]],
+                            cells_nodes[d_01_subcells.unwrap()[2]],
+                            cells_nodes[fa_1_subcells[0]],
+                            cells_nodes[cell_subcells[1]],
+                        ]);
+                    }
+                }
+            });
+        //
+        // How to merge together these templates when they meet at 90 degrees?
+        // Could be helpful: exterior nodes (using current scale_2) are integer coordinates.
+        // So you can pre-populate and overwrite it like you would for tets.
+        //
+        // This will come up again for other templates.
+        // Will the overlapping nodes always have integer coordinates?
+        // Can you pre-populate them beforehand and avoid writing/overwriting?
+        //
+        let mut cell_subcells_face_nodes = [0; NUM_SUBCELLS_FACE];
+        tree.iter()
+            // tree.par_iter()
+            .filter_map(|cell| tree.cell_contains_leaves(cell))
+            .for_each(|(cell_subcells, cell_faces)| {
+                cell_faces
+                    .iter()
+                    .enumerate()
+                    .for_each(|(face_index, face_cell)| {
+                        if let Some(face_cell_index) = face_cell {
+                            if let Some((_, face_subsubcells)) = tree.cell_subcells_contain_leaves(
+                                &tree[*face_cell_index],
+                                0,
+                                face_index,
+                            ) {
+                                if face_index == 2 || face_index == 3 || face_index == 4 {
+                                    cell_subcells_face_nodes = subcells_on_own_face(face_index)
+                                        .iter()
+                                        .map(|&index| cells_nodes[cell_subcells[index]])
+                                        .collect::<Vec<usize>>()
+                                        .try_into()
+                                        .unwrap();
+                                    let adjacent_interior_nodes = [
+                                        cells_nodes[face_subsubcells[3]],
+                                        cells_nodes[face_subsubcells[6]],
+                                        cells_nodes[face_subsubcells[12]],
+                                        cells_nodes[face_subsubcells[9]],
+                                    ];
+                                    //
+                                    // Why are there uninitialized cells/hexes/etc. being hit?
+                                    //
+                                    if adjacent_interior_nodes.iter().all(|bar| bar != &0) {
+                                        let adjacent_exterior_nodes = //if face_index == 4 {
+                                            [
+                                                cells_nodes[face_subsubcells[1]],
+                                                cells_nodes[face_subsubcells[4]],
+                                                cells_nodes[face_subsubcells[7]],
+                                                cells_nodes[face_subsubcells[13]],
+                                                cells_nodes[face_subsubcells[14]],
+                                                cells_nodes[face_subsubcells[11]],
+                                                cells_nodes[face_subsubcells[8]],
+                                                cells_nodes[face_subsubcells[2]],
+                                            ];
+                                        // } else if face_index == 2 {
+                                        //     [
+                                        //         cells_nodes[face_subsubcells[1]],
+                                        //         cells_nodes[face_subsubcells[4]],
+                                        //         cells_nodes[face_subsubcells[7]],
+                                        //         cells_nodes[face_subsubcells[13]],
+                                        //         cells_nodes[face_subsubcells[14]],
+                                        //         cells_nodes[face_subsubcells[11]],
+                                        //         cells_nodes[face_subsubcells[8]],
+                                        //         cells_nodes[face_subsubcells[2]],
+                                        //     ]
+                                        // } else {
+                                        //     panic!()
+                                        // };
+                                        //
+                                        // BOTH SCALES ARE WHAT YOU CAN EVENTUALLY pre-OPTIMIZE AGAINST
+                                        //
+                                        let (scale_1, scale_2) = if face_index == 2 {
+                                            (
+                                                Coordinate::new([
+                                                    0.0,
+                                                    -0.5
+                                                        * *tree[face_subsubcells[0]].get_lngth()
+                                                            as f64,
+                                                    0.0,
+                                                ]),
+                                                Coordinate::new([
+                                                    0.0,
+                                                    -1.0
+                                                        * *tree[face_subsubcells[0]].get_lngth()
+                                                            as f64,
+                                                    0.0,
+                                                ]),
+                                            )
+                                        } else if face_index == 3 {
+                                            (
+                                                Coordinate::new([
+                                                    0.5
+                                                        * *tree[face_subsubcells[0]].get_lngth()
+                                                            as f64,
+                                                    0.0,
+                                                    0.0,
+                                                ]),
+                                                Coordinate::new([
+                                                    1.0
+                                                        * *tree[face_subsubcells[0]].get_lngth()
+                                                            as f64,
+                                                    0.0,
+                                                    0.0,
+                                                ]),
+                                            )
+                                        } else if face_index == 4 {
+                                            (
+                                                Coordinate::new([
+                                                    0.0,
+                                                    0.0,
+                                                    0.5
+                                                        * *tree[face_subsubcells[0]].get_lngth()
+                                                            as f64,
+                                                ]),
+                                                Coordinate::new([
+                                                    0.0,
+                                                    0.0,
+                                                    1.0
+                                                        * *tree[face_subsubcells[0]].get_lngth()
+                                                            as f64,
+                                                ]),
+                                            )
+                                        } else {
+                                            panic!()
+                                        };
+                                        let interior_nodes = [
+                                            node_index + 0,
+                                            node_index + 1,
+                                            node_index + 2,
+                                            node_index + 3,
+                                        ];
+                                        let exterior_nodes = [
+                                            node_index + 4,
+                                            node_index + 5,
+                                            node_index + 6,
+                                            node_index + 7,
+                                            node_index + 8,
+                                            node_index + 9,
+                                            node_index + 10,
+                                            node_index + 11,
+                                        ];
+                                        node_index += 12;
+                                        adjacent_interior_nodes.iter().for_each(|foo_i| {
+                                            nodal_coordinates.push(
+                                                &nodal_coordinates[foo_i - NODE_NUMBERING_OFFSET]
+                                                    + scale_1.clone(),
+                                            )
+                                        });
+                                        adjacent_exterior_nodes.iter().for_each(|foo_i| {
+                                            nodal_coordinates.push(
+                                                &nodal_coordinates[foo_i - NODE_NUMBERING_OFFSET]
+                                                    + scale_2.clone(),
+                                            )
+                                        });
+                                        //
+                                        // next type
+                                        //
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[3]],
+                                            cells_nodes[face_subsubcells[6]],
+                                            cells_nodes[face_subsubcells[12]],
+                                            cells_nodes[face_subsubcells[9]],
+                                            interior_nodes[0],
+                                            interior_nodes[1],
+                                            interior_nodes[2],
+                                            interior_nodes[3],
+                                        ]);
+                                        //
+                                        // next type
+                                        //
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[1]],
+                                            cells_nodes[face_subsubcells[4]],
+                                            cells_nodes[face_subsubcells[6]],
+                                            cells_nodes[face_subsubcells[3]],
+                                            exterior_nodes[0],
+                                            exterior_nodes[1],
+                                            interior_nodes[1],
+                                            interior_nodes[0],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[6]],
+                                            cells_nodes[face_subsubcells[7]],
+                                            cells_nodes[face_subsubcells[13]],
+                                            cells_nodes[face_subsubcells[12]],
+                                            interior_nodes[1],
+                                            exterior_nodes[2],
+                                            exterior_nodes[3],
+                                            interior_nodes[2],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[9]],
+                                            cells_nodes[face_subsubcells[12]],
+                                            cells_nodes[face_subsubcells[14]],
+                                            cells_nodes[face_subsubcells[11]],
+                                            interior_nodes[3],
+                                            interior_nodes[2],
+                                            exterior_nodes[4],
+                                            exterior_nodes[5],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[2]],
+                                            cells_nodes[face_subsubcells[3]],
+                                            cells_nodes[face_subsubcells[9]],
+                                            cells_nodes[face_subsubcells[8]],
+                                            exterior_nodes[7],
+                                            interior_nodes[0],
+                                            interior_nodes[3],
+                                            exterior_nodes[6],
+                                        ]);
+                                        //
+                                        // next type
+                                        //
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[0]],
+                                            cells_nodes[face_subsubcells[1]],
+                                            cells_nodes[face_subsubcells[3]],
+                                            cells_nodes[face_subsubcells[2]],
+                                            cell_subcells_face_nodes[0],
+                                            exterior_nodes[0],
+                                            interior_nodes[0],
+                                            exterior_nodes[7],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[4]],
+                                            cells_nodes[face_subsubcells[5]],
+                                            cells_nodes[face_subsubcells[7]],
+                                            cells_nodes[face_subsubcells[6]],
+                                            exterior_nodes[1],
+                                            cell_subcells_face_nodes[1],
+                                            exterior_nodes[2],
+                                            interior_nodes[1],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[12]],
+                                            cells_nodes[face_subsubcells[13]],
+                                            cells_nodes[face_subsubcells[15]],
+                                            cells_nodes[face_subsubcells[14]],
+                                            interior_nodes[2],
+                                            exterior_nodes[3],
+                                            cell_subcells_face_nodes[3],
+                                            exterior_nodes[4],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[face_subsubcells[8]],
+                                            cells_nodes[face_subsubcells[9]],
+                                            cells_nodes[face_subsubcells[11]],
+                                            cells_nodes[face_subsubcells[10]],
+                                            exterior_nodes[6],
+                                            interior_nodes[3],
+                                            exterior_nodes[5],
+                                            cell_subcells_face_nodes[2],
+                                        ]);
+                                        //
+                                        // next type
+                                        //
+                                        element_node_connectivity.push([
+                                            interior_nodes[0],
+                                            interior_nodes[1],
+                                            interior_nodes[2],
+                                            interior_nodes[3],
+                                            exterior_nodes[0],
+                                            exterior_nodes[1],
+                                            exterior_nodes[4],
+                                            exterior_nodes[5],
+                                        ]);
+                                        //
+                                        // next type
+                                        //
+                                        element_node_connectivity.push([
+                                            exterior_nodes[0],
+                                            exterior_nodes[1],
+                                            exterior_nodes[4],
+                                            exterior_nodes[5],
+                                            cell_subcells_face_nodes[0],
+                                            cell_subcells_face_nodes[1],
+                                            cell_subcells_face_nodes[3],
+                                            cell_subcells_face_nodes[2],
+                                        ]);
+                                        //
+                                        // next type
+                                        //
+                                        element_node_connectivity.push([
+                                            exterior_nodes[2],
+                                            exterior_nodes[3],
+                                            interior_nodes[2],
+                                            interior_nodes[1],
+                                            cell_subcells_face_nodes[1],
+                                            cell_subcells_face_nodes[3],
+                                            exterior_nodes[4],
+                                            exterior_nodes[1],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            exterior_nodes[6],
+                                            exterior_nodes[7],
+                                            interior_nodes[0],
+                                            interior_nodes[3],
+                                            cell_subcells_face_nodes[2],
+                                            cell_subcells_face_nodes[0],
+                                            exterior_nodes[0],
+                                            exterior_nodes[5],
+                                        ]);
+                                    }
+                                }
+                                // want the 16 cell nodes on the particular face
+                                // if keep them in a particular order (similarly the 4 cell nodes) can send straight to template?
+                            }
+                        }
+                    })
+            });
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,

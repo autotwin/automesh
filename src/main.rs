@@ -1,7 +1,7 @@
 use automesh::{
     Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX,
     HexahedralFiniteElements, Nel, Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation,
-    TetrahedralFiniteElements, Translate, Tree, TriangularFiniteElements, Voxels,
+    TetrahedralFiniteElements, Translate, TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -1957,13 +1957,17 @@ where
             InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => {
                 let mut materials: Blocks = voxels.get_data().iter().copied().collect();
                 let voxels = materials.len();
-                materials.sort();
-                materials.dedup();
                 println!(
-                    " \x1b[2m[{} materials, {} voxels]\x1b[0m",
-                    materials.len(),
+                    " \x1b[2m[{} voxels]\x1b[0m",
                     voxels
                 );
+                // materials.sort();
+                // materials.dedup();
+                // println!(
+                //     " \x1b[2m[{} materials, {} voxels]\x1b[0m",
+                //     materials.len(),
+                //     voxels
+                // );
             }
             _ => {
                 println!();
