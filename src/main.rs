@@ -1955,19 +1955,19 @@ where
         );
         match &result {
             InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => {
-                let mut materials: Blocks = voxels.get_data().iter().copied().collect();
-                let voxels = materials.len();
+                let data =  voxels.get_data();
+                let mut materials = vec![];
+                data.iter().for_each(|&voxel|
+                    if !materials.contains(&voxel) {
+                        materials.push(voxel)
+                    }
+                );
+                let voxels = data.len();
                 println!(
-                    " \x1b[2m[{} voxels]\x1b[0m",
+                    " \x1b[2m[{} materials, {} voxels]\x1b[0m",
+                    materials.len(),
                     voxels
                 );
-                // materials.sort();
-                // materials.dedup();
-                // println!(
-                //     " \x1b[2m[{} materials, {} voxels]\x1b[0m",
-                //     materials.len(),
-                //     voxels
-                // );
             }
             _ => {
                 println!();
