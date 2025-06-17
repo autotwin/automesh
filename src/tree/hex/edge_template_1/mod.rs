@@ -261,37 +261,25 @@ fn template(
                                                             - NODE_NUMBERING_OFFSET]
                                                             + direction * lngth,
                                                     );
-                                                    assert!(nodes_map.insert(
-                                                        (
-                                                            (2.0 * nodal_coordinates[*node_index
-                                                                - NODE_NUMBERING_OFFSET][0])
-                                                                as usize,
-                                                            (2.0 * nodal_coordinates[*node_index
-                                                                - NODE_NUMBERING_OFFSET][1])
-                                                                as usize,
-                                                            (2.0 * nodal_coordinates[*node_index
-                                                                - NODE_NUMBERING_OFFSET][2])
-                                                                as usize,
-                                                        ),
-                                                        *node_index,
-                                                    ).is_none(), "duplicate entry");
-                                                    assert!(nodes_map.insert(
-                                                        (
-                                                            (2.0 * nodal_coordinates[*node_index
-                                                                + 1
-                                                                - NODE_NUMBERING_OFFSET][0])
-                                                                as usize,
-                                                            (2.0 * nodal_coordinates[*node_index
-                                                                + 1
-                                                                - NODE_NUMBERING_OFFSET][1])
-                                                                as usize,
-                                                            (2.0 * nodal_coordinates[*node_index
-                                                                + 1
-                                                                - NODE_NUMBERING_OFFSET][2])
-                                                                as usize,
-                                                        ),
-                                                        *node_index + 1,
-                                                    ).is_none(), "duplicate entry");
+                                                    (0..2).for_each(|k| {
+                                                        assert!(nodes_map.insert(
+                                                            (
+                                                                (2.0 * nodal_coordinates[*node_index
+                                                                    + k
+                                                                    - NODE_NUMBERING_OFFSET][0])
+                                                                    as usize,
+                                                                (2.0 * nodal_coordinates[*node_index
+                                                                    + k
+                                                                    - NODE_NUMBERING_OFFSET][1])
+                                                                    as usize,
+                                                                (2.0 * nodal_coordinates[*node_index
+                                                                    + k
+                                                                    - NODE_NUMBERING_OFFSET][2])
+                                                                    as usize,
+                                                            ),
+                                                            *node_index + k,
+                                                        ).is_none(), "duplicate entry")
+                                                    });
                                                     element_node_connectivity.push([
                                                         cells_nodes[cell_subcells[subcell_a]],
                                                         cells_nodes
