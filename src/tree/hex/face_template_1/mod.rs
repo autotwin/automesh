@@ -8,8 +8,47 @@ use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
 const SCALE_1: f64 = 0.5;
 
 pub fn apply(
+    cells_nodes: &[usize],
+    nodes_map: &mut NodeMap,
+    node_index: &mut usize,
+    tree: &Octree,
+    element_node_connectivity: &mut HexConnectivity,
+    nodal_coordinates: &mut Coordinates,
+) {
+    tree.iter()
+        .filter_map(|cell| tree.cell_contains_leaves(cell))
+        .for_each(|(cell_subcells, cell_faces)| {
+            cell_faces
+                .iter()
+                .enumerate()
+                .for_each(|(face_index, face_cell)| {
+                    if let Some(face_cell_index) = face_cell {
+                        if let Some((_, face_subsubcells)) = tree.cell_subcells_contain_leaves(
+                            &tree[*face_cell_index],
+                            0,
+                            face_index,
+                        ) {
+                            template(
+                                cell_subcells,
+                                cells_nodes,
+                                nodes_map,
+                                face_index,
+                                face_subsubcells,
+                                tree,
+                                element_node_connectivity,
+                                nodal_coordinates,
+                                node_index,
+                            )
+                        }
+                    }
+                })
+        });
+}
+
+#[allow(clippy::too_many_arguments)]
+fn template(
     cell_subcells: &[usize; NUM_OCTANTS],
-    cells_nodes: &Vec<usize>,
+    cells_nodes: &[usize],
     nodes_map: &mut NodeMap,
     face_index: usize,
     face_subsubcells: [usize; 16],
@@ -40,7 +79,7 @@ pub fn apply(
         cells_nodes[face_subsubcells[12]],
         cells_nodes[face_subsubcells[9]],
     ];
-    let (scale_1, scale_2) = translations(face_index, &face_subsubcells, &tree);
+    let (scale_1, scale_2) = translations(face_index, &face_subsubcells, tree);
     let interior_nodes = [
         *node_index,
         *node_index + 1,
@@ -65,6 +104,9 @@ pub fn apply(
                 (2.0 * coordinates[1]) as usize,
                 (2.0 * coordinates[2]) as usize,
             );
+            //
+            // May eventually be able to assert these nodes already exist from 3 edge templates.
+            //
             if let Some(node_id) = nodes_map.get(&indices) {
                 *exterior_node_i = *node_id;
             } else {
@@ -75,7 +117,7 @@ pub fn apply(
             }
         });
     connectivity(
-        &cells_nodes,
+        cells_nodes,
         cell_subcells_face_nodes,
         face_index,
         face_subsubcells,
@@ -86,7 +128,7 @@ pub fn apply(
 }
 
 fn connectivity(
-    cells_nodes: &Vec<usize>,
+    cells_nodes: &[usize],
     cell_subcells_face_nodes: [usize; NUM_SUBCELLS_FACE],
     face_index: usize,
     face_subsubcells: [usize; 16],
@@ -95,7 +137,7 @@ fn connectivity(
     element_node_connectivity: &mut HexConnectivity,
 ) {
     match face_index {
-        2 | 3 | 4 => {
+        2..=4 => {
             //
             // next type
             //

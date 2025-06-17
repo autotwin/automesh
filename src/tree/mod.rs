@@ -140,7 +140,7 @@ impl DerefMut for Octree {
 
 #[derive(Default)]
 pub enum Neighbor {
-    Edges(NeighborEdges), // MAY NOT NEED TO TRACK WHICH EDGES
+    Edges(()), // MAY NOT NEED TO TRACK WHICH EDGES
     Face,
     #[default]
     None,
@@ -557,8 +557,17 @@ impl From<Voxels> for Octree {
 }
 
 impl Octree {
-    pub fn balance(&mut self, strong: bool) {
+    pub fn balance_and_pair(&mut self, strong: bool) {
+        let mut balanced = false;
+        let mut paired = false;
+        while !balanced || !paired {
+            balanced = self.balance(strong);
+            paired = self.pair();
+        }
+    }
+    pub fn balance(&mut self, strong: bool) -> bool {
         let mut balanced;
+        let mut balanced_already = true;
         let mut block;
         let mut edges: [bool; 8];
         let mut index;
@@ -887,6 +896,7 @@ impl Octree {
                             .take(NUM_OCTANTS)
                             .for_each(|cell| cell.block = Some(block));
                         balanced = false;
+                        balanced_already = false;
                         subdivide = false;
                     }
                 }
@@ -902,6 +912,7 @@ impl Octree {
                 break;
             }
         }
+        balanced_already
     }
     fn boundaries(&mut self) {
         //
@@ -1113,9 +1124,9 @@ impl Octree {
             None
         }
     }
-    fn cell_subcells_contain_leaves<'a>(
+    fn cell_subcells_contain_leaves(
         &self,
-        cell: &'a Cell,
+        cell: &Cell,
         cell_index: usize,
         face_index: usize,
     ) -> Option<(usize, [usize; 16])> {
@@ -1126,7 +1137,7 @@ impl Octree {
             {
                 // assumes pairing
                 let subcells = subcells_on_neighbor_face(face_index);
-                let foo = subcells
+                let subsubcells = subcells
                     .iter()
                     .flat_map(|subcell_a| {
                         subcells.iter().map(|&subcell_b| {
@@ -1136,7 +1147,7 @@ impl Octree {
                     .collect::<Vec<usize>>()
                     .try_into()
                     .unwrap();
-                Some((cell_index, foo))
+                Some((cell_index, subsubcells))
             } else {
                 None
             }
@@ -1297,39 +1308,39 @@ impl Octree {
             }
         }
     }
-    fn edge_neighbors_not_smaller(&self, cell: &Cell) -> bool {
-        cell.get_faces()
-            .iter()
-            .enumerate()
-            .all(|(face_index, &face)| {
-                if let Some(face_neighbor_cell) = face {
-                    if self[face_neighbor_cell].is_leaf() {
-                        edge_neighbors(face_index).into_iter().all(|edge_neighbor| {
-                            if let Some(edge_cell) =
-                                self[face_neighbor_cell].get_faces()[edge_neighbor]
-                            {
-                                self[edge_cell].is_leaf()
-                            } else {
-                                true
-                            }
-                        })
-                    } else {
-                        false
-                    }
-                } else {
-                    true
-                }
-            })
-    }
-    fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool {
-        cell.get_faces().iter().all(|&face| {
-            if let Some(face_neighbor_cell) = face {
-                self[face_neighbor_cell].is_leaf()
-            } else {
-                true
-            }
-        })
-    }
+    // fn edge_neighbors_not_smaller(&self, cell: &Cell) -> bool {
+    //     cell.get_faces()
+    //         .iter()
+    //         .enumerate()
+    //         .all(|(face_index, &face)| {
+    //             if let Some(face_neighbor_cell) = face {
+    //                 if self[face_neighbor_cell].is_leaf() {
+    //                     edge_neighbors(face_index).into_iter().all(|edge_neighbor| {
+    //                         if let Some(edge_cell) =
+    //                             self[face_neighbor_cell].get_faces()[edge_neighbor]
+    //                         {
+    //                             self[edge_cell].is_leaf()
+    //                         } else {
+    //                             true
+    //                         }
+    //                     })
+    //                 } else {
+    //                     false
+    //                 }
+    //             } else {
+    //                 true
+    //             }
+    //         })
+    // }
+    // fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool {
+    //     cell.get_faces().iter().all(|&face| {
+    //         if let Some(face_neighbor_cell) = face {
+    //             self[face_neighbor_cell].is_leaf()
+    //         } else {
+    //             true
+    //         }
+    //     })
+    // }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())
     }
@@ -1362,7 +1373,8 @@ impl Octree {
                             if edges == NeighborEdges::default() {
                                 *neighbor = Neighbor::None
                             } else {
-                                *neighbor = Neighbor::Edges(edges)
+                                // *neighbor = Neighbor::Edges(edges)
+                                *neighbor = Neighbor::Edges(())
                             }
                         } else {
                             *neighbor = Neighbor::Face;
@@ -1434,11 +1446,12 @@ impl Octree {
             nodal_coordinates,
         ))
     }
-    pub fn pair(&mut self) {
+    pub fn pair(&mut self) -> bool {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut block = 0;
         let mut index = 0;
+        let mut paired_already = true;
         let mut subsubcells: Vec<bool>;
         while index < self.len() {
             if let Some(subcells) = self[index].cells {
@@ -1456,6 +1469,7 @@ impl Octree {
                         .into_iter()
                         .for_each(|subcell| {
                             block = self[subcell].get_block();
+                            paired_already = false;
                             self.subdivide(subcell);
                             self.iter_mut()
                                 .rev()
@@ -1471,6 +1485,7 @@ impl Octree {
             "           \x1b[1;93m  Pairing hanging nodes\x1b[0m {:?} ",
             time.elapsed()
         );
+        paired_already
     }
     pub fn parameters(self) -> (Remove, Scale, Translate) {
         (self.remove, self.scale, self.translate)
@@ -2049,12 +2064,6 @@ impl From<Octree> for HexahedralFiniteElements {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut nodal_coordinates = Coordinates::zero(0);
-        //
-        // might be better to have 2 maps
-        // (1) give it leaf, gives you node at center
-        // (2) the odd created nodes
-        // since will have queried cells for (1) usually when need those nodes
-        //
         let mut nodes_map = HashMap::new();
         let mut cells_nodes = vec![0; tree.len()];
         let mut node_index = NODE_NUMBERING_OFFSET;
@@ -2074,7 +2083,12 @@ impl From<Octree> for HexahedralFiniteElements {
                     0.5 * ty as f64 * tree.scale.y() + tree.translate.y(),
                     0.5 * tz as f64 * tree.scale.z() + tree.translate.z(),
                 ]]));
-                // nodes_map.insert((tx.into(), ty.into(), tz.into()), node_index);
+                assert!(
+                    nodes_map
+                        .insert((tx.into(), ty.into(), tz.into()), node_index)
+                        .is_none(),
+                    "duplicate entry"
+                );
                 node_index += 1;
             });
         let mut element_node_connectivity: HexConnectivity = tree
@@ -2103,45 +2117,14 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
-        // tree.iter()
-        //     .filter_map(|cell| tree.cell_contains_leaves(cell))
-        //     .for_each(|(cell_subcells, cell_faces)| {
-        //         cell_faces
-        //             .iter()
-        //             .enumerate()
-        //             .for_each(|(face_index, face_cell)| {
-        //                 if let Some(face_cell_index) = face_cell {
-        //                     if let Some((_, face_subsubcells)) = tree.cell_subcells_contain_leaves(
-        //                         &tree[*face_cell_index],
-        //                         0,
-        //                         face_index,
-        //                     ) {
-        //                         //
-        //                         // Why are there uninitialized cells/hexes/etc. being hit?
-        //                         //
-        //                         let foo = [
-        //                             cells_nodes[face_subsubcells[3]],
-        //                             cells_nodes[face_subsubcells[6]],
-        //                             cells_nodes[face_subsubcells[12]],
-        //                             cells_nodes[face_subsubcells[9]],
-        //                         ];
-        //                         if foo.iter().all(|bar| bar != &0) {
-        //                             hex::face_template_1::apply(
-        //                                 cell_subcells,
-        //                                 &cells_nodes,
-        //                                 &mut nodes_map,
-        //                                 face_index,
-        //                                 face_subsubcells,
-        //                                 &tree,
-        //                                 &mut element_node_connectivity,
-        //                                 &mut nodal_coordinates,
-        //                                 &mut node_index,
-        //                             )
-        //                         }
-        //                     }
-        //                 }
-        //             })
-        //     });
+        hex::face_template_1::apply(
+            &cells_nodes,
+            &mut nodes_map,
+            &mut node_index,
+            &tree,
+            &mut element_node_connectivity,
+            &mut nodal_coordinates,
+        );
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,

@@ -1,7 +1,7 @@
 use super::super::{HexConnectivity, NUM_FACES, NUM_OCTANTS, Octree};
 
 pub fn apply(
-    cells_nodes: &Vec<usize>,
+    cells_nodes: &[usize],
     tree: &Octree,
     element_node_connectivity: &mut HexConnectivity,
 ) {
