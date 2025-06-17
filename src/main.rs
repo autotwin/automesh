@@ -1,7 +1,7 @@
 use automesh::{
     Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Nel,
     Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
-    Tree, TriangularFiniteElements, Voxels,
+    TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -1387,8 +1387,7 @@ where
                     mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
                 }
                 let mut tree = Octree::from(input_type);
-                tree.balance(true);
-                tree.pair();
+                tree.balance_and_pair(true);
                 tree.into()
             } else {
                 if !quiet {
@@ -1725,7 +1724,9 @@ fn octree(
     let mut tree = Octree::from(input_type);
     tree.balance(strong);
     if pair {
-        tree.pair();
+        tree.balance_and_pair(true);
+    } else {
+        tree.balance(strong);
     }
     tree.prune();
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());

@@ -3,7 +3,7 @@ use super::{
         Connectivity,
         tet::{NUM_TETS_PER_HEX, TET, TetrahedralFiniteElements, TetrahedralTransition},
     },
-    Blocks, Cell, NODE_NUMBERING_OFFSET, Neighbor, Octree, Tree,
+    Blocks, Cell, NODE_NUMBERING_OFFSET, Neighbor, Octree,
 };
 
 pub fn connectivity(
