@@ -1,6 +1,5 @@
 use automesh::{
-    FiniteElementMethods, NODE_NUMBERING_OFFSET, Octree, TET, TetrahedralFiniteElements,
-    Voxels,
+    FiniteElementMethods, NODE_NUMBERING_OFFSET, Octree, TET, TetrahedralFiniteElements, Voxels,
 };
 use conspire::{
     constitutive::{
