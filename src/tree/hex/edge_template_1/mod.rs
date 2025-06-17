@@ -12,6 +12,7 @@ pub fn apply(
     tree.iter()
         .filter_map(|cell| tree.cell_contains_leaves(cell))
         .for_each(|(cell_subcells, _)| {
+            template(2, 6, cells_nodes, &cell_subcells, nodes_map, node_index, tree, element_node_connectivity, nodal_coordinates);
             template(3, 7, cells_nodes, &cell_subcells, nodes_map, node_index, tree, element_node_connectivity, nodal_coordinates)
         })
 }
@@ -28,9 +29,13 @@ fn template(
     nodal_coordinates: &mut Coordinates,
 ) {
     let (face_m, face_n, subcell_c, subcell_d, subcell_e, subcell_f, direction) = match (subcell_a, subcell_b) {
+        (2, 6) => (2, 3, 0, 3, 4, 7, tensor_rank_1::<3, 1>([0.0, -2.0, 0.0])),
         (3, 7) => (1, 2, 2, 1, 6, 5, tensor_rank_1::<3, 1>([-2.0, 0.0, 0.0])),
         _=> panic!(),
     };
+    //
+    // change names below to match new scheme (a, b) -> (m, n, c, d, e, f)
+    //
     let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();
     if let Some(subcell_a_face_a) = subcell_a_faces[face_m] {
         if let Some(subcell_a_face_b) = subcell_a_faces[face_n] {
@@ -44,7 +49,7 @@ fn template(
                         if let Some(subdiagonal_a) =
                             tree[subcell_a_face_a_subcells[subcell_e]].get_faces()[face_n]
                         {
-                            let subcell_b_faces = tree[cell_subcells[subcell_a]].get_faces();
+                            let subcell_b_faces = tree[cell_subcells[subcell_b]].get_faces();
                             if let Some(subcell_b_face_a) = subcell_b_faces[face_m] {
                                 if let Some(subcell_b_face_b) = subcell_b_faces[face_n] {
                                     if let Some((subcell_b_face_a_subcells, _)) =
