@@ -1460,13 +1460,7 @@ where
                 time = Instant::now();
             }
             let mut output_type: TetrahedralFiniteElements = if adapt {
-                if !quiet {
-                    print!("     \x1b[1;96mMeshing\x1b[0m adaptive tetrahedra");
-                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
-                }
-                let mut tree = Octree::from(input_type);
-                tree.balance(true);
-                tree.into()
+                Err("Adaptive tetrahedra not yet implemented".to_string())?
             } else {
                 if !quiet {
                     print!("     \x1b[1;96mMeshing\x1b[0m voxels into tetrahedra");
