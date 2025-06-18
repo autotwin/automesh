@@ -2117,6 +2117,14 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
+        hex::edge_template_2::apply(
+            &cells_nodes,
+            &mut nodes_map,
+            &mut node_index,
+            &tree,
+            &mut element_node_connectivity,
+            &mut nodal_coordinates,
+        );
         hex::face_template_1::apply(
             &cells_nodes,
             &mut nodes_map,
@@ -2125,6 +2133,9 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
+        //
+        // Eventually get rid of cell_subcells_contain_leaves passing through `cell_index` if do not need in any templates.
+        //
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
