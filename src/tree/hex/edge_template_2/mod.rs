@@ -1,5 +1,5 @@
 use super::super::{
-    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS, NodeMap, Octree, mirror_face,
+    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NodeMap, Octree, mirror_face,
 };
 use conspire::math::{TensorVec, tensor_rank_1};
 

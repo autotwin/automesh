@@ -145,7 +145,7 @@ pub fn apply(
                 tree,
                 element_node_connectivity,
                 nodal_coordinates,
-            );
+            )
         })
 }
 
@@ -161,20 +161,20 @@ fn template(
     element_node_connectivity: &mut HexConnectivity,
     nodal_coordinates: &mut Coordinates,
 ) {
-    let (face_m, face_n, subcell_c, subcell_d, subcell_e, subcell_f, direction) =
+    let (face_m, face_n, subcell_c, subcell_d, subcell_e, subcell_f, flip, direction) =
         match (subcell_a, subcell_b) {
-            (0, 1) => (0, 4, 2, 4, 3, 5, tensor_rank_1::<3, 1>([0.0, 1.0, 0.0])),
-            (0, 2) => (3, 4, 1, 4, 3, 6, tensor_rank_1::<3, 1>([1.0, 0.0, 0.0])),
-            (0, 4) => (3, 0, 1, 2, 5, 6, tensor_rank_1::<3, 1>([1.0, 0.0, 0.0])),
-            (1, 3) => (1, 4, 0, 5, 2, 7, tensor_rank_1::<3, 1>([-1.0, 0.0, 0.0])),
-            (1, 5) => (0, 1, 3, 0, 7, 4, tensor_rank_1::<3, 1>([0.0, 1.0, 0.0])),
-            (2, 3) => (2, 4, 0, 6, 1, 7, tensor_rank_1::<3, 1>([0.0, -1.0, 0.0])),
-            (2, 6) => (2, 3, 0, 3, 4, 7, tensor_rank_1::<3, 1>([0.0, -1.0, 0.0])),
-            (3, 7) => (1, 2, 2, 1, 6, 5, tensor_rank_1::<3, 1>([-1.0, 0.0, 0.0])),
-            (4, 5) => (5, 0, 0, 6, 1, 7, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
-            (4, 6) => (5, 3, 0, 5, 2, 7, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
-            (5, 7) => (5, 1, 1, 4, 3, 6, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
-            (6, 7) => (5, 2, 2, 4, 3, 5, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
+            (0, 1) => (0, 4, 2, 4, 3, 5, false, tensor_rank_1::<3, 1>([0.0, 1.0, 0.0])),
+            (0, 2) => (3, 4, 1, 4, 3, 6, true, tensor_rank_1::<3, 1>([1.0, 0.0, 0.0])),
+            (0, 4) => (3, 0, 1, 2, 5, 6, false, tensor_rank_1::<3, 1>([1.0, 0.0, 0.0])),
+            (1, 3) => (1, 4, 0, 5, 2, 7, false, tensor_rank_1::<3, 1>([-1.0, 0.0, 0.0])),
+            (1, 5) => (0, 1, 3, 0, 7, 4, false, tensor_rank_1::<3, 1>([0.0, 1.0, 0.0])),
+            (2, 3) => (2, 4, 0, 6, 1, 7, true, tensor_rank_1::<3, 1>([0.0, -1.0, 0.0])),
+            (2, 6) => (2, 3, 0, 3, 4, 7, false, tensor_rank_1::<3, 1>([0.0, -1.0, 0.0])),
+            (3, 7) => (1, 2, 2, 1, 6, 5, false, tensor_rank_1::<3, 1>([-1.0, 0.0, 0.0])),
+            (4, 5) => (5, 0, 0, 6, 1, 7, false, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
+            (4, 6) => (5, 3, 0, 5, 2, 7, true, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
+            (5, 7) => (5, 1, 1, 4, 3, 6, false, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
+            (6, 7) => (5, 2, 2, 4, 3, 5, true, tensor_rank_1::<3, 1>([0.0, 0.0, -1.0])),
             _ => panic!(),
         };
     let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();
@@ -280,48 +280,93 @@ fn template(
                                                             *node_index + k,
                                                         ).is_none(), "duplicate entry")
                                                     });
-                                                    element_node_connectivity.push([
-                                                        cells_nodes[cell_subcells[subcell_a]],
-                                                        cells_nodes
-                                                            [subcell_a_face_m_subcells[subcell_c]],
-                                                        cells_nodes[diagonal_a],
-                                                        cells_nodes
-                                                            [subcell_a_face_n_subcells[subcell_d]],
-                                                        *node_index,
-                                                        cells_nodes
-                                                            [subcell_a_face_m_subcells[subcell_e]],
-                                                        cells_nodes[subdiagonal_a],
-                                                        cells_nodes
-                                                            [subcell_a_face_n_subcells[subcell_f]],
-                                                    ]);
-                                                    element_node_connectivity.push([
-                                                        *node_index,
-                                                        cells_nodes
-                                                            [subcell_a_face_m_subcells[subcell_e]],
-                                                        cells_nodes[subdiagonal_a],
-                                                        cells_nodes
-                                                            [subcell_a_face_n_subcells[subcell_f]],
-                                                        *node_index + 1,
-                                                        cells_nodes
-                                                            [subcell_b_face_m_subcells[subcell_c]],
-                                                        cells_nodes[subdiagonal_b],
-                                                        cells_nodes
-                                                            [subcell_b_face_n_subcells[subcell_d]],
-                                                    ]);
-                                                    element_node_connectivity.push([
-                                                        *node_index + 1,
-                                                        cells_nodes
-                                                            [subcell_b_face_m_subcells[subcell_c]],
-                                                        cells_nodes[subdiagonal_b],
-                                                        cells_nodes
-                                                            [subcell_b_face_n_subcells[subcell_d]],
-                                                        cells_nodes[cell_subcells[subcell_b]],
-                                                        cells_nodes
-                                                            [subcell_b_face_m_subcells[subcell_e]],
-                                                        cells_nodes[diagonal_b],
-                                                        cells_nodes
-                                                            [subcell_b_face_n_subcells[subcell_f]],
-                                                    ]);
+                                                    if flip {
+                                                        element_node_connectivity.push([
+                                                            *node_index,
+                                                            cells_nodes
+                                                                [subcell_a_face_m_subcells[subcell_e]],
+                                                            cells_nodes[subdiagonal_a],
+                                                            cells_nodes
+                                                                [subcell_a_face_n_subcells[subcell_f]],
+                                                            cells_nodes[cell_subcells[subcell_a]],
+                                                            cells_nodes
+                                                                [subcell_a_face_m_subcells[subcell_c]],
+                                                            cells_nodes[diagonal_a],
+                                                            cells_nodes
+                                                                [subcell_a_face_n_subcells[subcell_d]],
+                                                        ]);
+                                                        element_node_connectivity.push([
+                                                            *node_index + 1,
+                                                            cells_nodes
+                                                                [subcell_b_face_m_subcells[subcell_c]],
+                                                            cells_nodes[subdiagonal_b],
+                                                            cells_nodes
+                                                                [subcell_b_face_n_subcells[subcell_d]],
+                                                            *node_index,
+                                                            cells_nodes
+                                                                [subcell_a_face_m_subcells[subcell_e]],
+                                                            cells_nodes[subdiagonal_a],
+                                                            cells_nodes
+                                                                [subcell_a_face_n_subcells[subcell_f]],
+                                                        ]);
+                                                        element_node_connectivity.push([
+                                                            cells_nodes[cell_subcells[subcell_b]],
+                                                            cells_nodes
+                                                                [subcell_b_face_m_subcells[subcell_e]],
+                                                            cells_nodes[diagonal_b],
+                                                            cells_nodes
+                                                                [subcell_b_face_n_subcells[subcell_f]],
+                                                            *node_index + 1,
+                                                            cells_nodes
+                                                                [subcell_b_face_m_subcells[subcell_c]],
+                                                            cells_nodes[subdiagonal_b],
+                                                            cells_nodes
+                                                                [subcell_b_face_n_subcells[subcell_d]],
+                                                        ]);
+                                                    } else {
+                                                        element_node_connectivity.push([
+                                                            cells_nodes[cell_subcells[subcell_a]],
+                                                            cells_nodes
+                                                                [subcell_a_face_m_subcells[subcell_c]],
+                                                            cells_nodes[diagonal_a],
+                                                            cells_nodes
+                                                                [subcell_a_face_n_subcells[subcell_d]],
+                                                            *node_index,
+                                                            cells_nodes
+                                                                [subcell_a_face_m_subcells[subcell_e]],
+                                                            cells_nodes[subdiagonal_a],
+                                                            cells_nodes
+                                                                [subcell_a_face_n_subcells[subcell_f]],
+                                                        ]);
+                                                        element_node_connectivity.push([
+                                                            *node_index,
+                                                            cells_nodes
+                                                                [subcell_a_face_m_subcells[subcell_e]],
+                                                            cells_nodes[subdiagonal_a],
+                                                            cells_nodes
+                                                                [subcell_a_face_n_subcells[subcell_f]],
+                                                            *node_index + 1,
+                                                            cells_nodes
+                                                                [subcell_b_face_m_subcells[subcell_c]],
+                                                            cells_nodes[subdiagonal_b],
+                                                            cells_nodes
+                                                                [subcell_b_face_n_subcells[subcell_d]],
+                                                        ]);
+                                                        element_node_connectivity.push([
+                                                            *node_index + 1,
+                                                            cells_nodes
+                                                                [subcell_b_face_m_subcells[subcell_c]],
+                                                            cells_nodes[subdiagonal_b],
+                                                            cells_nodes
+                                                                [subcell_b_face_n_subcells[subcell_d]],
+                                                            cells_nodes[cell_subcells[subcell_b]],
+                                                            cells_nodes
+                                                                [subcell_b_face_m_subcells[subcell_e]],
+                                                            cells_nodes[diagonal_b],
+                                                            cells_nodes
+                                                                [subcell_b_face_n_subcells[subcell_f]],
+                                                        ]);
+                                                    }
                                                     *node_index += 2;
                                                 }
                                             }
