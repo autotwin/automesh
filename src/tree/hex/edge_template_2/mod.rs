@@ -212,7 +212,9 @@ fn template(
                             if let Some((_, subcells_m)) =
                                 tree.cell_subcells_contain_leaves(cell, 0, mirror_face(face_m))
                             {
-                                if tree.cell_subcells_contain_leaves(cell, 0, mirror_face(face_n)).is_some()
+                                if tree
+                                    .cell_subcells_contain_leaves(cell, 0, mirror_face(face_n))
+                                    .is_some()
                                 {
                                     let lngth = *tree[subcells_m[subcell_m_a]].get_lngth() as f64;
                                     nodal_coordinates.push(
