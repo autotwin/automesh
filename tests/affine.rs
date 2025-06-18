@@ -103,4 +103,3 @@ fn voxels_to_direct_tets() -> Result<(), TestError> {
     affine_test!(fem, 35);
     Ok(())
 }
-
