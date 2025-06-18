@@ -1987,7 +1987,6 @@ impl From<Octree> for HexahedralFiniteElements {
         hex::edge_template_3::apply(
             &cells_nodes,
             &mut nodes_map,
-            &mut node_index,
             &tree,
             &mut element_node_connectivity,
             &mut nodal_coordinates,
