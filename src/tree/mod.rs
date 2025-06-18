@@ -1984,9 +1984,6 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
-        //
-        // all nodes below will be created already from face_template_1
-        //
         hex::edge_template_3::apply(
             &cells_nodes,
             &mut nodes_map,
