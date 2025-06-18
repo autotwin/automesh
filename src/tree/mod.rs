@@ -2,13 +2,12 @@
 use std::time::Instant;
 
 mod hex;
-mod tet;
 
 use super::{
     Coordinate, Coordinates, NSD,
     fem::{
         Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
-        TetrahedralFiniteElements, TriangularFiniteElements, hex::HexConnectivity,
+        TriangularFiniteElements, hex::HexConnectivity,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
@@ -26,7 +25,6 @@ const NUM_FACES: usize = 6;
 const NUM_OCTANTS: usize = 8;
 const NUM_NODES_CELL: usize = 8;
 const NUM_NODES_FACE: usize = 4;
-const NUM_EDGES_FACE: usize = 4;
 const NUM_SUBCELLS_FACE: usize = 4;
 
 type SubcellsOnFace = [usize; NUM_SUBCELLS_FACE];
@@ -36,22 +34,6 @@ const SUBCELLS_ON_OWN_FACE_2: SubcellsOnFace = [2, 3, 6, 7];
 const SUBCELLS_ON_OWN_FACE_3: SubcellsOnFace = [0, 2, 4, 6];
 const SUBCELLS_ON_OWN_FACE_4: SubcellsOnFace = [0, 1, 2, 3];
 const SUBCELLS_ON_OWN_FACE_5: SubcellsOnFace = [4, 5, 6, 7];
-
-type EdgeNeighbors = [usize; NUM_EDGES_FACE];
-const EDGE_NEIGHBORS_FROM_FACE_0_2_FACE_NEIGHBORS: EdgeNeighbors = [1, 3, 4, 5];
-const EDGE_NEIGHBORS_FROM_FACE_1_3_FACE_NEIGHBORS: EdgeNeighbors = [0, 2, 4, 5];
-const EDGE_NEIGHBORS_FROM_FACE_4_5_FACE_NEIGHBORS: EdgeNeighbors = [0, 1, 2, 3];
-
-const fn edge_neighbors(face: usize) -> EdgeNeighbors {
-    match face {
-        0 | 2 => EDGE_NEIGHBORS_FROM_FACE_0_2_FACE_NEIGHBORS,
-        1 | 3 => EDGE_NEIGHBORS_FROM_FACE_1_3_FACE_NEIGHBORS,
-        4 | 5 => EDGE_NEIGHBORS_FROM_FACE_4_5_FACE_NEIGHBORS,
-        _ => {
-            panic!()
-        }
-    }
-}
 
 const fn mirror_face(face: usize) -> usize {
     match face {
@@ -138,18 +120,8 @@ impl DerefMut for Octree {
     }
 }
 
-#[derive(Default)]
-pub enum Neighbor {
-    Edges(()), // MAY NOT NEED TO TRACK WHICH EDGES
-    Face,
-    #[default]
-    None,
-}
-
 type Cluster = Vec<usize>;
 type Clusters = Vec<Cluster>;
-type NeighborEdges = [bool; NUM_EDGES_FACE];
-type Neighbors = [Neighbor; NUM_FACES];
 type Supercells = Vec<Option<[usize; 2]>>;
 
 #[derive(Clone, Copy, Debug)]
@@ -164,20 +136,6 @@ pub struct Cell {
 }
 
 impl Cell {
-    const fn get_all(&self) -> [usize; 9] {
-        let min_x = self.min_x as usize;
-        let min_y = self.min_y as usize;
-        let min_z = self.min_z as usize;
-        let haf_x = (self.min_x + self.lngth / 2) as usize;
-        let haf_y = (self.min_y + self.lngth / 2) as usize;
-        let haf_z = (self.min_z + self.lngth / 2) as usize;
-        let max_x = (self.min_x + self.lngth) as usize;
-        let max_y = (self.min_y + self.lngth) as usize;
-        let max_z = (self.min_z + self.lngth) as usize;
-        [
-            min_x, haf_x, max_x, min_y, haf_y, max_y, min_z, haf_z, max_z,
-        ]
-    }
     pub fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
             block
@@ -1308,81 +1266,8 @@ impl Octree {
             }
         }
     }
-    // fn edge_neighbors_not_smaller(&self, cell: &Cell) -> bool {
-    //     cell.get_faces()
-    //         .iter()
-    //         .enumerate()
-    //         .all(|(face_index, &face)| {
-    //             if let Some(face_neighbor_cell) = face {
-    //                 if self[face_neighbor_cell].is_leaf() {
-    //                     edge_neighbors(face_index).into_iter().all(|edge_neighbor| {
-    //                         if let Some(edge_cell) =
-    //                             self[face_neighbor_cell].get_faces()[edge_neighbor]
-    //                         {
-    //                             self[edge_cell].is_leaf()
-    //                         } else {
-    //                             true
-    //                         }
-    //                     })
-    //                 } else {
-    //                     false
-    //                 }
-    //             } else {
-    //                 true
-    //             }
-    //         })
-    // }
-    // fn face_neighbors_not_smaller(&self, cell: &Cell) -> bool {
-    //     cell.get_faces().iter().all(|&face| {
-    //         if let Some(face_neighbor_cell) = face {
-    //             self[face_neighbor_cell].is_leaf()
-    //         } else {
-    //             true
-    //         }
-    //     })
-    // }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())
-    }
-    fn neighbors_template(&self, cell: &Cell) -> Neighbors {
-        if cell.is_voxel() {
-            Neighbors::default()
-        } else {
-            let mut edges = NeighborEdges::default();
-            let mut neighbors = Neighbors::default();
-            cell.get_faces()
-                .iter()
-                .enumerate()
-                .zip(neighbors.iter_mut())
-                .for_each(|((face_index, &face), neighbor)| {
-                    if let Some(face_neighbor_cell) = face {
-                        if self[face_neighbor_cell].is_leaf() {
-                            edges = NeighborEdges::default();
-                            edge_neighbors(face_index)
-                                .into_iter()
-                                .zip(edges.iter_mut())
-                                .for_each(|(edge_neighbor, edge)| {
-                                    if let Some(edge_cell) =
-                                        self[face_neighbor_cell].get_faces()[edge_neighbor]
-                                    {
-                                        if !self[edge_cell].is_leaf() {
-                                            *edge = true
-                                        }
-                                    }
-                                });
-                            if edges == NeighborEdges::default() {
-                                *neighbor = Neighbor::None
-                            } else {
-                                // *neighbor = Neighbor::Edges(edges)
-                                *neighbor = Neighbor::Edges(())
-                            }
-                        } else {
-                            *neighbor = Neighbor::Face;
-                        }
-                    }
-                });
-            neighbors
-        }
     }
     pub fn nel(&self) -> Nel {
         self.nel
@@ -1630,40 +1515,6 @@ impl Octree {
                 }
             });
         supercells
-    }
-}
-
-impl From<Octree> for TetrahedralFiniteElements {
-    fn from(tree: Octree) -> Self {
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let mut removed_data: Blocks = (&tree.remove).into();
-        removed_data.push(PADDING);
-        let (element_blocks, indexed_coordinates, indexed_nodes) =
-            tet::coordinates(&tree, &removed_data);
-        let element_node_connectivity = tet::connectivity(&tree, &indexed_nodes, &removed_data);
-        #[cfg(feature = "profile")]
-        let temporary = Instant::now();
-        let mut nodal_coordinates = Coordinates::zero(indexed_coordinates.len());
-        indexed_coordinates.into_iter().for_each(|[node, i, j, k]| {
-            nodal_coordinates[node - NODE_NUMBERING_OFFSET] = Coordinate::new([
-                i as f64 * tree.scale.x() + tree.translate.x(),
-                j as f64 * tree.scale.y() + tree.translate.y(),
-                k as f64 * tree.scale.z() + tree.translate.z(),
-            ])
-        });
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;91m✰ Nodal coordinates\x1b[0m {:?} ",
-            temporary.elapsed()
-        );
-        let fem = Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates);
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mTetrahedral finite elements\x1b[0m {:?} ",
-            time.elapsed()
-        );
-        fem
     }
 }
 

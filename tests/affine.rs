@@ -1,5 +1,5 @@
 use automesh::{
-    FiniteElementMethods, NODE_NUMBERING_OFFSET, Octree, TET, TetrahedralFiniteElements, Voxels,
+    FiniteElementMethods, NODE_NUMBERING_OFFSET, TET, TetrahedralFiniteElements, Voxels,
 };
 use conspire::{
     constitutive::{
@@ -101,15 +101,5 @@ fn voxels_to_direct_tets() -> Result<(), TestError> {
     let voxels = Voxels::from(segmentation());
     let fem = TetrahedralFiniteElements::from(voxels);
     affine_test!(fem, 35);
-    Ok(())
-}
-
-#[test]
-fn voxels_to_adaptive_tets() -> Result<(), TestError> {
-    let voxels = Voxels::from(segmentation());
-    let mut tree = Octree::from(voxels);
-    tree.balance(true);
-    let fem = TetrahedralFiniteElements::from(tree);
-    affine_test!(fem, 56);
     Ok(())
 }
