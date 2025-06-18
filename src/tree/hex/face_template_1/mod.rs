@@ -104,9 +104,6 @@ fn template(
                 (2.0 * coordinates[1]) as usize,
                 (2.0 * coordinates[2]) as usize,
             );
-            //
-            // May eventually be able to assert these nodes already exist from 3 edge templates.
-            //
             if let Some(node_id) = nodes_map.get(&indices) {
                 *exterior_node_i = *node_id;
             } else {
@@ -138,9 +135,6 @@ fn connectivity(
 ) {
     match face_index {
         2..=4 => {
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cells_nodes[face_subsubcells[3]],
                 cells_nodes[face_subsubcells[6]],
@@ -151,9 +145,6 @@ fn connectivity(
                 interior_nodes[2],
                 interior_nodes[3],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cells_nodes[face_subsubcells[1]],
                 cells_nodes[face_subsubcells[4]],
@@ -194,9 +185,6 @@ fn connectivity(
                 interior_nodes[3],
                 exterior_nodes[6],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cells_nodes[face_subsubcells[0]],
                 cells_nodes[face_subsubcells[1]],
@@ -237,9 +225,6 @@ fn connectivity(
                 exterior_nodes[5],
                 cell_subcells_face_nodes[2],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 interior_nodes[0],
                 interior_nodes[1],
@@ -250,9 +235,6 @@ fn connectivity(
                 exterior_nodes[4],
                 exterior_nodes[5],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[0],
                 exterior_nodes[1],
@@ -263,9 +245,6 @@ fn connectivity(
                 cell_subcells_face_nodes[3],
                 cell_subcells_face_nodes[2],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[2],
                 exterior_nodes[3],
@@ -288,9 +267,6 @@ fn connectivity(
             ]);
         }
         0 | 1 | 5 => {
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 interior_nodes[0],
                 interior_nodes[1],
@@ -301,9 +277,6 @@ fn connectivity(
                 cells_nodes[face_subsubcells[12]],
                 cells_nodes[face_subsubcells[9]],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[0],
                 exterior_nodes[1],
@@ -344,9 +317,6 @@ fn connectivity(
                 cells_nodes[face_subsubcells[9]],
                 cells_nodes[face_subsubcells[8]],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cell_subcells_face_nodes[0],
                 exterior_nodes[0],
@@ -387,9 +357,6 @@ fn connectivity(
                 cells_nodes[face_subsubcells[11]],
                 cells_nodes[face_subsubcells[10]],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[0],
                 exterior_nodes[1],
@@ -400,9 +367,6 @@ fn connectivity(
                 interior_nodes[2],
                 interior_nodes[3],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cell_subcells_face_nodes[0],
                 cell_subcells_face_nodes[1],
@@ -413,9 +377,6 @@ fn connectivity(
                 exterior_nodes[4],
                 exterior_nodes[5],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cell_subcells_face_nodes[1],
                 cell_subcells_face_nodes[3],
