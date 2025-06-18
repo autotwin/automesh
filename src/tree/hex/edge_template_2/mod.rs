@@ -117,18 +117,36 @@ pub fn apply(
                                             cells_nodes[subcells_diag_mn[6]],
                                             *node_index + 4,
                                         ]);
-                                        // element_node_connectivity.push([
-                                        //     // cells_nodes[subcells_m[7]],
-                                        //     cells_nodes[subcells_m[5]],
-                                        //     cells_nodes[subcells_face_m[3]],
-                                        //     cells_nodes[subcells_diag_mn[2]],
-                                        //     cells_nodes[subcells_face_n[0]],
-                                        //     // cells_nodes[subcells_m[13]],
-                                        //     cells_nodes[subcells_m[15]],
-                                        //     cells_nodes[subcells_face_m[7]],
-                                        //     cells_nodes[subcells_diag_mn[6]],
-                                        //     cells_nodes[subcells_face_n[4]],
-                                        // ]);
+                                        element_node_connectivity.push([
+                                            *node_index + 1,
+                                            cells_nodes[subcells_diag_mn[2]],
+                                            cells_nodes[subcells_face_n[0]],
+                                            *node_index + 2,
+                                            *node_index + 4,
+                                            cells_nodes[subcells_diag_mn[6]],
+                                            cells_nodes[subcells_face_n[4]],
+                                            *node_index + 5,
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[subcells_m[7]],
+                                            *node_index + 2,
+                                            *node_index + 1,
+                                            *node_index,
+                                            cells_nodes[subcells_m[5]],
+                                            cells_nodes[subcells_face_n[0]],
+                                            cells_nodes[subcells_diag_mn[2]],
+                                            cells_nodes[subcells_face_m[3]],
+                                        ]);
+                                        element_node_connectivity.push([
+                                            cells_nodes[subcells_m[13]],
+                                            *node_index + 3,
+                                            *node_index + 4,
+                                            *node_index + 5,
+                                            cells_nodes[subcells_m[15]],
+                                            cells_nodes[subcells_face_m[7]],
+                                            cells_nodes[subcells_diag_mn[6]],
+                                            cells_nodes[subcells_face_n[4]],
+                                        ]);
                                         *node_index += 6;
                                     }
                                 }
