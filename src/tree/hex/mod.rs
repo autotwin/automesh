@@ -1,3 +1,4 @@
+pub mod corner_template_1;
 pub mod edge_template_1;
 pub mod edge_template_2;
 pub mod edge_template_3;
