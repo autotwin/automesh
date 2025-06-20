@@ -1,6 +1,6 @@
 use super::super::{
     Coordinate, Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS,
-    NUM_SUBCELLS_FACE, NodeMap, Octree, subcells_on_own_face,
+    NUM_SUBCELLS_FACE, NodeMap, Octree, SubSubCellsFace, subcells_on_own_face,
 };
 use crate::Vector;
 use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
@@ -51,7 +51,7 @@ fn template(
     cells_nodes: &[usize],
     nodes_map: &mut NodeMap,
     face_index: usize,
-    face_subsubcells: [usize; 16],
+    face_subsubcells: SubSubCellsFace,
     tree: &Octree,
     element_node_connectivity: &mut HexConnectivity,
     nodal_coordinates: &mut Coordinates,
@@ -104,9 +104,6 @@ fn template(
                 (2.0 * coordinates[1]) as usize,
                 (2.0 * coordinates[2]) as usize,
             );
-            //
-            // May eventually be able to assert these nodes already exist from 3 edge templates.
-            //
             if let Some(node_id) = nodes_map.get(&indices) {
                 *exterior_node_i = *node_id;
             } else {
@@ -131,16 +128,13 @@ fn connectivity(
     cells_nodes: &[usize],
     cell_subcells_face_nodes: [usize; NUM_SUBCELLS_FACE],
     face_index: usize,
-    face_subsubcells: [usize; 16],
+    face_subsubcells: SubSubCellsFace,
     interior_nodes: [usize; 4],
     exterior_nodes: [usize; 8],
     element_node_connectivity: &mut HexConnectivity,
 ) {
     match face_index {
         2..=4 => {
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cells_nodes[face_subsubcells[3]],
                 cells_nodes[face_subsubcells[6]],
@@ -151,9 +145,6 @@ fn connectivity(
                 interior_nodes[2],
                 interior_nodes[3],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cells_nodes[face_subsubcells[1]],
                 cells_nodes[face_subsubcells[4]],
@@ -194,9 +185,6 @@ fn connectivity(
                 interior_nodes[3],
                 exterior_nodes[6],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cells_nodes[face_subsubcells[0]],
                 cells_nodes[face_subsubcells[1]],
@@ -237,9 +225,6 @@ fn connectivity(
                 exterior_nodes[5],
                 cell_subcells_face_nodes[2],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 interior_nodes[0],
                 interior_nodes[1],
@@ -250,9 +235,6 @@ fn connectivity(
                 exterior_nodes[4],
                 exterior_nodes[5],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[0],
                 exterior_nodes[1],
@@ -263,9 +245,6 @@ fn connectivity(
                 cell_subcells_face_nodes[3],
                 cell_subcells_face_nodes[2],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[2],
                 exterior_nodes[3],
@@ -288,9 +267,6 @@ fn connectivity(
             ]);
         }
         0 | 1 | 5 => {
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 interior_nodes[0],
                 interior_nodes[1],
@@ -301,9 +277,6 @@ fn connectivity(
                 cells_nodes[face_subsubcells[12]],
                 cells_nodes[face_subsubcells[9]],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[0],
                 exterior_nodes[1],
@@ -344,9 +317,6 @@ fn connectivity(
                 cells_nodes[face_subsubcells[9]],
                 cells_nodes[face_subsubcells[8]],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cell_subcells_face_nodes[0],
                 exterior_nodes[0],
@@ -387,9 +357,6 @@ fn connectivity(
                 cells_nodes[face_subsubcells[11]],
                 cells_nodes[face_subsubcells[10]],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 exterior_nodes[0],
                 exterior_nodes[1],
@@ -400,9 +367,6 @@ fn connectivity(
                 interior_nodes[2],
                 interior_nodes[3],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cell_subcells_face_nodes[0],
                 cell_subcells_face_nodes[1],
@@ -413,9 +377,6 @@ fn connectivity(
                 exterior_nodes[4],
                 exterior_nodes[5],
             ]);
-            //
-            // next type
-            //
             element_node_connectivity.push([
                 cell_subcells_face_nodes[1],
                 cell_subcells_face_nodes[3],
@@ -443,7 +404,7 @@ fn connectivity(
 
 fn translations(
     face_index: usize,
-    face_subsubcells: &[usize; 16],
+    face_subsubcells: &SubSubCellsFace,
     tree: &Octree,
 ) -> (Vector, Vector) {
     match face_index {
