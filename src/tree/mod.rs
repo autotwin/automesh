@@ -4,14 +4,14 @@ use std::time::Instant;
 mod hex;
 
 use super::{
-    Coordinate, Coordinates, NSD,
+    Coordinate, Coordinates, NSD, Vector,
     fem::{
         Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
         TriangularFiniteElements, hex::HexConnectivity,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
-use conspire::math::{TensorArray, TensorRank1Vec, TensorVec};
+use conspire::math::{TensorArray, TensorRank1Vec, TensorVec, tensor_rank_1};
 use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
@@ -34,6 +34,18 @@ const SUBCELLS_ON_OWN_FACE_2: SubcellsOnFace = [2, 3, 6, 7];
 const SUBCELLS_ON_OWN_FACE_3: SubcellsOnFace = [0, 2, 4, 6];
 const SUBCELLS_ON_OWN_FACE_4: SubcellsOnFace = [0, 1, 2, 3];
 const SUBCELLS_ON_OWN_FACE_5: SubcellsOnFace = [4, 5, 6, 7];
+
+const fn face_direction(face_index: usize) -> Vector {
+    match face_index {
+        0 => tensor_rank_1([0.0, -1.0, 0.0]),
+        1 => tensor_rank_1([1.0, 0.0, 0.0]),
+        2 => tensor_rank_1([0.0, 1.0, 0.0]),
+        3 => tensor_rank_1([-1.0, 0.0, 0.0]),
+        4 => tensor_rank_1([0.0, 0.0, -1.0]),
+        5 => tensor_rank_1([0.0, 0.0, 1.0]),
+        _ => panic!(),
+    }
+}
 
 const fn mirror_face(face: usize) -> usize {
     match face {
@@ -97,6 +109,7 @@ type Edges = Vec<Edge>;
 type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
 type NodeMap = HashMap<(usize, usize, usize), usize>;
+type SubSubCellsFace = [usize; 16];
 
 /// The octree type.
 pub struct Octree {
@@ -1087,7 +1100,7 @@ impl Octree {
         cell: &Cell,
         cell_index: usize,
         face_index: usize,
-    ) -> Option<(usize, [usize; 16])> {
+    ) -> Option<(usize, SubSubCellsFace)> {
         if let Some(cell_subcells) = cell.get_cells() {
             if cell_subcells
                 .iter()

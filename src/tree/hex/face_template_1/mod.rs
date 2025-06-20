@@ -1,6 +1,6 @@
 use super::super::{
     Coordinate, Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS,
-    NUM_SUBCELLS_FACE, NodeMap, Octree, subcells_on_own_face,
+    NUM_SUBCELLS_FACE, NodeMap, Octree, SubSubCellsFace, subcells_on_own_face,
 };
 use crate::Vector;
 use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
@@ -51,7 +51,7 @@ fn template(
     cells_nodes: &[usize],
     nodes_map: &mut NodeMap,
     face_index: usize,
-    face_subsubcells: [usize; 16],
+    face_subsubcells: SubSubCellsFace,
     tree: &Octree,
     element_node_connectivity: &mut HexConnectivity,
     nodal_coordinates: &mut Coordinates,
@@ -128,7 +128,7 @@ fn connectivity(
     cells_nodes: &[usize],
     cell_subcells_face_nodes: [usize; NUM_SUBCELLS_FACE],
     face_index: usize,
-    face_subsubcells: [usize; 16],
+    face_subsubcells: SubSubCellsFace,
     interior_nodes: [usize; 4],
     exterior_nodes: [usize; 8],
     element_node_connectivity: &mut HexConnectivity,
@@ -404,7 +404,7 @@ fn connectivity(
 
 fn translations(
     face_index: usize,
-    face_subsubcells: &[usize; 16],
+    face_subsubcells: &SubSubCellsFace,
     tree: &Octree,
 ) -> (Vector, Vector) {
     match face_index {
