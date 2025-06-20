@@ -23,11 +23,9 @@ pub fn apply(
                 .enumerate()
                 .for_each(|(face_index, face_cell)| {
                     if let Some(face_cell_index) = face_cell {
-                        if let Some((_, face_subsubcells)) = tree.cell_subcells_contain_leaves(
-                            &tree[*face_cell_index],
-                            0,
-                            face_index,
-                        ) {
+                        if let Some(face_subsubcells) =
+                            tree.cell_subcells_contain_leaves(&tree[*face_cell_index], face_index)
+                        {
                             template(
                                 cell_subcells,
                                 cells_nodes,

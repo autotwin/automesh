@@ -209,11 +209,11 @@ fn template(
                         if let Some((subcells_diag_mn, _)) =
                             tree.cell_contains_leaves(&tree[cell_diag_mn])
                         {
-                            if let Some((_, subcells_m)) =
-                                tree.cell_subcells_contain_leaves(cell, 0, mirror_face(face_m))
+                            if let Some(subcells_m) =
+                                tree.cell_subcells_contain_leaves(cell, mirror_face(face_m))
                             {
                                 if tree
-                                    .cell_subcells_contain_leaves(cell, 0, mirror_face(face_n))
+                                    .cell_subcells_contain_leaves(cell, mirror_face(face_n))
                                     .is_some()
                                 {
                                     let lngth = *tree[subcells_m[subcell_m_a]].get_lngth() as f64;

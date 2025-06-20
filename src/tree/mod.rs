@@ -26,6 +26,7 @@ const NUM_OCTANTS: usize = 8;
 const NUM_NODES_CELL: usize = 8;
 const NUM_NODES_FACE: usize = 4;
 const NUM_SUBCELLS_FACE: usize = 4;
+const NUM_SUBSUBCELLS_FACE: usize = 16;
 
 type SubcellsOnFace = [usize; NUM_SUBCELLS_FACE];
 const SUBCELLS_ON_OWN_FACE_0: SubcellsOnFace = [0, 1, 4, 5];
@@ -109,7 +110,7 @@ type Edges = Vec<Edge>;
 type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
 type NodeMap = HashMap<(usize, usize, usize), usize>;
-type SubSubCellsFace = [usize; 16];
+type SubSubCellsFace = [usize; NUM_SUBSUBCELLS_FACE];
 
 /// The octree type.
 pub struct Octree {
@@ -1098,27 +1099,32 @@ impl Octree {
     fn cell_subcells_contain_leaves(
         &self,
         cell: &Cell,
-        cell_index: usize,
         face_index: usize,
-    ) -> Option<(usize, SubSubCellsFace)> {
+    ) -> Option<SubSubCellsFace> {
         if let Some(cell_subcells) = cell.get_cells() {
-            if cell_subcells
+            let subcell_indices = subcells_on_neighbor_face(face_index);
+            if subcell_indices
                 .iter()
-                .all(|&subcell| self[subcell].get_cells().is_some())
+                .all(|&subcell_index| self[cell_subcells[subcell_index]].is_not_leaf())
             {
-                // assumes pairing
-                let subcells = subcells_on_neighbor_face(face_index);
-                let subsubcells = subcells
+                let subsubcells: SubSubCellsFace = subcell_indices
                     .iter()
                     .flat_map(|subcell_a| {
-                        subcells.iter().map(|&subcell_b| {
+                        subcell_indices.iter().map(|&subcell_b| {
                             self[cell_subcells[*subcell_a]].get_cells().unwrap()[subcell_b]
                         })
                     })
                     .collect::<Vec<usize>>()
                     .try_into()
                     .unwrap();
-                Some((cell_index, subsubcells))
+                if subsubcells
+                    .iter()
+                    .all(|&subsubcell| self[subsubcell].is_leaf())
+                {
+                    Some(subsubcells)
+                } else {
+                    None
+                }
             } else {
                 None
             }
@@ -2004,9 +2010,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
-        //
-        // Eventually get rid of cell_subcells_contain_leaves passing through `cell_index` if do not need in any templates.
-        //
+        hex::corner_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
@@ -2014,7 +2018,7 @@ impl From<Octree> for HexahedralFiniteElements {
         );
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mDualization of primal\x1b[0m {:?} ",
+            "             \x1b[1;93mDualization of octree\x1b[0m {:?} ",
             time.elapsed()
         );
         fem
