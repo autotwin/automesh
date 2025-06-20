@@ -2018,7 +2018,7 @@ impl From<Octree> for HexahedralFiniteElements {
         );
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mDualization of primal\x1b[0m {:?} ",
+            "             \x1b[1;93mDualization of octree\x1b[0m {:?} ",
             time.elapsed()
         );
         fem
