@@ -2011,6 +2011,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut nodal_coordinates,
         );
         hex::corner_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        hex::corner_template_2::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
