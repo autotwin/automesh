@@ -116,6 +116,24 @@ pub fn apply(
                 tree,
                 element_node_connectivity,
             );
+            template(
+                3,
+                4,
+                2,
+                2,
+                0,
+                5,
+                10,
+                15,
+                0,
+                0,
+                5,
+                cell_faces,
+                cell_subcells,
+                cells_nodes,
+                tree,
+                element_node_connectivity,
+            );
         })
 }
 
