@@ -1130,18 +1130,12 @@ impl Octree {
         cell: &Cell,
         face_index: usize,
     ) -> Option<SubSubCellsFace> {
-        if let Some(subsubcells) = self.cell_subcells_contain_cells(cell, face_index) {
-            if subsubcells
-                .iter()
-                .all(|&subsubcell| self[subsubcell].is_leaf())
-            {
-                Some(subsubcells)
-            } else {
-                None
-            }
-        } else {
-            None
-        }
+        self.cell_subcells_contain_cells(cell, face_index)
+            .filter(|&subsubcells| {
+                subsubcells
+                    .iter()
+                    .all(|&subsubcell| self[subsubcell].is_leaf())
+            })
     }
     pub fn defeature(&mut self, min_num_voxels: usize) {
         //
@@ -2014,15 +2008,20 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
+        //
+        // Below templates do not create new nodes,
+        // which means they are independent and can be run concurrently,
+        // returning separate connectivities to combine afterwards.
+        //
         hex::edge_template_3::apply(
             &cells_nodes,
             &mut nodes_map,
             &tree,
             &mut element_node_connectivity,
-            &mut nodal_coordinates,
+            &nodal_coordinates,
         );
-        hex::corner_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::corner_template_2::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        hex::vertex_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        hex::vertex_template_2::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,

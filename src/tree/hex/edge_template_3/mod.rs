@@ -7,7 +7,7 @@ pub fn apply(
     nodes_map: &mut NodeMap,
     tree: &Octree,
     element_node_connectivity: &mut HexConnectivity,
-    nodal_coordinates: &mut Coordinates,
+    nodal_coordinates: &Coordinates,
 ) {
     tree.iter()
         .filter_map(|cell| tree.cell_contains_leaves(cell))
