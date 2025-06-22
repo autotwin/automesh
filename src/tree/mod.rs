@@ -1096,7 +1096,7 @@ impl Octree {
             None
         }
     }
-    fn cell_subcells_contain_leaves(
+    fn cell_subcells_contain_cells(
         &self,
         cell: &Cell,
         face_index: usize,
@@ -1117,14 +1117,25 @@ impl Octree {
                     .collect::<Vec<usize>>()
                     .try_into()
                     .unwrap();
-                if subsubcells
-                    .iter()
-                    .all(|&subsubcell| self[subsubcell].is_leaf())
-                {
-                    Some(subsubcells)
-                } else {
-                    None
-                }
+                Some(subsubcells)
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    fn cell_subcells_contain_leaves(
+        &self,
+        cell: &Cell,
+        face_index: usize,
+    ) -> Option<SubSubCellsFace> {
+        if let Some(subsubcells) = self.cell_subcells_contain_cells(cell, face_index) {
+            if subsubcells
+                .iter()
+                .all(|&subsubcell| self[subsubcell].is_leaf())
+            {
+                Some(subsubcells)
             } else {
                 None
             }
