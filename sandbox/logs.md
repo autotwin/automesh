@@ -332,6 +332,19 @@ No interval meeting today due to travel.
 * High-res spheres https://autotwin.github.io/automesh/examples/spheres_cont/index.html
   * Compare to Sculpt with a single processor
 
+## 2024-09-26
+
+* Smoothing
+* Versioning
+  * And maybe we should version the RTD page as well, instead of just showing the latest build from merging into main? And     then there is versioning of the book...
+* Zenodo
+  * Citation example BibTeX and markdown
+  * Cite all versions? You can cite all versions by using the DOI 10.5281/zenodo.13845433
+  * v0.1.6 https://zenodo.org/records/13845434
+  * badge on homepage
+* done: Bug: translate with negative value
+* Line length error, see `.pre-commit-config.yaml`
+
 ## 2024-09-25
 
 * Versioning
@@ -340,7 +353,6 @@ No interval meeting today due to travel.
   * Citation example BibTeX and markdown
 * Bug: translate with negative value
 * Line length error, see `.pre-commit-config.yaml`
-
 
 ## 2024-09-18
 
