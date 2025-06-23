@@ -1096,7 +1096,7 @@ impl Octree {
             None
         }
     }
-    fn cell_subcells_contain_leaves(
+    fn cell_subcells_contain_cells(
         &self,
         cell: &Cell,
         face_index: usize,
@@ -1117,20 +1117,25 @@ impl Octree {
                     .collect::<Vec<usize>>()
                     .try_into()
                     .unwrap();
-                if subsubcells
-                    .iter()
-                    .all(|&subsubcell| self[subsubcell].is_leaf())
-                {
-                    Some(subsubcells)
-                } else {
-                    None
-                }
+                Some(subsubcells)
             } else {
                 None
             }
         } else {
             None
         }
+    }
+    fn cell_subcells_contain_leaves(
+        &self,
+        cell: &Cell,
+        face_index: usize,
+    ) -> Option<SubSubCellsFace> {
+        self.cell_subcells_contain_cells(cell, face_index)
+            .filter(|&subsubcells| {
+                subsubcells
+                    .iter()
+                    .all(|&subsubcell| self[subsubcell].is_leaf())
+            })
     }
     pub fn defeature(&mut self, min_num_voxels: usize) {
         //
@@ -2003,14 +2008,23 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
+        //
+        // Below templates do not create new nodes,
+        // which means they are independent and can be run concurrently,
+        // returning separate connectivities to combine afterwards.
+        //
         hex::edge_template_3::apply(
             &cells_nodes,
             &mut nodes_map,
             &tree,
             &mut element_node_connectivity,
-            &mut nodal_coordinates,
+            &nodal_coordinates,
         );
-        hex::corner_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        //
+        // Probably need edge template 4 at some point.
+        //
+        hex::vertex_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        hex::vertex_template_2::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
