@@ -37,10 +37,9 @@ def has_four_entries(string_in: str) -> bool:
     return len(string_in.split(",")) == 4
 
 
-with (
-    open(FILE_INPUT, "r", encoding="utf-8") as fin,
-    open(FILE_OUTPUT, "w", encoding="utf-8") as fout,
-):
+with open(FILE_INPUT, "r", encoding="utf-8") as fin, open(
+    FILE_OUTPUT, "w", encoding="utf-8"
+) as fout:
     for line in fin:
         # print(line)  # debugging
         if has_four_entries(line):

@@ -220,20 +220,19 @@ def smoothing_neighbors(neighbors: Neighbors, node_hierarchy: NodeHierarchy):
         nei_new = ()
 
         # breakpoint()
-        match level:
-            case Hierarchy.INTERIOR:
-                # print("INTERIOR node")
-                nei_new = nei_old
-            case Hierarchy.BOUNDARY:
-                # print("BOUNDARY node")
-                for nn, li in zip(nei_old, levels):
-                    if li >= level.value:
-                        nei_new += (nn,)
-            case Hierarchy.PRESCRIBED:
-                # print("PRESCRIBED node")
-                nei_new = ()
-            case _:
-                raise ValueError("Hierarchy value must be in [0, 1, 2]")
+        if level == Hierarchy.INTERIOR:
+            # print("INTERIOR node")
+            nei_new = nei_old
+        elif level == Hierarchy.BOUNDARY:
+            # print("BOUNDARY node")
+            for nn, li in zip(nei_old, levels):
+                if li >= level.value:
+                    nei_new += (nn,)
+        elif level == Hierarchy.PRESCRIBED:
+            # print("PRESCRIBED node")
+            nei_new = ()
+        else:
+            raise ValueError("Hierarchy value must be in [0, 1, 2]")
 
         neighbors_new += (nei_new,)
 

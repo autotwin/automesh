@@ -880,6 +880,7 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
     let time = Instant::now();
     let element_type = match N {
         HEX => "C3D8R",
+        TET => "C3D4",
         TRI => "TRI3",
         _ => panic!(),
     };

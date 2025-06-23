@@ -4,8 +4,9 @@ use super::{
         fem::py::{HexahedralFiniteElements, TetrahedralFiniteElements},
         py::{IntoFoo, PyIntermediateError},
     },
-    Extraction, VoxelData, defeature_voxels, extract_voxels, finite_element_data_from_data,
-    voxel_data_from_npy, voxel_data_from_spn, write_voxels_to_npy, write_voxels_to_spn,
+    Extraction, VoxelData, defeature_voxels, diff_voxels, extract_voxels,
+    finite_element_data_from_data, voxel_data_from_npy, voxel_data_from_spn, write_voxels_to_npy,
+    write_voxels_to_spn,
 };
 use pyo3::prelude::*;
 
@@ -95,6 +96,15 @@ impl Voxels {
         )
         .get_data()
         .clone()
+    }
+    /// Shows the difference between two segmentations.
+    pub fn diff(&self, voxels: &Self) -> Self {
+        Self {
+            data: diff_voxels(&self.data, &voxels.data),
+            remove: vec![],
+            scale: [1.0, 1.0, 1.0],
+            translate: [0.0, 0.0, 0.0],
+        }
     }
     /// Extract a specified range of voxels from the segmentation.
     pub fn extract(&mut self, extraction: [usize; 6]) {

@@ -10,7 +10,7 @@ use std::time::Instant;
 use crate::TetrahedralFiniteElements;
 
 use super::{
-    Coordinate, Coordinates, NSD, Octree, Tree, Vector,
+    Coordinate, Coordinates, NSD, Octree, Vector,
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
         NODE_NUMBERING_OFFSET,
@@ -34,7 +34,7 @@ type Indices = Vec<[usize; NSD]>;
 pub type VoxelData = Array3<u8>;
 
 /// The number of voxels in each direction.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Nel {
     x: usize,
     y: usize,
@@ -328,6 +328,15 @@ impl Voxels {
     pub fn defeature(self, min_num_voxels: usize) -> Self {
         defeature_voxels(min_num_voxels, self)
     }
+    /// Shows the difference between two segmentations.
+    pub fn diff(&self, voxels: &Self) -> Self {
+        Self {
+            data: diff_voxels(self.get_data(), voxels.get_data()),
+            remove: Remove::default(),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        }
+    }
     /// Extract a specified range of voxels from the segmentation.
     pub fn extract(&mut self, extraction: Extraction) {
         extract_voxels(self, extraction)
@@ -375,6 +384,32 @@ impl Voxels {
     }
 }
 
+impl<const I: usize, const J: usize, const K: usize> From<[[[u8; K]; J]; I]> for Voxels {
+    fn from(input: [[[u8; K]; J]; I]) -> Self {
+        let nel = Nel::from([I, J, K]);
+        let mut data = VoxelData::from(nel);
+        data.axis_iter_mut(Axis(2))
+            .zip(input)
+            .for_each(|(mut data_i, input_i)| {
+                data_i
+                    .axis_iter_mut(Axis(1))
+                    .zip(input_i)
+                    .for_each(|(mut data_ij, input_ij)| {
+                        data_ij
+                            .iter_mut()
+                            .zip(input_ij)
+                            .for_each(|(data_ijk, input_ijk)| *data_ijk = input_ijk)
+                    })
+            });
+        Self {
+            data,
+            remove: Remove::default(),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        }
+    }
+}
+
 impl From<Voxels> for HexahedralFiniteElements {
     fn from(voxels: Voxels) -> Self {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
@@ -415,11 +450,12 @@ impl From<Octree> for Voxels {
                 })
             })
         });
+        let (remove, scale, translate) = tree.parameters();
         let voxels = Self {
             data,
-            remove: Remove::default(),
-            scale: Scale::default(),
-            translate: Translate::default(),
+            remove,
+            scale,
+            translate,
         };
         #[cfg(feature = "profile")]
         println!(
@@ -455,6 +491,32 @@ fn defeature_voxels(min_num_voxels: usize, voxels: Voxels) -> Voxels {
     let mut voxels = Voxels::from(tree);
     extract_voxels(&mut voxels, Extraction::from(nel_0));
     voxels
+}
+
+fn diff_voxels(data_1: &VoxelData, data_2: &VoxelData) -> VoxelData {
+    let nel = Nel::from(data_1.shape());
+    assert_eq!(
+        nel,
+        Nel::from(data_2.shape()),
+        "Segmentations do not have the same dimensions"
+    );
+    let mut data = VoxelData::from(nel);
+    data.axis_iter_mut(Axis(2))
+        .zip(data_1.axis_iter(Axis(2)).zip(data_2.axis_iter(Axis(2))))
+        .for_each(|(mut data_i, (data_1_i, data_2_i))| {
+            data_i
+                .axis_iter_mut(Axis(1))
+                .zip(data_1_i.axis_iter(Axis(1)).zip(data_2_i.axis_iter(Axis(1))))
+                .for_each(|(mut data_ij, (data_1_ij, data_2_ij))| {
+                    data_ij
+                        .iter_mut()
+                        .zip(data_1_ij.iter().zip(data_2_ij.iter()))
+                        .for_each(|(data_ijk, (data_1_ijk, data_2_ijk))| {
+                            *data_ijk = (data_1_ijk != data_2_ijk) as u8
+                        })
+                })
+        });
+    data
 }
 
 fn filter_voxel_data(data: VoxelData, remove: Remove) -> (Indices, Blocks) {
@@ -540,50 +602,30 @@ fn initial_nodal_coordinates(
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let mut nodal_coordinates: InitialNodalCoordinates = vec![None; number_of_nodes_unfiltered];
+    let offsets = [
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [0, 1, 1],
+    ];
     filtered_voxel_data
         .iter()
         .zip(element_node_connectivity.iter())
         .for_each(|(&[x, y, z], connectivity)| {
-            nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                z as f64 * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                y as f64 * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                (x as f64 + 1.0) * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
-            nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET] = Some(Coordinate::new([
-                x as f64 * scale.x() + translate.x(),
-                (y as f64 + 1.0) * scale.y() + translate.y(),
-                (z as f64 + 1.0) * scale.z() + translate.z(),
-            ]));
+            offsets.iter().enumerate().for_each(|(node, [cx, cy, cz])| {
+                if nodal_coordinates[connectivity[node] - NODE_NUMBERING_OFFSET].is_none() {
+                    nodal_coordinates[connectivity[node] - NODE_NUMBERING_OFFSET] =
+                        Some(Coordinate::new([
+                            (x + cx) as f64 * scale.x() + translate.x(),
+                            (y + cy) as f64 * scale.y() + translate.y(),
+                            (z + cz) as f64 * scale.z() + translate.z(),
+                        ]))
+                }
+            })
         });
     #[cfg(feature = "profile")]
     println!(

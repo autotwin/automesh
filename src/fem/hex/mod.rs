@@ -5,8 +5,8 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET,
-    Tessellation, Vector,
+    Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics,
+    NODE_NUMBERING_OFFSET, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
 use ndarray::{Array2, s};
@@ -19,6 +19,9 @@ use std::{
 
 /// The number of nodes in a hexahedral finite element.
 pub const HEX: usize = 8;
+
+/// The element-to-node connectivity for hexahedral finite elements.
+pub type HexConnectivity = Connectivity<HEX>;
 
 /// The hexahedral finite elements type.
 pub type HexahedralFiniteElements = FiniteElements<HEX>;

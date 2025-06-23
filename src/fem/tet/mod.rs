@@ -53,7 +53,19 @@ impl TetrahedralFiniteElements {
                 connectivity[4],
                 connectivity[5],
                 connectivity[1],
+                connectivity[7],
+            ],
+            [
+                connectivity[7],
+                connectivity[4],
+                connectivity[3],
+                connectivity[1],
+            ],
+            [
+                connectivity[1],
+                connectivity[5],
                 connectivity[2],
+                connectivity[7],
             ],
             [
                 connectivity[5],
@@ -62,22 +74,10 @@ impl TetrahedralFiniteElements {
                 connectivity[7],
             ],
             [
-                connectivity[2],
+                connectivity[7],
                 connectivity[3],
-                connectivity[4],
-                connectivity[7],
-            ],
-            [
-                connectivity[7],
-                connectivity[5],
-                connectivity[4],
                 connectivity[2],
-            ],
-            [
                 connectivity[1],
-                connectivity[2],
-                connectivity[3],
-                connectivity[4],
             ],
         ]
     }

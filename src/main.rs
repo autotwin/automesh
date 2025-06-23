@@ -1,7 +1,7 @@
 use automesh::{
-    Blocks, Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX,
-    HexahedralFiniteElements, Nel, Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation,
-    TetrahedralFiniteElements, Translate, Tree, TriangularFiniteElements, Voxels,
+    Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Nel,
+    Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
+    TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -61,15 +61,42 @@ enum Commands {
         #[arg(long, short, value_name = "MIN")]
         min: usize,
 
-        /// Number of voxels in the x-direction
+        /// Number of voxels in the x-direction (spn)
         #[arg(long, short = 'x', value_name = "NEL")]
         nelx: Option<usize>,
 
-        /// Number of voxels in the y-direction
+        /// Number of voxels in the y-direction (spn)
         #[arg(long, short = 'y', value_name = "NEL")]
         nely: Option<usize>,
 
-        /// Number of voxels in the z-direction
+        /// Number of voxels in the z-direction (spn)
+        #[arg(long, short = 'z', value_name = "NEL")]
+        nelz: Option<usize>,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+    },
+
+    /// Show the difference between two segmentations
+    Diff {
+        /// Segmentation input files (npy | spn)
+        #[arg(long, num_args = 2, short, value_delimiter = ' ', value_name = "FILE")]
+        input: Vec<String>,
+
+        /// Segmentation difference output file (npy | spn)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of voxels in the x-direction (spn)
+        #[arg(long, short = 'x', value_name = "NEL")]
+        nelx: Option<usize>,
+
+        /// Number of voxels in the y-direction (spn)
+        #[arg(long, short = 'y', value_name = "NEL")]
+        nely: Option<usize>,
+
+        /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
 
@@ -88,15 +115,15 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
-        /// Number of voxels in the x-direction
+        /// Number of voxels in the x-direction (spn)
         #[arg(long, short = 'x', value_name = "NEL")]
         nelx: Option<usize>,
 
-        /// Number of voxels in the y-direction
+        /// Number of voxels in the y-direction (spn)
         #[arg(long, short = 'y', value_name = "NEL")]
         nely: Option<usize>,
 
-        /// Number of voxels in the z-direction
+        /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
 
@@ -161,15 +188,15 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
-        /// Number of voxels in the x-direction
+        /// Number of voxels in the x-direction (spn)
         #[arg(long, short = 'x', value_name = "NEL")]
         nelx: Option<usize>,
 
-        /// Number of voxels in the y-direction
+        /// Number of voxels in the y-direction (spn)
         #[arg(long, short = 'y', value_name = "NEL")]
         nely: Option<usize>,
 
-        /// Number of voxels in the z-direction
+        /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
 
@@ -269,15 +296,15 @@ struct ConvertSegmentationArgs {
     #[arg(long, short, value_name = "FILE")]
     output: String,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
@@ -313,15 +340,15 @@ struct MeshHexArgs {
     #[arg(long, short, value_name = "NUM")]
     defeature: Option<usize>,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
@@ -376,7 +403,7 @@ struct MeshHexArgs {
     #[arg(action, long, short)]
     quiet: bool,
 
-    /// Pass to mesh adaptively.
+    /// Pass to mesh adaptively
     #[arg(action, hide = true, long)]
     adapt: bool,
 }
@@ -398,15 +425,15 @@ struct MeshTetArgs {
     #[arg(long, short, value_name = "NUM")]
     defeature: Option<usize>,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
@@ -483,15 +510,15 @@ struct MeshTriArgs {
     #[arg(long, short, value_name = "NUM")]
     defeature: Option<usize>,
 
-    /// Number of voxels in the x-direction
+    /// Number of voxels in the x-direction (spn)
     #[arg(long, short = 'x', value_name = "NEL")]
     nelx: Option<usize>,
 
-    /// Number of voxels in the y-direction
+    /// Number of voxels in the y-direction (spn)
     #[arg(long, short = 'y', value_name = "NEL")]
     nely: Option<usize>,
 
-    /// Number of voxels in the z-direction
+    /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     nelz: Option<usize>,
 
@@ -842,6 +869,17 @@ fn main() -> Result<(), ErrorWrapper> {
             is_quiet = quiet;
             defeature(input, output, min, nelx, nely, nelz, quiet)
         }
+        Some(Commands::Diff {
+            input,
+            output,
+            nelx,
+            nely,
+            nelz,
+            quiet,
+        }) => {
+            is_quiet = quiet;
+            diff(input, output, nelx, nely, nelz, quiet)
+        }
         Some(Commands::Extract {
             input,
             output,
@@ -1024,6 +1062,7 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(finite_elements) => match output_extension {
             Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
@@ -1079,6 +1118,7 @@ fn convert_segmentation(
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
         InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => match output_extension {
@@ -1117,6 +1157,7 @@ fn defeature(
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
             Some("npy") => {
@@ -1168,6 +1209,58 @@ fn defeature(
     }
 }
 
+fn diff(
+    input: Vec<String>,
+    output: String,
+    nelx: Option<usize>,
+    nely: Option<usize>,
+    nelz: Option<usize>,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+    let voxels_1 = match read_input::<HEX, HexahedralFiniteElements>(
+        &input[0],
+        nelx,
+        nely,
+        nelz,
+        Remove::default(),
+        Scale::default(),
+        Translate::default(),
+        quiet,
+        true,
+    )? {
+        InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => voxels,
+        _ => return invalid_input(&output, output_extension),
+    };
+    let voxels_2 = match read_input::<HEX, HexahedralFiniteElements>(
+        &input[1],
+        nelx,
+        nely,
+        nelz,
+        Remove::default(),
+        Scale::default(),
+        Translate::default(),
+        quiet,
+        false,
+    )? {
+        InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => voxels,
+        _ => return invalid_input(&output, output_extension),
+    };
+    match output_extension {
+        Some("spn") => write_output(
+            output,
+            OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels_1.diff(&voxels_2)),
+            quiet,
+        ),
+        Some("npy") => write_output(
+            output,
+            OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels_1.diff(&voxels_2)),
+            quiet,
+        ),
+        _ => invalid_output(&output, output_extension),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn extract(
     input: String,
@@ -1195,6 +1288,7 @@ fn extract(
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
         InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
@@ -1255,19 +1349,20 @@ where
     let remove = Remove::from(remove);
     let scale = Scale::from([xscale, yscale, zscale]);
     let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let mut input_type =
-        match read_input::<N, T>(&input, nelx, nely, nelz, remove, scale, translate, quiet)? {
-            InputTypes::Npy(voxels) => voxels,
-            InputTypes::Spn(voxels) => voxels,
-            _ => {
-                let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-                Err(format!(
-                    "Invalid extension .{} from input file {}",
-                    input_extension.unwrap_or("UNDEFINED"),
-                    input
-                ))?
-            }
-        };
+    let mut input_type = match read_input::<N, T>(
+        &input, nelx, nely, nelz, remove, scale, translate, quiet, true,
+    )? {
+        InputTypes::Npy(voxels) => voxels,
+        InputTypes::Spn(voxels) => voxels,
+        _ => {
+            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+            Err(format!(
+                "Invalid extension .{} from input file {}",
+                input_extension.unwrap_or("UNDEFINED"),
+                input
+            ))?
+        }
+    };
     match N {
         HEX => {
             if let Some(min_num_voxels) = defeature {
@@ -1285,14 +1380,20 @@ where
             }
             if !quiet {
                 time = Instant::now();
-                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
             let mut output_type: HexahedralFiniteElements = if adapt {
+                if !quiet {
+                    print!("     \x1b[1;96mMeshing\x1b[0m adaptive hexahedra");
+                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                }
                 let mut tree = Octree::from(input_type);
-                tree.balance(true);
-                tree.pair();
+                tree.balance_and_pair(true);
                 tree.into()
             } else {
+                if !quiet {
+                    print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
+                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                }
                 input_type.into()
             };
             if !quiet {
@@ -1357,13 +1458,14 @@ where
             }
             if !quiet {
                 time = Instant::now();
-                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
             let mut output_type: TetrahedralFiniteElements = if adapt {
-                let mut tree = Octree::from(input_type);
-                tree.balance(true);
-                tree.into()
+                Err("Adaptive tetrahedra not yet implemented".to_string())?
             } else {
+                if !quiet {
+                    print!("     \x1b[1;96mMeshing\x1b[0m voxels into tetrahedra");
+                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                }
                 input_type.into()
             };
             if !quiet {
@@ -1489,14 +1591,12 @@ where
 fn mesh_print_info(basis: MeshBasis, scale: &Scale, translate: &Translate) {
     match basis {
         MeshBasis::Leaves => {
-            print!("     \x1b[1;96mMeshing\x1b[0m leaves into hexes")
+            print!("     \x1b[1;96mMeshing\x1b[0m leaves into hexahedra")
         }
         MeshBasis::Surfaces => {
             print!("     \x1b[1;96mMeshing\x1b[0m internal surfaces")
         }
-        MeshBasis::Voxels => {
-            print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexes");
-        }
+        MeshBasis::Voxels => {}
     }
     if scale != &Default::default() || translate != &Default::default() {
         print!(" \x1b[2m[");
@@ -1541,6 +1641,7 @@ where
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(finite_elements) => finite_elements,
         InputTypes::Npy(_) | InputTypes::Spn(_) => {
@@ -1597,7 +1698,7 @@ fn octree(
     let translate = [xtranslate, ytranslate, ztranslate].into();
     let remove = Remove::from(remove);
     let input_type = match read_input::<HEX, HexahedralFiniteElements>(
-        &input, nelx, nely, nelz, remove, scale, translate, quiet,
+        &input, nelx, nely, nelz, remove, scale, translate, quiet, true,
     )? {
         InputTypes::Npy(voxels) => voxels,
         InputTypes::Spn(voxels) => voxels,
@@ -1617,7 +1718,9 @@ fn octree(
     let mut tree = Octree::from(input_type);
     tree.balance(strong);
     if pair {
-        tree.pair();
+        tree.balance_and_pair(true);
+    } else {
+        tree.balance(strong);
     }
     tree.prune();
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
@@ -1671,6 +1774,7 @@ where
         Scale::default(),
         Translate::default(),
         quiet,
+        true,
     )? {
         InputTypes::Abaqus(mut finite_elements) => {
             apply_smoothing_method(
@@ -1800,17 +1904,20 @@ fn read_input<const N: usize, T>(
     scale: Scale,
     translate: Translate,
     quiet: bool,
+    title: bool,
 ) -> Result<InputTypes<N, T>, ErrorWrapper>
 where
     T: FiniteElementMethods<N>,
 {
     let time = Instant::now();
     if !quiet {
-        println!(
-            "\x1b[1m    {} {}\x1b[0m",
-            env!("CARGO_PKG_NAME"),
-            env!("CARGO_PKG_VERSION")
-        );
+        if title {
+            println!(
+                "\x1b[1m    {} {}\x1b[0m",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            );
+        }
         print!("     \x1b[1;96mReading\x1b[0m {}", input);
     }
     let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
@@ -1837,24 +1944,28 @@ where
         ))?,
     };
     if !quiet {
-        print!(
-            "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
-            time.elapsed()
-        );
         match &result {
             InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => {
-                let mut materials: Blocks = voxels.get_data().iter().copied().collect();
-                let voxels = materials.len();
-                materials.sort();
-                materials.dedup();
+                let data = voxels.get_data();
+                let mut materials = vec![false; u8::MAX as usize];
+                data.iter()
+                    .for_each(|&voxel| materials[voxel as usize] = true);
+                let num_voxels = data.iter().count();
+                let num_materials = materials.iter().filter(|&&entry| entry).count();
+                print!(
+                    "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
+                    time.elapsed()
+                );
                 println!(
                     " \x1b[2m[{} materials, {} voxels]\x1b[0m",
-                    materials.len(),
-                    voxels
+                    num_materials, num_voxels
                 );
             }
             _ => {
-                println!();
+                println!(
+                    "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
+                    time.elapsed()
+                );
             }
         }
     }
