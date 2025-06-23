@@ -2020,6 +2020,9 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &nodal_coordinates,
         );
+        //
+        // Probably need edge template 4 at some point.
+        //
         hex::vertex_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         hex::vertex_template_2::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         let fem = Self::from_data(

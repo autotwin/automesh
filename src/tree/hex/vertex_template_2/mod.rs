@@ -271,7 +271,7 @@ fn template(
                                             )
                                         {
                                             if let Some(face_ab_subsubcells) = tree
-                                                .cell_subcells_contain_leaves(
+                                                .cell_subcells_contain_cells(
                                                     &tree[cell_ab_index],
                                                     face_index_b,
                                                 )
@@ -289,7 +289,7 @@ fn template(
                                                         )
                                                     {
                                                         if let Some(face_c_ab_subsubcells) = tree
-                                                            .cell_subcells_contain_leaves(
+                                                            .cell_subcells_contain_cells(
                                                                 &tree[cell_c_ab_index],
                                                                 face_index_b,
                                                             )
