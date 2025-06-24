@@ -10,3 +10,4 @@ pub mod vertex_template_3;
 pub mod vertex_template_4;
 pub mod vertex_template_5;
 pub mod vertex_template_6;
+pub mod vertex_template_7;
