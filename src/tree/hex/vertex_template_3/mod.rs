@@ -9,6 +9,7 @@ pub fn apply(
         .filter_map(|cell| tree.cell_contains_leaves(cell))
         .for_each(|(cell_subcells, cell_faces)| {
             template(
+                // (0, 1, 4) = (5, 3, 2)
                 0,
                 1,
                 4,
@@ -27,6 +28,7 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (1, 2, 4) = (5, 0, 3)
                 1,
                 2,
                 4,
@@ -45,6 +47,7 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (2, 3, 4) = (5, 1, 0)
                 2,
                 3,
                 4,
@@ -63,6 +66,7 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (3, 0, 4) = (5, 2, 1)
                 3,
                 0,
                 4,
@@ -81,6 +85,7 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (1, 5, 2) = (0, 4, 3)
                 1,
                 5,
                 2,
@@ -99,6 +104,7 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (2, 5, 3) = (1, 4, 0)
                 2,
                 5,
                 3,
@@ -117,6 +123,7 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (3, 5, 0) = (2, 4, 1)
                 3,
                 5,
                 0,
@@ -135,6 +142,7 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (0, 5, 1) = (3, 4, 2)
                 0,
                 5,
                 1,
@@ -153,52 +161,17 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
-                5,
+                // (1, 0, 5) = (4, 2, 3)
                 1,
                 0,
                 5,
-                1,
-                0,
+                5,
                 4,
-                15,
-                3,
-                2,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                5,
-                2,
-                1,
-                7,
-                3,
-                1,
-                5,
-                15,
-                2,
-                0,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                5,
-                3,
-                2,
                 6,
-                2,
-                3,
                 7,
-                10,
+                5,
                 0,
-                1,
+                2,
                 15,
                 cell_faces,
                 cell_subcells,
@@ -207,17 +180,56 @@ pub fn apply(
                 element_node_connectivity,
             );
             template(
+                // (2, 1, 5) = (4, 3, 0)
+                2,
+                1,
                 5,
-                0,
-                3,
+                7,
+                5,
                 4,
+                6,
+                15,
+                1,
+                0,
+                10,
+                cell_faces,
+                cell_subcells,
+                cells_nodes,
+                tree,
+                element_node_connectivity,
+            );
+            template(
+                // (0, 3, 5) = (4, 1, 2)
+                0,
+                3,
+                5,
+                4,
+                6,
+                7,
+                5,
                 0,
                 2,
-                6,
-                10,
-                1,
                 3,
-                15,
+                5,
+                cell_faces,
+                cell_subcells,
+                cells_nodes,
+                tree,
+                element_node_connectivity,
+            );
+            template(
+                // (3, 2, 5) = (4, 0, 1)
+                3,
+                2,
+                5,
+                6,
+                7,
+                5,
+                4,
+                10,
+                3,
+                1,
+                0,
                 cell_faces,
                 cell_subcells,
                 cells_nodes,
