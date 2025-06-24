@@ -194,6 +194,7 @@ fn template(
                                     {
                                         if let Some(cell_ab_subsubcells) = tree
                                             .cell_subcells_contain_leaves(
+                                            // .cell_subcells_contain_cells(
                                                 &tree[cell_ab_index],
                                                 face_index_b,
                                             )
@@ -206,18 +207,21 @@ fn template(
                                             {
                                                 if let Some(cell_c_a_subsubcells) = tree
                                                     .cell_subcells_contain_leaves(
+                                                    // .cell_subcells_contain_cells(
                                                         &tree[cell_c_a_index],
                                                         face_index_a,
                                                     )
                                                 {
                                                     if let Some(cell_c_b_subsubcells) = tree
                                                         .cell_subcells_contain_leaves(
+                                                        // .cell_subcells_contain_cells(
                                                             &tree[cell_c_b_index],
                                                             face_index_b,
                                                         )
                                                     {
                                                         if let Some(cell_c_ab_subsubcells) = tree
-                                                            .cell_subcells_contain_leaves(
+                                                                .cell_subcells_contain_leaves(
+                                                                // .cell_subcells_contain_cells(
                                                                 &tree[cell_c_ab_index],
                                                                 face_index_b,
                                                             )
