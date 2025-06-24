@@ -1,9 +1,13 @@
 pub mod edge_template_1;
 pub mod edge_template_2;
 pub mod edge_template_3;
+pub mod edge_template_4;
 pub mod face_template_0;
 pub mod face_template_1;
 pub mod vertex_template_1;
 pub mod vertex_template_2;
 pub mod vertex_template_3;
 pub mod vertex_template_4;
+pub mod vertex_template_5;
+pub mod vertex_template_6;
+pub mod vertex_template_7;
