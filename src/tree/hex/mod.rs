@@ -6,3 +6,4 @@ pub mod face_template_1;
 pub mod vertex_template_1;
 pub mod vertex_template_2;
 pub mod vertex_template_3;
+pub mod vertex_template_4;
