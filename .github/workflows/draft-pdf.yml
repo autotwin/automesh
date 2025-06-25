@@ -2,7 +2,11 @@
 # https://github.com/marketplace/actions/open-journals-pdf-generator
 
 name: Draft PDF
-on: [push]
+on:
+  pull_request:
+    branches: main
+  push:
+    branches: main
 
 permissions: {}
 jobs:
