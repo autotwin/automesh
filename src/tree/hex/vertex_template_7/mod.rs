@@ -183,43 +183,51 @@ fn template(
                             if let Some(cell_c_ab_index) =
                                 tree[cell_c_a_index].get_faces()[face_index_b]
                             {
-                                if let Some(cell_a_subsubcells) = tree
-                                    .cell_subcells_contain_leaves(&tree[cell_a_index], face_index_a)
-                                {
+                                if let Some(cell_a_subsubcells) = tree.cell_subcell_contains_leaves(
+                                    &tree[cell_a_index],
+                                    face_index_a,
+                                    cell_subsubcell_a_index,
+                                ) {
                                     if let Some(cell_b_subsubcells) = tree
-                                        .cell_subcells_contain_leaves(
+                                        .cell_subcell_contains_leaves(
                                             &tree[cell_b_index],
                                             face_index_b,
+                                            cell_subsubcell_b_index,
                                         )
                                     {
                                         if let Some(cell_ab_subsubcells) = tree
-                                            .cell_subcells_contain_leaves(
+                                            .cell_subcell_contains_leaves(
                                                 &tree[cell_ab_index],
                                                 face_index_b,
+                                                cell_subsubcell_ab_index,
                                             )
                                         {
                                             if let Some(cell_c_subsubcells) = tree
-                                                .cell_subcells_contain_leaves(
+                                                .cell_subcell_contains_leaves(
                                                     &tree[cell_c_index],
                                                     face_index_c,
+                                                    cell_subsubcell_c_index,
                                                 )
                                             {
                                                 if let Some(cell_c_a_subsubcells) = tree
-                                                    .cell_subcells_contain_leaves(
+                                                    .cell_subcell_contains_leaves(
                                                         &tree[cell_c_a_index],
                                                         face_index_a,
+                                                        cell_subsubcell_c_a_index,
                                                     )
                                                 {
                                                     if let Some(cell_c_b_subsubcells) = tree
-                                                        .cell_subcells_contain_leaves(
+                                                        .cell_subcell_contains_leaves(
                                                             &tree[cell_c_b_index],
                                                             face_index_b,
+                                                            cell_subsubcell_c_b_index,
                                                         )
                                                     {
                                                         if let Some(cell_c_ab_subsubcells) = tree
-                                                            .cell_subcells_contain_leaves(
+                                                            .cell_subcell_contains_leaves(
                                                                 &tree[cell_c_ab_index],
                                                                 face_index_b,
+                                                                cell_subsubcell_c_ab_index,
                                                             )
                                                         {
                                                             element_node_connectivity.push([

@@ -259,39 +259,45 @@ fn template(
                                     tree[cell_c_a_index].get_faces()[face_index_b]
                                 {
                                     if let Some(face_a_subsubcells) = tree
-                                        .cell_subcells_contain_leaves(
+                                        .cell_subcell_contains_leaves(
                                             &tree[cell_a_index],
                                             face_index_a,
+                                            face_a_subsubcell_index,
                                         )
                                     {
                                         if let Some(face_b_subsubcells) = tree
-                                            .cell_subcells_contain_leaves(
+                                            .cell_subcell_contains_leaves(
                                                 &tree[cell_b_index],
                                                 face_index_b,
+                                                face_b_subsubcell_index,
                                             )
                                         {
                                             if let Some(face_ab_subsubcells) = tree
-                                                .cell_subcells_contain_cells(
+                                                .cell_subcell_contains_leaves(
                                                     &tree[cell_ab_index],
                                                     face_index_b,
+                                                    face_ab_subsubcell_index,
                                                 )
                                             {
                                                 if let Some(face_c_a_subsubcells) = tree
-                                                    .cell_subcells_contain_leaves(
+                                                    .cell_subcell_contains_leaves(
                                                         &tree[cell_c_a_index],
                                                         face_index_a,
+                                                        face_c_a_subsubcell_index,
                                                     )
                                                 {
                                                     if let Some(face_c_b_subsubcells) = tree
-                                                        .cell_subcells_contain_leaves(
+                                                        .cell_subcell_contains_leaves(
                                                             &tree[cell_c_b_index],
                                                             face_index_b,
+                                                            face_c_b_subsubcell_index,
                                                         )
                                                     {
                                                         if let Some(face_c_ab_subsubcells) = tree
-                                                            .cell_subcells_contain_cells(
+                                                            .cell_subcell_contains_leaves(
                                                                 &tree[cell_c_ab_index],
                                                                 face_index_b,
+                                                                face_c_ab_subsubcell_index,
                                                             )
                                                         {
                                                             element_node_connectivity.push([

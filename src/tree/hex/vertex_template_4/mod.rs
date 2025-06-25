@@ -201,9 +201,10 @@ fn template(
                                             tree.cell_contains_leaves(&tree[cell_ab_index])
                                         {
                                             if let Some(cell_c_subsubcells) = tree
-                                                .cell_subcells_contain_leaves(
+                                                .cell_subcell_contains_leaves(
                                                     &tree[cell_c_index],
                                                     face_index_c,
+                                                    cell_subsubcell_c_index,
                                                 )
                                             {
                                                 if let Some((cell_c_a_subcells, _)) =
