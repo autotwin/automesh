@@ -151,33 +151,37 @@ fn template(
                             tree.cell_contains_leaves(&tree[cell_ab_index])
                         {
                             if let Some(face_cell_index) = cell_faces[face_index] {
-                                if let Some(face_subsubcells) = tree.cell_subcells_contain_leaves(
+                                if let Some(face_subsubcells) = tree.cell_subcell_contains_leaves(
                                     &tree[face_cell_index],
                                     face_index,
+                                    face_subsubcell_index,
                                 ) {
                                     if let Some(face_cell_a_index) = cell_a_faces[face_index] {
                                         if let Some(face_a_subsubcells) = tree
-                                            .cell_subcells_contain_leaves(
+                                            .cell_subcell_contains_leaves(
                                                 &tree[face_cell_a_index],
                                                 face_index,
+                                                face_subsubcell_a_index,
                                             )
                                         {
                                             if let Some(face_cell_b_index) =
                                                 cell_b_faces[face_index]
                                             {
                                                 if let Some(face_b_subsubcells) = tree
-                                                    .cell_subcells_contain_leaves(
+                                                    .cell_subcell_contains_leaves(
                                                         &tree[face_cell_b_index],
                                                         face_index,
+                                                        face_subsubcell_b_index,
                                                     )
                                                 {
                                                     if let Some(face_cell_ab_index) =
                                                         cell_ab_faces[face_index]
                                                     {
                                                         if let Some(face_ab_subsubcells) = tree
-                                                            .cell_subcells_contain_leaves(
+                                                            .cell_subcell_contains_leaves(
                                                                 &tree[face_cell_ab_index],
                                                                 face_index,
+                                                                face_subsubcell_ab_index,
                                                             )
                                                         {
                                                             element_node_connectivity.push([
