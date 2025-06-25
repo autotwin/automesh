@@ -220,8 +220,8 @@ fn template(
                                                         )
                                                     {
                                                         if let Some(cell_c_ab_subsubcells) = tree
-                                                                .cell_subcells_contain_leaves(
-                                                                // .cell_subcells_contain_cells(
+                                                                // .cell_subcells_contain_leaves(
+                                                                .cell_subcells_contain_cells(
                                                                 &tree[cell_c_ab_index],
                                                                 face_index_b,
                                                             )
