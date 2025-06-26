@@ -112,9 +112,7 @@ mod write_stl {
             .open(file_test)
             .unwrap();
         stl_io::write_stl(&mut file, mesh_iter).unwrap();
-        println!(
-            "tess -> stl(binary), wrote temporary test file: {file_test}",
-        );
+        println!("tess -> stl(binary), wrote temporary test file: {file_test}",);
         // Read the binary data back in and assure it equals the gold standard.
         let tess_test = Tessellation::from_stl(file_test).unwrap();
         assert_eq!(tess_test, tessellation_one_facet());
