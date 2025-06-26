@@ -7,14 +7,17 @@ pub mod edge_template_4;
 pub mod face_template_0;
 pub mod face_template_1;
 mod vertex_template_1; // (O, A, AB, B) => (o, a, ab, b)
+mod vertex_template_10; // (O, a, AB, b) => (O, a, ab, b)
+// mod vertex_template_11; // (O, a, AB, b) => (o, a, ab, b)
+// mod vertex_template_12; // (O, a, AB, b) => (O, a, AB, b)
 mod vertex_template_2; // (O, a, ab, b) => (O, a, ab, b)
 mod vertex_template_3; // (O, A, AB, B) => (o, A, AB, b)
 mod vertex_template_4; // (O, A, AB, B) => (o, A, AB, B)
-pub mod vertex_template_5; // (O, A, AB, B) => (o, A, ab, b)
-pub mod vertex_template_6; // (O, A, AB, b) => (o, A, ab, b)
-pub mod vertex_template_7; // (O, a, ab, b) => (o, a, ab, b)
-pub mod vertex_template_8; // (O, A, AB, b) => (o, a, ab, b)
-pub mod vertex_template_9; // (O, a, ab, b) => (o, a, AB, b)
+mod vertex_template_5; // (O, A, AB, B) => (o, A, ab, b)
+mod vertex_template_6; // (O, A, AB, b) => (o, A, ab, b)
+mod vertex_template_7; // (O, a, ab, b) => (o, a, ab, b)
+mod vertex_template_8; // (O, A, AB, b) => (o, a, ab, b)
+mod vertex_template_9; // (O, a, ab, b) => (o, a, AB, b)
 
 pub fn vertex_template(index: usize, cells_nodes: &[usize], tree: &Octree) -> HexConnectivity {
     match index {
@@ -71,6 +74,12 @@ pub fn vertex_template(index: usize, cells_nodes: &[usize], tree: &Octree) -> He
             tree,
             vertex_template_9::DATA,
             vertex_template_9::template,
+        ),
+        10 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_10::DATA,
+            vertex_template_10::template,
         ),
         _ => panic!(),
     }
