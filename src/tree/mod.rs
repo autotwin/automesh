@@ -1945,9 +1945,6 @@ impl From<Octree> for HexahedralFiniteElements {
                 ]
             })
             .collect();
-        //
-        // Which of the face and edge templates could short circuit
-        //
         hex::face_template_0::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         hex::edge_template_1::apply(
             &cells_nodes,
