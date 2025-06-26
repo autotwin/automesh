@@ -1997,6 +1997,7 @@ impl From<Octree> for HexahedralFiniteElements {
         hex::vertex_template_6::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         hex::vertex_template_7::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         hex::vertex_template_8::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        hex::vertex_template_9::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
