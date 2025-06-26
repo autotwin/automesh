@@ -754,15 +754,15 @@ fn write_finite_elements_to_exodus<const N: usize>(
                 .filter(|&block| block == unique_block)
                 .count();
             file.add_dimension(
-                format!("num_el_in_blk{}", current_block).as_str(),
+                format!("num_el_in_blk{current_block}").as_str(),
                 number_of_elements,
             )?;
-            file.add_dimension(format!("num_nod_per_el{}", current_block).as_str(), N)?;
+            file.add_dimension(format!("num_nod_per_el{current_block}").as_str(), N)?;
             let mut connectivities = file.add_variable::<i32>(
-                format!("connect{}", current_block).as_str(),
+                format!("connect{current_block}").as_str(),
                 &[
-                    format!("num_el_in_blk{}", current_block).as_str(),
-                    format!("num_nod_per_el{}", current_block).as_str(),
+                    format!("num_el_in_blk{current_block}").as_str(),
+                    format!("num_nod_per_el{current_block}").as_str(),
                 ],
             )?;
             match N {
@@ -825,7 +825,7 @@ fn write_finite_elements_to_abaqus<const N: usize>(
 fn write_heading_to_inp(file: &mut BufWriter<File>) -> Result<(), ErrorIO> {
     let postfix = "\n";
     let middle = automesh_header().replace(", ", "\n** ");
-    let heading = format!("** {}{}", middle, postfix);
+    let heading = format!("** {middle}{postfix}");
     file.write_all(heading.as_bytes())
 }
 
@@ -856,7 +856,7 @@ fn write_nodal_coordinates_to_inp(
             )?;
             coordinates.iter().try_for_each(|coordinate| {
                 delimiter(file)?;
-                file.write_all(format!("{:>15.6e}", coordinate).as_bytes())
+                file.write_all(format!("{coordinate:>15.6e}").as_bytes())
             })
         })?;
     newline(file)?;
@@ -896,7 +896,7 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
         .clone()
         .try_for_each(|current_block| {
             file.write_all(
-                format!("*ELEMENT, TYPE={}, ELSET=EB{}", element_type, current_block).as_bytes(),
+                format!("*ELEMENT, TYPE={element_type}, ELSET=EB{current_block}").as_bytes(),
             )?;
             element_blocks
                 .iter()
@@ -970,7 +970,7 @@ fn write_finite_elements_to_mesh<const N: usize>(
     nodal_coordinates.iter().try_for_each(|coordinates| {
         coordinates
             .iter()
-            .try_for_each(|coordinate| file.write_all(format!("{} ", coordinate).as_bytes()))?;
+            .try_for_each(|coordinate| file.write_all(format!("{coordinate} ").as_bytes()))?;
         file.write_all(b"0\n")
     })?;
     match N {
@@ -984,7 +984,7 @@ fn write_finite_elements_to_mesh<const N: usize>(
         .try_for_each(|connectivity| {
             connectivity
                 .iter()
-                .try_for_each(|node| file.write_all(format!("{} ", node).as_bytes()))?;
+                .try_for_each(|node| file.write_all(format!("{node} ").as_bytes()))?;
             file.write_all(b"0\n")
         })?;
     file.write_all(b"End")?;

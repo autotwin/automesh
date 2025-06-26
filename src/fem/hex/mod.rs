@@ -222,11 +222,7 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
                         )| {
                             file.write_all(
                                 format!(
-                                    "{:>10.6e},{:>10.6e},{:>10.6e},{:>10.6e}\n",
-                                    maximum_edge_ratio,
-                                    minimum_scaled_jacobian,
-                                    maximum_skew,
-                                    volume,
+                                    "{maximum_edge_ratio:>10.6e},{minimum_scaled_jacobian:>10.6e},{maximum_skew:>10.6e},{volume:>10.6e}\n",
                                 )
                                 .as_bytes(),
                             )

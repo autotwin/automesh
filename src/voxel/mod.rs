@@ -751,6 +751,6 @@ fn write_voxels_to_spn(data: &VoxelData, file_path: &str) -> Result<(), Error> {
         entry_2d
             .axis_iter(Axis(1))
             .flatten()
-            .try_for_each(|entry| writeln!(file, "{}", entry))
+            .try_for_each(|entry| writeln!(file, "{entry}"))
     })
 }
