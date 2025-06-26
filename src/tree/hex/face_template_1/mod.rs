@@ -420,11 +420,7 @@ fn translations(
                 0.0,
                 0.0,
             ]),
-            tensor_rank_1([
-                -1.0 * *tree[face_subsubcells[0]].get_lngth() as f64,
-                0.0,
-                0.0,
-            ]),
+            tensor_rank_1([-(*tree[face_subsubcells[0]].get_lngth() as f64), 0.0, 0.0]),
         ),
         2 => (
             tensor_rank_1([
@@ -432,11 +428,7 @@ fn translations(
                 -SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
                 0.0,
             ]),
-            tensor_rank_1([
-                0.0,
-                -1.0 * *tree[face_subsubcells[0]].get_lngth() as f64,
-                0.0,
-            ]),
+            tensor_rank_1([0.0, -(*tree[face_subsubcells[0]].get_lngth() as f64), 0.0]),
         ),
         3 => (
             tensor_rank_1([
@@ -460,11 +452,7 @@ fn translations(
                 0.0,
                 -SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
             ]),
-            tensor_rank_1([
-                0.0,
-                0.0,
-                -1.0 * *tree[face_subsubcells[0]].get_lngth() as f64,
-            ]),
+            tensor_rank_1([0.0, 0.0, -(*tree[face_subsubcells[0]].get_lngth() as f64)]),
         ),
         _ => panic!(),
     }

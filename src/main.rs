@@ -1163,10 +1163,7 @@ fn defeature(
             Some("npy") => {
                 let time = Instant::now();
                 if !quiet {
-                    println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                        min
-                    );
+                    println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less",);
                 }
                 voxels = voxels.defeature(min);
                 if !quiet {
@@ -1181,10 +1178,7 @@ fn defeature(
             Some("spn") => {
                 let time = Instant::now();
                 if !quiet {
-                    println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                        min
-                    );
+                    println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less",);
                 }
                 voxels = voxels.defeature(min);
                 if !quiet {
@@ -1369,8 +1363,7 @@ where
                 if !quiet {
                     time = Instant::now();
                     println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                        min_num_voxels
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {min_num_voxels} voxels or less",
                     );
                 }
                 input_type = input_type.defeature(min_num_voxels);
@@ -1447,8 +1440,7 @@ where
                 if !quiet {
                     time = Instant::now();
                     println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                        min_num_voxels
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {min_num_voxels} voxels or less"
                     );
                 }
                 input_type = input_type.defeature(min_num_voxels);
@@ -1519,8 +1511,7 @@ where
                 time = Instant::now();
                 if let Some(min_num_voxels) = defeature {
                     println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {} voxels or less",
-                        min_num_voxels
+                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {min_num_voxels} voxels or less",
                     );
                 } else {
                     mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
@@ -1645,7 +1636,7 @@ where
     )? {
         InputTypes::Abaqus(finite_elements) => finite_elements,
         InputTypes::Npy(_) | InputTypes::Spn(_) => {
-            Err(format!("No metrics for segmentation file {}", input))?
+            Err(format!("No metrics for segmentation file {input}"))?
         }
         InputTypes::Stl(_) => todo!(),
     };
@@ -1662,7 +1653,7 @@ where
 {
     let time = Instant::now();
     if !quiet {
-        println!("     \x1b[1;96mMetrics\x1b[0m {}", output);
+        println!("     \x1b[1;96mMetrics\x1b[0m {output}");
     }
     fem.write_metrics(&output)?;
     if !quiet {
@@ -1831,7 +1822,7 @@ where
             }
         }
         InputTypes::Npy(_) | InputTypes::Spn(_) => {
-            Err(format!("No smoothing for segmentation file {}", input))?
+            Err(format!("No smoothing for segmentation file {input}"))?
         }
     }
 }
@@ -1859,10 +1850,10 @@ where
             print!("   \x1b[1;96mSmoothing\x1b[0m ");
             match smoothing_method.as_str() {
                 "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-                    println!("with {} iterations of Laplace", iterations)
+                    println!("with {iterations} iterations of Laplace")
                 }
                 "Taubin" | "taubin" => {
-                    println!("with {} iterations of Taubin", iterations)
+                    println!("with {iterations} iterations of Taubin")
                 }
                 _ => panic!(),
             }
@@ -1888,8 +1879,7 @@ where
         Ok(())
     } else {
         Err(format!(
-            "Invalid smoothing method {} specified",
-            smoothing_method
+            "Invalid smoothing method {smoothing_method} specified",
         ))?
     }
 }
@@ -1918,7 +1908,7 @@ where
                 env!("CARGO_PKG_VERSION")
             );
         }
-        print!("     \x1b[1;96mReading\x1b[0m {}", input);
+        print!("     \x1b[1;96mReading\x1b[0m {input}");
     }
     let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
     let result = match input_extension {
@@ -1956,10 +1946,7 @@ where
                     "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
                     time.elapsed()
                 );
-                println!(
-                    " \x1b[2m[{} materials, {} voxels]\x1b[0m",
-                    num_materials, num_voxels
-                );
+                println!(" \x1b[2m[{num_materials} materials, {num_voxels} voxels]\x1b[0m",);
             }
             _ => {
                 println!(
@@ -1982,7 +1969,7 @@ where
 {
     let time = Instant::now();
     if !quiet {
-        println!("     \x1b[1;96mWriting\x1b[0m {}", output);
+        println!("     \x1b[1;96mWriting\x1b[0m {output}");
     }
     match output_type {
         OutputTypes::Abaqus(fem) => fem.write_inp(&output)?,

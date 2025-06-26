@@ -150,12 +150,7 @@ impl FiniteElementSpecifics for TriangularFiniteElements {
                         )| {
                             file.write_all(
                                 format!(
-                                    "{:>10.6e},{:>10.6e},{:>10.6e},{:>10.6e},{:>10.6e}\n",
-                                    maximum_edge_ratio,
-                                    minimum_scaled_jacobian,
-                                    maximum_skew,
-                                    area,
-                                    minimum_angle
+                                    "{maximum_edge_ratio:>10.6e},{minimum_scaled_jacobian:>10.6e},{maximum_skew:>10.6e},{area:>10.6e},{minimum_angle:>10.6e}\n",
                                 )
                                 .as_bytes(),
                             )
