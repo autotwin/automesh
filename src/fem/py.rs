@@ -91,7 +91,7 @@ impl HexahedralFiniteElements {
             "Taubin" | "taubin" => {
                 finite_elements.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
             }
-            _ => return Err(format!("Invalid smoothing method {} specified.", method))?,
+            _ => return Err(format!("Invalid smoothing method {method} specified."))?,
         }
         self.element_blocks = finite_elements.element_blocks;
         self.element_node_connectivity = finite_elements.element_node_connectivity;
@@ -200,7 +200,7 @@ impl TetrahedralFiniteElements {
             "Taubin" | "taubin" => {
                 finite_elements.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
             }
-            _ => return Err(format!("Invalid smoothing method {} specified.", method))?,
+            _ => return Err(format!("Invalid smoothing method {method} specified."))?,
         }
         self.element_blocks = finite_elements.element_blocks;
         self.element_node_connectivity = finite_elements.element_node_connectivity;
@@ -309,7 +309,7 @@ impl TriangularFiniteElements {
             "Taubin" | "taubin" => {
                 finite_elements.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
             }
-            _ => return Err(format!("Invalid smoothing method {} specified.", method))?,
+            _ => return Err(format!("Invalid smoothing method {method} specified."))?,
         }
         self.element_blocks = finite_elements.element_blocks;
         self.element_node_connectivity = finite_elements.element_node_connectivity;

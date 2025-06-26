@@ -55,7 +55,7 @@ mod from_stl {
     #[cfg(not(target_os = "windows"))]
     fn file_one_facet() {
         let tess = Tessellation::from_stl("tests/input/one_facet.stl").unwrap();
-        println!("{:?}", tess);
+        println!("{tess:?}");
         assert_eq!(tess, tessellation_one_facet());
     }
     #[test]
@@ -82,7 +82,7 @@ mod from_stl {
     fn file_single_valence_04_noise2() {
         let _tess = Tessellation::from_stl("tests/input/single_valence_04_noise2.stl");
         // println!("{:?}", _tess);
-        println!("{:#?}", _tess); // pretty-print
+        println!("{_tess:#?}"); // pretty-print
     }
 }
 
@@ -94,7 +94,7 @@ mod write_stl {
         // Write a binary stl from a gold standard.
         let file_gold = "tests/input/one_facet.stl";
         let tess_gold = Tessellation::from_stl(file_gold).unwrap();
-        println!("gold: {:?}", tess_gold);
+        println!("gold: {tess_gold:?}");
         let file_test = "tests/input/one_facet_test.stl";
         let mesh_iter = tess_gold.get_data().faces.iter().map(|face| Triangle {
             normal: face.normal,
@@ -113,16 +113,15 @@ mod write_stl {
             .unwrap();
         stl_io::write_stl(&mut file, mesh_iter).unwrap();
         println!(
-            "tess -> stl(binary), wrote temporary test file: {}",
-            file_test
+            "tess -> stl(binary), wrote temporary test file: {file_test}",
         );
         // Read the binary data back in and assure it equals the gold standard.
         let tess_test = Tessellation::from_stl(file_test).unwrap();
         assert_eq!(tess_test, tessellation_one_facet());
         // Delete the temporary test stl.
         match remove_file(file_test) {
-            Ok(_) => println!("Successfully deleted temporary test file: {}", file_test),
-            Err(e) => eprintln!("Error deleting temporary test file: {} {}", file_test, e),
+            Ok(_) => println!("Successfully deleted temporary test file: {file_test}"),
+            Err(e) => eprintln!("Error deleting temporary test file: {file_test} {e}"),
         }
     }
     #[test]
@@ -130,7 +129,7 @@ mod write_stl {
         // Write a binary stl from a gold standard.
         let file_gold = "tests/input/two_facet.stl";
         let tess_gold = Tessellation::from_stl(file_gold).unwrap();
-        println!("{:?}", tess_gold);
+        println!("{tess_gold:?}");
         let file_test = "tests/input/two_facet_test.stl";
         let mesh_iter = tess_gold.get_data().faces.iter().map(|face| Triangle {
             normal: face.normal,
@@ -148,14 +147,14 @@ mod write_stl {
             .open(file_test)
             .unwrap();
         stl_io::write_stl(&mut file, mesh_iter).unwrap();
-        println!("tess -> stl(binary), wrote test file: {}", file_test);
+        println!("tess -> stl(binary), wrote test file: {file_test}");
         // Read the binary data back in and assure it equals the gold standard.
         let tess_test = Tessellation::from_stl(file_test).unwrap();
         assert_eq!(tess_test, tessellation_two_facet());
         // Delete the temporary test stl.
         match remove_file(file_test) {
-            Ok(_) => println!("Successfully deleted temporary test file: {}", file_test),
-            Err(e) => eprintln!("Error deleting temporary test file: {} {}", file_test, e),
+            Ok(_) => println!("Successfully deleted temporary test file: {file_test}"),
+            Err(e) => eprintln!("Error deleting temporary test file: {file_test} {e}"),
         }
     }
 }
