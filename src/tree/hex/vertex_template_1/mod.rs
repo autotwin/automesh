@@ -1,126 +1,16 @@
-use super::super::{Faces, HexConnectivity, Indices, Octree};
+use super::super::{Faces, HEX, Indices, Octree};
 
-pub fn apply(
-    cells_nodes: &[usize],
-    tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
-) {
-    tree.iter()
-        .filter_map(|cell| tree.cell_contains_leaves(cell))
-        .for_each(|(cell_subcells, cell_faces)| {
-            template(
-                0,
-                1,
-                5,
-                5,
-                4,
-                1,
-                0,
-                15,
-                10,
-                5,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                1,
-                2,
-                5,
-                7,
-                5,
-                3,
-                1,
-                15,
-                10,
-                5,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                2,
-                3,
-                5,
-                6,
-                7,
-                2,
-                3,
-                10,
-                15,
-                0,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                3,
-                0,
-                5,
-                4,
-                6,
-                0,
-                2,
-                10,
-                15,
-                0,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                4,
-                0,
-                3,
-                0,
-                2,
-                1,
-                3,
-                0,
-                10,
-                5,
-                15,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                5,
-                0,
-                1,
-                5,
-                7,
-                4,
-                6,
-                5,
-                15,
-                0,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-        })
-}
+pub const DATA: [[usize; 11]; 6] = [
+    [0, 1, 5, 5, 4, 1, 0, 15, 10, 5, 0],
+    [1, 2, 5, 7, 5, 3, 1, 15, 10, 5, 0],
+    [2, 3, 5, 6, 7, 2, 3, 10, 15, 0, 5],
+    [3, 0, 5, 4, 6, 0, 2, 10, 15, 0, 5],
+    [4, 0, 3, 0, 2, 1, 3, 0, 10, 5, 15],
+    [5, 0, 1, 5, 7, 4, 6, 5, 15, 0, 10],
+];
 
 #[allow(clippy::too_many_arguments)]
-fn template(
+pub fn template(
     face_index: usize,
     face_index_a: usize,
     face_index_b: usize,
@@ -136,8 +26,7 @@ fn template(
     cell_subcells: &Indices,
     cells_nodes: &[usize],
     tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
-) {
+) -> Option<[usize; HEX]> {
     if let Some(cell_a_index) = cell_faces[face_index_a] {
         if let Some(cell_b_index) = cell_faces[face_index_b] {
             if let Some((cell_a_subcells, cell_a_faces)) =
@@ -177,14 +66,13 @@ fn template(
                                                     if let Some(face_cell_ab_index) =
                                                         cell_ab_faces[face_index]
                                                     {
-                                                        if let Some(face_ab_subsubcells) = tree
-                                                            .cell_subcell_contains_leaves(
-                                                                &tree[face_cell_ab_index],
-                                                                face_index,
-                                                                face_subsubcell_ab_index,
-                                                            )
-                                                        {
-                                                            element_node_connectivity.push([
+                                                        tree.cell_subcell_contains_leaves(
+                                                            &tree[face_cell_ab_index],
+                                                            face_index,
+                                                            face_subsubcell_ab_index,
+                                                        )
+                                                        .map(|face_ab_subsubcells| {
+                                                            [
                                                                 cells_nodes[cell_subcells
                                                                     [cell_subcell_index]],
                                                                 cells_nodes[cell_a_subcells
@@ -201,19 +89,45 @@ fn template(
                                                                     [face_subsubcell_ab_index]],
                                                                 cells_nodes[face_b_subsubcells
                                                                     [face_subsubcell_b_index]],
-                                                            ])
-                                                        }
+                                                            ]
+                                                        })
+                                                    } else {
+                                                        None
                                                     }
+                                                } else {
+                                                    None
                                                 }
+                                            } else {
+                                                None
                                             }
+                                        } else {
+                                            None
                                         }
+                                    } else {
+                                        None
                                     }
+                                } else {
+                                    None
                                 }
+                            } else {
+                                None
                             }
+                        } else {
+                            None
                         }
+                    } else {
+                        None
                     }
+                } else {
+                    None
                 }
+            } else {
+                None
             }
+        } else {
+            None
         }
+    } else {
+        None
     }
 }

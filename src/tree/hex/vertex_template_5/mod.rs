@@ -1,450 +1,34 @@
-use super::super::{Faces, HexConnectivity, Indices, Octree};
+use super::super::{Faces, HEX, Indices, Octree};
 
-pub fn apply(
-    cells_nodes: &[usize],
-    tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
-) {
-    tree.iter()
-        .filter_map(|cell| tree.cell_contains_leaves(cell))
-        .for_each(|(cell_subcells, cell_faces)| {
-            template(
-                1,
-                5,
-                2,
-                7,
-                6,
-                2,
-                3,
-                15,
-                4,
-                0,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                5,
-                3,
-                2,
-                6,
-                2,
-                3,
-                7,
-                10,
-                0,
-                0,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                3,
-                4,
-                2,
-                2,
-                3,
-                7,
-                6,
-                0,
-                1,
-                5,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                4,
-                1,
-                2,
-                3,
-                7,
-                6,
-                2,
-                5,
-                5,
-                10,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                2,
-                5,
-                3,
-                6,
-                4,
-                0,
-                2,
-                15,
-                5,
-                5,
-                15,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                5,
-                0,
-                3,
-                4,
-                0,
-                2,
-                6,
-                10,
-                1,
-                5,
-                15,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                0,
-                4,
-                3,
-                0,
-                2,
-                6,
-                4,
-                0,
-                3,
-                15,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                4,
-                2,
-                3,
-                2,
-                6,
-                4,
-                0,
-                5,
-                7,
-                15,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                3,
-                5,
-                0,
-                4,
-                5,
-                1,
-                0,
-                10,
-                7,
-                15,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                5,
-                1,
-                0,
-                5,
-                1,
-                0,
-                4,
-                15,
-                3,
-                5,
-                15,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                1,
-                4,
-                0,
-                1,
-                0,
-                4,
-                5,
-                5,
-                2,
-                10,
-                15,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                4,
-                3,
-                0,
-                0,
-                4,
-                5,
-                1,
-                0,
-                6,
-                15,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                0,
-                5,
-                1,
-                5,
-                7,
-                3,
-                1,
-                10,
-                6,
-                10,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                5,
-                2,
-                1,
-                7,
-                3,
-                1,
-                5,
-                15,
-                2,
-                0,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                2,
-                4,
-                1,
-                3,
-                1,
-                5,
-                7,
-                5,
-                0,
-                0,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                4,
-                0,
-                1,
-                1,
-                5,
-                7,
-                3,
-                0,
-                4,
-                10,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                1,
-                2,
-                4,
-                3,
-                2,
-                0,
-                1,
-                15,
-                6,
-                10,
-                15,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                2,
-                3,
-                4,
-                2,
-                0,
-                1,
-                3,
-                10,
-                4,
-                10,
-                15,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                3,
-                0,
-                4,
-                0,
-                1,
-                3,
-                2,
-                0,
-                5,
-                15,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                0,
-                1,
-                4,
-                1,
-                3,
-                2,
-                0,
-                5,
-                7,
-                15,
-                10,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                1,
-                0,
-                5,
-                5,
-                4,
-                6,
-                7,
-                5,
-                0,
-                0,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                0,
-                3,
-                5,
-                4,
-                6,
-                7,
-                5,
-                0,
-                2,
-                5,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                3,
-                2,
-                5,
-                6,
-                7,
-                5,
-                4,
-                10,
-                3,
-                5,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                2,
-                1,
-                5,
-                7,
-                5,
-                4,
-                6,
-                15,
-                1,
-                0,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-        })
-}
+pub const DATA: [[usize; 11]; 24] = [
+    [1, 5, 2, 7, 6, 2, 3, 15, 4, 0, 5],
+    [5, 3, 2, 6, 2, 3, 7, 10, 0, 0, 10],
+    [3, 4, 2, 2, 3, 7, 6, 0, 1, 5, 0],
+    [4, 1, 2, 3, 7, 6, 2, 5, 5, 10, 0],
+    [2, 5, 3, 6, 4, 0, 2, 15, 5, 5, 15],
+    [5, 0, 3, 4, 0, 2, 6, 10, 1, 5, 15],
+    [0, 4, 3, 0, 2, 6, 4, 0, 3, 15, 5],
+    [4, 2, 3, 2, 6, 4, 0, 5, 7, 15, 5],
+    [3, 5, 0, 4, 5, 1, 0, 10, 7, 15, 10],
+    [5, 1, 0, 5, 1, 0, 4, 15, 3, 5, 15],
+    [1, 4, 0, 1, 0, 4, 5, 5, 2, 10, 15],
+    [4, 3, 0, 0, 4, 5, 1, 0, 6, 15, 5],
+    [0, 5, 1, 5, 7, 3, 1, 10, 6, 10, 0],
+    [5, 2, 1, 7, 3, 1, 5, 15, 2, 0, 10],
+    [2, 4, 1, 3, 1, 5, 7, 5, 0, 0, 10],
+    [4, 0, 1, 1, 5, 7, 3, 0, 4, 10, 0],
+    [1, 2, 4, 3, 2, 0, 1, 15, 6, 10, 15],
+    [2, 3, 4, 2, 0, 1, 3, 10, 4, 10, 15],
+    [3, 0, 4, 0, 1, 3, 2, 0, 5, 15, 10],
+    [0, 1, 4, 1, 3, 2, 0, 5, 7, 15, 10],
+    [1, 0, 5, 5, 4, 6, 7, 5, 0, 0, 5],
+    [0, 3, 5, 4, 6, 7, 5, 0, 2, 5, 0],
+    [3, 2, 5, 6, 7, 5, 4, 10, 3, 5, 0],
+    [2, 1, 5, 7, 5, 4, 6, 15, 1, 0, 5],
+];
 
 #[allow(clippy::too_many_arguments)]
-fn template(
+pub fn template(
     face_index_a: usize,
     face_index_b: usize,
     face_index_c: usize,
@@ -460,8 +44,7 @@ fn template(
     cell_subcells: &Indices,
     cells_nodes: &[usize],
     tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
-) {
+) -> Option<[usize; HEX]> {
     if let Some(cell_a_index) = cell_faces[face_index_a] {
         if let Some(cell_b_index) = cell_faces[face_index_b] {
             if let Some(cell_ab_index) = tree[cell_a_index].get_faces()[face_index_b] {
@@ -497,14 +80,13 @@ fn template(
                                                             cell_subsubcell_c_b_index,
                                                         )
                                                     {
-                                                        if let Some(cell_c_ab_subsubcells) = tree
-                                                            .cell_subcell_contains_leaves(
-                                                                &tree[cell_c_ab_index],
-                                                                face_index_b,
-                                                                cell_subsubcell_c_ab_index,
-                                                            )
-                                                        {
-                                                            element_node_connectivity.push([
+                                                        tree.cell_subcell_contains_leaves(
+                                                            &tree[cell_c_ab_index],
+                                                            face_index_b,
+                                                            cell_subsubcell_c_ab_index,
+                                                        )
+                                                        .map(|cell_c_ab_subsubcells| {
+                                                            [
                                                                 cells_nodes[cell_c_subsubcells
                                                                     [cell_subsubcell_c_index]],
                                                                 cells_nodes[cell_c_a_subcells
@@ -521,19 +103,45 @@ fn template(
                                                                     [cell_subcell_ab_index]],
                                                                 cells_nodes[cell_b_subcells
                                                                     [cell_subcell_b_index]],
-                                                            ])
-                                                        }
+                                                            ]
+                                                        })
+                                                    } else {
+                                                        None
                                                     }
+                                                } else {
+                                                    None
                                                 }
+                                            } else {
+                                                None
                                             }
+                                        } else {
+                                            None
                                         }
+                                    } else {
+                                        None
                                     }
+                                } else {
+                                    None
                                 }
+                            } else {
+                                None
                             }
+                        } else {
+                            None
                         }
+                    } else {
+                        None
                     }
+                } else {
+                    None
                 }
+            } else {
+                None
             }
+        } else {
+            None
         }
+    } else {
+        None
     }
 }

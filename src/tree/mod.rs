@@ -1945,6 +1945,9 @@ impl From<Octree> for HexahedralFiniteElements {
                 ]
             })
             .collect();
+        //
+        // Which of the face and edge templates could short circuit
+        //
         hex::face_template_0::apply(&cells_nodes, &tree, &mut element_node_connectivity);
         hex::edge_template_1::apply(
             &cells_nodes,
@@ -1975,6 +1978,8 @@ impl From<Octree> for HexahedralFiniteElements {
         // which means they are independent and can be run concurrently,
         // returning separate connectivities to combine afterwards.
         //
+        // May be able to make one function that calls either vertex or edge templates in order to keep in same par_iter().
+        //
         hex::edge_template_3::apply(
             &cells_nodes,
             &mut nodes_map,
@@ -1989,15 +1994,12 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &nodal_coordinates,
         );
-        hex::vertex_template_1::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_2::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_3::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_4::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_5::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_6::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_7::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_8::apply(&cells_nodes, &tree, &mut element_node_connectivity);
-        hex::vertex_template_9::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        element_node_connectivity.append(
+            &mut (1..=9)
+                .into_par_iter()
+                .flat_map(|index| hex::vertex_template(index, &cells_nodes, &tree))
+                .collect(),
+        );
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,

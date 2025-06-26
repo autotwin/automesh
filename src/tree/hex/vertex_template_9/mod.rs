@@ -1,90 +1,14 @@
-use super::super::{Faces, HexConnectivity, Indices, Octree};
+use super::super::{Faces, HEX, Indices, Octree};
 
-pub fn apply(
-    cells_nodes: &[usize],
-    tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
-) {
-    tree.iter()
-        .filter_map(|cell| tree.cell_contains_leaves(cell))
-        .for_each(|(cell_subcells, cell_faces)| {
-            template(
-                0,
-                1,
-                5,
-                5,
-                10,
-                0,
-                5,
-                15,
-                10,
-                2,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                1,
-                2,
-                5,
-                7,
-                15,
-                5,
-                15,
-                15,
-                10,
-                0,
-                5,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                2,
-                3,
-                5,
-                6,
-                15,
-                5,
-                10,
-                10,
-                15,
-                1,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-            template(
-                3,
-                0,
-                5,
-                4,
-                10,
-                0,
-                0,
-                10,
-                15,
-                3,
-                0,
-                cell_faces,
-                cell_subcells,
-                cells_nodes,
-                tree,
-                element_node_connectivity,
-            );
-        })
-}
+pub const DATA: [[usize; 11]; 4] = [
+    [0, 1, 5, 5, 10, 0, 5, 15, 10, 2, 5],
+    [1, 2, 5, 7, 15, 5, 15, 15, 10, 0, 5],
+    [2, 3, 5, 6, 15, 5, 10, 10, 15, 1, 0],
+    [3, 0, 5, 4, 10, 0, 0, 10, 15, 3, 0],
+];
 
 #[allow(clippy::too_many_arguments)]
-fn template(
+pub fn template(
     face_index: usize,
     face_index_a: usize,
     face_index_b: usize,
@@ -100,8 +24,7 @@ fn template(
     cell_subcells: &Indices,
     cells_nodes: &[usize],
     tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
-) {
+) -> Option<[usize; HEX]> {
     if let Some(cell_a_index) = cell_faces[face_index_a] {
         if let Some(cell_b_index) = cell_faces[face_index_b] {
             if let Some(cell_a_subsubcells) = tree.cell_subcell_contains_leaves(
@@ -150,12 +73,11 @@ fn template(
                                                         [cell_c_a_index]
                                                         .get_faces()[face_index_b]
                                                     {
-                                                        if let Some((cell_c_ab_subcells, _)) = tree
-                                                            .cell_contains_leaves(
-                                                                &tree[cell_c_ab_index],
-                                                            )
-                                                        {
-                                                            element_node_connectivity.push([
+                                                        tree.cell_contains_leaves(
+                                                            &tree[cell_c_ab_index],
+                                                        )
+                                                        .map(|(cell_c_ab_subcells, _)| {
+                                                            [
                                                                 cells_nodes[cell_subcells
                                                                     [cell_subcell_index]],
                                                                 cells_nodes[cell_a_subsubcells
@@ -172,19 +94,45 @@ fn template(
                                                                     [cell_subcell_c_ab_index]],
                                                                 cells_nodes[cell_c_b_subsubcells
                                                                     [cell_subsubcell_c_b_index]],
-                                                            ])
-                                                        }
+                                                            ]
+                                                        })
+                                                    } else {
+                                                        None
                                                     }
+                                                } else {
+                                                    None
                                                 }
+                                            } else {
+                                                None
                                             }
+                                        } else {
+                                            None
                                         }
+                                    } else {
+                                        None
                                     }
+                                } else {
+                                    None
                                 }
+                            } else {
+                                None
                             }
+                        } else {
+                            None
                         }
+                    } else {
+                        None
                     }
+                } else {
+                    None
                 }
+            } else {
+                None
             }
+        } else {
+            None
         }
+    } else {
+        None
     }
 }
