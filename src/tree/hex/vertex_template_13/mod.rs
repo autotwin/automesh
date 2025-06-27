@@ -2,14 +2,14 @@ use super::super::{Faces, HEX, Indices, Octree};
 
 pub const DATA: [[usize; 11]; 6] = [
     [0, 1, 5, 5, 10, 0, 5, 15, 6, 10, 5], // (0, 1, 5) = (3, 4, 0) = (5, 2, 3)
-    [0, 4, 1, 1, 5, 4, 0, 5, 7, 15, 0], // (0, 4, 1) = (1, 2, 5) = (5, 3, 0)
-    [1, 4, 2, 3, 15, 5, 5, 5, 6, 10, 0], // (1, 4, 2) = (2, 3, 5) = (5, 0, 1)
-    [2, 4, 3, 2, 10, 7, 5, 0, 4, 10, 5], // (2, 4, 3) = (3, 0, 5) = (5, 1, 2)
-    [4, 1, 0, 1, 0, 2, 5, 5, 4, 10, 15], // (4, 1, 0) = (3, 2, 4) = (0, 5, 3)
+    [0, 4, 1, 1, 5, 4, 0, 5, 7, 15, 0],   // (0, 4, 1) = (1, 2, 5) = (5, 3, 0)
+    [1, 4, 2, 3, 15, 5, 5, 5, 6, 10, 0],  // (1, 4, 2) = (2, 3, 5) = (5, 0, 1)
+    [2, 4, 3, 2, 10, 7, 5, 0, 4, 10, 5],  // (2, 4, 3) = (3, 0, 5) = (5, 1, 2)
+    [4, 1, 0, 1, 0, 2, 5, 5, 4, 10, 15],  // (4, 1, 0) = (3, 2, 4) = (0, 5, 3)
     [4, 2, 1, 3, 5, 0, 5, 15, 5, 10, 10], // (4, 2, 1) = (0, 3, 4) = (1, 5, 0)
-    //
-    // now need other 6 (dont forget to edit tree/mod.rs)
-    //
+                                          //
+                                          // now need other 6 (dont forget to edit tree/mod.rs)
+                                          //
 ];
 
 #[allow(clippy::too_many_arguments)]
@@ -55,10 +55,8 @@ pub fn template(
                                     if let Some(cell_c_a_index) =
                                         tree[cell_c_index].get_faces()[face_index_a]
                                     {
-                                        if let Some((cell_c_a_subcells, _)) = tree
-                                            .cell_contains_leaves(
-                                                &tree[cell_c_a_index],
-                                            )
+                                        if let Some((cell_c_a_subcells, _)) =
+                                            tree.cell_contains_leaves(&tree[cell_c_a_index])
                                         {
                                             if let Some(cell_c_b_index) =
                                                 tree[cell_b_index].get_faces()[face_index]
