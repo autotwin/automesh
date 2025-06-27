@@ -1954,7 +1954,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
-        hex::edge_template_2::apply(
+        hex::edge_template_3::apply(
             &cells_nodes,
             &mut nodes_map,
             &mut node_index,
@@ -1970,31 +1970,18 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
-        //
-        // Below templates do not create new nodes,
-        // which means they are independent and can be run concurrently,
-        // returning separate connectivities to combine afterwards.
-        //
-        // May be able to make one function that calls either vertex or edge templates in order to keep in same par_iter().
-        //
-        hex::edge_template_3::apply(
-            &cells_nodes,
-            &mut nodes_map,
-            &tree,
-            &mut element_node_connectivity,
-            &nodal_coordinates,
-        );
-        hex::edge_template_4::apply(
-            &cells_nodes,
-            &mut nodes_map,
-            &tree,
-            &mut element_node_connectivity,
-            &nodal_coordinates,
-        );
         element_node_connectivity.append(
-            &mut (1..=12)
+            &mut (1..=14)
                 .into_par_iter()
-                .flat_map(|index| hex::vertex_template(index, &cells_nodes, &tree))
+                .flat_map(|index| {
+                    hex::apply_concurrently(
+                        index,
+                        &cells_nodes,
+                        &nodes_map,
+                        &tree,
+                        &nodal_coordinates,
+                    )
+                })
                 .collect(),
         );
         let fem = Self::from_data(
