@@ -4,11 +4,11 @@ use super::super::{
 
 pub fn apply(
     cells_nodes: &[usize],
-    nodes_map: &mut NodeMap,
+    nodes_map: &NodeMap,
     tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
     nodal_coordinates: &Coordinates,
-) {
+) -> HexConnectivity {
+    let mut element_node_connectivity = vec![];
     tree.iter()
         .filter_map(|cell| tree.cell_contains_leaves(cell))
         .for_each(|(cell_subcells, cell_faces)| {
@@ -166,7 +166,8 @@ pub fn apply(
                         }
                     }
                 })
-        })
+        });
+    element_node_connectivity
 }
 
 fn template_inner(face_index: usize) -> [[usize; 13]; 2] {

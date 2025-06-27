@@ -1,4 +1,4 @@
-use super::{Faces, HEX, HexConnectivity, Indices, Octree};
+use super::{Coordinates, Faces, HEX, HexConnectivity, Indices, NodeMap, Octree};
 
 pub mod edge_template_1;
 pub mod edge_template_2;
@@ -19,7 +19,13 @@ mod vertex_template_7; // (O, a, ab, b) => (o, a, ab, b)
 mod vertex_template_8; // (O, A, AB, b) => (o, a, ab, b)
 mod vertex_template_9; // (O, a, ab, b) => (o, a, AB, b)
 
-pub fn vertex_template(index: usize, cells_nodes: &[usize], tree: &Octree) -> HexConnectivity {
+pub fn apply_concurrently(
+    index: usize,
+    cells_nodes: &[usize],
+    nodes_map: &NodeMap,
+    tree: &Octree,
+    nodal_coordinates: &Coordinates,
+) -> HexConnectivity {
     match index {
         1 => apply_vertex_template(
             cells_nodes,
@@ -93,6 +99,8 @@ pub fn vertex_template(index: usize, cells_nodes: &[usize], tree: &Octree) -> He
             vertex_template_12::DATA,
             vertex_template_12::template,
         ),
+        13 => edge_template_2::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
+        14 => edge_template_4::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
         _ => panic!(),
     }
 }

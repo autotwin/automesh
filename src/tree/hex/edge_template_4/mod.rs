@@ -5,11 +5,11 @@ use super::super::{
 
 pub fn apply(
     cells_nodes: &[usize],
-    nodes_map: &mut NodeMap,
+    nodes_map: &NodeMap,
     tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
     nodal_coordinates: &Coordinates,
-) {
+) -> HexConnectivity {
+    let mut element_node_connectivity = vec![];
     tree.iter()
         .filter_map(|cell| tree.cell_contains_leaves(cell))
         .for_each(|(cell_subcells, _)| {
@@ -26,7 +26,7 @@ pub fn apply(
                 cell_subcells,
                 nodes_map,
                 tree,
-                element_node_connectivity,
+                &mut element_node_connectivity,
                 nodal_coordinates,
             );
             template(
@@ -42,7 +42,7 @@ pub fn apply(
                 cell_subcells,
                 nodes_map,
                 tree,
-                element_node_connectivity,
+                &mut element_node_connectivity,
                 nodal_coordinates,
             );
             template(
@@ -58,7 +58,7 @@ pub fn apply(
                 cell_subcells,
                 nodes_map,
                 tree,
-                element_node_connectivity,
+                &mut element_node_connectivity,
                 nodal_coordinates,
             );
             template(
@@ -74,7 +74,7 @@ pub fn apply(
                 cell_subcells,
                 nodes_map,
                 tree,
-                element_node_connectivity,
+                &mut element_node_connectivity,
                 nodal_coordinates,
             );
             template(
@@ -90,7 +90,7 @@ pub fn apply(
                 cell_subcells,
                 nodes_map,
                 tree,
-                element_node_connectivity,
+                &mut element_node_connectivity,
                 nodal_coordinates,
             );
             template(
@@ -106,10 +106,11 @@ pub fn apply(
                 cell_subcells,
                 nodes_map,
                 tree,
-                element_node_connectivity,
+                &mut element_node_connectivity,
                 nodal_coordinates,
             );
-        })
+        });
+    element_node_connectivity
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -124,7 +125,7 @@ fn template(
     subcell_face_n_q: usize,
     cells_nodes: &[usize],
     cell_subcells: &[usize; NUM_OCTANTS],
-    nodes_map: &mut NodeMap,
+    nodes_map: &NodeMap,
     tree: &Octree,
     element_node_connectivity: &mut HexConnectivity,
     nodal_coordinates: &Coordinates,
