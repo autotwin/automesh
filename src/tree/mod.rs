@@ -1970,8 +1970,50 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
+        // element_node_connectivity.append(
+        //     &mut (1..=15)
+        //         .into_par_iter()
+        //         .flat_map(|index| {
+        //             hex::apply_concurrently(
+        //                 index,
+        //                 &cells_nodes,
+        //                 &nodes_map,
+        //                 &tree,
+        //                 &nodal_coordinates,
+        //             )
+        //         })
+        //         .collect(),
+        // );
         element_node_connectivity.append(
-            &mut (1..=14)
+            &mut (1..=12)
+                .into_par_iter()
+                .flat_map(|index| {
+                    hex::apply_concurrently(
+                        index,
+                        &cells_nodes,
+                        &nodes_map,
+                        &tree,
+                        &nodal_coordinates,
+                    )
+                })
+                .collect(),
+        );
+        element_node_connectivity.append(
+            &mut (14..=15)
+                .into_par_iter()
+                .flat_map(|index| {
+                    hex::apply_concurrently(
+                        index,
+                        &cells_nodes,
+                        &nodes_map,
+                        &tree,
+                        &nodal_coordinates,
+                    )
+                })
+                .collect(),
+        );
+        element_node_connectivity.append(
+            &mut (13..=13)
                 .into_par_iter()
                 .flat_map(|index| {
                     hex::apply_concurrently(
