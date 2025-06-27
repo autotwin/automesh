@@ -1992,7 +1992,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &nodal_coordinates,
         );
         element_node_connectivity.append(
-            &mut (1..=10)
+            &mut (1..=12)
                 .into_par_iter()
                 .flat_map(|index| hex::vertex_template(index, &cells_nodes, &tree))
                 .collect(),
