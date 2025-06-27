@@ -10,6 +10,7 @@ mod vertex_template_1; // (O, A, AB, B) => (o, a, ab, b)
 mod vertex_template_10; // (O, a, AB, b) => (O, a, ab, b)
 mod vertex_template_11; // (O, a, AB, b) => (O, a, AB, b)
 mod vertex_template_12; // (O, a, AB, b) => (o, a, ab, b)
+mod vertex_template_13; // (O, a, AB, b) => (o, A, ab, b)
 mod vertex_template_2; // (O, a, ab, b) => (O, a, ab, b)
 mod vertex_template_3; // (O, A, AB, B) => (o, A, AB, b)
 mod vertex_template_4; // (O, A, AB, B) => (o, A, AB, B)
@@ -99,8 +100,14 @@ pub fn apply_concurrently(
             vertex_template_12::DATA,
             vertex_template_12::template,
         ),
-        13 => edge_template_2::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
-        14 => edge_template_4::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
+        13 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_13::DATA,
+            vertex_template_13::template,
+        ),
+        14 => edge_template_2::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
+        15 => edge_template_4::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
         _ => panic!(),
     }
 }
