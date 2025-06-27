@@ -1954,7 +1954,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
-        hex::edge_template_2::apply(
+        hex::edge_template_3::apply(
             &cells_nodes,
             &mut nodes_map,
             &mut node_index,
@@ -1977,12 +1977,25 @@ impl From<Octree> for HexahedralFiniteElements {
         //
         // May be able to make one function that calls either vertex or edge templates in order to keep in same par_iter().
         //
-        hex::edge_template_3::apply(
+        hex::edge_template_2::apply(
             &cells_nodes,
             &mut nodes_map,
             &tree,
             &mut element_node_connectivity,
             &nodal_coordinates,
+        );
+        // hex::edge_template_4::apply(
+        //     &cells_nodes,
+        //     &mut nodes_map,
+        //     &tree,
+        //     &mut element_node_connectivity,
+        //     &nodal_coordinates,
+        // );
+        element_node_connectivity.append(
+            &mut (1..=12)
+                .into_par_iter()
+                .flat_map(|index| hex::vertex_template(index, &cells_nodes, &tree))
+                .collect(),
         );
         hex::edge_template_4::apply(
             &cells_nodes,
@@ -1990,12 +2003,6 @@ impl From<Octree> for HexahedralFiniteElements {
             &tree,
             &mut element_node_connectivity,
             &nodal_coordinates,
-        );
-        element_node_connectivity.append(
-            &mut (1..=12)
-                .into_par_iter()
-                .flat_map(|index| hex::vertex_template(index, &cells_nodes, &tree))
-                .collect(),
         );
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],

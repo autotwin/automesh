@@ -1,200 +1,388 @@
 use super::super::{
-    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NodeMap, Octree, face_direction,
+    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS, NodeMap, Octree,
 };
+use conspire::math::{TensorVec, tensor_rank_1};
 
 pub fn apply(
     cells_nodes: &[usize],
     nodes_map: &mut NodeMap,
+    node_index: &mut usize,
     tree: &Octree,
     element_node_connectivity: &mut HexConnectivity,
-    nodal_coordinates: &Coordinates,
+    nodal_coordinates: &mut Coordinates,
 ) {
     tree.iter()
         .filter_map(|cell| tree.cell_contains_leaves(cell))
-        .for_each(|(cell_subcells, cell_faces)| {
-            cell_faces
-                .iter()
-                .enumerate()
-                .for_each(|(face_index, face_cell)| {
-                    if let Some(face_cell_index) = face_cell {
-                        if let Some(face_subsubcells) =
-                            tree.cell_subcells_contain_leaves(&tree[*face_cell_index], face_index)
-                        {
-                            template_inner(face_index).into_iter().for_each(
-                                |[
-                                    adjacent_face,
-                                    cell_subcell_a,
-                                    cell_subcell_b,
-                                    adjacent_cell_subcell_a,
-                                    adjacent_cell_subcell_b,
-                                    face_subsubcell_a,
-                                    face_subsubcell_b,
-                                    face_subsubcell_c,
-                                    face_subsubcell_d,
-                                    adjacent_face_subsubcell_a,
-                                    adjacent_face_subsubcell_b,
-                                    adjacent_face_subsubcell_c,
-                                    adjacent_face_subsubcell_d,
-                                ]| {
-                                    if let Some(adjacent_cell) = cell_faces[adjacent_face] {
-                                        if let Some((adjacent_cell_subcells, adjacent_cell_faces)) =
-                                            tree.cell_contains_leaves(&tree[adjacent_cell])
-                                        {
-                                            if let Some(adjacent_cell_face_cell) =
-                                                adjacent_cell_faces[face_index]
+        .for_each(|(cell_subcells, _)| {
+            template(
+                0,
+                1,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                0,
+                2,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                0,
+                4,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                1,
+                3,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                1,
+                5,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                2,
+                3,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                2,
+                6,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                3,
+                7,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                4,
+                5,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                4,
+                6,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                5,
+                7,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+            template(
+                6,
+                7,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                node_index,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            )
+        })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn template(
+    subcell_a: usize,
+    subcell_b: usize,
+    cells_nodes: &[usize],
+    cell_subcells: &[usize; NUM_OCTANTS],
+    nodes_map: &mut NodeMap,
+    node_index: &mut usize,
+    tree: &Octree,
+    element_node_connectivity: &mut HexConnectivity,
+    nodal_coordinates: &mut Coordinates,
+) {
+    let (face_m, face_n, subcell_c, subcell_d, subcell_e, subcell_f, flip, direction) =
+        match (subcell_a, subcell_b) {
+            (0, 1) => (0, 4, 2, 4, 3, 5, false, tensor_rank_1([0.0, 1.0, 0.0])),
+            (0, 2) => (3, 4, 1, 4, 3, 6, true, tensor_rank_1([1.0, 0.0, 0.0])),
+            (0, 4) => (3, 0, 1, 2, 5, 6, false, tensor_rank_1([1.0, 0.0, 0.0])),
+            (1, 3) => (1, 4, 0, 5, 2, 7, false, tensor_rank_1([-1.0, 0.0, 0.0])),
+            (1, 5) => (0, 1, 3, 0, 7, 4, false, tensor_rank_1([0.0, 1.0, 0.0])),
+            (2, 3) => (2, 4, 0, 6, 1, 7, true, tensor_rank_1([0.0, -1.0, 0.0])),
+            (2, 6) => (2, 3, 0, 3, 4, 7, false, tensor_rank_1([0.0, -1.0, 0.0])),
+            (3, 7) => (1, 2, 2, 1, 6, 5, false, tensor_rank_1([-1.0, 0.0, 0.0])),
+            (4, 5) => (5, 0, 0, 6, 1, 7, false, tensor_rank_1([0.0, 0.0, -1.0])),
+            (4, 6) => (5, 3, 0, 5, 2, 7, true, tensor_rank_1([0.0, 0.0, -1.0])),
+            (5, 7) => (5, 1, 1, 4, 3, 6, false, tensor_rank_1([0.0, 0.0, -1.0])),
+            (6, 7) => (5, 2, 2, 4, 3, 5, true, tensor_rank_1([0.0, 0.0, -1.0])),
+            _ => panic!(),
+        };
+    let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();
+    if let Some(subcell_a_face_m) = subcell_a_faces[face_m] {
+        if let Some(subcell_a_face_n) = subcell_a_faces[face_n] {
+            if let Some((subcell_a_face_m_subcells, _)) =
+                tree.cell_contains_leaves(&tree[subcell_a_face_m])
+            {
+                if let Some((subcell_a_face_n_subcells, _)) =
+                    tree.cell_contains_leaves(&tree[subcell_a_face_n])
+                {
+                    if let Some(diagonal_a) =
+                        tree[subcell_a_face_m_subcells[subcell_c]].get_faces()[face_n]
+                    {
+                        if tree[diagonal_a].is_leaf() {
+                            if let Some(subdiagonal_a) =
+                                tree[subcell_a_face_m_subcells[subcell_e]].get_faces()[face_n]
+                            {
+                                if tree[subdiagonal_a].is_leaf() {
+                                    let subcell_b_faces =
+                                        tree[cell_subcells[subcell_b]].get_faces();
+                                    if let Some(subcell_b_face_m) = subcell_b_faces[face_m] {
+                                        if let Some(subcell_b_face_n) = subcell_b_faces[face_n] {
+                                            if let Some((subcell_b_face_m_subcells, _)) =
+                                                tree.cell_contains_leaves(&tree[subcell_b_face_m])
                                             {
-                                                if let Some(adjacent_face_subsubcells) = tree
-                                                    .cell_subcells_contain_leaves(
-                                                        &tree[adjacent_cell_face_cell],
-                                                        face_index,
-                                                    )
+                                                if let Some((subcell_b_face_n_subcells, _)) = tree
+                                                    .cell_contains_leaves(&tree[subcell_b_face_n])
                                                 {
-                                                    let lngth = *tree
-                                                        [face_subsubcells[face_subsubcell_a]]
-                                                        .get_lngth()
-                                                        as f64;
-                                                    let coordinates_1 = &nodal_coordinates
-                                                        [cells_nodes
-                                                            [face_subsubcells[face_subsubcell_a]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        - face_direction(face_index) * lngth;
-                                                    let node_1 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_1[0]) as usize,
-                                                            (2.0 * coordinates_1[1]) as usize,
-                                                            (2.0 * coordinates_1[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    let coordinates_2 = &nodal_coordinates
-                                                        [cells_nodes
-                                                            [face_subsubcells[face_subsubcell_b]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        - face_direction(face_index) * lngth;
-                                                    let node_2 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_2[0]) as usize,
-                                                            (2.0 * coordinates_2[1]) as usize,
-                                                            (2.0 * coordinates_2[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    let coordinates_3 = &nodal_coordinates
-                                                        [cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_a]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        - face_direction(face_index) * lngth;
-                                                    let node_3 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_3[0]) as usize,
-                                                            (2.0 * coordinates_3[1]) as usize,
-                                                            (2.0 * coordinates_3[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    let coordinates_4 = &nodal_coordinates
-                                                        [cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_b]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        - face_direction(face_index) * lngth;
-                                                    let node_4 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_4[0]) as usize,
-                                                            (2.0 * coordinates_4[1]) as usize,
-                                                            (2.0 * coordinates_4[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    element_node_connectivity.push([
-                                                        cells_nodes[cell_subcells[cell_subcell_a]],
-                                                        cells_nodes[cell_subcells[cell_subcell_b]],
-                                                        node_1,
-                                                        node_2,
-                                                        cells_nodes[adjacent_cell_subcells
-                                                            [adjacent_cell_subcell_a]],
-                                                        cells_nodes[adjacent_cell_subcells
-                                                            [adjacent_cell_subcell_b]],
-                                                        node_3,
-                                                        node_4,
-                                                    ]);
-                                                    element_node_connectivity.push([
-                                                        cells_nodes
-                                                            [face_subsubcells[face_subsubcell_a]],
-                                                        cells_nodes
-                                                            [face_subsubcells[face_subsubcell_b]],
-                                                        node_2,
-                                                        node_1,
-                                                        cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_a]],
-                                                        cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_b]],
-                                                        node_4,
-                                                        node_3,
-                                                    ]);
-                                                    element_node_connectivity.push([
-                                                        cells_nodes
-                                                            [face_subsubcells[face_subsubcell_b]],
-                                                        node_2,
-                                                        node_4,
-                                                        cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_b]],
-                                                        cells_nodes
-                                                            [face_subsubcells[face_subsubcell_d]],
-                                                        cells_nodes[cell_subcells[cell_subcell_a]],
-                                                        cells_nodes[adjacent_cell_subcells
-                                                            [adjacent_cell_subcell_a]],
-                                                        cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_d]],
-                                                    ]);
-                                                    element_node_connectivity.push([
-                                                        cells_nodes
-                                                            [face_subsubcells[face_subsubcell_a]],
-                                                        cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_a]],
-                                                        node_3,
-                                                        node_1,
-                                                        cells_nodes
-                                                            [face_subsubcells[face_subsubcell_c]],
-                                                        cells_nodes[adjacent_face_subsubcells
-                                                            [adjacent_face_subsubcell_c]],
-                                                        cells_nodes[adjacent_cell_subcells
-                                                            [adjacent_cell_subcell_b]],
-                                                        cells_nodes[cell_subcells[cell_subcell_b]],
-                                                    ]);
+                                                    if let Some(diagonal_b) = tree
+                                                        [subcell_b_face_m_subcells[subcell_e]]
+                                                        .get_faces()[face_n]
+                                                    {
+                                                        if tree[diagonal_b].is_leaf() {
+                                                            if let Some(subdiagonal_b) = tree
+                                                                [subcell_b_face_m_subcells
+                                                                    [subcell_c]]
+                                                                .get_faces()[face_n]
+                                                            {
+                                                                if tree[subdiagonal_b].is_leaf() {
+                                                                    let lngth = *tree
+                                                                        [subcell_a_face_m_subcells
+                                                                            [subcell_e]]
+                                                                        .get_lngth()
+                                                                        as f64;
+                                                                    nodal_coordinates.push(
+                                                                &nodal_coordinates[cells_nodes
+                                                                    [subcell_a_face_m_subcells
+                                                                        [subcell_e]]
+                                                                    - NODE_NUMBERING_OFFSET]
+                                                                    + &direction * lngth,
+                                                            );
+                                                                    nodal_coordinates.push(
+                                                                &nodal_coordinates[cells_nodes
+                                                                    [subcell_b_face_m_subcells
+                                                                        [subcell_c]]
+                                                                    - NODE_NUMBERING_OFFSET]
+                                                                    + direction * lngth,
+                                                            );
+                                                                    (0..2).for_each(|k| {
+                                                                        assert!(nodes_map.insert(
+                                                            (
+                                                                (2.0 * nodal_coordinates[*node_index
+                                                                    + k
+                                                                    - NODE_NUMBERING_OFFSET][0])
+                                                                    as usize,
+                                                                (2.0 * nodal_coordinates[*node_index
+                                                                    + k
+                                                                    - NODE_NUMBERING_OFFSET][1])
+                                                                    as usize,
+                                                                (2.0 * nodal_coordinates[*node_index
+                                                                    + k
+                                                                    - NODE_NUMBERING_OFFSET][2])
+                                                                    as usize,
+                                                            ),
+                                                            *node_index + k,
+                                                        ).is_none(), "duplicate entry")
+                                                                    });
+                                                                    if flip {
+                                                                        element_node_connectivity.push([
+                                                                    *node_index,
+                                                                    cells_nodes
+                                                                        [subcell_a_face_m_subcells
+                                                                            [subcell_e]],
+                                                                    cells_nodes[subdiagonal_a],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_n_subcells
+                                                                            [subcell_f]],
+                                                                    cells_nodes
+                                                                        [cell_subcells[subcell_a]],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_m_subcells
+                                                                            [subcell_c]],
+                                                                    cells_nodes[diagonal_a],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_n_subcells
+                                                                            [subcell_d]],
+                                                                ]);
+                                                                        element_node_connectivity.push([
+                                                                    *node_index + 1,
+                                                                    cells_nodes
+                                                                        [subcell_b_face_m_subcells
+                                                                            [subcell_c]],
+                                                                    cells_nodes[subdiagonal_b],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_n_subcells
+                                                                            [subcell_d]],
+                                                                    *node_index,
+                                                                    cells_nodes
+                                                                        [subcell_a_face_m_subcells
+                                                                            [subcell_e]],
+                                                                    cells_nodes[subdiagonal_a],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_n_subcells
+                                                                            [subcell_f]],
+                                                                ]);
+                                                                        element_node_connectivity.push([
+                                                                    cells_nodes
+                                                                        [cell_subcells[subcell_b]],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_m_subcells
+                                                                            [subcell_e]],
+                                                                    cells_nodes[diagonal_b],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_n_subcells
+                                                                            [subcell_f]],
+                                                                    *node_index + 1,
+                                                                    cells_nodes
+                                                                        [subcell_b_face_m_subcells
+                                                                            [subcell_c]],
+                                                                    cells_nodes[subdiagonal_b],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_n_subcells
+                                                                            [subcell_d]],
+                                                                ]);
+                                                                    } else {
+                                                                        element_node_connectivity.push([
+                                                                    cells_nodes
+                                                                        [cell_subcells[subcell_a]],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_m_subcells
+                                                                            [subcell_c]],
+                                                                    cells_nodes[diagonal_a],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_n_subcells
+                                                                            [subcell_d]],
+                                                                    *node_index,
+                                                                    cells_nodes
+                                                                        [subcell_a_face_m_subcells
+                                                                            [subcell_e]],
+                                                                    cells_nodes[subdiagonal_a],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_n_subcells
+                                                                            [subcell_f]],
+                                                                ]);
+                                                                        element_node_connectivity.push([
+                                                                    *node_index,
+                                                                    cells_nodes
+                                                                        [subcell_a_face_m_subcells
+                                                                            [subcell_e]],
+                                                                    cells_nodes[subdiagonal_a],
+                                                                    cells_nodes
+                                                                        [subcell_a_face_n_subcells
+                                                                            [subcell_f]],
+                                                                    *node_index + 1,
+                                                                    cells_nodes
+                                                                        [subcell_b_face_m_subcells
+                                                                            [subcell_c]],
+                                                                    cells_nodes[subdiagonal_b],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_n_subcells
+                                                                            [subcell_d]],
+                                                                ]);
+                                                                        element_node_connectivity.push([
+                                                                    *node_index + 1,
+                                                                    cells_nodes
+                                                                        [subcell_b_face_m_subcells
+                                                                            [subcell_c]],
+                                                                    cells_nodes[subdiagonal_b],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_n_subcells
+                                                                            [subcell_d]],
+                                                                    cells_nodes
+                                                                        [cell_subcells[subcell_b]],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_m_subcells
+                                                                            [subcell_e]],
+                                                                    cells_nodes[diagonal_b],
+                                                                    cells_nodes
+                                                                        [subcell_b_face_n_subcells
+                                                                            [subcell_f]],
+                                                                ]);
+                                                                    }
+                                                                    *node_index += 2;
+                                                                }
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                },
-                            )
+                                }
+                            }
                         }
                     }
-                })
-        })
-}
-
-fn template_inner(face_index: usize) -> [[usize; 13]; 2] {
-    match face_index {
-        0 => [
-            [1, 1, 5, 0, 4, 13, 7, 15, 5, 8, 2, 10, 0],
-            [4, 0, 1, 4, 5, 4, 1, 5, 0, 14, 11, 15, 10],
-        ],
-        1 => [
-            [0, 5, 1, 7, 3, 2, 8, 0, 10, 7, 13, 5, 15],
-            [4, 1, 3, 5, 7, 4, 1, 5, 0, 14, 11, 15, 10],
-        ],
-        2 => [
-            [1, 7, 3, 6, 2, 7, 13, 5, 15, 2, 8, 0, 10],
-            [5, 6, 7, 2, 3, 14, 11, 15, 10, 4, 1, 5, 0],
-        ],
-        3 => [
-            [2, 6, 2, 4, 0, 7, 13, 5, 15, 2, 8, 0, 10],
-            [5, 4, 6, 0, 2, 14, 11, 15, 10, 4, 1, 5, 0],
-        ],
-        4 => [
-            [1, 3, 1, 2, 0, 7, 13, 5, 15, 2, 8, 0, 10],
-            [2, 2, 3, 0, 1, 14, 11, 15, 10, 4, 1, 5, 0],
-        ],
-        5 => [
-            [0, 4, 5, 6, 7, 4, 1, 5, 0, 14, 11, 15, 10],
-            [3, 6, 4, 7, 5, 2, 8, 0, 10, 7, 13, 5, 15],
-        ],
-        _ => panic!(),
+                }
+            }
+        }
     }
 }

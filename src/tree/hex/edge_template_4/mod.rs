@@ -1,10 +1,155 @@
-use super::super::{Coordinates, HexConnectivity, NodeMap, Octree};
+use super::super::{
+    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS, NodeMap, Octree,
+    face_direction,
+};
 
 pub fn apply(
-    _cells_nodes: &[usize],
-    _nodes_map: &mut NodeMap,
-    _tree: &Octree,
-    _element_node_connectivity: &mut HexConnectivity,
-    _nodal_coordinates: &Coordinates,
+    cells_nodes: &[usize],
+    nodes_map: &mut NodeMap,
+    tree: &Octree,
+    element_node_connectivity: &mut HexConnectivity,
+    nodal_coordinates: &Coordinates,
 ) {
+    tree.iter()
+        .filter_map(|cell| tree.cell_contains_leaves(cell))
+        .for_each(|(cell_subcells, _)| {
+            template(
+                4,
+                6,
+                3,
+                5,
+                cells_nodes,
+                cell_subcells,
+                nodes_map,
+                tree,
+                element_node_connectivity,
+                nodal_coordinates,
+            );
+        })
+}
+
+#[allow(clippy::too_many_arguments)]
+fn template(
+    subcell_a: usize,
+    subcell_b: usize,
+    face_m: usize,
+    face_n: usize,
+    cells_nodes: &[usize],
+    cell_subcells: &[usize; NUM_OCTANTS],
+    nodes_map: &mut NodeMap,
+    tree: &Octree,
+    element_node_connectivity: &mut HexConnectivity,
+    nodal_coordinates: &Coordinates,
+) {
+    let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();
+    if let Some(subcell_a_face_m) = subcell_a_faces[face_m] {
+        if let Some(subcell_a_face_n) = subcell_a_faces[face_n] {
+            if let Some(diagonal_a) = tree[subcell_a_face_m].get_faces()[face_n] {
+                if tree[diagonal_a].is_leaf() {
+                    let subcell_b_faces = tree[cell_subcells[subcell_b]].get_faces();
+                    if let Some(subcell_b_face_m) = subcell_b_faces[face_m] {
+                        if let Some(subcell_b_face_n) = subcell_b_faces[face_n] {
+                            if let Some(diagonal_b) = tree[subcell_b_face_m].get_faces()[face_n] {
+                                if tree[diagonal_b].is_leaf() {
+                                    if let Some((subcell_a_face_m_subcells, _)) =
+                                        tree.cell_contains_leaves(&tree[subcell_a_face_m])
+                                    {
+                                        if let Some((subcell_a_face_n_subcells, _)) =
+                                            tree.cell_contains_leaves(&tree[subcell_a_face_n])
+                                        {
+                                            if let Some((subcell_b_face_m_subcells, _)) =
+                                                tree.cell_contains_leaves(&tree[subcell_b_face_m])
+                                            {
+                                                if let Some((subcell_b_face_n_subcells, _)) = tree
+                                                    .cell_contains_leaves(&tree[subcell_b_face_n])
+                                                {
+                                                    let lngth = *tree[subcell_a_face_m_subcells[7]]
+                                                        .get_lngth()
+                                                        as f64;
+                                                    let coordinates_1 = &nodal_coordinates
+                                                        [cells_nodes[subcell_a_face_m_subcells[7]]
+                                                            - NODE_NUMBERING_OFFSET]
+                                                        - face_direction(face_m) * lngth;
+                                                    let node_1 = *nodes_map
+                                                        .get(&(
+                                                            (2.0 * coordinates_1[0]) as usize,
+                                                            (2.0 * coordinates_1[1]) as usize,
+                                                            (2.0 * coordinates_1[2]) as usize,
+                                                        ))
+                                                        .expect("nonexistent entry");
+                                                    let coordinates_2 = &nodal_coordinates
+                                                        [cells_nodes[subcell_b_face_m_subcells[5]]
+                                                            - NODE_NUMBERING_OFFSET]
+                                                        - face_direction(face_m) * lngth;
+                                                    let node_2 = *nodes_map
+                                                        .get(&(
+                                                            (2.0 * coordinates_2[0]) as usize,
+                                                            (2.0 * coordinates_2[1]) as usize,
+                                                            (2.0 * coordinates_2[2]) as usize,
+                                                        ))
+                                                        .expect("nonexistent entry");
+                                                    let coordinates_3 = &nodal_coordinates
+                                                        [cells_nodes[subcell_a_face_m_subcells[7]]
+                                                            - NODE_NUMBERING_OFFSET]
+                                                        + face_direction(face_n) * lngth;
+                                                    let node_3 = *nodes_map
+                                                        .get(&(
+                                                            (2.0 * coordinates_3[0]) as usize,
+                                                            (2.0 * coordinates_3[1]) as usize,
+                                                            (2.0 * coordinates_3[2]) as usize,
+                                                        ))
+                                                        .expect("nonexistent entry");
+                                                    let coordinates_4 = &nodal_coordinates
+                                                        [cells_nodes[subcell_b_face_m_subcells[5]]
+                                                            - NODE_NUMBERING_OFFSET]
+                                                        + face_direction(face_n) * lngth;
+                                                    let node_4 = *nodes_map
+                                                        .get(&(
+                                                            (2.0 * coordinates_4[0]) as usize,
+                                                            (2.0 * coordinates_4[1]) as usize,
+                                                            (2.0 * coordinates_4[2]) as usize,
+                                                        ))
+                                                        .expect("nonexistent entry");
+                                                    element_node_connectivity.push([
+                                                        cells_nodes[subcell_a_face_m_subcells[7]],
+                                                        node_1,
+                                                        node_2,
+                                                        cells_nodes[subcell_b_face_m_subcells[5]],
+                                                        node_3,
+                                                        cells_nodes[subcell_a_face_n_subcells[2]],
+                                                        cells_nodes[subcell_b_face_n_subcells[0]],
+                                                        node_4,
+                                                    ]);
+                                                    element_node_connectivity.push([
+                                                        cells_nodes[subcell_b_face_m_subcells[5]],
+                                                        node_2,
+                                                        cells_nodes[cell_subcells[subcell_b]],
+                                                        cells_nodes[subcell_b_face_m_subcells[7]],
+                                                        node_4,
+                                                        cells_nodes[subcell_b_face_n_subcells[0]],
+                                                        cells_nodes[subcell_b_face_n_subcells[2]],
+                                                        cells_nodes[diagonal_b],
+                                                    ]);
+                                                    element_node_connectivity.push([
+                                                        cells_nodes[subcell_a_face_m_subcells[5]],
+                                                        cells_nodes[cell_subcells[subcell_a]],
+                                                        node_1,
+                                                        cells_nodes[subcell_a_face_m_subcells[7]],
+                                                        cells_nodes[diagonal_a],
+                                                        cells_nodes[subcell_a_face_n_subcells[0]],
+                                                        cells_nodes[subcell_a_face_n_subcells[2]],
+                                                        node_3,
+                                                    ]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
