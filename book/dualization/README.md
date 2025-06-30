@@ -5,6 +5,12 @@ Dualization can be performed on 2D/3D surface meshes composed of quadrilateral
 elements, and 3D volumetric meshes composed of hexahedral elements.
 Both quadrilateral and hexahedral elements will be discussed.
 
+## Quadtree
+
+
+
+## Octree
+
 ## Circle
 
 Consider a boundary of a circle defined by discrete `(x, y)` points.

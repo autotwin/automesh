@@ -16,8 +16,7 @@
   - [Taubin](smoothing/taubin.md)
   - [Python visualization](smoothing/python_visualization.md)
 - [Isosurfaces](isosurface/README.md)
-<!-- - [Defeature](defeature/README.md) -->  <!-- work in progress -->
-<!-- - [Dualization](dualization/README.md) -->  <!-- work in progress -->
+- [Dualization](dualization/README.md) <!-- work in progress -->
 
 # Reference Guide
 
