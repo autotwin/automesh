@@ -1971,7 +1971,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut nodal_coordinates,
         );
         element_node_connectivity.append(
-            &mut (1..=16)
+            &mut (1..=23)
                 .into_par_iter()
                 .flat_map(|index| {
                     hex::apply_concurrently(
