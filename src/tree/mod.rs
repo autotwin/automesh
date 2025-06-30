@@ -151,41 +151,41 @@ pub struct Cell {
 }
 
 impl Cell {
-    pub fn get_block(&self) -> u8 {
+    pub const fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
             block
         } else {
             panic!("Called get_block() on a non-leaf cell.")
         }
     }
-    pub fn get_cells(&self) -> &Option<Indices> {
+    pub const fn get_cells(&self) -> &Option<Indices> {
         &self.cells
     }
-    pub fn get_faces(&self) -> &Faces {
+    pub const fn get_faces(&self) -> &Faces {
         &self.faces
     }
-    pub fn get_lngth(&self) -> &u16 {
+    pub const fn get_lngth(&self) -> &u16 {
         &self.lngth
     }
-    pub fn get_min_x(&self) -> &u16 {
+    pub const fn get_min_x(&self) -> &u16 {
         &self.min_x
     }
-    pub fn get_min_y(&self) -> &u16 {
+    pub const fn get_min_y(&self) -> &u16 {
         &self.min_y
     }
-    pub fn get_min_z(&self) -> &u16 {
+    pub const fn get_min_z(&self) -> &u16 {
         &self.min_z
     }
-    pub fn get_max_x(&self) -> u16 {
+    pub const fn get_max_x(&self) -> u16 {
         self.min_x + self.lngth
     }
-    pub fn get_max_y(&self) -> u16 {
+    pub const fn get_max_y(&self) -> u16 {
         self.min_y + self.lngth
     }
-    pub fn get_max_z(&self) -> u16 {
+    pub const fn get_max_z(&self) -> u16 {
         self.min_z + self.lngth
     }
-    pub fn get_nodal_indices_cell(&self) -> [[usize; NSD]; NUM_NODES_CELL] {
+    pub const fn get_nodal_indices_cell(&self) -> [[usize; NSD]; NUM_NODES_CELL] {
         [
             [
                 *self.get_min_x() as usize,
@@ -229,7 +229,7 @@ impl Cell {
             ],
         ]
     }
-    pub fn get_nodal_indices_face(&self, face_index: &usize) -> [[u16; NSD]; NUM_NODES_FACE] {
+    pub const fn get_nodal_indices_face(&self, face_index: &usize) -> [[u16; NSD]; NUM_NODES_FACE] {
         match face_index {
             0 => [
                 [*self.get_min_x(), *self.get_min_y(), *self.get_min_z()],
@@ -299,13 +299,13 @@ impl Cell {
             _ => panic!(),
         }
     }
-    pub fn is_leaf(&self) -> bool {
+    pub const fn is_leaf(&self) -> bool {
         self.get_cells().is_none()
     }
-    pub fn is_not_leaf(&self) -> bool {
+    pub const fn is_not_leaf(&self) -> bool {
         self.get_cells().is_some()
     }
-    pub fn is_voxel(&self) -> bool {
+    pub const fn is_voxel(&self) -> bool {
         self.lngth == 1
     }
     pub fn subdivide(&mut self, indices: Indices) -> Cells {
@@ -1255,7 +1255,7 @@ impl Octree {
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())
     }
-    pub fn nel(&self) -> Nel {
+    pub const fn nel(&self) -> Nel {
         self.nel
     }
     pub fn octree_into_finite_elements(
@@ -1971,7 +1971,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut nodal_coordinates,
         );
         element_node_connectivity.append(
-            &mut (1..=15)
+            &mut (1..=16)
                 .into_par_iter()
                 .flat_map(|index| {
                     hex::apply_concurrently(
