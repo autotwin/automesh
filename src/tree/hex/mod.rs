@@ -10,7 +10,16 @@ mod vertex_template_1; // (O, A, AB, B) => (o, a, ab, b)
 mod vertex_template_10; // (O, a, AB, b) => (O, a, ab, b)
 mod vertex_template_11; // (O, a, AB, b) => (O, a, AB, b)
 mod vertex_template_12; // (O, a, AB, b) => (o, a, ab, b)
+mod vertex_template_13; // (O, a, AB, b) => (o, A, ab, b)
+mod vertex_template_14; // (O, A, AB, b) => (o, a, ab, B)
+mod vertex_template_15; // (O, A, AB, b) => (o, a, AB, b)
+mod vertex_template_16; // (O, A, AB, b) => (O, a, ab, b)
+mod vertex_template_17; // (O, A, AB, b) => (o, a, AB, B)
+mod vertex_template_18; // (O, A, AB, B) => (o, A, ab, B)
+mod vertex_template_19; // (O, A, AB, b) => (O, a, AB, B)
 mod vertex_template_2; // (O, a, ab, b) => (O, a, ab, b)
+mod vertex_template_20; // (O, A, AB, b) => (o, A, ab, B)
+mod vertex_template_21; // (O, a, AB, b) => (o, A, ab, B)
 mod vertex_template_3; // (O, A, AB, B) => (o, A, AB, b)
 mod vertex_template_4; // (O, A, AB, B) => (o, A, AB, B)
 mod vertex_template_5; // (O, A, AB, B) => (o, A, ab, b)
@@ -99,8 +108,62 @@ pub fn apply_concurrently(
             vertex_template_12::DATA,
             vertex_template_12::template,
         ),
-        13 => edge_template_2::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
-        14 => edge_template_4::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
+        13 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_13::DATA,
+            vertex_template_13::template,
+        ),
+        14 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_14::DATA,
+            vertex_template_14::template,
+        ),
+        15 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_15::DATA,
+            vertex_template_15::template,
+        ),
+        16 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_16::DATA,
+            vertex_template_16::template,
+        ),
+        17 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_17::DATA,
+            vertex_template_17::template,
+        ),
+        18 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_18::DATA,
+            vertex_template_18::template,
+        ),
+        19 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_19::DATA,
+            vertex_template_19::template,
+        ),
+        20 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_20::DATA,
+            vertex_template_20::template,
+        ),
+        21 => apply_vertex_template(
+            cells_nodes,
+            tree,
+            vertex_template_21::DATA,
+            vertex_template_21::template,
+        ),
+        22 => edge_template_2::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
+        23 => edge_template_4::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
         _ => panic!(),
     }
 }
