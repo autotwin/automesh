@@ -16,7 +16,7 @@ class QuadTree:
     children quads.
     """
 
-    def __init__(self, *, x, y, width, height, level=0, max_level=2):
+    def __init__(self, *, x, y, width, height, level=0, max_level=2, verbose=False):
         # (x, y, width, height)
         self.boundary = (x, y, width, height)
         self.level = level
@@ -26,14 +26,16 @@ class QuadTree:
         assert level <= max_level, (
             f"QuadTree level {level} exceeds max_level {max_level}."
         )
+        self.verbose = verbose
         self.subdivide()
 
     def subdivide(self):
         """Divides the parent quad into four quad children."""
         if self.level < self.max_level:
-            print(
-                f"Subdividing quad at level {self.level} with boundary {self.boundary}"
-            )
+            if self.verbose:
+                print(
+                    f"Subdividing quad at level {self.level} with boundary {self.boundary}"
+                )
             x, y, width, height = self.boundary
             half_width = width / 2.0
             half_height = height / 2.0
@@ -85,9 +87,10 @@ class QuadTree:
         """Draw the quadtree."""
         x, y, width, height = self.boundary
         # Draw the boundary rectangle
-        print(
-            f"Drawing level {self.level} quad at ({x}, {y}) with width {width} and height {height}"
-        )
+        if self.verbose:
+            print(
+                f"Drawing level {self.level} quad at ({x}, {y}) with width {width} and height {height}"
+            )
         rect = patches.Rectangle(
             (x, y),
             width,
@@ -102,10 +105,11 @@ class QuadTree:
         ax.add_patch(rect)
 
         # Draw children
-        # if self.has_children:
-        #     print(f"Quad at level {self.level} has children, drawing them.")
-        #     for child in self.children:
-        #         child.draw(ax, quadcolors)
+        if self.has_children:
+            if self.verbose:
+                print(f"Quad at level {self.level} has children, drawing them.")
+            for child in self.children:
+                child.draw(ax, quadcolors)
 
 
 def main():
@@ -123,6 +127,7 @@ def main():
     ymax = 2  # 1
     width = xmax - xmin
     height = ymax - ymin
+    verbose = True  # Set to True to see debug output
     # User input end
 
     # Create a figure and axis
@@ -131,17 +136,27 @@ def main():
 
     # Create the quadtree with a boundary of (-12, -12, 24, 24)
     qt = QuadTree(
-        x=xmin, y=ymin, width=width, height=height, level=level_min, max_level=level_max
+        x=xmin,
+        y=ymin,
+        width=width,
+        height=height,
+        level=level_min,
+        max_level=level_max,
+        verbose=verbose,
     )
 
+    # The number of colors will be the number of levels + 1 because
+    # the root level is 0 and we want to include it in the color palette
+    n_colors = level_max - level_min + 2
     qc = QuadColors(
-        n_levels=level_max - level_min + 2,  # Number of levels
+        n_levels=n_colors,
         edgecolor="black",
         alpha=0.8,
         plasma=True,
         reversed=False,
     )
-    print(f"quadcolors.facecolors: {qc.facecolors}")
+    if verbose:
+        print(f"quadcolors.facecolors: {qc.facecolors}")
     # Draw the quadtree
     qt.draw(ax, qc)
 
