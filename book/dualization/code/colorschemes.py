@@ -19,7 +19,7 @@ def plot_color_schemes(n_colors: int):
     grayscale = QuadColors(
         n_levels=n_colors,
         edgecolor="black",
-        alpha=0.8,
+        alpha=0.9,
         plasma=False,
         reversed=False,
     )
@@ -133,7 +133,7 @@ def plot_color_schemes(n_colors: int):
 
 # Demonstrate the color schemes
 if __name__ == "__main__":
-    n_colors = 8  # Number of discrete colors to extract
+    n_colors = 10  # Number of discrete colors to extract
     plot_color_schemes(n_colors=n_colors)
 
     # Show the extracted colors
