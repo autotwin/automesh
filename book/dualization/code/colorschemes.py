@@ -1,7 +1,8 @@
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 from typing import NamedTuple
 
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
+from matplotlib import patches
 
 N_COLORS = 8  # Number of discrete colors to extract
 
@@ -90,7 +91,7 @@ def show_color_schemes():
     ax1 = axes[0]
     for i, level in enumerate(levels):
         scheme = level_to_colorscheme(level, n_levels, plasma=False, reversed=False)
-        rect = plt.Rectangle(
+        rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
@@ -111,7 +112,7 @@ def show_color_schemes():
     ax2 = axes[1]
     for i, level in enumerate(levels):
         scheme = level_to_colorscheme(level, n_levels, plasma=False, reversed=True)
-        rect = plt.Rectangle(
+        rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
@@ -132,7 +133,7 @@ def show_color_schemes():
     ax3 = axes[2]
     for i, level in enumerate(levels):
         scheme = level_to_colorscheme(level, n_levels, plasma=True, reversed=False)
-        rect = plt.Rectangle(
+        rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
@@ -153,7 +154,7 @@ def show_color_schemes():
     ax4 = axes[3]
     for i, level in enumerate(levels):
         scheme = level_to_colorscheme(level, n_levels, plasma=True, reversed=True)
-        rect = plt.Rectangle(
+        rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
@@ -193,7 +194,7 @@ def level_to_colorscheme_optimized(level: int, color_scheme: str = "plasma") -> 
     edgecolor = "black"
     facecolor = colors[level % len(colors)]
     zorder = 2 + level
-    return ColorScheme(edgecolor, facecolor, zorder)
+    return Color(edgecolor, facecolor, zorder)
 
 
 # Demonstrate the color schemes
