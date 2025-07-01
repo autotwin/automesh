@@ -16,18 +16,21 @@ class QuadTree:
     children quads.
     """
 
-    def __init__(self, x, y, width, height, level=0, max_level=2):
+    def __init__(self, *, x, y, width, height, level=0, max_level=2):
         # (x, y, width, height)
         self.boundary = (x, y, width, height)
         self.level = level
         self.max_level = max_level
         self.has_children = False
         self.children = []
+        assert level <= max_level, (
+            f"QuadTree level {level} exceeds max_level {max_level}."
+        )
         self.subdivide()
 
     def subdivide(self):
         """Divides the parent quad into four quad children."""
-        if self.level <= self.max_level:
+        if self.level < self.max_level:
             print(
                 f"Subdividing quad at level {self.level} with boundary {self.boundary}"
             )
@@ -39,42 +42,42 @@ class QuadTree:
             self.has_children = True  # overwrite
             self.children.append(
                 QuadTree(
-                    x,
-                    y,
-                    half_width,
-                    half_height,
-                    self.level + 1,
-                    self.max_level,
+                    x=x,
+                    y=y,
+                    width=half_width,
+                    height=half_height,
+                    level=self.level + 1,
+                    max_level=self.max_level,
                 )
             )  # Top-left
             self.children.append(
                 QuadTree(
-                    x + half_width,
-                    y,
-                    half_width,
-                    half_height,
-                    self.level + 1,
-                    self.max_level,
+                    x=x + half_width,
+                    y=y,
+                    width=half_width,
+                    height=half_height,
+                    level=self.level + 1,
+                    max_level=self.max_level,
                 )
             )  # Top-right
             self.children.append(
                 QuadTree(
-                    x,
-                    y + half_height,
-                    half_width,
-                    half_height,
-                    self.level + 1,
-                    self.max_level,
+                    x=x,
+                    y=y + half_height,
+                    width=half_width,
+                    height=half_height,
+                    level=self.level + 1,
+                    max_level=self.max_level,
                 )
             )  # Bottom-left
             self.children.append(
                 QuadTree(
-                    x + half_width,
-                    y + half_height,
-                    half_width,
-                    half_height,
-                    self.level + 1,
-                    self.max_level,
+                    x=x + half_width,
+                    y=y + half_height,
+                    width=half_width,
+                    height=half_height,
+                    level=self.level + 1,
+                    max_level=self.max_level,
                 )
             )  # Bottom-right
 
@@ -107,49 +110,51 @@ class QuadTree:
 
 def main():
     # User input begin
-    MAX_LEVEL: Final[int] = 2
+    level_min: Final[int] = 0
+    level_max: Final[int] = 1
     SAVE: Final[bool] = True
     SHOW: Final[bool] = True
     EXT: Final[str] = ".png"  # ".pdf" | ".png" | ".svg"
     DPI: Final[int] = 300
 
-    XMIN = -2  # 1
-    XMAX = 2  # 3
-    YMIN = -2  # -1
-    YMAX = 2  # 1
-    WIDTH = XMAX - XMIN
-    HEIGHT = YMAX - YMIN
+    xmin = -2  # 1
+    xmax = 2  # 3
+    ymin = -2  # -1
+    ymax = 2  # 1
+    width = xmax - xmin
+    height = ymax - ymin
     # User input end
 
     # Create a figure and axis
-    width, height = 6, 6  # inches, inches
-    fig, ax = plt.subplots(figsize=(width, height))
+    fig_width, fig_height = 6, 6  # inches, inches
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
     # Create the quadtree with a boundary of (-12, -12, 24, 24)
-    quadtree = QuadTree(XMIN, YMIN, WIDTH, HEIGHT, level=0, max_level=MAX_LEVEL)
+    qt = QuadTree(
+        x=xmin, y=ymin, width=width, height=height, level=level_min, max_level=level_max
+    )
 
-    quadcolors = QuadColors(
-        n_levels=MAX_LEVEL + 1,  # +1 because we start at level 0
+    qc = QuadColors(
+        n_levels=level_max - level_min + 2,  # Number of levels
         edgecolor="black",
-        alpha=0.3,
+        alpha=0.8,
         plasma=True,
         reversed=False,
     )
-    print(f"quadcolors.facecolors: {quadcolors.facecolors}")
-    breakpoint()
+    print(f"quadcolors.facecolors: {qc.facecolors}")
     # Draw the quadtree
-    quadtree.draw(ax, quadcolors)
+    qt.draw(ax, qc)
 
     # Set limits and aspect
-    MARGIN = 0.1 * (XMAX - XMIN)
-    ax.set_xlim(XMIN - MARGIN, XMAX + MARGIN)
-    ax.set_ylim(YMIN - MARGIN, YMAX + MARGIN)
+    margin = 0.1 * (xmax - xmin)
+    ax.set_xlim(xmin - margin, xmax + margin)
+    ax.set_ylim(ymin - margin, ymax + margin)
     ax.set_aspect("equal")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
-    ax.set_xticks([])
-    ax.set_yticks([])
-    GRAMMAR_LEVELS = f"{MAX_LEVEL} Level" if MAX_LEVEL == 1 else f"{MAX_LEVEL} Levels"
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    GRAMMAR_LEVELS = f"{level_max} Level" if level_max == 1 else f"{level_max} Levels"
     ax.set_title(f"Quadtree with {GRAMMAR_LEVELS} of Refinement")
     plt.grid()
     plt.show()
@@ -159,7 +164,7 @@ def main():
 
     if SAVE:
         parent = Path(__file__).parent
-        stem = Path(__file__).stem + "_level_" + str(MAX_LEVEL)
+        stem = Path(__file__).stem + "_level_" + str(level_max)
         fn = parent.joinpath(stem + EXT)
         # plt.savefig(fn, dpi=DPI, bbox_inches='tight')
         fig.savefig(fn, dpi=DPI)
