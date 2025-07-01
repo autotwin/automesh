@@ -1,14 +1,39 @@
-"""This module, quadtree.py, creates a simple quadtree and plots it."""
+"""This module creates a quadtree and plots it."""
 
 from pathlib import Path
-from typing import Final
-# from typing import NamedTuple
+from typing import Final, NamedTuple
 
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
-from colorschemes import QuadColors
+# from book.dualization.code.color_schemes import QuadColors
+from color_complement import ColorComplement
+from color_schemes import QuadColors
+
+
+class Point(NamedTuple):
+    """A point in 2D space."""
+
+    x: float  # x-coordinate
+    y: float  # y-coordinate
+
+
+class Seeds(NamedTuple):
+    """A collection of points (seeds) in 2D space."""
+
+    points: list[Point]  # List of Point objects
+
+
+class Boundary(NamedTuple):
+    """A boundary defined by its minimum and maximum
+    x and y coordinates."""
+
+    xmin: float  # Minimum x-coordinate
+    xmax: float  # Maximum x-coordinate
+
+    ymin: float  # Minimum y-coordinate
+    ymax: float  # Maximum y-coordinate
 
 
 class QuadTree:
@@ -16,9 +41,20 @@ class QuadTree:
     children quads.
     """
 
-    def __init__(self, *, x, y, width, height, level=0, max_level=2, verbose=False):
+    def __init__(
+        self,
+        *,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        level: int,
+        max_level: int,
+        seeds: list[Point],
+        verbose: bool,
+    ):
         # (x, y, width, height)
-        self.boundary = (x, y, width, height)
+        self.boundary = Boundary(xmin=x, xmax=x + width, ymin=y, ymax=y + height)
         self.level = level
         self.max_level = max_level
         self.has_children = False
@@ -27,21 +63,28 @@ class QuadTree:
             f"QuadTree level {level} exceeds max_level {max_level}."
         )
         self.verbose = verbose
-        self.subdivide()
 
-    def subdivide(self):
+        if self.contains_any_point(seeds):
+            # If the quad contains any of the seed points, subdivide it
+            self.subdivide(seeds=seeds)
+
+    def subdivide(self, seeds: list[Point]):
         """Divides the parent quad into four quad children."""
         if self.level < self.max_level:
             if self.verbose:
                 print(
                     f"Subdividing quad at level {self.level} with boundary {self.boundary}"
                 )
-            x, y, width, height = self.boundary
+            x = self.boundary.xmin
+            y = self.boundary.ymin
+            width = self.boundary.xmax - self.boundary.xmin
+            height = self.boundary.ymax - self.boundary.ymin
             half_width = width / 2.0
             half_height = height / 2.0
 
-            # Create four children
             self.has_children = True  # overwrite
+
+            # Create four children
             self.children.append(
                 QuadTree(
                     x=x,
@@ -50,6 +93,8 @@ class QuadTree:
                     height=half_height,
                     level=self.level + 1,
                     max_level=self.max_level,
+                    seeds=seeds,
+                    verbose=self.verbose,
                 )
             )  # Top-left
             self.children.append(
@@ -60,6 +105,8 @@ class QuadTree:
                     height=half_height,
                     level=self.level + 1,
                     max_level=self.max_level,
+                    seeds=seeds,
+                    verbose=self.verbose,
                 )
             )  # Top-right
             self.children.append(
@@ -70,6 +117,8 @@ class QuadTree:
                     height=half_height,
                     level=self.level + 1,
                     max_level=self.max_level,
+                    seeds=seeds,
+                    verbose=self.verbose,
                 )
             )  # Bottom-left
             self.children.append(
@@ -80,12 +129,38 @@ class QuadTree:
                     height=half_height,
                     level=self.level + 1,
                     max_level=self.max_level,
+                    seeds=seeds,
+                    verbose=self.verbose,
                 )
             )  # Bottom-right
 
-    def draw(self, ax, quadcolors: QuadColors):
+    def contains(self, point: Point) -> bool:
+        """Check if the quadtree contains a point."""
+        # TODO: determine if we want this to be consistent with
+        # winding number conventions
+        return (
+            point.x >= self.boundary.xmin
+            and point.x <= self.boundary.xmax
+            and point.y >= self.boundary.ymin
+            and point.y <= self.boundary.ymax
+        )
+
+    def contains_any_point(self, points: list[Point]) -> bool:
+        """Check if the quadtree contains any of the given points.
+        Python's built-in any() short-circuits: it returns True as
+        soon as it finds the first truthy value and stops evaluating the rest.
+
+        """
+        # result = any(self.contains(point) for point in points)
+        # return result
+        return any(self.contains(point) for point in points)
+
+    def draw(self, ax, quadcolors: QuadColors, seeds: list[Point] | None):
         """Draw the quadtree."""
-        x, y, width, height = self.boundary
+        x = self.boundary.xmin
+        y = self.boundary.ymin
+        width = self.boundary.xmax - self.boundary.xmin
+        height = self.boundary.ymax - self.boundary.ymin
         # Draw the boundary rectangle
         if self.verbose:
             print(
@@ -98,7 +173,9 @@ class QuadTree:
             # linewidth=1,
             linestyle="solid",
             edgecolor=quadcolors.edgecolor,
-            facecolor=quadcolors.facecolors[self.level],
+            facecolor=ColorComplement.hex_complement(
+                quadcolors.facecolors[self.level], "hsv"
+            ),
             alpha=quadcolors.alpha,
             zorder=2,
         )
@@ -109,25 +186,46 @@ class QuadTree:
             if self.verbose:
                 print(f"Quad at level {self.level} has children, drawing them.")
             for child in self.children:
-                child.draw(ax, quadcolors)
+                child.draw(ax, quadcolors, seeds)
+
+        # Draw the seed points, only draw them after we have reached
+        # the top level of the quadtree to avoid cluttering the plot
+        # with too many points at lower levels.
+        if seeds is not None and self.level == self.max_level:
+            xs = [seed.x for seed in seeds]
+            ys = [seed.y for seed in seeds]
+            ax.scatter(
+                xs,
+                ys,
+                marker="o",
+                edgecolor=quadcolors.edgecolor,
+                color=quadcolors.facecolors[self.level],
+                alpha=quadcolors.alpha,
+                s=2,  # Adjust size as needed
+                zorder=3,
+            )
 
 
 def main():
     # User input begin
     level_min: Final[int] = 0
-    level_max: Final[int] = 1
-    SAVE: Final[bool] = True
+    level_max: Final[int] = 6
+    SAVE: Final[bool] = False
     SHOW: Final[bool] = True
     EXT: Final[str] = ".png"  # ".pdf" | ".png" | ".svg"
     DPI: Final[int] = 300
 
-    xmin = -2  # 1
-    xmax = 2  # 3
-    ymin = -2  # -1
-    ymax = 2  # 1
+    xmin = 1
+    xmax = 3
+    ymin = -1
+    ymax = 1
     width = xmax - xmin
     height = ymax - ymin
-    verbose = True  # Set to True to see debug output
+    verbose = False  # Set to True to see debug output
+    seeds = [
+        Point(x=2.6, y=0.6),
+        Point(x=2.9, y=0.2),
+    ]
     # User input end
 
     # Create a figure and axis
@@ -143,6 +241,7 @@ def main():
         level=level_min,
         max_level=level_max,
         verbose=verbose,
+        seeds=seeds,
     )
 
     # The number of colors will be the number of levels + 1 because
@@ -158,7 +257,7 @@ def main():
     if verbose:
         print(f"quadcolors.facecolors: {qc.facecolors}")
     # Draw the quadtree
-    qt.draw(ax, qc)
+    qt.draw(ax=ax, quadcolors=qc, seeds=seeds)
 
     # Set limits and aspect
     margin = 0.1 * (xmax - xmin)
