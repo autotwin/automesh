@@ -10,34 +10,6 @@ from matplotlib import patches
 
 from colorschemes import QuadColors
 
-# from colorschemes import Color, level_to_color
-
-# class Seed(NamedTuple):
-#     """The (x, y) point used to trigger refinement."""
-#     x: float
-#     y: float
-
-
-# class ColorScheme(NamedTuple):
-#     """A color scheme for the quadtree.
-#     The plasma colorscheme goes from dark purple to bright yellow.  The plasma_r
-#     reverses the plasma colorscheme, thus it goes from bright yellow to dark purple.
-#     """
-#
-#     edgecolor: str
-#     facecolor: str
-#     zorder: int
-#     alpha: float = 0.3
-#
-#
-# def level_to_colorscheme(level: int) -> ColorScheme:
-#     """Returns a color scheme based on the level of the quadtree."""
-#     colors = ["dimgray", "lightgray", "silver", "gainsboro", "whitesmoke", "white"]
-#     edgecolor = "black"
-#     facecolor = colors[level % len(colors)]
-#     zorder = 2 + level
-#     return ColorScheme(edgecolor, facecolor, zorder)
-
 
 class QuadTree:
     """Defines a quadtree composed of a single parent quad and recursive
