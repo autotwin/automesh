@@ -6,7 +6,7 @@ from matplotlib import patches
 from quadtree_colors import QuadColors
 
 
-def plot_color_schemes(n_colors: int):
+def plot_color_schemes(n_colors: int, alpha: float):
     """Shows the different color schemes."""
 
     fig, axes = plt.subplots(1, 4, figsize=(15, 5))
@@ -19,7 +19,7 @@ def plot_color_schemes(n_colors: int):
     grayscale = QuadColors(
         n_levels=n_colors,
         edgecolor="black",
-        alpha=0.9,
+        alpha=alpha,
         plasma=False,
         reversed=False,
     )
@@ -133,8 +133,9 @@ def plot_color_schemes(n_colors: int):
 
 # Demonstrate the color schemes
 if __name__ == "__main__":
-    n_colors = 10  # Number of discrete colors to extract
-    plot_color_schemes(n_colors=n_colors)
+    n_colors = 5  # Number of discrete colors to extract
+    alpha = 0.8  # Opacity for the rectangles
+    plot_color_schemes(n_colors=n_colors, alpha=alpha)
 
     # Show the extracted colors
     # print("Plasma colors:", PLASMA_COLORS)
