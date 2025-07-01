@@ -14,11 +14,13 @@ from matplotlib import patches
 #     x: float
 #     y: float
 
+
 class ColorScheme(NamedTuple):
     """A color scheme for the quadtree.
     The plasma colorscheme goes from dark purple to bright yellow.  The plasma_r
     reverses the plasma colorscheme, thus it goes from bright yellow to dark purple.
     """
+
     edgecolor: str
     facecolor: str
     zorder: int
@@ -27,9 +29,7 @@ class ColorScheme(NamedTuple):
 
 def level_to_colorscheme(level: int) -> ColorScheme:
     """Returns a color scheme based on the level of the quadtree."""
-    colors = [
-        "dimgray", "lightgray", "silver", "gainsboro", "whitesmoke", "white"
-    ]
+    colors = ["dimgray", "lightgray", "silver", "gainsboro", "whitesmoke", "white"]
     edgecolor = "black"
     facecolor = colors[level % len(colors)]
     zorder = 2 + level
@@ -110,7 +110,7 @@ class QuadTree:
             linestyle="solid",
             edgecolor="black",
             # facecolor="dimgray",
-            facecolor=color
+            facecolor=color,
             alpha=0.3,
             zorder=2,
         )
