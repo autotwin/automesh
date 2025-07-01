@@ -4,7 +4,33 @@ import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
 from matplotlib import patches
 
-N_COLORS = 8  # Number of discrete colors to extract
+
+class QuadColors:
+    """A collection of color schemes for quadtree levels."""
+
+    def __init__(
+        self,
+        n_levels: int,
+        edgecolor: str,
+        alpha: float,
+        plasma: bool = True,
+        reversed: bool = False,
+    ):
+        self.n_levels = n_levels
+        self.edgecolor = edgecolor
+        self.alpha = alpha
+        self.plasma = plasma
+        self.reversed = reversed
+
+        match (plasma, reversed):
+            case (True, True):
+                self.facecolors = plasma_color_palette(n_levels, reversed=True)
+            case (True, False):
+                self.facecolors = plasma_color_palette(n_levels, reversed=False)
+            case (False, True):
+                self.facecolors = grayscale_color_palette(n_levels, reversed=True)
+            case (False, False):
+                self.facecolors = grayscale_color_palette(n_levels, reversed=False)
 
 
 # Pre-compute the colors for better performance
@@ -15,6 +41,7 @@ def plasma_color_palette(n_colors: int, reversed: bool):
     return [mcolors.to_hex(colormap(idx)) for idx in color_indices]
 
 
+# Pre-compute the grays for better performance
 def grayscale_color_palette(n_colors: int, reversed: bool):
     """Create a palette of discrete grayscale colors between 0.05 and 0.95."""
     # Define the range for the grayscale values
@@ -34,140 +61,124 @@ def grayscale_color_palette(n_colors: int, reversed: bool):
     return [mcolors.to_hex(colormap(idx)) for idx in color_indices]
 
 
-# Pre-computed color palettes (more efficient if called many times)
-# The plasma colorscheme goes from dark purple to bright yellow.
-# The plasma_r (reversed) goes from bright yellow to dark purple.
-PLASMA_COLORS = plasma_color_palette(N_COLORS, reversed=False)
-PLASMA_R_COLORS = plasma_color_palette(N_COLORS, reversed=True)
-GRAYSCALE_COLORS = grayscale_color_palette(N_COLORS, reversed=False)
-GRAYSCALE_R_COLORS = grayscale_color_palette(N_COLORS, reversed=True)
-
-
-class Color(NamedTuple):
-    """A color for a particular level of a quadtree."""
-
-    edgecolor: str
-    facecolor: str
-    zorder: int
-    alpha: float = 0.8
-
-
-def level_to_colorscheme(
-    level: int, n_levels: int, plasma: bool, reversed: bool
-) -> Color:
-    """Returns a color based on the level of the quadtree.
-
-    Args:
-        level: The level of the quadtree node
-        n_levels: Total number of levels in the quadtree
-        plasma: If True, use plasma colors; if False, use original grayscale
-        reversed: If True, use reversed plasma or reversed grayscale
-    """
-    match (plasma, reversed):
-        case (True, True):
-            facecolor = PLASMA_R_COLORS[level]
-        case (True, False):
-            facecolor = PLASMA_COLORS[level]
-        case (False, True):
-            facecolor = GRAYSCALE_R_COLORS[level]
-        case (False, False):
-            facecolor = GRAYSCALE_COLORS[level]
-
-    edgecolor = "black"
-    zorder = 2 + level
-    return Color(edgecolor, facecolor, zorder)
-
-
-def show_color_schemes():
+def show_color_schemes(n_colors: int):
     """Shows the different color schemes."""
 
     fig, axes = plt.subplots(1, 4, figsize=(15, 5))
 
     # Create sample rectangles to show the colors
-    levels = range(N_COLORS)
-    n_levels = N_COLORS
+    levels = range(n_colors)
+    n_levels = n_colors
 
     # Grayscale
+    grayscale = QuadColors(
+        n_levels=n_levels,
+        edgecolor="black",
+        alpha=0.8,
+        plasma=False,
+        reversed=False,
+    )
+    print("Grayscale colors:", grayscale.facecolors)
     ax1 = axes[0]
     for i, level in enumerate(levels):
-        scheme = level_to_colorscheme(level, n_levels, plasma=False, reversed=False)
         rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
-            facecolor=scheme.facecolor,
-            edgecolor=scheme.edgecolor,
-            alpha=scheme.alpha,
+            facecolor=grayscale.facecolors[level],
+            edgecolor=grayscale.edgecolor,
+            alpha=grayscale.alpha,
         )
         ax1.add_patch(rect)
         ax1.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
 
     ax1.set_xlim(-0.1, 1.1)
-    ax1.set_ylim(-0.1, len(levels))
+    ax1.set_ylim(-0.1, n_levels)
     ax1.set_title("Grayscale")
     ax1.set_xticks([])
     ax1.set_yticks([])
 
     # Grayscale reversed
+    grayscale_reversed = QuadColors(
+        n_levels=n_levels,
+        edgecolor="black",
+        alpha=0.8,
+        plasma=False,
+        reversed=True,
+    )
+    print("Grayscale colors reversed:", grayscale_reversed.facecolors)
     ax2 = axes[1]
     for i, level in enumerate(levels):
-        scheme = level_to_colorscheme(level, n_levels, plasma=False, reversed=True)
         rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
-            facecolor=scheme.facecolor,
-            edgecolor=scheme.edgecolor,
-            alpha=scheme.alpha,
+            facecolor=grayscale_reversed.facecolors[level],
+            edgecolor=grayscale_reversed.edgecolor,
+            alpha=grayscale_reversed.alpha,
         )
         ax2.add_patch(rect)
         ax2.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
 
     ax2.set_xlim(-0.1, 1.1)
-    ax2.set_ylim(-0.1, N_COLORS)
-    ax2.set_title("Inverted Grayscale")
+    ax2.set_ylim(-0.1, n_levels)
+    ax2.set_title("Grayscale Reversed")
     ax2.set_xticks([])
     ax2.set_yticks([])
 
     # Plasma colors
+    plasma = QuadColors(
+        n_levels=n_levels,
+        edgecolor="black",
+        alpha=0.8,
+        plasma=True,
+        reversed=False,
+    )
+    print("Plasma colors:", plasma.facecolors)
     ax3 = axes[2]
     for i, level in enumerate(levels):
-        scheme = level_to_colorscheme(level, n_levels, plasma=True, reversed=False)
         rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
-            facecolor=scheme.facecolor,
-            edgecolor=scheme.edgecolor,
-            alpha=scheme.alpha,
+            facecolor=plasma.facecolors[level],
+            edgecolor=plasma.edgecolor,
+            alpha=plasma.alpha,
         )
         ax3.add_patch(rect)
         ax3.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
 
     ax3.set_xlim(-0.1, 1.1)
-    ax3.set_ylim(-0.1, N_COLORS)
+    ax3.set_ylim(-0.1, n_levels)
     ax3.set_title("Plasma Colors")
     ax3.set_xticks([])
     ax3.set_yticks([])
 
     # Plasma_r colors (reversed)
+    plasma_reversed = QuadColors(
+        n_levels=n_levels,
+        edgecolor="black",
+        alpha=0.8,
+        plasma=True,
+        reversed=True,
+    )
+    print("Plasma colors reversed:", plasma_reversed.facecolors)
     ax4 = axes[3]
     for i, level in enumerate(levels):
-        scheme = level_to_colorscheme(level, n_levels, plasma=True, reversed=True)
         rect = patches.Rectangle(
             (0, i),
             1,
             0.8,
-            facecolor=scheme.facecolor,
-            edgecolor=scheme.edgecolor,
-            alpha=scheme.alpha,
+            facecolor=plasma_reversed.facecolors[level],
+            edgecolor=plasma_reversed.edgecolor,
+            alpha=plasma_reversed.alpha,
         )
         ax4.add_patch(rect)
         ax4.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
 
     ax4.set_xlim(-0.1, 1.1)
-    ax4.set_ylim(-0.1, len(levels))
-    ax4.set_title("Plasma_r Colors (Reversed)")
+    ax4.set_ylim(-0.1, n_levels)
+    ax4.set_title("Plasma Colors Reversed")
     ax4.set_xticks([])
     ax4.set_yticks([])
 
@@ -175,32 +186,11 @@ def show_color_schemes():
     plt.show()
 
 
-def level_to_colorscheme_optimized(level: int, color_scheme: str = "plasma") -> Color:
-    """Optimized version using pre-computed colors.
-
-    Args:
-        level: The level of the quadtree node
-        color_scheme: "grayscale", "plasma", or "plasma_r"
-    """
-    if color_scheme == "grayscale":
-        colors = ["dimgray", "lightgray", "silver", "gainsboro", "whitesmoke", "white"]
-    elif color_scheme == "plasma":
-        colors = PLASMA_COLORS
-    elif color_scheme == "plasma_r":
-        colors = PLASMA_R_COLORS
-    else:
-        raise ValueError(f"Unknown color scheme: {color_scheme}")
-
-    edgecolor = "black"
-    facecolor = colors[level % len(colors)]
-    zorder = 2 + level
-    return Color(edgecolor, facecolor, zorder)
-
-
 # Demonstrate the color schemes
 if __name__ == "__main__":
-    show_color_schemes()
+    n_colors = 8  # Number of discrete colors to extract
+    show_color_schemes(n_colors=n_colors)
 
     # Show the extracted colors
-    print("Plasma colors:", PLASMA_COLORS)
-    print("Plasma_r colors:", PLASMA_R_COLORS)
+    # print("Plasma colors:", PLASMA_COLORS)
+    # print("Plasma_r colors:", PLASMA_R_COLORS)
