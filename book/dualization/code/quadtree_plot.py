@@ -6,10 +6,11 @@ from typing import Final, NamedTuple
 
 import matplotlib.pyplot as plt
 from matplotlib import patches
+import numpy as np
 
 # from book.dualization.code.color_schemes import QuadColors
 from color_complement import ColorComplement
-from color_schemes import QuadColors
+from color_schemes import ColorSchemes, DiscreteColors
 
 
 class Point(NamedTuple):
@@ -155,7 +156,7 @@ class QuadTree:
         # return result
         return any(self.contains(point) for point in points)
 
-    def draw(self, ax, quadcolors: QuadColors, seeds: list[Point] | None):
+    def draw(self, ax, quadcolors: DiscreteColors, seeds: list[Point] | None):
         """Draw the quadtree."""
         x = self.boundary.xmin
         y = self.boundary.ymin
@@ -173,9 +174,10 @@ class QuadTree:
             # linewidth=1,
             linestyle="solid",
             edgecolor=quadcolors.edgecolor,
-            facecolor=ColorComplement.hex_complement(
-                quadcolors.facecolors[self.level], "hsv"
-            ),
+            # facecolor=ColorComplement.hex_complement(
+            #     quadcolors.facecolors[self.level], "hsv"
+            # ),
+            facecolor=quadcolors.facecolors[self.level],
             alpha=quadcolors.alpha,
             zorder=2,
         )
@@ -199,9 +201,11 @@ class QuadTree:
                 ys,
                 marker="o",
                 edgecolor=quadcolors.edgecolor,
-                color=quadcolors.facecolors[self.level],
+                color=ColorComplement.hex_complement(
+                    quadcolors.facecolors[self.level], "hsv"
+                ),
                 alpha=quadcolors.alpha,
-                s=2,  # Adjust size as needed
+                s=20,  # Adjust size as needed
                 zorder=3,
             )
 
@@ -209,27 +213,41 @@ class QuadTree:
 def main():
     # User input begin
     level_min: Final[int] = 0
-    level_max: Final[int] = 6
-    SAVE: Final[bool] = False
+    level_max: Final[int] = 5
+    alpha = 1.0
+    SAVE: Final[bool] = True
     SHOW: Final[bool] = True
-    EXT: Final[str] = ".png"  # ".pdf" | ".png" | ".svg"
+    EXT: Final[str] = ".svg"  # ".pdf" | ".png" | ".svg"
     DPI: Final[int] = 300
+    fig_width, fig_height = 6, 6  # inches, inches
 
-    xmin = 1
-    xmax = 3
-    ymin = -1
-    ymax = 1
+    xmin = 0
+    xmax = 4
+    ymin = 0
+    ymax = 4
     width = xmax - xmin
     height = ymax - ymin
     verbose = False  # Set to True to see debug output
+    # Similar to the round in the Hughes quarter plate problem
+    # https://github.com/sandialabs/sibl/blob/master/geo/doc/dual/lesson_11.md
+    # see also Cottrell 2009 IGA book, page 117.
+    radius = 1.0
+    theta_start = np.pi / 2.0
+    theta_stop = np.pi
+    n_points = 9
+    theta_values = np.linspace(theta_start, theta_stop, n_points)
+    offset_x, offset_y = 4.0, 0.0
     seeds = [
-        Point(x=2.6, y=0.6),
-        Point(x=2.9, y=0.2),
+        Point(x=radius * np.cos(theta) + offset_x, y=radius * np.sin(theta) + offset_y)
+        for theta in theta_values
     ]
+    # seeds = [
+    #     Point(x=2.6, y=0.6),
+    #     Point(x=2.9, y=0.2),
+    # ]
     # User input end
 
     # Create a figure and axis
-    fig_width, fig_height = 6, 6  # inches, inches
     fig, ax = plt.subplots(figsize=(fig_width, fig_height))
 
     # Create the quadtree with a boundary of (-12, -12, 24, 24)
@@ -246,12 +264,13 @@ def main():
 
     # The number of colors will be the number of levels + 1 because
     # the root level is 0 and we want to include it in the color palette
-    n_colors = level_max - level_min + 2
-    qc = QuadColors(
+    # n_colors = level_max - level_min + 2
+    n_colors = 10  # Number of discrete colors to extract
+    qc = DiscreteColors(
         n_levels=n_colors,
         edgecolor="black",
-        alpha=0.8,
-        plasma=True,
+        alpha=alpha,
+        color_scheme=ColorSchemes.TAB10,
         reversed=False,
     )
     if verbose:
@@ -266,11 +285,12 @@ def main():
     ax.set_aspect("equal")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
+    # Turn grid to off
+    ax.grid(False)
     # ax.set_xticks([])
     # ax.set_yticks([])
     GRAMMAR_LEVELS = f"{level_max} Level" if level_max == 1 else f"{level_max} Levels"
     ax.set_title(f"Quadtree with {GRAMMAR_LEVELS} of Refinement")
-    plt.grid()
     plt.show()
 
     if SHOW:

@@ -1,249 +1,139 @@
-"""This module plots discrete grayscale, plasma and viridis color schemes."""
+"""This module provides color schemes for visualizing quadtree levels."""
 
+from typing import NamedTuple
+
+import matplotlib.colors as mcolors
 import matplotlib.pyplot as plt
-from matplotlib import patches
-
-from quadtree_colors import QuadColors, ColorScheme
 
 
-def plot_color_schemes(n_colors: int, alpha: float):
-    """Shows the different color schemes."""
+class ColorSchemes(NamedTuple):
+    """Named tuple for color scheme options."""
 
-    fig, axes = plt.subplots(2, 4, figsize=(10, 5))
-
-    # Create sample rectangles to show the colors
-    levels = range(n_colors)
-    # n_levels = n_colors
-
-    # Row 1: Original color schemes
-    # Grayscale
-    grayscale = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.GRAYSCALE,
-        reversed=False,
-    )
-    print("Grayscale colors:", grayscale.facecolors)
-    ax0 = axes[0, 0]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=grayscale.facecolors[level],
-            edgecolor=grayscale.edgecolor,
-            alpha=grayscale.alpha,
-        )
-        ax0.add_patch(rect)
-        ax0.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-
-    ax0.set_xlim(-0.1, 1.1)
-    ax0.set_ylim(-0.1, n_colors)
-    ax0.set_title("Grayscale")
-    ax0.set_xticks([])
-    ax0.set_yticks([])
-
-    # Plasma
-    plasma = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.PLASMA,
-        reversed=False,
-    )
-    print("Plasma colors:", plasma.facecolors)
-    ax1 = axes[0, 1]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=plasma.facecolors[level],
-            edgecolor=plasma.edgecolor,
-            alpha=plasma.alpha,
-        )
-        ax1.add_patch(rect)
-        ax1.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-    ax1.set_xlim(-0.1, 1.1)
-    ax1.set_ylim(-0.1, n_colors)
-    ax1.set_title("Plasma")
-    ax1.set_xticks([])
-    ax1.set_yticks([])
-
-    # Tab10 (default matplotlib color scheme)
-    tab10 = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.TAB10,
-        reversed=False,
-    )
-    print("Tab10 colors:", tab10.facecolors)
-    ax2 = axes[0, 2]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=tab10.facecolors[level],
-            edgecolor=tab10.edgecolor,
-            alpha=tab10.alpha,
-        )
-        ax2.add_patch(rect)
-        ax2.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-    ax2.set_xlim(-0.1, 1.1)
-    ax2.set_ylim(-0.1, n_colors)
-    ax2.set_title("Tab10")
-    ax2.set_xticks([])
-    ax2.set_yticks([])
-
-    # Viridis
-    viridis = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.VIRIDIS,
-        reversed=False,
-    )
-    print("Viridis colors:", viridis.facecolors)
-    ax3 = axes[0, 3]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=viridis.facecolors[level],
-            edgecolor=viridis.edgecolor,
-            alpha=viridis.alpha,
-        )
-        ax3.add_patch(rect)
-        ax3.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-    ax3.set_xlim(-0.1, 1.1)
-    ax3.set_ylim(-0.1, n_colors)
-    ax3.set_title("Viridis")
-    ax3.set_xticks([])
-    ax3.set_yticks([])
-
-    # Row 2: Reversed color schemes
-    # Grayscale reversed
-    grayscale_reversed = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.GRAYSCALE,
-        reversed=True,
-    )
-    print("Grayscale colors reversed:", grayscale_reversed.facecolors)
-    ax4 = axes[1, 0]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=grayscale_reversed.facecolors[level],
-            edgecolor=grayscale_reversed.edgecolor,
-            alpha=grayscale_reversed.alpha,
-        )
-        ax4.add_patch(rect)
-        ax4.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-    ax4.set_xlim(-0.1, 1.1)
-    ax4.set_ylim(-0.1, n_colors)
-    ax4.set_title("Grayscale Reversed")
-    ax4.set_xticks([])
-    ax4.set_yticks([])
-
-    # Plasma reversed
-    plasma_reversed = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.PLASMA,
-        reversed=True,
-    )
-    print("Plasma colors reversed:", plasma_reversed.facecolors)
-    ax5 = axes[1, 1]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=plasma_reversed.facecolors[level],
-            edgecolor=plasma_reversed.edgecolor,
-            alpha=plasma_reversed.alpha,
-        )
-        ax5.add_patch(rect)
-        ax5.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-    ax5.set_xlim(-0.1, 1.1)
-    ax5.set_ylim(-0.1, n_colors)
-    ax5.set_title("Plasma Reversed")
-    ax5.set_xticks([])
-    ax5.set_yticks([])
-
-    # Tab10 reversed
-    tab10_reversed = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.TAB10,
-        reversed=True,
-    )
-    print("Tab10 colors reversed:", tab10_reversed.facecolors)
-    ax6 = axes[1, 2]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=tab10_reversed.facecolors[level],
-            edgecolor=tab10_reversed.edgecolor,
-            alpha=tab10_reversed.alpha,
-        )
-        ax6.add_patch(rect)
-        ax6.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-    ax6.set_xlim(-0.1, 1.1)
-    ax6.set_ylim(-0.1, n_colors)
-    ax6.set_title("Tab10 Reversed")
-    ax6.set_xticks([])
-    ax6.set_yticks([])
-
-    # Viridis reversed
-    viridis_reversed = QuadColors(
-        n_levels=n_colors,
-        edgecolor="black",
-        alpha=alpha,
-        color_scheme=ColorScheme.VIRIDIS,
-        reversed=True,
-    )
-    print("Viridis colors reversed:", viridis_reversed.facecolors)
-    ax7 = axes[1, 3]
-    for i, level in enumerate(levels):
-        rect = patches.Rectangle(
-            (0, i),
-            1,
-            0.8,
-            facecolor=viridis_reversed.facecolors[level],
-            edgecolor=viridis_reversed.edgecolor,
-            alpha=viridis_reversed.alpha,
-        )
-        ax7.add_patch(rect)
-        ax7.text(0.5, i + 0.4, f"Level {level}", ha="center", va="center")
-    ax7.set_xlim(-0.1, 1.1)
-    ax7.set_ylim(-0.1, n_colors)
-    ax7.set_title("Viridis Reversed")
-    ax7.set_xticks([])
-    ax7.set_yticks([])
-
-    plt.tight_layout()
-    plt.show()
+    GRAYSCALE: str = "grayscale"
+    PLASMA: str = "plasma"
+    TAB10: str = "tab10"
+    VIRIDIS: str = "viridis"
 
 
-# Demonstrate the color schemes
-if __name__ == "__main__":
-    n_colors = 5  # Number of discrete colors to extract
-    alpha = 0.5  # Opacity for the rectangles
-    plot_color_schemes(n_colors=n_colors, alpha=alpha)
+class DiscreteColors:
+    """A collection of color schemes for quadtree levels."""
 
-    # Show the extracted colors
-    # print("Plasma colors:", PLASMA_COLORS)
-    # print("Plasma_r colors:", PLASMA_R_COLORS)
+    def __init__(
+        self,
+        n_levels: int,
+        edgecolor: str,
+        alpha: float,
+        color_scheme: str,
+        reversed: bool = False,
+    ):
+        self.n_levels = n_levels
+        self.edgecolor = edgecolor
+        self.alpha = alpha
+        self.color_scheme = color_scheme
+        self.reversed = reversed
+
+        # Validate color scheme
+        valid_schemes = [
+            ColorSchemes.GRAYSCALE,
+            ColorSchemes.PLASMA,
+            ColorSchemes.TAB10,
+            ColorSchemes.VIRIDIS,
+        ]
+        if color_scheme not in valid_schemes:
+            raise ValueError(
+                f"color_scheme must be one of {valid_schemes}, got '{color_scheme}'"
+            )
+
+        # Generate colors based on scheme
+        match color_scheme:
+            case ColorSchemes.GRAYSCALE:
+                self.facecolors = grayscale_color_palette(n_levels, reversed=reversed)
+            case ColorSchemes.PLASMA:
+                self.facecolors = plasma_color_palette(n_levels, reversed=reversed)
+            case ColorSchemes.TAB10:
+                self.facecolors = tab10_color_palette(n_levels, reversed=reversed)
+            case ColorSchemes.VIRIDIS:
+                self.facecolors = viridis_color_palette(n_levels, reversed=reversed)
+            case _:
+                # Catch-all fallback, shouldn't happen with validation above
+                self.facecolors = ["#FF00FF"] * n_levels  # magenta for debugging
+
+
+def n_colors_valid(n_colors: int) -> bool:
+    """Check if the number of colors is valid.  Ensure n_colors is
+    at least 2 for a valid palette.
+    """
+    if n_colors < 2:
+        raise ValueError(f"n_colors {n_colors} must be at least 2 for a color palette.")
+    return True
+
+
+def plasma_color_palette(n_colors: int, reversed: bool) -> list[str]:
+    """Create a palette of discrete plasma colors."""
+    assert n_colors_valid(n_colors)
+    colormap = plt.cm.plasma_r if reversed else plt.cm.plasma
+    color_indices = [i / (n_colors - 1) for i in range(n_colors)]
+    return [mcolors.to_hex(colormap(idx)) for idx in color_indices]
+
+
+def grayscale_color_palette(n_colors: int, reversed: bool) -> list[str]:
+    """Create a palette of discrete grayscale colors between 0.05 and 0.95."""
+    # Define the range for the grayscale values
+    assert n_colors_valid(n_colors)
+
+    min_gray = 0.05
+    max_gray = 0.95
+
+    # Calculate the step size based on the number of colors
+    step = (max_gray - min_gray) / (n_colors - 1)
+
+    # Generate color indices within the specified range
+    color_indices = [min_gray + i * step for i in range(n_colors)]
+
+    # Select the colormap and reverse if needed
+    colormap = plt.cm.gray_r if reversed else plt.cm.gray
+
+    # Convert the grayscale values to hex colors
+    return [mcolors.to_hex(colormap(idx)) for idx in color_indices]
+
+
+def tab10_color_palette(n_colors: int, reversed: bool) -> list[str]:
+    """Create a palette using matplotlib's tab10 (Tableau 10) colors."""
+    assert n_colors_valid(n_colors)
+
+    # Define the tab10 colors in order
+    tab10_colors = [
+        "tab:gray",
+        "tab:blue",
+        "tab:orange",
+        "tab:green",
+        "tab:red",
+        "tab:purple",
+        "tab:brown",
+        "tab:pink",
+        # "tab:gray",
+        "tab:olive",
+        "tab:cyan",
+    ]
+
+    # Convert to hex colors
+    hex_colors = [mcolors.to_hex(color) for color in tab10_colors]
+
+    # Cycle through colors if we need more than 10
+    selected_colors = []
+    for i in range(n_colors):
+        selected_colors.append(hex_colors[i % len(hex_colors)])
+
+    # Reverse if requested
+    if reversed:
+        selected_colors = selected_colors[::-1]
+
+    return selected_colors
+
+
+def viridis_color_palette(n_colors: int, reversed: bool) -> list[str]:
+    """Create a palette of discrete viridis colors."""
+    assert n_colors_valid(n_colors)
+    colormap = plt.cm.viridis_r if reversed else plt.cm.viridis
+    color_indices = [i / (n_colors - 1) for i in range(n_colors)]
+    return [mcolors.to_hex(colormap(idx)) for idx in color_indices]
