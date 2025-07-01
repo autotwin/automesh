@@ -221,10 +221,10 @@ def main():
     DPI: Final[int] = 300
     fig_width, fig_height = 6, 6  # inches, inches
 
-    xmin = 0
-    xmax = 4
-    ymin = 0
-    ymax = 4
+    xmin = -2
+    xmax = 6
+    ymin = -2
+    ymax = 6
     width = xmax - xmin
     height = ymax - ymin
     verbose = False  # Set to True to see debug output
@@ -237,14 +237,20 @@ def main():
     n_points = 9
     theta_values = np.linspace(theta_start, theta_stop, n_points)
     offset_x, offset_y = 4.0, 0.0
-    seeds = [
-        Point(x=radius * np.cos(theta) + offset_x, y=radius * np.sin(theta) + offset_y)
-        for theta in theta_values
-    ]
     # seeds = [
     #     Point(x=2.6, y=0.6),
     #     Point(x=2.9, y=0.2),
     # ]
+    seeds = [
+        Point(x=radius * np.cos(theta) + offset_x, y=radius * np.sin(theta) + offset_y)
+        for theta in theta_values
+    ]
+    corner_seeds = [
+        Point(x=4, y=4),
+        Point(x=0, y=4),
+        Point(x=0, y=0),
+    ]
+    seeds += corner_seeds
     # User input end
 
     # Create a figure and axis

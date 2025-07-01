@@ -45,18 +45,30 @@ class DiscreteColors:
             )
 
         # Generate colors based on scheme
-        match color_scheme:
-            case ColorSchemes.GRAYSCALE:
-                self.facecolors = grayscale_color_palette(n_levels, reversed=reversed)
-            case ColorSchemes.PLASMA:
-                self.facecolors = plasma_color_palette(n_levels, reversed=reversed)
-            case ColorSchemes.TAB10:
-                self.facecolors = tab10_color_palette(n_levels, reversed=reversed)
-            case ColorSchemes.VIRIDIS:
-                self.facecolors = viridis_color_palette(n_levels, reversed=reversed)
-            case _:
-                # Catch-all fallback, shouldn't happen with validation above
-                self.facecolors = ["#FF00FF"] * n_levels  # magenta for debugging
+        # TODO: match was added in Python 3.10, but we continued to support
+        # Python 3.8 and newer, so we use if-elif-else instead.jJ:w
+        # match color_scheme:
+        #     case ColorSchemes.GRAYSCALE:
+        #         self.facecolors = grayscale_color_palette(n_levels, reversed=reversed)
+        #     case ColorSchemes.PLASMA:
+        #         self.facecolors = plasma_color_palette(n_levels, reversed=reversed)
+        #     case ColorSchemes.TAB10:
+        #         self.facecolors = tab10_color_palette(n_levels, reversed=reversed)
+        #     case ColorSchemes.VIRIDIS:
+        #         self.facecolors = viridis_color_palette(n_levels, reversed=reversed)
+        #     case _:
+        #         # Catch-all fallback, shouldn't happen with validation above
+        #         self.facecolors = ["#FF00FF"] * n_levels  # magenta for debugging
+        if color_scheme == ColorSchemes.GRAYSCALE:
+            self.facecolors = grayscale_color_palette(n_levels, reversed=reversed)
+        elif color_scheme == ColorSchemes.PLASMA:
+            self.facecolors = plasma_color_palette(n_levels, reversed=reversed)
+        elif color_scheme == ColorSchemes.TAB10:
+            self.facecolors = tab10_color_palette(n_levels, reversed=reversed)
+        elif color_scheme == ColorSchemes.VIRIDIS:
+            self.facecolors = viridis_color_palette(n_levels, reversed=reversed)
+        else:
+            self.facecolors = ["#FF00FF"] * n_levels  # magenta for debugging
 
 
 def n_colors_valid(n_colors: int) -> bool:
