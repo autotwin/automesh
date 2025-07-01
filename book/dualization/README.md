@@ -62,5 +62,5 @@ tesselation.
 ### `quadtree_plot.py`
 
 ```python
-<!-- cmdrun cat quadtree_plot.py -->
+<!-- cmdrun cat code/quadtree_plot.py -->
 ```
