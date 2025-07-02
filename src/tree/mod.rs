@@ -11,7 +11,7 @@ use super::{
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
-use conspire::math::{TensorArray, TensorRank1Vec, TensorVec, tensor_rank_1};
+use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
 use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
@@ -1900,52 +1900,26 @@ impl From<Octree> for HexahedralFiniteElements {
     fn from(tree: Octree) -> Self {
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let mut nodal_coordinates = Coordinates::zero(0);
-        let mut nodes_map = HashMap::new();
         let mut cells_nodes = vec![0; tree.len()];
+        let mut nodal_coordinates = Coordinates::zero(0);
         let mut node_index = NODE_NUMBERING_OFFSET;
-        let mut tx = 0;
-        let mut ty = 0;
-        let mut tz = 0;
         tree.iter()
             .enumerate()
             .filter(|(_, cell)| cell.is_leaf())
             .for_each(|(leaf_index, leaf)| {
                 cells_nodes[leaf_index] = node_index;
-                tx = 2 * leaf.get_min_x() + leaf.get_lngth();
-                ty = 2 * leaf.get_min_y() + leaf.get_lngth();
-                tz = 2 * leaf.get_min_z() + leaf.get_lngth();
-                nodal_coordinates.append(&mut TensorRank1Vec::new(&[[
-                    0.5 * tx as f64 * tree.scale.x() + tree.translate.x(),
-                    0.5 * ty as f64 * tree.scale.y() + tree.translate.y(),
-                    0.5 * tz as f64 * tree.scale.z() + tree.translate.z(),
-                ]]));
-                assert!(
-                    nodes_map
-                        .insert((tx.into(), ty.into(), tz.into()), node_index)
-                        .is_none(),
-                    "duplicate entry"
-                );
+                nodal_coordinates.push(Coordinate::new([
+                    (leaf.get_min_x() + leaf.get_lngth()) as f64 * tree.scale.x()
+                        + tree.translate.x(),
+                    (leaf.get_min_y() + leaf.get_lngth()) as f64 * tree.scale.y()
+                        + tree.translate.y(),
+                    (leaf.get_min_z() + leaf.get_lngth()) as f64 * tree.scale.z()
+                        + tree.translate.z(),
+                ]));
                 node_index += 1;
             });
-        let mut element_node_connectivity: HexConnectivity = tree
-            // .par_iter()
-            .iter()
-            .filter_map(|cell| tree.cell_contains_leaves(cell))
-            .map(|(cell_subcells, _)| {
-                [
-                    cells_nodes[cell_subcells[0]],
-                    cells_nodes[cell_subcells[1]],
-                    cells_nodes[cell_subcells[3]],
-                    cells_nodes[cell_subcells[2]],
-                    cells_nodes[cell_subcells[4]],
-                    cells_nodes[cell_subcells[5]],
-                    cells_nodes[cell_subcells[7]],
-                    cells_nodes[cell_subcells[6]],
-                ]
-            })
-            .collect();
-        hex::face_template_0::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        let mut element_node_connectivity: HexConnectivity = vec![];
+        let mut nodes_map = HashMap::new();
         hex::edge_template_1::apply(
             &cells_nodes,
             &mut nodes_map,
@@ -1971,7 +1945,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut nodal_coordinates,
         );
         element_node_connectivity.append(
-            &mut (1..=23)
+            &mut (1..=25)
                 .into_par_iter()
                 .flat_map(|index| {
                     hex::apply_concurrently(
