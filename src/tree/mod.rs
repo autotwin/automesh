@@ -1928,24 +1928,7 @@ impl From<Octree> for HexahedralFiniteElements {
                 );
                 node_index += 1;
             });
-        let mut element_node_connectivity: HexConnectivity = tree
-            // .par_iter()
-            .iter()
-            .filter_map(|cell| tree.cell_contains_leaves(cell))
-            .map(|(cell_subcells, _)| {
-                [
-                    cells_nodes[cell_subcells[0]],
-                    cells_nodes[cell_subcells[1]],
-                    cells_nodes[cell_subcells[3]],
-                    cells_nodes[cell_subcells[2]],
-                    cells_nodes[cell_subcells[4]],
-                    cells_nodes[cell_subcells[5]],
-                    cells_nodes[cell_subcells[7]],
-                    cells_nodes[cell_subcells[6]],
-                ]
-            })
-            .collect();
-        hex::face_template_0::apply(&cells_nodes, &tree, &mut element_node_connectivity);
+        let mut element_node_connectivity: HexConnectivity = vec![];
         hex::edge_template_1::apply(
             &cells_nodes,
             &mut nodes_map,
@@ -1971,7 +1954,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut nodal_coordinates,
         );
         element_node_connectivity.append(
-            &mut (1..=23)
+            &mut (1..=25)
                 .into_par_iter()
                 .flat_map(|index| {
                     hex::apply_concurrently(

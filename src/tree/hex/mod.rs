@@ -1,10 +1,10 @@
 use super::{Coordinates, Faces, HEX, HexConnectivity, Indices, NodeMap, Octree};
 
 pub mod edge_template_1;
-pub mod edge_template_2;
+mod edge_template_2;
 pub mod edge_template_3;
-pub mod edge_template_4;
-pub mod face_template_0;
+mod edge_template_4;
+mod face_template_0;
 pub mod face_template_1;
 mod vertex_template_1; // (O, A, AB, B) => (o, a, ab, b)
 mod vertex_template_10; // (O, a, AB, b) => (O, a, ab, b)
@@ -162,8 +162,25 @@ pub fn apply_concurrently(
             vertex_template_21::DATA,
             vertex_template_21::template,
         ),
-        22 => edge_template_2::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
-        23 => edge_template_4::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
+        22 => tree
+            .iter()
+            .filter_map(|cell| tree.cell_contains_leaves(cell))
+            .map(|(cell_subcells, _)| {
+                [
+                    cells_nodes[cell_subcells[0]],
+                    cells_nodes[cell_subcells[1]],
+                    cells_nodes[cell_subcells[3]],
+                    cells_nodes[cell_subcells[2]],
+                    cells_nodes[cell_subcells[4]],
+                    cells_nodes[cell_subcells[5]],
+                    cells_nodes[cell_subcells[7]],
+                    cells_nodes[cell_subcells[6]],
+                ]
+            })
+            .collect(),
+        23 => face_template_0::apply(cells_nodes, tree),
+        24 => edge_template_2::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
+        25 => edge_template_4::apply(cells_nodes, nodes_map, tree, nodal_coordinates),
         _ => panic!(),
     }
 }

@@ -1,10 +1,7 @@
 use super::super::{HexConnectivity, NUM_FACES, NUM_OCTANTS, Octree};
 
-pub fn apply(
-    cells_nodes: &[usize],
-    tree: &Octree,
-    element_node_connectivity: &mut HexConnectivity,
-) {
+pub fn apply(cells_nodes: &[usize], tree: &Octree) -> HexConnectivity {
+    let mut element_node_connectivity = vec![];
     let mut connected_faces = [None; NUM_FACES];
     let mut d_01_subcells = None;
     let mut d_04_subcells = None;
@@ -168,4 +165,5 @@ pub fn apply(
                 }
             }
         });
+    element_node_connectivity
 }
