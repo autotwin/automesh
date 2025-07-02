@@ -1,7 +1,7 @@
 """This module creates a circular segmentation plot."""
 
-from typing import NamedTuple
 from pathlib import Path
+from typing import NamedTuple
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,12 +12,24 @@ def circle(diameter: int, dtype=np.uint8) -> np.ndarray:
     a positive, odd integer with minimum value of 3."""
     assert isinstance(diameter, int), "Diameter must be an integer."
     assert diameter >= 3, "Diameter must be a positive number, minimum of 3."
-    assert diameter % 2 != 0, "Diameter must be an odd number."
+    # assert diameter % 2 != 0, "Diameter must be an odd number."
 
     # Create a grid of coordinates
     radius = diameter // 2  # floor division
-    y, x = np.ogrid[-radius : radius + 1 : 1, -radius : radius + 1 : 1]
-    mask = x**2 + y**2 <= radius**2
+    if diameter % 2 == 0:
+        # Diameter is even
+        x = np.arange(-radius, radius + 1, 1)  # Include the center
+        y = np.arange(-radius, radius + 1, 1)  # Include the center
+        x = x[x != 0]  # Exclude the center column
+        y = y[y != 0]  # Exclude the center row
+        xx, yy = np.meshgrid(x, y, indexing="ij")
+        mask = xx**2 + yy**2 <= radius**2 + 1  # +1 to include the edge
+    else:
+        # Diameter is odd
+        x = np.arange(-radius, radius + 1, 1)  # Include the center
+        y = np.arange(-radius, radius + 1, 1)  # Include the center
+        xx, yy = np.meshgrid(x, y, indexing="ij")
+        mask = xx**2 + yy**2 <= radius**2
 
     # Convert to the specified dtype
     return mask.astype(dtype)
@@ -40,6 +52,7 @@ def plot_segmentation(segmentation: np.ndarray, cc: Configuration) -> None:
     # plt.figure(figsize=(fig_width, fig_height))
     fig, ax = plt.subplots(figsize=(fig_width, fig_height))
     # plt.imshow(segmentation, cmap="gray", extent=(-radius, radius, -radius, radius))
+    # breakpoint()
     plt.imshow(segmentation, cmap="gray")
     # plt.title(f"Circle Segmentation with Radius {radius}")
     plt.title(f"Circle Segmentation with Diameter {diameter}")
@@ -58,6 +71,8 @@ def plot_segmentation(segmentation: np.ndarray, cc: Configuration) -> None:
     # Set the ticks to be at the center of each pixel
     # ticks = np.arange(0, diameter + 1, 1)  # Create ticks from 0 to diameter
     ticks = np.arange(0, diameter, 1)  # Create ticks from 0 to diameter
+    if diameter > 20:
+        ticks = np.arange(0, diameter, 5)  # Coarsen the ticks for larger diameters
     plt.xticks(ticks - 0.5, labels=ticks, fontsize=8)  # Shift ticks to left
     plt.yticks(ticks - 0.5, labels=ticks, fontsize=8)  # Shift ticks to bottom
 
@@ -101,12 +116,13 @@ def plot_segmentation(segmentation: np.ndarray, cc: Configuration) -> None:
 if __name__ == "__main__":
     # User input begin
     cc = Configuration(
-        diameter=9,
-        save=True,
+        diameter=100,
+        save=False,
     )
     # User input end
 
     # Example usage
     mask = circle(diameter=cc.diameter)
-    print(mask)
+    if cc.diameter < 20:
+        print(mask)
     plot_segmentation(segmentation=mask, cc=cc)
