@@ -1,7 +1,7 @@
 """This module creates a quadtree and plots it."""
 
 from pathlib import Path
-from typing import Final, NamedTuple
+from typing import NamedTuple
 
 
 import matplotlib.pyplot as plt
@@ -288,7 +288,7 @@ def main():
     )
 
     # Hughes quarter plate example
-    dd = Configuration(
+    _cc = Configuration(
         xmin=-2,
         xmax=6,
         ymin=-2,
