@@ -1,5 +1,8 @@
 """This module creates a circular segmentation plot."""
 
+from typing import NamedTuple
+from pathlib import Path
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -20,13 +23,22 @@ def circle(diameter: int, dtype=np.uint8) -> np.ndarray:
     return mask.astype(dtype)
 
 
-def plot_segmentation(segmentation: np.ndarray) -> None:
+class Configuration(NamedTuple):
+    """User input configuation."""
+
+    diameter: int
+    save: bool
+    ext: str = ".svg"  # ".pdf" | ".png" | ".svg"
+
+
+def plot_segmentation(segmentation: np.ndarray, cc: Configuration) -> None:
     """Plot the circular segmentation mask."""
 
     diameter = segmentation.shape[0]
 
     fig_width, fig_height = 6, 6  # inches, inches
-    plt.figure(figsize=(fig_width, fig_height))
+    # plt.figure(figsize=(fig_width, fig_height))
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
     # plt.imshow(segmentation, cmap="gray", extent=(-radius, radius, -radius, radius))
     plt.imshow(segmentation, cmap="gray")
     # plt.title(f"Circle Segmentation with Radius {radius}")
@@ -46,8 +58,8 @@ def plot_segmentation(segmentation: np.ndarray) -> None:
     # Set the ticks to be at the center of each pixel
     # ticks = np.arange(0, diameter + 1, 1)  # Create ticks from 0 to diameter
     ticks = np.arange(0, diameter, 1)  # Create ticks from 0 to diameter
-    plt.xticks(ticks - 0.5, labels=ticks)  # Shift ticks to left
-    plt.yticks(ticks - 0.5, labels=ticks)  # Shift ticks to bottom
+    plt.xticks(ticks - 0.5, labels=ticks, fontsize=8)  # Shift ticks to left
+    plt.yticks(ticks - 0.5, labels=ticks, fontsize=8)  # Shift ticks to bottom
 
     # Calculate font size as 80% of the segmentation size
     # fontsize = 0.8 * (segmentation.shape[0] / 10)  # Scale down for better visibility
@@ -76,15 +88,25 @@ def plot_segmentation(segmentation: np.ndarray) -> None:
             )
     plt.show()
 
+    if cc.save:
+        parent = Path(__file__).parent
+        stem = Path(__file__).stem + "_diam_" + str(diameter)
+        fn = parent.joinpath(stem + cc.ext)
+        # plt.savefig(fn, dpi=DPI, bbox_inches='tight')
+        # fig.savefig(fn, dpi=DPI)
+        fig.savefig(fn)
+        print(f"Saved {fn}")
+
 
 if __name__ == "__main__":
     # User input begin
-    dd = 23  # pixels
+    cc = Configuration(
+        diameter=9,
+        save=True,
+    )
     # User input end
 
     # Example usage
-    mask = circle(diameter=dd)
+    mask = circle(diameter=cc.diameter)
     print(mask)
-    plot_segmentation(mask)
-    # plot_circle_segmentation(radius=radius)
-    # This will create a circular segmentation mask with a radius of 10 pixels.
+    plot_segmentation(segmentation=mask, cc=cc)

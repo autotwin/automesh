@@ -20,12 +20,6 @@ class Point(NamedTuple):
     y: float  # y-coordinate
 
 
-class Seeds(NamedTuple):
-    """A collection of points (seeds) in 2D space."""
-
-    points: list[Point]  # List of Point objects
-
-
 class Boundary(NamedTuple):
     """A boundary defined by its minimum and maximum
     x and y coordinates."""
@@ -210,24 +204,33 @@ class QuadTree:
             )
 
 
-def main():
-    # User input begin
-    level_min: Final[int] = 0
-    level_max: Final[int] = 5
-    alpha = 1.0
-    SAVE: Final[bool] = True
-    SHOW: Final[bool] = True
-    EXT: Final[str] = ".svg"  # ".pdf" | ".png" | ".svg"
-    DPI: Final[int] = 300
-    fig_width, fig_height = 6, 6  # inches, inches
+class Configuration(NamedTuple):
+    """User input configuration for the quadtree plot."""
 
-    xmin = -2
-    xmax = 6
-    ymin = -2
-    ymax = 6
-    width = xmax - xmin
-    height = ymax - ymin
-    verbose = False  # Set to True to see debug output
+    xmin: float  # Minimum x-coordinate for the quadtree
+    xmax: float  # Maximum x-coordinate for the quadtree
+    ymin: float  # Minimum y-coordinate for the quadtree
+    ymax: float  # Maximum y-coordinate for the quadtree
+
+    level_min: int  # Minimum level of the quadtree
+    level_max: int  # Maximum level of the quadtree
+
+    seeds: list[Point]  # List of seed points for the quadtree
+
+    alpha: float  # Transparency of the quadtree colors
+    save: bool  # Whether to save the plot
+    show: bool  # Whether to show the plot
+    dpi: int = 300  # Dots per inch for saving the plot
+    fig_width: float = 6.0  # Width of the figure in inches
+    fig_height: float = 6.0  # Height of the figure in inches
+    ext: str = ".svg"  # File extension for saving the plot
+
+    verbose: bool = False  # Whether to print debug information
+
+
+def quarter_plate_seeds() -> list[Point]:
+    """Helper function to create seeds for the Hughes quarter plate example."""
+
     # Similar to the round in the Hughes quarter plate problem
     # https://github.com/sandialabs/sibl/blob/master/geo/doc/dual/lesson_11.md
     # see also Cottrell 2009 IGA book, page 117.
@@ -237,10 +240,6 @@ def main():
     n_points = 9
     theta_values = np.linspace(theta_start, theta_stop, n_points)
     offset_x, offset_y = 4.0, 0.0
-    # seeds = [
-    #     Point(x=2.6, y=0.6),
-    #     Point(x=2.9, y=0.2),
-    # ]
     seeds = [
         Point(x=radius * np.cos(theta) + offset_x, y=radius * np.sin(theta) + offset_y)
         for theta in theta_values
@@ -251,21 +250,68 @@ def main():
         Point(x=0, y=0),
     ]
     seeds += corner_seeds
+    return seeds
+
+
+def main():
+    # Circle example
+
+    # Hughes quarter plate example
+    cc = Configuration(
+        xmin=-2,
+        xmax=6,
+        ymin=-2,
+        ymax=6,
+        #
+        level_min=0,
+        level_max=5,
+        #
+        seeds=quarter_plate_seeds(),  # type: ignore
+        #
+        alpha=1.0,
+        save=True,
+        show=True,
+        dpi=300,
+        fig_width=6.0,
+        fig_height=6.0,
+        ext=".svg",  # ".pdf" | ".png" | ".svg",
+        #
+        verbose=False,  # Set to True to see debug output
+    )
+
+    # User input begin
+    # level_min: Final[int] = 0
+    # level_max: Final[int] = 5
+    # alpha = 1.0
+    # SAVE: Final[bool] = True
+    # SHOW: Final[bool] = True
+    # EXT: Final[str] = ".svg"  # ".pdf" | ".png" | ".svg"
+    # DPI: Final[int] = 300
+    # fig_width, fig_height = 6, 6  # inches, inches
+
+    # xmin = -2
+    # xmax = 6
+    # ymin = -2
+    # ymax = 6
+    # width = xmax - xmin
+    # height = ymax - ymin
+    # verbose = False  # Set to True to see debug output
+
     # User input end
 
     # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    fig, ax = plt.subplots(figsize=(cc.fig_width, cc.fig_height))
 
     # Create the quadtree with a boundary of (-12, -12, 24, 24)
     qt = QuadTree(
-        x=xmin,
-        y=ymin,
-        width=width,
-        height=height,
-        level=level_min,
-        max_level=level_max,
-        verbose=verbose,
-        seeds=seeds,
+        x=cc.xmin,
+        y=cc.ymin,
+        width=cc.xmax - cc.xmin,
+        height=cc.ymax - cc.ymin,
+        level=cc.level_min,
+        max_level=cc.level_max,
+        verbose=cc.verbose,
+        seeds=cc.seeds,
     )
 
     # The number of colors will be the number of levels + 1 because
@@ -275,19 +321,19 @@ def main():
     qc = DiscreteColors(
         n_levels=n_colors,
         edgecolor="black",
-        alpha=alpha,
+        alpha=cc.alpha,
         color_scheme=ColorSchemes.TAB10,
         reversed=False,
     )
-    if verbose:
+    if cc.verbose:
         print(f"quadcolors.facecolors: {qc.facecolors}")
     # Draw the quadtree
-    qt.draw(ax=ax, quadcolors=qc, seeds=seeds)
+    qt.draw(ax=ax, quadcolors=qc, seeds=cc.seeds)
 
     # Set limits and aspect
-    margin = 0.1 * (xmax - xmin)
-    ax.set_xlim(xmin - margin, xmax + margin)
-    ax.set_ylim(ymin - margin, ymax + margin)
+    margin = 0.1 * (cc.xmax - cc.xmin)
+    ax.set_xlim(cc.xmin - margin, cc.xmax + margin)
+    ax.set_ylim(cc.ymin - margin, cc.ymax + margin)
     ax.set_aspect("equal")
     ax.set_xlabel("x")
     ax.set_ylabel("y")
@@ -295,19 +341,21 @@ def main():
     ax.grid(False)
     # ax.set_xticks([])
     # ax.set_yticks([])
-    GRAMMAR_LEVELS = f"{level_max} Level" if level_max == 1 else f"{level_max} Levels"
+    GRAMMAR_LEVELS = (
+        f"{cc.level_max} Level" if cc.level_max == 1 else f"{cc.level_max} Levels"
+    )
     ax.set_title(f"Quadtree with {GRAMMAR_LEVELS} of Refinement")
     plt.show()
 
-    if SHOW:
+    if cc.show:
         plt.show()
 
-    if SAVE:
+    if cc.save:
         parent = Path(__file__).parent
-        stem = Path(__file__).stem + "_level_" + str(level_max)
-        fn = parent.joinpath(stem + EXT)
+        stem = Path(__file__).stem + "_level_" + str(cc.level_max)
+        fn = parent.joinpath(stem + cc.ext)
         # plt.savefig(fn, dpi=DPI, bbox_inches='tight')
-        fig.savefig(fn, dpi=DPI)
+        fig.savefig(fn, dpi=cc.dpi)
         print(f"Saved {fn}")
 
 
