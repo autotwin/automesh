@@ -15,7 +15,7 @@ With [`fig_quadtree.tex`](https://github.com/sandialabs/sibl/blob/master/geo/doc
 
 ![](mwe/fig_quadtree.png)
 
-With [`plot_quadtree.py`](https://github.com/sandialabs/sibl/blob/master/geo/doc/plot_quadtree.py), we plot a domain 
+With [`plot_quadtree.py`](https://github.com/sandialabs/sibl/blob/master/geo/doc/plot_quadtree.py), we plot a domain
 
 * A square domain `L0` $$(x, y) \in ([1, 3] \otimes  [-1, 1])$$
 * Single point at `(2.6, 0.6)` to trigger refinement.
