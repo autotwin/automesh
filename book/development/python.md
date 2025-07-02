@@ -39,6 +39,8 @@ maturin develop --features python --extras dev
 pytest
 
 pre-commit run --all-files
+
+uv run ruff check
 ```
 
 ## Build a '.whl` file release
