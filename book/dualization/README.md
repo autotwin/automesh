@@ -46,6 +46,15 @@ Consider a boundary of a circle defined by discrete `(x, y)` points.
 
 ![](code/circle_loop_r_50_npts_36.svg)
 
+Level 0 | 1 | 2
+--- | --- | ---
+| ![](code/quadtree_circle_level_0.svg) | ![](code/quadtree_circle_level_1.svg) | ![](code/quadtree_circle_level_2.svg)
+
+3 | 4 | 5
+--- | --- | ---
+![](code/quadtree_circle_level_3.svg) | ![](code/quadtree_circle_level_4.svg) | ![](code/quadtree_circle_level_5.svg)
+
+
 ### Circle from Tesellation
 
 ### Quarter Plate
@@ -54,11 +63,11 @@ With [Python](#source), we produce a Quadtree with zero to five levels of refine
 
 Level 0 | 1 | 2
 --- | --- | ---
-| ![](code/quadtree_plot_level_0.svg) | ![](code/quadtree_plot_level_1.svg) | ![](code/quadtree_plot_level_2.svg)
+| ![](code/quadtree_quarter_plate_level_0.svg) | ![](code/quadtree_quarter_plate_level_1.svg) | ![](code/quadtree_quarter_plate_level_2.svg)
 
 3 | 4 | 5
 --- | --- | ---
-![](code/quadtree_plot_level_3.svg) | ![](code/quadtree_plot_level_4.svg) | ![](code/quadtree_plot_level_5.svg)
+![](code/quadtree_quarter_plate_level_3.svg) | ![](code/quadtree_quarter_plate_level_4.svg) | ![](code/quadtree_quarter_plate_level_5.svg)
 
 ## Octree
 

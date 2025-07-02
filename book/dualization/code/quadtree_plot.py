@@ -217,9 +217,11 @@ class Configuration(NamedTuple):
 
     seeds: list[Point]  # List of seed points for the quadtree
 
-    alpha: float  # Transparency of the quadtree colors
-    save: bool  # Whether to save the plot
-    show: bool  # Whether to show the plot
+    fig_stem: str  # Stem for the filename when saving
+
+    alpha: float = 1.0  # Transparency of the quadtree colors
+    save: bool = True  # Whether to save the plot
+    show: bool = True  # Whether to show the plot
     dpi: int = 300  # Dots per inch for saving the plot
     fig_width: float = 6.0  # Width of the figure in inches
     fig_height: float = 6.0  # Height of the figure in inches
@@ -253,51 +255,52 @@ def quarter_plate_seeds() -> list[Point]:
     return seeds
 
 
+def circle_seeds() -> list[Point]:
+    """Helper function to create seeds for a circle."""
+
+    # Create an array of angles from 0 to 2 pi
+    center = (0, 0)
+    radius = 50
+    n_pts = 36
+    theta = np.linspace(0, 2 * np.pi, n_pts + 1)
+
+    # Parametric equations for the circle
+    x = center[0] + radius * np.cos(theta)
+    y = center[1] + radius * np.sin(theta)
+    seeds = [Point(x=xi, y=yi) for xi, yi in zip(x, y)]
+    return seeds
+
+
 def main():
     # Circle example
+    cc = Configuration(
+        xmin=-60,
+        xmax=60,
+        ymin=-60,
+        ymax=60,
+        #
+        level_min=0,
+        level_max=5,
+        #
+        seeds=circle_seeds(),
+        #
+        fig_stem="quadtree_circle",
+    )
 
     # Hughes quarter plate example
-    cc = Configuration(
+    dd = Configuration(
         xmin=-2,
         xmax=6,
         ymin=-2,
         ymax=6,
         #
         level_min=0,
-        level_max=5,
+        level_max=4,
         #
-        seeds=quarter_plate_seeds(),  # type: ignore
+        seeds=quarter_plate_seeds(),
         #
-        alpha=1.0,
-        save=True,
-        show=True,
-        dpi=300,
-        fig_width=6.0,
-        fig_height=6.0,
-        ext=".svg",  # ".pdf" | ".png" | ".svg",
-        #
-        verbose=False,  # Set to True to see debug output
+        fig_stem="quadtree_quarter_plate",
     )
-
-    # User input begin
-    # level_min: Final[int] = 0
-    # level_max: Final[int] = 5
-    # alpha = 1.0
-    # SAVE: Final[bool] = True
-    # SHOW: Final[bool] = True
-    # EXT: Final[str] = ".svg"  # ".pdf" | ".png" | ".svg"
-    # DPI: Final[int] = 300
-    # fig_width, fig_height = 6, 6  # inches, inches
-
-    # xmin = -2
-    # xmax = 6
-    # ymin = -2
-    # ymax = 6
-    # width = xmax - xmin
-    # height = ymax - ymin
-    # verbose = False  # Set to True to see debug output
-
-    # User input end
 
     # Create a figure and axis
     fig, ax = plt.subplots(figsize=(cc.fig_width, cc.fig_height))
@@ -352,7 +355,8 @@ def main():
 
     if cc.save:
         parent = Path(__file__).parent
-        stem = Path(__file__).stem + "_level_" + str(cc.level_max)
+        # stem = Path(__file__).stem + "_level_" + str(cc.level_max)
+        stem = cc.fig_stem + "_level_" + str(cc.level_max)
         fn = parent.joinpath(stem + cc.ext)
         # plt.savefig(fn, dpi=DPI, bbox_inches='tight')
         fig.savefig(fn, dpi=cc.dpi)
