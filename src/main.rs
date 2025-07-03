@@ -178,7 +178,7 @@ enum Commands {
     },
 
     /// Creates a balanced octree from a segmentation
-    #[command(hide = true)]
+    // #[command(hide = true)]
     Octree {
         /// Segmentation input file (npy | spn)
         #[arg(long, short, value_name = "FILE")]
@@ -255,6 +255,70 @@ enum Commands {
         #[arg(action, long, short)]
         strong: bool,
     },
+
+    /// Creates a balanced quadtree from a segmentation
+    // #[command(hide = true)]
+    Quadtree {
+        /// Segmentation input file (npy | spn)
+        #[arg(long, short, value_name = "FILE")]
+        input: String,
+    
+        /// Quadtree output file (inp | mesh | vtk)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of voxels in the x-direction (spn)
+        #[arg(long, short = 'x', value_name = "NEL")]
+        nelx: Option<usize>,
+
+        /// Number of voxels in the y-direction (spn)
+        #[arg(long, short = 'y', value_name = "NEL")]
+        nely: Option<usize>,
+
+        /// Voxel IDs to remove from the mesh
+        #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
+        remove: Option<Vec<usize>>,
+
+        /// Scaling (> 0.0) in the x-direction, applied before translation
+        #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
+        xscale: f64,
+
+        /// Scaling (> 0.0) in the y-direction, applied before translation
+        #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
+        yscale: f64,
+
+        /// Translation in the x-direction
+        #[arg(
+            long,
+            default_value_t = 0.0,
+            allow_negative_numbers = true,
+            value_name = "VAL"
+        )]
+        xtranslate: f64,
+
+        /// Translation in the y-direction
+        #[arg(
+            long,
+            default_value_t = 0.0,
+            allow_negative_numbers = true,
+            value_name = "VAL"
+        )]
+        ytranslate: f64,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+
+        /// Pass to apply pairing
+        #[arg(action, long, short)]
+        pair: bool,
+
+        /// Pass to apply strong balancing
+        #[arg(action, long, short)]
+        strong: bool,
+
+    },
+
 
     /// Applies smoothing to an existing mesh
     Smooth {
@@ -998,6 +1062,7 @@ fn main() -> Result<(), ErrorWrapper> {
                 ytranslate, ztranslate, quiet, pair, strong,
             )
         }
+        Some(Commands::Quadtree { .. }) => todo!(),
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
