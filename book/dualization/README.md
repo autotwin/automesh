@@ -30,6 +30,11 @@ Level 0 | 1 | 2
 
 ### Circle from Segmentation
 
+We illustrate the **segmentation start point** as it applies to quadtree formation.
+
+* For a segmentation at a given resolution of pixels, we immerse the segmentation into a single-cell (`L0`) quadtree domain.
+* For each cell in the quadtree, we process the cells recursively and ask this question:  Does the cell contain more than one material?  If yes, then subdivide; if no, then do not subdivide.
+
 3 | 4 | 5 | 6
 --- | --- | --- | ---
 ![](code/circle_segmentation_diam_3.svg) | ![](code/circle_segmentation_diam_4.svg) | ![](code/circle_segmentation_diam_5.svg) | ![](code/circle_segmentation_diam_6.svg)
@@ -41,6 +46,12 @@ Level 0 | 1 | 2
 ![](code/circle_segmentation_diam_100.svg)
 
 ### Circle from Boundary
+
+We illustrate the **boundary start point** as it applies to quadtree formation.
+
+* We define a boundary as directed series of connected, discrete points that create a closed-loop, non-intersecting path.
+* We immerse the boundary into a single-cell (`L0`) quadtree domain.
+* For each cell in the quadtree, we process the cells recursively and ask this question:  Does the cell contain at least one boundary point?  If yes, then subdivide; if no, then do not subdivide.
 
 Consider a boundary of a circle defined by discrete `(x, y)` points.
 
@@ -56,6 +67,13 @@ Level 0 | 1 | 2
 
 
 ### Circle from Tesellation
+
+We illustrate the **tesellation** as it applies to quadtree formation.
+
+* We immerse the tesellation into a single-cell (`L0`) quadtree domain.
+* We create a boundary of the tesellation with points that lie on the boundary of the tesellation.
+* We immerse the boundary into a single-cell (`L0`) quadtree domain.
+* For each cell in the quadtree, we process the cells recursively and ask this question:  Does the cell contain at least one boundary point?  If yes, then subdivide; if no, then do not subdivide.
 
 ### Quarter Plate
 
