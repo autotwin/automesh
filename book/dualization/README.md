@@ -33,6 +33,9 @@ Level 0 | 1 | 2
 We illustrate the **segmentation start point** as it applies to quadtree formation.
 
 * For a segmentation at a given resolution of pixels, we immerse the segmentation into a single-cell (`L0`) quadtree domain.
+* We pad the segmentation margins with void (segmentation ID `0`) such that the pixel count in all directions ($x$ and $y$)
+  * is the same, and
+  * is divisible by 2 for $n$ cell subdivisions.
 * For each cell in the quadtree, we process the cells recursively and ask this question:  Does the cell contain more than one material?  If yes, then subdivide; if no, then do not subdivide.
 
 3 | 4 | 5 | 6
