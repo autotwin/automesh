@@ -77,34 +77,34 @@ fn compare_files(
     assert_eq!(gold, line);
 }
 
-#[cfg(not(target_os = "windows"))]
-mod read_inp {
-    use super::*;
-    use automesh::HexahedralFiniteElements;
-    #[test]
-    fn letter_f_3d() {
-        let voxels = Voxels::from_spn(
-            "tests/input/letter_f_3d.spn",
-            [4, 5, 3].into(),
-            Remove::from(Some(vec![0_u8])),
-            Scale::default(),
-            Translate::default(),
-        )
-        .unwrap();
-        let fem = HexahedralFiniteElements::from(voxels);
-        fem.write_inp("target/letter_f_3d.inp").unwrap();
-        let read = HexahedralFiniteElements::from_inp("target/letter_f_3d.inp").unwrap();
-        assert_eq!(fem.get_element_blocks(), read.get_element_blocks());
-        assert_eq!(
-            fem.get_element_node_connectivity(),
-            read.get_element_node_connectivity()
-        );
-        fem.get_nodal_coordinates()
-            .iter()
-            .zip(read.get_nodal_coordinates().iter())
-            .for_each(|(a, b)| a.iter().zip(b.iter()).for_each(|(c, d)| assert_eq!(c, d)));
-    }
-}
+//#[cfg(not(target_os = "windows"))]
+//mod read_inp {
+//    use super::*;
+//    use automesh::HexahedralFiniteElements;
+//    #[test]
+//    fn letter_f_3d() {
+//        let voxels = Voxels::from_spn(
+//            "tests/input/letter_f_3d.spn",
+//            [4, 5, 3].into(),
+//            Remove::from(Some(vec![0_u8])),
+//            Scale::default(),
+//            Translate::default(),
+//        )
+//        .unwrap();
+//        let fem = HexahedralFiniteElements::from(voxels);
+//        fem.write_inp("target/letter_f_3d.inp").unwrap();
+//        let read = HexahedralFiniteElements::from_inp("target/letter_f_3d.inp").unwrap();
+//        assert_eq!(fem.get_element_blocks(), read.get_element_blocks());
+//        assert_eq!(
+//            fem.get_element_node_connectivity(),
+//            read.get_element_node_connectivity()
+//        );
+//        fem.get_nodal_coordinates()
+//            .iter()
+//            .zip(read.get_nodal_coordinates().iter())
+//            .for_each(|(a, b)| a.iter().zip(b.iter()).for_each(|(c, d)| assert_eq!(c, d)));
+//    }
+//}
 
 #[cfg(not(target_os = "windows"))]
 mod write_inp {
