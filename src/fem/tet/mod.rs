@@ -1,8 +1,6 @@
 use crate::FiniteElementMethods;
 
-use super::{
-    FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics, Tessellation,
-};
+use super::{FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics};
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
 /// The number of nodes in a tetrahedral finite element.
@@ -22,9 +20,6 @@ impl FiniteElementSpecifics for TetrahedralFiniteElements {
             3 => vec![0, 1, 2],
             _ => panic!(),
         }
-    }
-    fn into_tesselation(self) -> Tessellation {
-        unimplemented!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         todo!()
