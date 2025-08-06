@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::{
     Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics,
-    NODE_NUMBERING_OFFSET, Tessellation, Vector,
+    NODE_NUMBERING_OFFSET, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
 use ndarray::{Array2, s};
@@ -39,9 +39,6 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
             7 => vec![3, 4, 6],
             _ => panic!(),
         }
-    }
-    fn into_tesselation(self) -> Tessellation {
-        unimplemented!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();

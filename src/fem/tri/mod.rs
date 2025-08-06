@@ -5,8 +5,8 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET,
-    Tessellation, Vector,
+    Coordinate, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics,
+    NODE_NUMBERING_OFFSET, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
 use ndarray::{Array2, s};
@@ -25,6 +25,34 @@ pub const TRI: usize = 3;
 /// The triangular finite elements type.
 pub type TriangularFiniteElements = FiniteElements<TRI>;
 
+impl From<Tessellation> for TriangularFiniteElements {
+    fn from(tessellation: Tessellation) -> Self {
+        let data = tessellation.get_data();
+        let element_blocks = vec![1; data.faces.len()];
+        let nodal_coordinates = data
+            .vertices
+            .iter()
+            .map(|&vertex| Coordinate::new([vertex[0].into(), vertex[1].into(), vertex[2].into()]))
+            .collect();
+        let element_node_connectivity = data
+            .faces
+            .iter()
+            .map(|face| {
+                [
+                    face.vertices[0] + NODE_NUMBERING_OFFSET,
+                    face.vertices[1] + NODE_NUMBERING_OFFSET,
+                    face.vertices[2] + NODE_NUMBERING_OFFSET,
+                ]
+            })
+            .collect();
+        TriangularFiniteElements::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates,
+        )
+    }
+}
+
 impl FiniteElementSpecifics for TriangularFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
         match node {
@@ -33,48 +61,6 @@ impl FiniteElementSpecifics for TriangularFiniteElements {
             2 => vec![0, 1],
             _ => panic!(),
         }
-    }
-    fn into_tesselation(self) -> Tessellation {
-        let mut normal = Vector::zero();
-        let mut vertices_tri = [0; TRI];
-        let nodal_coordinates = self.get_nodal_coordinates();
-        let vertices = nodal_coordinates
-            .iter()
-            .map(|coordinate| {
-                stl_io::Vertex::new([
-                    coordinate[0] as f32,
-                    coordinate[1] as f32,
-                    coordinate[2] as f32,
-                ])
-            })
-            .collect();
-        let faces = self
-            .get_element_node_connectivity()
-            .iter()
-            .map(|&connectivity| {
-                vertices_tri = [
-                    connectivity[0] - NODE_NUMBERING_OFFSET,
-                    connectivity[1] - NODE_NUMBERING_OFFSET,
-                    connectivity[2] - NODE_NUMBERING_OFFSET,
-                ];
-                normal = (&nodal_coordinates[vertices_tri[1]]
-                    - &nodal_coordinates[vertices_tri[0]])
-                    .cross(
-                        &(&nodal_coordinates[vertices_tri[2]]
-                            - &nodal_coordinates[vertices_tri[0]]),
-                    )
-                    .normalized();
-                stl_io::IndexedTriangle {
-                    normal: stl_io::Normal::new([
-                        normal[0] as f32,
-                        normal[1] as f32,
-                        normal[2] as f32,
-                    ]),
-                    vertices: vertices_tri,
-                }
-            })
-            .collect();
-        Tessellation::new(stl_io::IndexedMesh { vertices, faces })
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         // Knupp 2006

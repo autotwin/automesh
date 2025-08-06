@@ -581,8 +581,6 @@ where
 pub trait FiniteElementSpecifics {
     /// Returns the nodes connected to the given node within an element.
     fn connected_nodes(node: &usize) -> Vec<usize>;
-    /// Converts the finite elements into a tessellation, consuming the finite elements.
-    fn into_tesselation(self) -> Tessellation;
     /// Calculates the maximum edge ratios.
     fn maximum_edge_ratios(&self) -> Metrics;
     /// Calculates the maximum skews.

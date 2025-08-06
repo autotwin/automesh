@@ -1,6 +1,6 @@
 use automesh::{
-    Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Nel,
-    Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
+    Extraction, FiniteElementMethods, HEX, HexahedralFiniteElements, Nel, Octree, Remove, Scale,
+    Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
     TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
@@ -1070,7 +1070,7 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
             Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
             Some("stl") => write_output(
                 output,
-                OutputTypes::<3, TriangularFiniteElements>::Stl(finite_elements.into_tesselation()),
+                OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                 quiet,
             ),
             Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
@@ -1080,16 +1080,14 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
             invalid_input(&input, input_extension)
         }
         InputTypes::Stl(tessellation) => {
-            let finite_elements = tessellation.into_finite_elements();
+            let finite_elements = TriangularFiniteElements::from(tessellation);
             match output_extension {
                 Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
                 Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
                 Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<3, TriangularFiniteElements>::Stl(
-                        finite_elements.into_tesselation(),
-                    ),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                     quiet,
                 ),
                 Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
@@ -1567,7 +1565,7 @@ where
                 Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<3, TriangularFiniteElements>::Stl(output_type.into_tesselation()),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(output_type.into()),
                     quiet,
                 )?,
                 Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
@@ -1754,6 +1752,7 @@ fn smooth<const N: usize, T>(
 ) -> Result<(), ErrorWrapper>
 where
     T: FiniteElementMethods<N>,
+    Tessellation: From<T>,
 {
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
     match read_input::<N, T>(
@@ -1786,9 +1785,7 @@ where
                 Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(
-                        finite_elements.into_tesselation(),
-                    ),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                     quiet,
                 ),
                 Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
@@ -1796,7 +1793,7 @@ where
             }
         }
         InputTypes::Stl(tesselation) => {
-            let mut finite_elements = tesselation.into_finite_elements();
+            let mut finite_elements = TriangularFiniteElements::from(tesselation);
             apply_smoothing_method(
                 &mut finite_elements,
                 iterations,
@@ -1812,9 +1809,7 @@ where
                 Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<3, TriangularFiniteElements>::Stl(
-                        finite_elements.into_tesselation(),
-                    ),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                     quiet,
                 ),
                 Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
