@@ -85,6 +85,12 @@ impl Tessellation {
     pub fn get_data(&self) -> &IndexedMesh {
         &self.data
     }
+    /// Isotropic remeshing of the tessellation.
+    pub fn remesh(self, iterations: usize, smoothing_iterations: usize) -> Self {
+        let mut finite_elements = TriangularFiniteElements::from(self);
+        finite_elements.remesh(iterations, smoothing_iterations);
+        finite_elements.into()
+    }
     /// Writes the tessellation data to a new STL file.
     pub fn write_stl(&self, file_path: &str) -> Result<(), Error> {
         write_tessellation_to_stl(self.get_data(), file_path)

@@ -1558,6 +1558,10 @@ where
                     }
                 }
             }
+
+            let foo = 1.0;
+            output_type.remesh(1, 1);
+
             let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
             match output_extension {
                 Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
