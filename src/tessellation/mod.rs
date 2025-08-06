@@ -9,7 +9,7 @@ use conspire::math::{Tensor, TensorArray};
 use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Error};
-use stl_io::{IndexedMesh, Triangle, Vertex, read_stl, write_stl};
+use stl_io::{IndexedMesh, IndexedTriangle, Normal, Triangle, Vertex, read_stl, write_stl};
 
 /// The tessellation type.
 #[derive(Debug, PartialEq)]
@@ -37,7 +37,7 @@ impl From<TriangularFiniteElements> for Tessellation {
         let vertices = nodal_coordinates
             .iter()
             .map(|coordinate| {
-                stl_io::Vertex::new([
+                Vertex::new([
                     coordinate[0] as f32,
                     coordinate[1] as f32,
                     coordinate[2] as f32,
@@ -60,17 +60,13 @@ impl From<TriangularFiniteElements> for Tessellation {
                             - &nodal_coordinates[vertices_tri[0]]),
                     )
                     .normalized();
-                stl_io::IndexedTriangle {
-                    normal: stl_io::Normal::new([
-                        normal[0] as f32,
-                        normal[1] as f32,
-                        normal[2] as f32,
-                    ]),
+                IndexedTriangle {
+                    normal: Normal::new([normal[0] as f32, normal[1] as f32, normal[2] as f32]),
                     vertices: vertices_tri,
                 }
             })
             .collect();
-        Tessellation::new(stl_io::IndexedMesh { vertices, faces })
+        Tessellation::new(IndexedMesh { vertices, faces })
     }
 }
 
