@@ -647,8 +647,8 @@ fn renumber_nodes(
         .iter()
         .enumerate()
         .filter(|&(_, coordinate)| coordinate.is_some())
-        .zip(1..=number_of_nodes_unfiltered)
-        .for_each(|((index, _), node)| mapping[index] = node);
+        .enumerate()
+        .for_each(|(node, (index, _))| mapping[index] = node + NODE_NUMBERING_OFFSET);
     element_node_connectivity
         .par_iter_mut()
         .for_each(|connectivity| {
@@ -659,7 +659,7 @@ fn renumber_nodes(
     initial_nodal_coordinates.retain(|coordinate| coordinate.is_some());
     let nodal_coordinates = initial_nodal_coordinates
         .into_iter()
-        .map(|entry| entry.unwrap())
+        .filter_map(|entry| entry)
         .collect();
     #[cfg(feature = "profile")]
     println!(
