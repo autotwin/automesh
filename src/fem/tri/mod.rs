@@ -252,7 +252,7 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_itera
         edges.iter_mut().for_each(|edge| edge.sort());
         edges.sort();
         edges.dedup();
-        let mut lengths: Lengths = edges
+        let lengths: Lengths = edges
             .iter()
             .map(|&[node_a, node_b]| {
                 (&fem.get_nodal_coordinates()[node_a - NODE_NUMBERING_OFFSET]
@@ -388,94 +388,217 @@ fn collapse_edges(
 ) {
     let mut element_index_1 = 0;
     let mut element_index_2 = 0;
-    let mut node_c = 0;
-    let mut node_d = 0;
     let element_node_connectivity = &mut fem.element_node_connectivity;
     let node_element_connectivity = &mut fem.node_element_connectivity;
     let node_node_connectivity = &mut fem.node_node_connectivity;
-    let mut nodal_coordinates = &mut fem.nodal_coordinates;
+    let nodal_coordinates = &mut fem.nodal_coordinates;
     let mut coincident_nodes = vec![None; nodal_coordinates.len()];
     let mut degenerate_elements = vec![false; element_node_connectivity.len()];
     edges
         .iter()
-        .zip(lengths.iter())
-        .filter(|&(_, &length)| length < FOUR_FIFTHS * average_length)
-        .for_each(|(&[node_a, node_b], _)| {
-            [element_index_1, element_index_2, _, _] = edge_info(
-                node_a,
-                node_b,
-                element_node_connectivity,
-                node_element_connectivity,
-            );
-            nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] =
-                (nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone()
-                    + &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET])
-                    / 2.0;
-            nodal_coordinates[node_b - NODE_NUMBERING_OFFSET] =
-                nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
-            coincident_nodes[node_b - NODE_NUMBERING_OFFSET] = Some(node_a);
-            degenerate_elements[element_index_1] = true;
-            degenerate_elements[element_index_2] = true;
+        // .zip(lengths.iter())
+        // .filter(|&(_, &length)| length < FOUR_FIFTHS * average_length)
+        // .filter(|&[node_a, node_b]|
+        //     (&nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] - &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET]).norm() < FOUR_FIFTHS * average_length
+        // )
+        // .for_each(|(&[node_a, node_b], _)| {
+        .for_each(|&[node_a, node_b]| {
+            if (&nodal_coordinates[node_a - NODE_NUMBERING_OFFSET]
+                - &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET])
+                .norm()
+                < FOUR_FIFTHS * average_length
+            {
+                [element_index_1, element_index_2, _, _] = edge_info(
+                    node_a,
+                    node_b,
+                    element_node_connectivity,
+                    node_element_connectivity,
+                );
+                // nodal_coordinates[node_b - NODE_NUMBERING_OFFSET] =
+                //     nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
+                // coincident_nodes[node_b - NODE_NUMBERING_OFFSET] =
+                //     coincident_nodes[node_a - NODE_NUMBERING_OFFSET].or(Some(node_a));
 
-            // element_node_connectivity
-            //     .iter_mut()
-            //     .flatten()
-            //     .filter(|node| node == &&node_b)
-            //     .for_each(|node| *node = node_a);
-            // node_node_connectivity
-            //     .iter_mut()
-            //     .flatten()
-            //     .filter(|node| node == &&node_b)
-            //     .for_each(|node| *node = node_a);
+                nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] =
+                    (nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone()
+                        + &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET])
+                        / 2.0;
+                nodal_coordinates[node_b - NODE_NUMBERING_OFFSET] =
+                    nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
+                coincident_nodes[node_b - NODE_NUMBERING_OFFSET] =
+                    coincident_nodes[node_a - NODE_NUMBERING_OFFSET].or(Some(node_a));
 
-            // nodal_coordinates.remove(node_b - NODE_NUMBERING_OFFSET);
-            // edges.
-            // need to re-number nodes? (if remove node)
-            // maybe wait til the end?
+                let foo = coincident_nodes[node_a - NODE_NUMBERING_OFFSET].or(Some(node_a));
 
-            // remove both elements from element_node
-            // mode node_a coordinates to average
-            // remove node b from coordinates, node_node, node_element
-            // replace any instances of node_b with node_a in element_node, node_node
-            // how to handle instances of element_1,2 in node_element?
+                // coincident_nodes
+                //     .iter()
+                //     .filter(|&&coincident_node| {
+                //         coincident_node != Some(node_a) && coincident_nodes[node_a - NODE_NUMBERING_OFFSET].is_some() && coincident_node == coincident_nodes[node_a - NODE_NUMBERING_OFFSET]
+                //     })
+                //     .for_each(|coincident_node| {
+                //         panic!("{:?}", (coincident_node, node_a, coincident_nodes[node_a - NODE_NUMBERING_OFFSET]))
+                //     });
+
+                // coincident_nodes
+                //     .iter()
+                //     .filter(|&&coincident_node| {
+                //         coincident_node == Some(node_b)
+                //     })
+                //     .for_each(|coincident_node| {
+                //         panic!()
+                //     });
+
+                coincident_nodes
+                    .iter()
+                    .enumerate()
+                    // .filter_map(|(_, &coincident_node)| coincident_node)
+                    .filter(|&(_, &coincident_node)| {
+                        coincident_node == Some(node_a) || coincident_node == Some(node_b) || coincident_node == foo
+                    })
+                    .for_each(|(node_index, coincident_node)| {
+                        nodal_coordinates[node_index] =
+                            nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
+                        nodal_coordinates[coincident_node.unwrap() - NODE_NUMBERING_OFFSET] =
+                            nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone()
+                    });
+
+                // nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] =
+                //     (nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone()
+                //         + &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET])
+                //         / 2.0;
+                // nodal_coordinates[node_b - NODE_NUMBERING_OFFSET] =
+                //     nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
+                // if let Some(coincident_node) = coincident_nodes[node_a - NODE_NUMBERING_OFFSET] {
+                //     nodal_coordinates[coincident_node - NODE_NUMBERING_OFFSET] =
+                //         nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
+                //     coincident_nodes[node_b - NODE_NUMBERING_OFFSET] = Some(coincident_node);
+                // } else {
+                //     coincident_nodes[node_b - NODE_NUMBERING_OFFSET] = Some(node_a);
+                // }
+
+                // nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] =
+                //     (nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone()
+                //         + &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET])
+                //         / 2.0;
+                // nodal_coordinates[node_b - NODE_NUMBERING_OFFSET] =
+                //     nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
+                // coincident_nodes[node_b - NODE_NUMBERING_OFFSET] =
+                //     coincident_nodes[node_a - NODE_NUMBERING_OFFSET].or(Some(node_a));
+                //
+                // Do you have to move the other coordinates too?
+                //
+                degenerate_elements[element_index_1] = true;
+                degenerate_elements[element_index_2] = true;
+            }
         });
-    let mut mapping = vec![0; coincident_nodes.len()];
+
+    let mut node_mapping = vec![0; coincident_nodes.len()];
     coincident_nodes
         .iter()
         .enumerate()
-        .filter(|&(_, coordinate)| coordinate.is_none())
-        .zip(1..=coincident_nodes.len())
-        .for_each(|((index, _), node)| mapping[index] = node);
-    element_node_connectivity
-        .iter_mut()
-        .for_each(|connectivity| {
-            connectivity
-                .iter_mut()
-                .for_each(|node| *node = mapping[*node - NODE_NUMBERING_OFFSET])
+        .filter(|&(_, coincident_node)| coincident_node.is_none())
+        .enumerate()
+        .for_each(|(node, (index, _))| node_mapping[index] = node + NODE_NUMBERING_OFFSET);
+
+    let mut element_mapping = vec![0; degenerate_elements.len()];
+    degenerate_elements
+        .iter()
+        .enumerate()
+        .filter(|&(_, &is_degenerate)| is_degenerate)
+        .enumerate()
+        .for_each(|(element, (index, _))| {
+            element_mapping[index] = element + ELEMENT_NUMBERING_OFFSET
         });
+
     let mut offset = 0;
     coincident_nodes
         .iter()
         .enumerate()
         .filter(|(_, coincident_node)| coincident_node.is_some())
         .for_each(|(node, _)| {
-            nodal_coordinates.remove(node - NODE_NUMBERING_OFFSET - offset);
+            // nodal_coordinates.remove(node - NODE_NUMBERING_OFFSET - offset);
+            // node_element_connectivity.remove(node - NODE_NUMBERING_OFFSET - offset);
+            // node_node_connectivity.remove(node - NODE_NUMBERING_OFFSET - offset);
+            nodal_coordinates.remove(node - offset);
+            node_element_connectivity.remove(node - offset);
+            node_node_connectivity.remove(node - offset);
             offset += 1;
         });
+
     offset = 0;
     degenerate_elements
         .iter()
         .enumerate()
         .filter(|&(_, &degenerate_element)| degenerate_element)
         .for_each(|(element, _)| {
-            element_node_connectivity.remove(element - ELEMENT_NUMBERING_OFFSET - offset);
+            // element_node_connectivity.remove(element - ELEMENT_NUMBERING_OFFSET - offset);
+            element_node_connectivity.remove(element - offset);
             offset += 1;
         });
-    
-    // Use `mapping` for node_node_connectivity too.
-    // May need something similar for elements in node_element_connectivity.
-    // And set node_b=node_a in edges, element_node_connectivity, node_node_connectivity.
 
+    // println!("{:?}", element_node_connectivity[20]);
+
+    coincident_nodes
+        .iter()
+        .enumerate()
+        .filter(|(_, coincident_node)| coincident_node.is_some())
+        .for_each(|(node_b_index, node_a)| {
+            element_node_connectivity
+                .iter_mut()
+                .for_each(|connectivity| {
+                    connectivity.iter_mut().for_each(|entry| {
+                        if *entry == node_b_index + NODE_NUMBERING_OFFSET {
+                            *entry = node_a.unwrap()
+                            // *entry = node_mapping[node_a.unwrap() - NODE_NUMBERING_OFFSET]
+                        }
+                    })
+                })
+        });
+    // need to fix node_node_conn and edges here too?
+
+    // println!("{:?}", element_node_connectivity[20]);
+
+    // // println!("{:?}, {:?}, {:?}, {:?}", coincident_nodes[14 - 1], coincident_nodes[13 - 1], node_mapping[14 - 1], node_mapping[13 - 1]);
+    // println!(
+    //     "{:?}, {:?}, {:?}, {:?}, {:?}, {:?}",
+    //     coincident_nodes[26 - 1],
+    //     coincident_nodes[20 - 1],
+    //     coincident_nodes[19 - 1],
+    //     node_mapping[26 - 1],
+    //     node_mapping[20 - 1],
+    //     node_mapping[19 - 1]
+    // );
+
+    element_node_connectivity
+        .iter_mut()
+        .for_each(|connectivity| {
+            connectivity
+                .iter_mut()
+                .for_each(|node| *node = node_mapping[*node - NODE_NUMBERING_OFFSET])
+        });
+
+    // let foo = element_node_connectivity.iter().flatten().max().unwrap();
+    // let bar = node_mapping.iter().max().unwrap();
+    // let baz = node_mapping.iter().filter(|entry| entry != &&0).count();
+    // println!("{:?}", (nodal_coordinates.len(), foo, bar, baz));
+
+    node_node_connectivity.iter_mut().for_each(|connectivity| {
+        connectivity
+            .iter_mut()
+            .for_each(|node| *node = node_mapping[*node - NODE_NUMBERING_OFFSET])
+    });
+
+    node_element_connectivity
+        .iter_mut()
+        .for_each(|connectivity| {
+            connectivity
+                .iter_mut()
+                .for_each(|element| *element = element_mapping[*element - ELEMENT_NUMBERING_OFFSET])
+        });
+
+    //
+    // edit edges?
+    //
 }
 
 fn flip_edges(fem: &mut TriangularFiniteElements, edges: Edges) {
