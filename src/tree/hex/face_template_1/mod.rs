@@ -22,22 +22,21 @@ pub fn apply(
                 .iter()
                 .enumerate()
                 .for_each(|(face_index, face_cell)| {
-                    if let Some(face_cell_index) = face_cell {
-                        if let Some(face_subsubcells) =
+                    if let Some(face_cell_index) = face_cell
+                        && let Some(face_subsubcells) =
                             tree.cell_subcells_contain_leaves(&tree[*face_cell_index], face_index)
-                        {
-                            template(
-                                cell_subcells,
-                                cells_nodes,
-                                nodes_map,
-                                face_index,
-                                face_subsubcells,
-                                tree,
-                                element_node_connectivity,
-                                nodal_coordinates,
-                                node_index,
-                            )
-                        }
+                    {
+                        template(
+                            cell_subcells,
+                            cells_nodes,
+                            nodes_map,
+                            face_index,
+                            face_subsubcells,
+                            tree,
+                            element_node_connectivity,
+                            nodal_coordinates,
+                            node_index,
+                        )
                     }
                 })
         });
