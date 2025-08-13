@@ -27,6 +27,7 @@
   - [Extract](cli/extract.md)
   - [Mesh](cli/mesh.md)
   - [Metrics](cli/metrics.md)
+  - [Remesh](cli/remesh.md)
   - [Smooth](cli/smooth.md)
 - [Analysis](analysis/README.md)
   - [Sphere with Shells](analysis/sphere_with_shells/README.md)
