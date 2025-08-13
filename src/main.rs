@@ -1558,6 +1558,7 @@ where
                     }
                 }
             }
+            println!("{:?}", output_type.get_nodal_coordinates());
 
             let foo = 1.0;
             output_type.remesh(1, 1);

@@ -296,6 +296,7 @@ where
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let number_of_nodes = self.get_nodal_coordinates().len();
+        println!("FOO: {:?}", number_of_nodes);
         let mut node_element_connectivity = vec![vec![]; number_of_nodes];
         self.get_element_node_connectivity()
             .iter()
