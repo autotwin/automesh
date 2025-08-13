@@ -252,11 +252,8 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_itera
         edges.iter_mut().for_each(|edge| edge.sort());
         edges.sort();
         edges.dedup();
-<<<<<<< HEAD
-        let lengths: Lengths = edges
-=======
         let mut lengths: Lengths = edges
->>>>>>> 6a1e4f7 (done for now)
+        let lengths: Lengths = edges
             .iter()
             .map(|&[node_a, node_b]| {
                 (&fem.get_nodal_coordinates()[node_a - NODE_NUMBERING_OFFSET]
