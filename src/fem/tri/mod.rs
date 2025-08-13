@@ -252,7 +252,6 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_itera
         edges.iter_mut().for_each(|edge| edge.sort());
         edges.sort();
         edges.dedup();
-        let mut lengths: Lengths = edges
         let lengths: Lengths = edges
             .iter()
             .map(|&[node_a, node_b]| {
