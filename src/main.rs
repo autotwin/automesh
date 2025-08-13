@@ -256,6 +256,21 @@ enum Commands {
         strong: bool,
     },
 
+    /// Applies isotropic remeshing to an existing mesh
+    Remesh {
+        /// Mesh input file (inp | stl)
+        #[arg(long, short, value_name = "FILE")]
+        input: String,
+
+        /// Mesh output file (exo | mesh | stl | vtk)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+    },
+
     /// Applies smoothing to an existing mesh
     Smooth {
         #[command(subcommand)]
@@ -998,6 +1013,14 @@ fn main() -> Result<(), ErrorWrapper> {
                 ytranslate, ztranslate, quiet, pair, strong,
             )
         }
+        Some(Commands::Remesh {
+            input,
+            output,
+            quiet,
+        }) => {
+            is_quiet = quiet;
+            remesh(input, output, quiet)
+        }
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
@@ -1076,9 +1099,6 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
             Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
             _ => invalid_output(&output, output_extension),
         },
-        InputTypes::Npy(_voxels) | InputTypes::Spn(_voxels) => {
-            invalid_input(&input, input_extension)
-        }
         InputTypes::Stl(tessellation) => {
             let finite_elements = TriangularFiniteElements::from(tessellation);
             match output_extension {
@@ -1094,6 +1114,7 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
                 _ => invalid_output(&output, output_extension),
             }
         }
+        _ => invalid_input(&input, input_extension),
     }
 }
 
@@ -1558,11 +1579,6 @@ where
                     }
                 }
             }
-
-            let foo = 1.0;
-            output_type.remesh(5, &Smoothing::Taubin(20, 0.1, 0.607));
-            // output_type.remesh(5, &Smoothing::Taubin(iterations, pass_band, scale));
-
             let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
             match output_extension {
                 Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
@@ -1741,6 +1757,43 @@ fn octree(
         _ => invalid_output(&output, output_extension)?,
     }
     Ok(())
+}
+
+fn remesh(input: String, output: String, quiet: bool) -> Result<(), ErrorWrapper> {
+    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+    let mut finite_elements = match read_input::<TRI, TriangularFiniteElements>(
+        &input,
+        None,
+        None,
+        None,
+        Remove::default(),
+        Scale::default(),
+        Translate::default(),
+        quiet,
+        true,
+    )? {
+        InputTypes::Abaqus(finite_elements) => Ok(finite_elements),
+        InputTypes::Stl(tessellation) => Ok(tessellation.into()),
+        _ => Err(invalid_input(&input, input_extension)),
+    }
+    .unwrap();
+//
+// fix unwwrap() and use smoothing as a subcommand to recycle as much as possible
+//
+    finite_elements.remesh(5, &Smoothing::Taubin(20, 0.1, 0.607));
+    match output_extension {
+        Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
+        Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
+        Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
+        Some("stl") => write_output(
+            output,
+            OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
+            quiet,
+        ),
+        Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
+        _ => invalid_output(&output, output_extension),
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
