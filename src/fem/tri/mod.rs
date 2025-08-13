@@ -268,8 +268,10 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_itera
         //         println!("small {:?}", length)
         //     }
         // );
-        // split_edges(fem, &edges, &lengths, average_length);
-        collapse_edges(fem, &mut edges, lengths, average_length);
+        // fem.node_element_connectivity().unwrap();
+        // fem.node_node_connectivity().unwrap();
+        split_edges(fem, &edges, &lengths, average_length);
+        // collapse_edges(fem, &mut edges, lengths, average_length);
         // flip_edges(fem, edges);
         // Vertex averaging is Laplace smoothing but while removing the normal component.
     });
