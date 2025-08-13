@@ -1592,7 +1592,7 @@ impl From<Octree> for TriangularFiniteElements {
                 .for_each(|(cell, faces)| {
                     faces.iter().enumerate().for_each(|(face_index, face)| {
                         if let Some(face_cell) = face
-                            && boundaries_face_from_cell[boundary][*cell][face_index]
+                            && !boundaries_face_from_cell[boundary][*cell][face_index]
                         {
                             boundaries_face_from_cell[boundary][*cell][face_index] = true;
                             #[allow(clippy::collapsible_if)]
