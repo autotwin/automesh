@@ -657,6 +657,7 @@ fn renumber_nodes(
                 .for_each(|node| *node = mapping[*node - NODE_NUMBERING_OFFSET])
         });
     initial_nodal_coordinates.retain(|coordinate| coordinate.is_some());
+    #[allow(clippy::filter_map_identity)]
     let nodal_coordinates = initial_nodal_coordinates
         .into_iter()
         .filter_map(|entry| entry)
