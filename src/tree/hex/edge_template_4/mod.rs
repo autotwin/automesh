@@ -131,25 +131,22 @@ fn template(
     nodal_coordinates: &Coordinates,
 ) {
     let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();
-    if let Some(subcell_a_face_m) = subcell_a_faces[face_m] {
-        if let Some(subcell_a_face_n) = subcell_a_faces[face_n] {
-            if let Some(diagonal_a) = tree[subcell_a_face_m].get_faces()[face_n] {
-                if tree[diagonal_a].is_leaf() {
+    if let Some(subcell_a_face_m) = subcell_a_faces[face_m]
+        && let Some(subcell_a_face_n) = subcell_a_faces[face_n]
+            && let Some(diagonal_a) = tree[subcell_a_face_m].get_faces()[face_n]
+                && tree[diagonal_a].is_leaf() {
                     let subcell_b_faces = tree[cell_subcells[subcell_b]].get_faces();
-                    if let Some(subcell_b_face_m) = subcell_b_faces[face_m] {
-                        if let Some(subcell_b_face_n) = subcell_b_faces[face_n] {
-                            if let Some(diagonal_b) = tree[subcell_b_face_m].get_faces()[face_n] {
-                                if tree[diagonal_b].is_leaf() {
-                                    if let Some((subcell_a_face_m_subcells, _)) =
+                    if let Some(subcell_b_face_m) = subcell_b_faces[face_m]
+                        && let Some(subcell_b_face_n) = subcell_b_faces[face_n]
+                            && let Some(diagonal_b) = tree[subcell_b_face_m].get_faces()[face_n]
+                                && tree[diagonal_b].is_leaf()
+                                    && let Some((subcell_a_face_m_subcells, _)) =
                                         tree.cell_contains_leaves(&tree[subcell_a_face_m])
-                                    {
-                                        if let Some((subcell_a_face_n_subcells, _)) =
+                                        && let Some((subcell_a_face_n_subcells, _)) =
                                             tree.cell_contains_leaves(&tree[subcell_a_face_n])
-                                        {
-                                            if let Some((subcell_b_face_m_subcells, _)) =
+                                            && let Some((subcell_b_face_m_subcells, _)) =
                                                 tree.cell_contains_leaves(&tree[subcell_b_face_m])
-                                            {
-                                                if let Some((subcell_b_face_n_subcells, _)) = tree
+                                                && let Some((subcell_b_face_n_subcells, _)) = tree
                                                     .cell_contains_leaves(&tree[subcell_b_face_n])
                                                 {
                                                     let lngth = *tree[subcell_a_face_m_subcells
@@ -247,15 +244,5 @@ fn template(
                                                         node_3,
                                                     ]);
                                                 }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                 }
-            }
-        }
-    }
 }

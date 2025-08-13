@@ -556,8 +556,8 @@ impl Octree {
             while index < self.len() {
                 if !self[index].is_voxel() && self[index].is_leaf() {
                     'faces: for (face, face_cell) in self[index].get_faces().iter().enumerate() {
-                        if let Some(neighbor) = face_cell {
-                            if let Some(kids) = self[*neighbor].get_cells() {
+                        if let Some(neighbor) = face_cell
+                            && let Some(kids) = self[*neighbor].get_cells() {
                                 if strong {
                                     edges = from_fn(|_| false);
                                     vertices = from_fn(|_| false);
@@ -811,7 +811,6 @@ impl Octree {
                                     break 'faces;
                                 }
                             }
-                        }
                     }
                     if subdivide {
                         block = self[index].get_block();
@@ -988,13 +987,11 @@ impl Octree {
                                                 |subcell| {
                                                     if let Ok(spot) = block_leaves
                                                         .binary_search(&subcells[subcell])
-                                                    {
-                                                        if self[subcells[subcell]].get_block()
+                                                        && self[subcells[subcell]].get_block()
                                                             == block
                                                         {
                                                             cluster.push(block_leaves.remove(spot));
                                                         }
-                                                    }
                                                 },
                                             )
                                         }
@@ -1007,16 +1004,12 @@ impl Octree {
                             if let Some([parent, subcell]) = supercells[cluster[index]] {
                                 self[parent].get_faces().iter().enumerate().for_each(
                                     |(face, &face_cell)| {
-                                        if let Some(cell) = face_cell {
-                                            if subcells_on_own_face_contains(face, subcell) {
-                                                if let Ok(spot) = block_leaves.binary_search(&cell)
-                                                {
-                                                    if self[cell].get_block() == block {
+                                        if let Some(cell) = face_cell
+                                            && subcells_on_own_face_contains(face, subcell)
+                                                && let Ok(spot) = block_leaves.binary_search(&cell)
+                                                    && self[cell].get_block() == block {
                                                         cluster.push(block_leaves.remove(spot));
                                                     }
-                                                }
-                                            }
-                                        }
                                     },
                                 );
                             }
@@ -1455,8 +1448,8 @@ impl Octree {
             .iter()
             .enumerate()
             .for_each(|(face, &face_cell)| {
-                if let Some(neighbor) = face_cell {
-                    if let Some(kids) = self[neighbor].cells {
+                if let Some(neighbor) = face_cell
+                    && let Some(kids) = self[neighbor].cells {
                         subcells_on_own_face(face)
                             .iter()
                             .zip(subcells_on_neighbor_face(face).iter())
@@ -1466,7 +1459,6 @@ impl Octree {
                                     Some(new_indices[subcell]);
                             });
                     }
-                }
             });
         self.extend(new_cells);
     }
@@ -1596,8 +1588,8 @@ impl From<Octree> for TriangularFiniteElements {
                 .iter()
                 .for_each(|(cell, faces)| {
                     faces.iter().enumerate().for_each(|(face_index, face)| {
-                        if let Some(face_cell) = face {
-                            if !boundaries_face_from_cell[boundary][*cell][face_index] {
+                        if let Some(face_cell) = face
+                            && !boundaries_face_from_cell[boundary][*cell][face_index] {
                                 boundaries_face_from_cell[boundary][*cell][face_index] = true;
                                 #[allow(clippy::collapsible_if)]
                                 if face_cell != &usize::MAX {
@@ -1645,7 +1637,6 @@ impl From<Octree> for TriangularFiniteElements {
                                 face_cells.push(*cell);
                                 faces_connectivity.push(face_connectivity)
                             }
-                        }
                     })
                 })
         });

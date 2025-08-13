@@ -178,43 +178,35 @@ fn template(
             _ => panic!(),
         };
     let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();
-    if let Some(subcell_a_face_m) = subcell_a_faces[face_m] {
-        if let Some(subcell_a_face_n) = subcell_a_faces[face_n] {
-            if let Some((subcell_a_face_m_subcells, _)) =
+    if let Some(subcell_a_face_m) = subcell_a_faces[face_m]
+        && let Some(subcell_a_face_n) = subcell_a_faces[face_n]
+            && let Some((subcell_a_face_m_subcells, _)) =
                 tree.cell_contains_leaves(&tree[subcell_a_face_m])
-            {
-                if let Some((subcell_a_face_n_subcells, _)) =
+                && let Some((subcell_a_face_n_subcells, _)) =
                     tree.cell_contains_leaves(&tree[subcell_a_face_n])
-                {
-                    if let Some(diagonal_a) =
+                    && let Some(diagonal_a) =
                         tree[subcell_a_face_m_subcells[subcell_c]].get_faces()[face_n]
-                    {
-                        if tree[diagonal_a].is_leaf() {
-                            if let Some(subdiagonal_a) =
+                        && tree[diagonal_a].is_leaf()
+                            && let Some(subdiagonal_a) =
                                 tree[subcell_a_face_m_subcells[subcell_e]].get_faces()[face_n]
-                            {
-                                if tree[subdiagonal_a].is_leaf() {
+                                && tree[subdiagonal_a].is_leaf() {
                                     let subcell_b_faces =
                                         tree[cell_subcells[subcell_b]].get_faces();
-                                    if let Some(subcell_b_face_m) = subcell_b_faces[face_m] {
-                                        if let Some(subcell_b_face_n) = subcell_b_faces[face_n] {
-                                            if let Some((subcell_b_face_m_subcells, _)) =
+                                    if let Some(subcell_b_face_m) = subcell_b_faces[face_m]
+                                        && let Some(subcell_b_face_n) = subcell_b_faces[face_n]
+                                            && let Some((subcell_b_face_m_subcells, _)) =
                                                 tree.cell_contains_leaves(&tree[subcell_b_face_m])
-                                            {
-                                                if let Some((subcell_b_face_n_subcells, _)) = tree
+                                                && let Some((subcell_b_face_n_subcells, _)) = tree
                                                     .cell_contains_leaves(&tree[subcell_b_face_n])
-                                                {
-                                                    if let Some(diagonal_b) = tree
+                                                    && let Some(diagonal_b) = tree
                                                         [subcell_b_face_m_subcells[subcell_e]]
                                                         .get_faces()[face_n]
-                                                    {
-                                                        if tree[diagonal_b].is_leaf() {
-                                                            if let Some(subdiagonal_b) = tree
+                                                        && tree[diagonal_b].is_leaf()
+                                                            && let Some(subdiagonal_b) = tree
                                                                 [subcell_b_face_m_subcells
                                                                     [subcell_c]]
                                                                 .get_faces()[face_n]
-                                                            {
-                                                                if tree[subdiagonal_b].is_leaf() {
+                                                                && tree[subdiagonal_b].is_leaf() {
                                                                     let lngth = *tree
                                                                         [subcell_a_face_m_subcells
                                                                             [subcell_e]]
@@ -370,19 +362,5 @@ fn template(
                                                                     }
                                                                     *node_index += 2;
                                                                 }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

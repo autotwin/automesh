@@ -23,9 +23,9 @@ pub fn apply(cells_nodes: &[usize], tree: &Octree) -> HexConnectivity {
                 .iter()
                 .enumerate()
                 .for_each(|(face_index, face_cell)| {
-                    if let Some(face_cell_index) = face_cell {
-                        if let Some(face_subcells) = tree[*face_cell_index].get_cells() {
-                            if tree.just_leaves(face_subcells) {
+                    if let Some(face_cell_index) = face_cell
+                        && let Some(face_subcells) = tree[*face_cell_index].get_cells()
+                            && tree.just_leaves(face_subcells) {
                                 match face_index {
                                     0 => {
                                         element_node_connectivity.push([
@@ -70,51 +70,39 @@ pub fn apply(cells_nodes: &[usize], tree: &Octree) -> HexConnectivity {
                                     _ => panic!(),
                                 }
                             }
-                        }
-                    }
                 });
             if let Some(face_4) = connected_faces[4] {
                 fa_4_subcells = tree[*face_4].get_cells().unwrap();
             }
             if let Some(face_1) = connected_faces[1] {
                 fa_1_subcells = tree[*face_1].get_cells().unwrap();
-                if connected_faces[4].is_some() {
-                    if let Some(diag_subcells) =
+                if connected_faces[4].is_some()
+                    && let Some(diag_subcells) =
                         tree[tree[*face_1].get_faces()[4].unwrap()].get_cells()
-                    {
-                        if tree.just_leaves(diag_subcells) {
+                        && tree.just_leaves(diag_subcells) {
                             d_14_subcells = Some(diag_subcells);
                         }
-                    }
-                }
             }
             if let Some(face_0) = connected_faces[0] {
                 fa_0_subcells = tree[*face_0].get_cells().unwrap();
                 face_0_faces = tree[*face_0].get_faces();
-                if connected_faces[1].is_some() {
-                    if let Some(diag_subcells) = tree[face_0_faces[1].unwrap()].get_cells() {
-                        if tree.just_leaves(diag_subcells) {
+                if connected_faces[1].is_some()
+                    && let Some(diag_subcells) = tree[face_0_faces[1].unwrap()].get_cells()
+                        && tree.just_leaves(diag_subcells) {
                             d_01_subcells = Some(diag_subcells);
                         }
-                    }
-                }
-                if connected_faces[4].is_some() {
-                    if let Some(diag_subcells) = tree[face_0_faces[4].unwrap()].get_cells() {
-                        if tree.just_leaves(diag_subcells) {
+                if connected_faces[4].is_some()
+                    && let Some(diag_subcells) = tree[face_0_faces[4].unwrap()].get_cells()
+                        && tree.just_leaves(diag_subcells) {
                             d_04_subcells = Some(diag_subcells);
-                            if d_01_subcells.is_some() && d_01_subcells.is_some() {
-                                if let Some(diag_subcells_also) = tree
+                            if d_01_subcells.is_some() && d_01_subcells.is_some()
+                                && let Some(diag_subcells_also) = tree
                                     [tree[face_0_faces[1].unwrap()].get_faces()[4].unwrap()]
                                 .get_cells()
-                                {
-                                    if tree.just_leaves(diag_subcells_also) {
+                                    && tree.just_leaves(diag_subcells_also) {
                                         d014_subcells = Some(diag_subcells_also)
                                     }
-                                }
-                            }
                         }
-                    }
-                }
             }
             if let Some(diag_subcells) = d_01_subcells {
                 element_node_connectivity.push([

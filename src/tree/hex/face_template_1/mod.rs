@@ -22,8 +22,8 @@ pub fn apply(
                 .iter()
                 .enumerate()
                 .for_each(|(face_index, face_cell)| {
-                    if let Some(face_cell_index) = face_cell {
-                        if let Some(face_subsubcells) =
+                    if let Some(face_cell_index) = face_cell
+                        && let Some(face_subsubcells) =
                             tree.cell_subcells_contain_leaves(&tree[*face_cell_index], face_index)
                         {
                             template(
@@ -38,7 +38,6 @@ pub fn apply(
                                 node_index,
                             )
                         }
-                    }
                 })
         });
 }

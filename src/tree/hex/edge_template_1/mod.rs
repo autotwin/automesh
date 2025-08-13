@@ -199,20 +199,17 @@ fn template(
         .collect::<Vec<TensorRank1<3, 1>>>()
         .try_into()
         .unwrap();
-    if let Some(cell_face_m) = cell.get_faces()[face_m] {
-        if let Some(cell_face_n) = cell.get_faces()[face_n] {
-            if let Some(cell_diag_mn) = tree[cell_face_m].get_faces()[face_n] {
-                if let Some((subcells_face_m, _)) = tree.cell_contains_leaves(&tree[cell_face_m]) {
-                    if let Some((subcells_face_n, _)) =
+    if let Some(cell_face_m) = cell.get_faces()[face_m]
+        && let Some(cell_face_n) = cell.get_faces()[face_n]
+            && let Some(cell_diag_mn) = tree[cell_face_m].get_faces()[face_n]
+                && let Some((subcells_face_m, _)) = tree.cell_contains_leaves(&tree[cell_face_m])
+                    && let Some((subcells_face_n, _)) =
                         tree.cell_contains_leaves(&tree[cell_face_n])
-                    {
-                        if let Some((subcells_diag_mn, _)) =
+                        && let Some((subcells_diag_mn, _)) =
                             tree.cell_contains_leaves(&tree[cell_diag_mn])
-                        {
-                            if let Some(subcells_m) =
+                            && let Some(subcells_m) =
                                 tree.cell_subcells_contain_leaves(cell, mirror_face(face_m))
-                            {
-                                if tree
+                                && tree
                                     .cell_subcells_contain_leaves(cell, mirror_face(face_n))
                                     .is_some()
                                 {
@@ -322,11 +319,4 @@ fn template(
                                     ]);
                                     *node_index += 6;
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
 }

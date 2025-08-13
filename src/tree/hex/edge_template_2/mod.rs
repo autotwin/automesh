@@ -16,8 +16,8 @@ pub fn apply(
                 .iter()
                 .enumerate()
                 .for_each(|(face_index, face_cell)| {
-                    if let Some(face_cell_index) = face_cell {
-                        if let Some(face_subsubcells) =
+                    if let Some(face_cell_index) = face_cell
+                        && let Some(face_subsubcells) =
                             tree.cell_subcells_contain_leaves(&tree[*face_cell_index], face_index)
                         {
                             template_inner(face_index).into_iter().for_each(
@@ -36,14 +36,12 @@ pub fn apply(
                                     adjacent_face_subsubcell_c,
                                     adjacent_face_subsubcell_d,
                                 ]| {
-                                    if let Some(adjacent_cell) = cell_faces[adjacent_face] {
-                                        if let Some((adjacent_cell_subcells, adjacent_cell_faces)) =
+                                    if let Some(adjacent_cell) = cell_faces[adjacent_face]
+                                        && let Some((adjacent_cell_subcells, adjacent_cell_faces)) =
                                             tree.cell_contains_leaves(&tree[adjacent_cell])
-                                        {
-                                            if let Some(adjacent_cell_face_cell) =
+                                            && let Some(adjacent_cell_face_cell) =
                                                 adjacent_cell_faces[face_index]
-                                            {
-                                                if let Some(adjacent_face_subsubcells) = tree
+                                                && let Some(adjacent_face_subsubcells) = tree
                                                     .cell_subcells_contain_leaves(
                                                         &tree[adjacent_cell_face_cell],
                                                         face_index,
@@ -158,13 +156,9 @@ pub fn apply(
                                                         cells_nodes[cell_subcells[cell_subcell_b]],
                                                     ]);
                                                 }
-                                            }
-                                        }
-                                    }
                                 },
                             )
                         }
-                    }
                 })
         });
     element_node_connectivity
