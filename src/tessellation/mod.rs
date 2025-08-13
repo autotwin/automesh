@@ -1,7 +1,7 @@
 use super::{
     Vector,
     fem::{
-        FiniteElementMethods, HexahedralFiniteElements, NODE_NUMBERING_OFFSET, TRI,
+        FiniteElementMethods, HexahedralFiniteElements, NODE_NUMBERING_OFFSET, Smoothing, TRI,
         TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
@@ -86,9 +86,9 @@ impl Tessellation {
         &self.data
     }
     /// Isotropic remeshing of the tessellation.
-    pub fn remesh(self, iterations: usize, smoothing_iterations: usize) -> Self {
+    pub fn remesh(self, iterations: usize, smoothing_method: &Smoothing) -> Self {
         let mut finite_elements = TriangularFiniteElements::from(self);
-        finite_elements.remesh(iterations, smoothing_iterations);
+        finite_elements.remesh(iterations, smoothing_method);
         finite_elements.into()
     }
     /// Writes the tessellation data to a new STL file.

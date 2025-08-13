@@ -1558,10 +1558,10 @@ where
                     }
                 }
             }
-            println!("{:?}", output_type.get_nodal_coordinates());
 
             let foo = 1.0;
-            output_type.remesh(1, 1);
+            output_type.remesh(5, &Smoothing::Taubin(20, 0.1, 0.607));
+            // output_type.remesh(5, &Smoothing::Taubin(iterations, pass_band, scale));
 
             let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
             match output_extension {
@@ -1866,10 +1866,10 @@ where
         output_type.nodal_influencers();
         match smoothing_method.as_str() {
             "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-                output_type.smooth(Smoothing::Laplacian(iterations, scale))?;
+                output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;
             }
             "Taubin" | "taubin" => {
-                output_type.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
+                output_type.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
             }
             _ => panic!(),
         }
