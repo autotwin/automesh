@@ -201,122 +201,110 @@ fn template(
         .unwrap();
     if let Some(cell_face_m) = cell.get_faces()[face_m]
         && let Some(cell_face_n) = cell.get_faces()[face_n]
-            && let Some(cell_diag_mn) = tree[cell_face_m].get_faces()[face_n]
-                && let Some((subcells_face_m, _)) = tree.cell_contains_leaves(&tree[cell_face_m])
-                    && let Some((subcells_face_n, _)) =
-                        tree.cell_contains_leaves(&tree[cell_face_n])
-                        && let Some((subcells_diag_mn, _)) =
-                            tree.cell_contains_leaves(&tree[cell_diag_mn])
-                            && let Some(subcells_m) =
-                                tree.cell_subcells_contain_leaves(cell, mirror_face(face_m))
-                                && tree
-                                    .cell_subcells_contain_leaves(cell, mirror_face(face_n))
-                                    .is_some()
-                                {
-                                    let lngth = *tree[subcells_m[subcell_m_a]].get_lngth() as f64;
-                                    nodal_coordinates.push(
-                                        &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]]
-                                            - NODE_NUMBERING_OFFSET]
-                                            + &directions[0] * lngth,
-                                    );
-                                    nodal_coordinates.push(
-                                        &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]]
-                                            - NODE_NUMBERING_OFFSET]
-                                            + &directions[0] * lngth
-                                            + &directions[1] * lngth,
-                                    );
-                                    nodal_coordinates.push(
-                                        &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]]
-                                            - NODE_NUMBERING_OFFSET]
-                                            + &directions[1] * lngth,
-                                    );
-                                    nodal_coordinates.push(
-                                        &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]]
-                                            - NODE_NUMBERING_OFFSET]
-                                            + &directions[0] * lngth,
-                                    );
-                                    nodal_coordinates.push(
-                                        &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]]
-                                            - NODE_NUMBERING_OFFSET]
-                                            + &directions[0] * lngth
-                                            + &directions[1] * lngth,
-                                    );
-                                    nodal_coordinates.push(
-                                        &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]]
-                                            - NODE_NUMBERING_OFFSET]
-                                            + &directions[1] * lngth,
-                                    );
-                                    (0..6).for_each(|k| {
-                                        assert!(
-                                            nodes_map
-                                                .insert(
-                                                    (
-                                                        (2.0 * nodal_coordinates[*node_index + k
-                                                            - NODE_NUMBERING_OFFSET][0])
-                                                            as usize,
-                                                        (2.0 * nodal_coordinates[*node_index + k
-                                                            - NODE_NUMBERING_OFFSET][1])
-                                                            as usize,
-                                                        (2.0 * nodal_coordinates[*node_index + k
-                                                            - NODE_NUMBERING_OFFSET][2])
-                                                            as usize,
-                                                    ),
-                                                    *node_index + k,
-                                                )
-                                                .is_none(),
-                                            "duplicate entry"
-                                        )
-                                    });
-                                    element_node_connectivity.push([
-                                        cells_nodes[subcells_m[subcell_m_a]],
-                                        *node_index,
-                                        *node_index + 1,
-                                        *node_index + 2,
-                                        cells_nodes[subcells_m[subcell_m_b]],
-                                        *node_index + 3,
-                                        *node_index + 4,
-                                        *node_index + 5,
-                                    ]);
-                                    element_node_connectivity.push([
-                                        *node_index,
-                                        cells_nodes[subcells_face_m[subcell_face_m_a]],
-                                        cells_nodes[subcells_diag_mn[subcell_diag_mn_a]],
-                                        *node_index + 1,
-                                        *node_index + 3,
-                                        cells_nodes[subcells_face_m[subcell_face_m_b]],
-                                        cells_nodes[subcells_diag_mn[subcell_diag_mn_b]],
-                                        *node_index + 4,
-                                    ]);
-                                    element_node_connectivity.push([
-                                        *node_index + 1,
-                                        cells_nodes[subcells_diag_mn[subcell_diag_mn_a]],
-                                        cells_nodes[subcells_face_n[subcell_face_n_a]],
-                                        *node_index + 2,
-                                        *node_index + 4,
-                                        cells_nodes[subcells_diag_mn[subcell_diag_mn_b]],
-                                        cells_nodes[subcells_face_n[subcell_face_n_b]],
-                                        *node_index + 5,
-                                    ]);
-                                    element_node_connectivity.push([
-                                        cells_nodes[subcells_m[subcell_m_a]],
-                                        *node_index + 2,
-                                        *node_index + 1,
-                                        *node_index,
-                                        cells_nodes[subcells_m[subcell_m_c]],
-                                        cells_nodes[subcells_face_n[subcell_face_n_a]],
-                                        cells_nodes[subcells_diag_mn[subcell_diag_mn_a]],
-                                        cells_nodes[subcells_face_m[subcell_face_m_a]],
-                                    ]);
-                                    element_node_connectivity.push([
-                                        cells_nodes[subcells_m[subcell_m_b]],
-                                        *node_index + 3,
-                                        *node_index + 4,
-                                        *node_index + 5,
-                                        cells_nodes[subcells_m[subcell_m_d]],
-                                        cells_nodes[subcells_face_m[subcell_face_m_b]],
-                                        cells_nodes[subcells_diag_mn[subcell_diag_mn_b]],
-                                        cells_nodes[subcells_face_n[subcell_face_n_b]],
-                                    ]);
-                                    *node_index += 6;
-                                }
+        && let Some(cell_diag_mn) = tree[cell_face_m].get_faces()[face_n]
+        && let Some((subcells_face_m, _)) = tree.cell_contains_leaves(&tree[cell_face_m])
+        && let Some((subcells_face_n, _)) = tree.cell_contains_leaves(&tree[cell_face_n])
+        && let Some((subcells_diag_mn, _)) = tree.cell_contains_leaves(&tree[cell_diag_mn])
+        && let Some(subcells_m) = tree.cell_subcells_contain_leaves(cell, mirror_face(face_m))
+        && tree
+            .cell_subcells_contain_leaves(cell, mirror_face(face_n))
+            .is_some()
+    {
+        let lngth = *tree[subcells_m[subcell_m_a]].get_lngth() as f64;
+        nodal_coordinates.push(
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]] - NODE_NUMBERING_OFFSET]
+                + &directions[0] * lngth,
+        );
+        nodal_coordinates.push(
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]] - NODE_NUMBERING_OFFSET]
+                + &directions[0] * lngth
+                + &directions[1] * lngth,
+        );
+        nodal_coordinates.push(
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]] - NODE_NUMBERING_OFFSET]
+                + &directions[1] * lngth,
+        );
+        nodal_coordinates.push(
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]] - NODE_NUMBERING_OFFSET]
+                + &directions[0] * lngth,
+        );
+        nodal_coordinates.push(
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]] - NODE_NUMBERING_OFFSET]
+                + &directions[0] * lngth
+                + &directions[1] * lngth,
+        );
+        nodal_coordinates.push(
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]] - NODE_NUMBERING_OFFSET]
+                + &directions[1] * lngth,
+        );
+        (0..6).for_each(|k| {
+            assert!(
+                nodes_map
+                    .insert(
+                        (
+                            (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET][0])
+                                as usize,
+                            (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET][1])
+                                as usize,
+                            (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET][2])
+                                as usize,
+                        ),
+                        *node_index + k,
+                    )
+                    .is_none(),
+                "duplicate entry"
+            )
+        });
+        element_node_connectivity.push([
+            cells_nodes[subcells_m[subcell_m_a]],
+            *node_index,
+            *node_index + 1,
+            *node_index + 2,
+            cells_nodes[subcells_m[subcell_m_b]],
+            *node_index + 3,
+            *node_index + 4,
+            *node_index + 5,
+        ]);
+        element_node_connectivity.push([
+            *node_index,
+            cells_nodes[subcells_face_m[subcell_face_m_a]],
+            cells_nodes[subcells_diag_mn[subcell_diag_mn_a]],
+            *node_index + 1,
+            *node_index + 3,
+            cells_nodes[subcells_face_m[subcell_face_m_b]],
+            cells_nodes[subcells_diag_mn[subcell_diag_mn_b]],
+            *node_index + 4,
+        ]);
+        element_node_connectivity.push([
+            *node_index + 1,
+            cells_nodes[subcells_diag_mn[subcell_diag_mn_a]],
+            cells_nodes[subcells_face_n[subcell_face_n_a]],
+            *node_index + 2,
+            *node_index + 4,
+            cells_nodes[subcells_diag_mn[subcell_diag_mn_b]],
+            cells_nodes[subcells_face_n[subcell_face_n_b]],
+            *node_index + 5,
+        ]);
+        element_node_connectivity.push([
+            cells_nodes[subcells_m[subcell_m_a]],
+            *node_index + 2,
+            *node_index + 1,
+            *node_index,
+            cells_nodes[subcells_m[subcell_m_c]],
+            cells_nodes[subcells_face_n[subcell_face_n_a]],
+            cells_nodes[subcells_diag_mn[subcell_diag_mn_a]],
+            cells_nodes[subcells_face_m[subcell_face_m_a]],
+        ]);
+        element_node_connectivity.push([
+            cells_nodes[subcells_m[subcell_m_b]],
+            *node_index + 3,
+            *node_index + 4,
+            *node_index + 5,
+            cells_nodes[subcells_m[subcell_m_d]],
+            cells_nodes[subcells_face_m[subcell_face_m_b]],
+            cells_nodes[subcells_diag_mn[subcell_diag_mn_b]],
+            cells_nodes[subcells_face_n[subcell_face_n_b]],
+        ]);
+        *node_index += 6;
+    }
 }

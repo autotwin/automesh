@@ -133,116 +133,94 @@ fn template(
     let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();
     if let Some(subcell_a_face_m) = subcell_a_faces[face_m]
         && let Some(subcell_a_face_n) = subcell_a_faces[face_n]
-            && let Some(diagonal_a) = tree[subcell_a_face_m].get_faces()[face_n]
-                && tree[diagonal_a].is_leaf() {
-                    let subcell_b_faces = tree[cell_subcells[subcell_b]].get_faces();
-                    if let Some(subcell_b_face_m) = subcell_b_faces[face_m]
-                        && let Some(subcell_b_face_n) = subcell_b_faces[face_n]
-                            && let Some(diagonal_b) = tree[subcell_b_face_m].get_faces()[face_n]
-                                && tree[diagonal_b].is_leaf()
-                                    && let Some((subcell_a_face_m_subcells, _)) =
-                                        tree.cell_contains_leaves(&tree[subcell_a_face_m])
-                                        && let Some((subcell_a_face_n_subcells, _)) =
-                                            tree.cell_contains_leaves(&tree[subcell_a_face_n])
-                                            && let Some((subcell_b_face_m_subcells, _)) =
-                                                tree.cell_contains_leaves(&tree[subcell_b_face_m])
-                                                && let Some((subcell_b_face_n_subcells, _)) = tree
-                                                    .cell_contains_leaves(&tree[subcell_b_face_n])
-                                                {
-                                                    let lngth = *tree[subcell_a_face_m_subcells
-                                                        [subcell_face_m_p]]
-                                                        .get_lngth()
-                                                        as f64;
-                                                    let coordinates_1 = &nodal_coordinates
-                                                        [cells_nodes[subcell_a_face_m_subcells
-                                                            [subcell_face_m_p]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        - face_direction(face_m) * lngth;
-                                                    let node_1 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_1[0]) as usize,
-                                                            (2.0 * coordinates_1[1]) as usize,
-                                                            (2.0 * coordinates_1[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    let coordinates_2 = &nodal_coordinates
-                                                        [cells_nodes[subcell_b_face_m_subcells
-                                                            [subcell_face_m_q]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        - face_direction(face_m) * lngth;
-                                                    let node_2 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_2[0]) as usize,
-                                                            (2.0 * coordinates_2[1]) as usize,
-                                                            (2.0 * coordinates_2[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    let coordinates_3 = &nodal_coordinates
-                                                        [cells_nodes[subcell_a_face_m_subcells
-                                                            [subcell_face_m_p]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        + face_direction(face_n) * lngth;
-                                                    let node_3 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_3[0]) as usize,
-                                                            (2.0 * coordinates_3[1]) as usize,
-                                                            (2.0 * coordinates_3[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    let coordinates_4 = &nodal_coordinates
-                                                        [cells_nodes[subcell_b_face_m_subcells
-                                                            [subcell_face_m_q]]
-                                                            - NODE_NUMBERING_OFFSET]
-                                                        + face_direction(face_n) * lngth;
-                                                    let node_4 = *nodes_map
-                                                        .get(&(
-                                                            (2.0 * coordinates_4[0]) as usize,
-                                                            (2.0 * coordinates_4[1]) as usize,
-                                                            (2.0 * coordinates_4[2]) as usize,
-                                                        ))
-                                                        .expect("nonexistent entry");
-                                                    element_node_connectivity.push([
-                                                        cells_nodes[subcell_a_face_m_subcells
-                                                            [subcell_face_m_p]],
-                                                        node_1,
-                                                        node_2,
-                                                        cells_nodes[subcell_b_face_m_subcells
-                                                            [subcell_face_m_q]],
-                                                        node_3,
-                                                        cells_nodes[subcell_a_face_n_subcells
-                                                            [subcell_face_n_p]],
-                                                        cells_nodes[subcell_b_face_n_subcells
-                                                            [subcell_face_n_q]],
-                                                        node_4,
-                                                    ]);
-                                                    element_node_connectivity.push([
-                                                        cells_nodes[subcell_b_face_m_subcells
-                                                            [subcell_face_m_q]],
-                                                        node_2,
-                                                        cells_nodes[cell_subcells[subcell_b]],
-                                                        cells_nodes[subcell_b_face_m_subcells
-                                                            [subcell_face_m_p]],
-                                                        node_4,
-                                                        cells_nodes[subcell_b_face_n_subcells
-                                                            [subcell_face_n_q]],
-                                                        cells_nodes[subcell_b_face_n_subcells
-                                                            [subcell_face_n_p]],
-                                                        cells_nodes[diagonal_b],
-                                                    ]);
-                                                    element_node_connectivity.push([
-                                                        cells_nodes[subcell_a_face_m_subcells
-                                                            [subcell_face_m_q]],
-                                                        cells_nodes[cell_subcells[subcell_a]],
-                                                        node_1,
-                                                        cells_nodes[subcell_a_face_m_subcells
-                                                            [subcell_face_m_p]],
-                                                        cells_nodes[diagonal_a],
-                                                        cells_nodes[subcell_a_face_n_subcells
-                                                            [subcell_face_n_q]],
-                                                        cells_nodes[subcell_a_face_n_subcells
-                                                            [subcell_face_n_p]],
-                                                        node_3,
-                                                    ]);
-                                                }
-                }
+        && let Some(diagonal_a) = tree[subcell_a_face_m].get_faces()[face_n]
+        && tree[diagonal_a].is_leaf()
+    {
+        let subcell_b_faces = tree[cell_subcells[subcell_b]].get_faces();
+        if let Some(subcell_b_face_m) = subcell_b_faces[face_m]
+            && let Some(subcell_b_face_n) = subcell_b_faces[face_n]
+            && let Some(diagonal_b) = tree[subcell_b_face_m].get_faces()[face_n]
+            && tree[diagonal_b].is_leaf()
+            && let Some((subcell_a_face_m_subcells, _)) =
+                tree.cell_contains_leaves(&tree[subcell_a_face_m])
+            && let Some((subcell_a_face_n_subcells, _)) =
+                tree.cell_contains_leaves(&tree[subcell_a_face_n])
+            && let Some((subcell_b_face_m_subcells, _)) =
+                tree.cell_contains_leaves(&tree[subcell_b_face_m])
+            && let Some((subcell_b_face_n_subcells, _)) =
+                tree.cell_contains_leaves(&tree[subcell_b_face_n])
+        {
+            let lngth = *tree[subcell_a_face_m_subcells[subcell_face_m_p]].get_lngth() as f64;
+            let coordinates_1 = &nodal_coordinates
+                [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]] - NODE_NUMBERING_OFFSET]
+                - face_direction(face_m) * lngth;
+            let node_1 = *nodes_map
+                .get(&(
+                    (2.0 * coordinates_1[0]) as usize,
+                    (2.0 * coordinates_1[1]) as usize,
+                    (2.0 * coordinates_1[2]) as usize,
+                ))
+                .expect("nonexistent entry");
+            let coordinates_2 = &nodal_coordinates
+                [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]] - NODE_NUMBERING_OFFSET]
+                - face_direction(face_m) * lngth;
+            let node_2 = *nodes_map
+                .get(&(
+                    (2.0 * coordinates_2[0]) as usize,
+                    (2.0 * coordinates_2[1]) as usize,
+                    (2.0 * coordinates_2[2]) as usize,
+                ))
+                .expect("nonexistent entry");
+            let coordinates_3 = &nodal_coordinates
+                [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]] - NODE_NUMBERING_OFFSET]
+                + face_direction(face_n) * lngth;
+            let node_3 = *nodes_map
+                .get(&(
+                    (2.0 * coordinates_3[0]) as usize,
+                    (2.0 * coordinates_3[1]) as usize,
+                    (2.0 * coordinates_3[2]) as usize,
+                ))
+                .expect("nonexistent entry");
+            let coordinates_4 = &nodal_coordinates
+                [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]] - NODE_NUMBERING_OFFSET]
+                + face_direction(face_n) * lngth;
+            let node_4 = *nodes_map
+                .get(&(
+                    (2.0 * coordinates_4[0]) as usize,
+                    (2.0 * coordinates_4[1]) as usize,
+                    (2.0 * coordinates_4[2]) as usize,
+                ))
+                .expect("nonexistent entry");
+            element_node_connectivity.push([
+                cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]],
+                node_1,
+                node_2,
+                cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]],
+                node_3,
+                cells_nodes[subcell_a_face_n_subcells[subcell_face_n_p]],
+                cells_nodes[subcell_b_face_n_subcells[subcell_face_n_q]],
+                node_4,
+            ]);
+            element_node_connectivity.push([
+                cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]],
+                node_2,
+                cells_nodes[cell_subcells[subcell_b]],
+                cells_nodes[subcell_b_face_m_subcells[subcell_face_m_p]],
+                node_4,
+                cells_nodes[subcell_b_face_n_subcells[subcell_face_n_q]],
+                cells_nodes[subcell_b_face_n_subcells[subcell_face_n_p]],
+                cells_nodes[diagonal_b],
+            ]);
+            element_node_connectivity.push([
+                cells_nodes[subcell_a_face_m_subcells[subcell_face_m_q]],
+                cells_nodes[cell_subcells[subcell_a]],
+                node_1,
+                cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]],
+                cells_nodes[diagonal_a],
+                cells_nodes[subcell_a_face_n_subcells[subcell_face_n_q]],
+                cells_nodes[subcell_a_face_n_subcells[subcell_face_n_p]],
+                node_3,
+            ]);
+        }
+    }
 }
