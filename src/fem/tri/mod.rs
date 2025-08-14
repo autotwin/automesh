@@ -267,11 +267,11 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_metho
                     .norm()
             });
         average_length = lengths.iter().sum::<Scalar>() / (lengths.len() as Scalar);
-        // split_edges(fem, &mut edges, &mut lengths, average_length);
-        collapse_edges(fem, &mut edges, &lengths, average_length);
-        // flip_edges(fem, &mut edges);
-        // fem.nodal_influencers();
-        // fem.smooth(smoothing_method).unwrap();
+        split_edges(fem, &mut edges, &mut lengths, average_length);
+        // collapse_edges(fem, &mut edges, &lengths, average_length);
+        flip_edges(fem, &mut edges);
+        fem.nodal_influencers();
+        fem.smooth(smoothing_method).unwrap();
     });
 }
 

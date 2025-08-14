@@ -1797,19 +1797,19 @@ fn remesh(
     }
     finite_elements.node_element_connectivity()?;
     finite_elements.node_node_connectivity()?;
-    // finite_elements.remesh(
-    //     iterations,
-    //     &Smoothing::Taubin(
-    //         TAUBIN_DEFAULT_ITERS,
-    //         TAUBIN_DEFAULT_BAND,
-    //         TAUBIN_DEFAULT_SCALE,
-    //     ),
-    // );
-    let foo = 1;
     finite_elements.remesh(
         iterations,
-        &Smoothing::Taubin(1, TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_SCALE),
+        &Smoothing::Taubin(
+            TAUBIN_DEFAULT_ITERS,
+            TAUBIN_DEFAULT_BAND,
+            TAUBIN_DEFAULT_SCALE,
+        ),
     );
+    let foo = 1;
+    // finite_elements.remesh(
+    //     iterations,
+    //     &Smoothing::Taubin(1, TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_SCALE),
+    // );
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
