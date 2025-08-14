@@ -4,11 +4,14 @@ use automesh::{
 use conspire::{
     constitutive::{
         Constitutive,
-        solid::{AppliedLoad, elastic::Elastic, hyperelastic::NeoHookean},
+        solid::{
+            elastic::AppliedLoad,
+            hyperelastic::{NeoHookean, SecondOrderMinimize},
+        },
     },
     fem::{
-        ElementBlock, FiniteElementBlock, FiniteElementBlockMethods,
-        HyperelasticFiniteElementBlock, LinearTetrahedron,
+        ElementBlock, FiniteElementBlock, FiniteElementBlockMethods, LinearTetrahedron,
+        SecondOrderMinimize as Foo,
     },
     math::{
         Matrix, Tensor, TensorVec, TestError, Vector, assert_eq_within_tols,
@@ -77,12 +80,13 @@ macro_rules! affine_test {
         vector[length - 2] = 0.0;
         vector[length - 1] = 0.0;
         let solution = block.minimize(
-            coordinates.into(),
-            NewtonRaphson::default(),
             EqualityConstraint::Linear(matrix, vector),
+            NewtonRaphson::default(),
         )?;
-        let (deformation_gradient, _) = NeoHookean::new(PARAMETERS)
-            .solve(AppliedLoad::UniaxialStress(STRAIN / side_length + 1.0))?;
+        let deformation_gradient = NeoHookean::new(PARAMETERS).minimize(
+            AppliedLoad::UniaxialStress(STRAIN / side_length + 1.0),
+            NewtonRaphson::default(),
+        )?;
         block
             .deformation_gradients(&solution)
             .iter()

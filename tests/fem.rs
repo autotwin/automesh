@@ -1,7 +1,6 @@
 use automesh::{
     FiniteElementMethods, HexahedralFiniteElements, NSD, Remove, Scale, Translate, Voxels,
 };
-use conspire::math::Tensor;
 use std::{
     fs::File,
     io::{BufRead, BufReader, Read},
