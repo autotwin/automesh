@@ -32,3 +32,10 @@ automesh mesh hex smooth --help
 automesh mesh tri smooth --help
 <!-- cmdrun automesh mesh tri smooth --help -->
 ```
+
+## Mesh Tri Smooth Remesh
+
+```sh
+automesh mesh tri smooth remesh --help
+<!-- cmdrun automesh mesh tri smooth remesh --help -->
+```

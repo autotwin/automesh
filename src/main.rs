@@ -10,6 +10,7 @@ use netcdf::Error as ErrorNetCDF;
 use std::{io::Error as ErrorIO, path::Path, time::Instant};
 use vtkio::Error as ErrorVtk;
 
+const REMESH_DEFAULT_ITERS: usize = 5;
 const TAUBIN_DEFAULT_ITERS: usize = 20;
 const TAUBIN_DEFAULT_BAND: f64 = 0.1;
 const TAUBIN_DEFAULT_SCALE: f64 = 0.6307;
@@ -271,7 +272,7 @@ enum Commands {
         output: String,
 
         /// Number of remeshing iterations
-        #[arg(default_value_t = 5, long, short = 'n', value_name = "NUM")]
+        #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
 
         /// Pass to quiet the terminal output
@@ -605,6 +606,9 @@ struct MeshTriArgs {
 enum MeshSmoothCommands {
     /// Applies smoothing to the mesh before output
     Smooth {
+        #[command(subcommand)]
+        remeshing: Option<MeshRemeshCommands>,
+
         /// Pass to enable hierarchical control
         #[arg(action, long, short = 'c')]
         hierarchical: bool,
@@ -717,6 +721,9 @@ struct SmoothTetArgs {
 
 #[derive(clap::Args)]
 struct SmoothTriArgs {
+    #[command(subcommand)]
+    remeshing: Option<MeshRemeshCommands>,
+
     /// Pass to enable hierarchical control
     #[arg(action, long, short = 'c')]
     hierarchical: bool,
@@ -752,6 +759,20 @@ struct SmoothTriArgs {
     /// Pass to quiet the terminal output
     #[arg(action, long, short)]
     quiet: bool,
+}
+
+#[derive(Subcommand, Debug)]
+enum MeshRemeshCommands {
+    /// Applies isotropic remeshing to the mesh before output
+    Remesh {
+        /// Number of remeshing iterations
+        #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
+        iterations: usize,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+    },
 }
 
 struct ErrorWrapper {
@@ -1433,6 +1454,7 @@ where
             if let Some(options) = smoothing {
                 match options {
                     MeshSmoothCommands::Smooth {
+                        remeshing: _,
                         iterations,
                         method,
                         hierarchical,
@@ -1504,6 +1526,7 @@ where
             if let Some(options) = smoothing {
                 match options {
                     MeshSmoothCommands::Smooth {
+                        remeshing: _,
                         iterations,
                         method,
                         hierarchical,
@@ -1570,6 +1593,7 @@ where
             if let Some(options) = smoothing {
                 match options {
                     MeshSmoothCommands::Smooth {
+                        remeshing,
                         iterations,
                         method,
                         hierarchical,
@@ -1585,6 +1609,25 @@ where
                             scale,
                             quiet,
                         )?;
+                        if let Some(MeshRemeshCommands::Remesh { iterations, quiet }) = remeshing {
+                            let time = Instant::now();
+                            if !quiet {
+                                println!(
+                                    "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations"
+                                )
+                            }
+                            output_type.remesh(
+                                iterations,
+                                &Smoothing::Taubin(
+                                    TAUBIN_DEFAULT_ITERS,
+                                    TAUBIN_DEFAULT_BAND,
+                                    TAUBIN_DEFAULT_SCALE,
+                                ),
+                            );
+                            if !quiet {
+                                println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed())
+                            }
+                        }
                     }
                 }
             }
@@ -1793,22 +1836,17 @@ fn remesh(
     };
     let time = Instant::now();
     if !quiet {
-        println!("     \x1b[1;96mRemeshing\x1b[0m {output}");
+        println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations")
     }
     finite_elements.node_element_connectivity()?;
     finite_elements.node_node_connectivity()?;
-    // finite_elements.remesh(
-    //     iterations,
-    //     &Smoothing::Taubin(
-    //         TAUBIN_DEFAULT_ITERS,
-    //         TAUBIN_DEFAULT_BAND,
-    //         TAUBIN_DEFAULT_SCALE,
-    //     ),
-    // );
-    let foo = 1;
     finite_elements.remesh(
-        1,
-        &Smoothing::Taubin(1, TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_SCALE),
+        iterations,
+        &Smoothing::Taubin(
+            TAUBIN_DEFAULT_ITERS,
+            TAUBIN_DEFAULT_BAND,
+            TAUBIN_DEFAULT_SCALE,
+        ),
     );
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
