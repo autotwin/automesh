@@ -109,7 +109,7 @@ impl FiniteElementSpecifics for TriangularFiniteElements {
     fn minimum_scaled_jacobians(&self) -> Metrics {
         self.minimum_angles()
             .iter()
-            .map(|angle| (angle.sin() / J_EQUILATERAL))
+            .map(|angle| angle.sin() / J_EQUILATERAL)
             .collect()
     }
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
