@@ -1,6 +1,6 @@
 use automesh::{
-    Extraction, FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Nel,
-    Octree, Remove, Scale, Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
+    Extraction, FiniteElementMethods, HEX, HexahedralFiniteElements, Nel, Octree, Remove, Scale,
+    Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
     TriangularFiniteElements, Voxels,
 };
 use clap::{Parser, Subcommand};
@@ -9,6 +9,11 @@ use ndarray_npy::{ReadNpyError, WriteNpyError};
 use netcdf::Error as ErrorNetCDF;
 use std::{io::Error as ErrorIO, path::Path, time::Instant};
 use vtkio::Error as ErrorVtk;
+
+const REMESH_DEFAULT_ITERS: usize = 5;
+const TAUBIN_DEFAULT_ITERS: usize = 20;
+const TAUBIN_DEFAULT_BAND: f64 = 0.1;
+const TAUBIN_DEFAULT_SCALE: f64 = 0.6307;
 
 macro_rules! about {
     () => {
@@ -254,6 +259,25 @@ enum Commands {
         /// Pass to apply strong balancing
         #[arg(action, long, short)]
         strong: bool,
+    },
+
+    /// Applies isotropic remeshing to an existing mesh
+    Remesh {
+        /// Mesh input file (inp | stl)
+        #[arg(long, short, value_name = "FILE")]
+        input: String,
+
+        /// Mesh output file (exo | mesh | stl | vtk)
+        #[arg(long, short, value_name = "FILE")]
+        output: String,
+
+        /// Number of remeshing iterations
+        #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
+        iterations: usize,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
     },
 
     /// Applies smoothing to an existing mesh
@@ -582,12 +606,15 @@ struct MeshTriArgs {
 enum MeshSmoothCommands {
     /// Applies smoothing to the mesh before output
     Smooth {
+        #[command(subcommand)]
+        remeshing: Option<MeshRemeshCommands>,
+
         /// Pass to enable hierarchical control
         #[arg(action, long, short = 'c')]
         hierarchical: bool,
 
         /// Number of smoothing iterations
-        #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+        #[arg(default_value_t = TAUBIN_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
 
         /// Smoothing method (Laplace | Taubin) [default: Taubin]
@@ -595,11 +622,11 @@ enum MeshSmoothCommands {
         method: Option<String>,
 
         /// Pass-band frequency (for Taubin only)
-        #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+        #[arg(default_value_t = TAUBIN_DEFAULT_BAND, long, short = 'k', value_name = "FREQ")]
         pass_band: f64,
 
         /// Scaling parameter for all smoothing methods
-        #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+        #[arg(default_value_t = TAUBIN_DEFAULT_SCALE, long, short, value_name = "SCALE")]
         scale: f64,
     },
 }
@@ -694,6 +721,9 @@ struct SmoothTetArgs {
 
 #[derive(clap::Args)]
 struct SmoothTriArgs {
+    #[command(subcommand)]
+    remeshing: Option<MeshRemeshCommands>,
+
     /// Pass to enable hierarchical control
     #[arg(action, long, short = 'c')]
     hierarchical: bool,
@@ -729,6 +759,20 @@ struct SmoothTriArgs {
     /// Pass to quiet the terminal output
     #[arg(action, long, short)]
     quiet: bool,
+}
+
+#[derive(Subcommand, Debug)]
+enum MeshRemeshCommands {
+    /// Applies isotropic remeshing to the mesh before output
+    Remesh {
+        /// Number of remeshing iterations
+        #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
+        iterations: usize,
+
+        /// Pass to quiet the terminal output
+        #[arg(action, long, short)]
+        quiet: bool,
+    },
 }
 
 struct ErrorWrapper {
@@ -998,6 +1042,15 @@ fn main() -> Result<(), ErrorWrapper> {
                 ytranslate, ztranslate, quiet, pair, strong,
             )
         }
+        Some(Commands::Remesh {
+            input,
+            output,
+            iterations,
+            quiet,
+        }) => {
+            is_quiet = quiet;
+            remesh(input, output, iterations, quiet)
+        }
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
@@ -1070,32 +1123,28 @@ fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorW
             Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
             Some("stl") => write_output(
                 output,
-                OutputTypes::<3, TriangularFiniteElements>::Stl(finite_elements.into_tesselation()),
+                OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                 quiet,
             ),
             Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
             _ => invalid_output(&output, output_extension),
         },
-        InputTypes::Npy(_voxels) | InputTypes::Spn(_voxels) => {
-            invalid_input(&input, input_extension)
-        }
         InputTypes::Stl(tessellation) => {
-            let finite_elements = tessellation.into_finite_elements();
+            let finite_elements = TriangularFiniteElements::from(tessellation);
             match output_extension {
                 Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
                 Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
                 Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<3, TriangularFiniteElements>::Stl(
-                        finite_elements.into_tesselation(),
-                    ),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                     quiet,
                 ),
                 Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
                 _ => invalid_output(&output, output_extension),
             }
         }
+        _ => invalid_input(&input, input_extension),
     }
 }
 
@@ -1405,6 +1454,7 @@ where
             if let Some(options) = smoothing {
                 match options {
                     MeshSmoothCommands::Smooth {
+                        remeshing: _,
                         iterations,
                         method,
                         hierarchical,
@@ -1476,6 +1526,7 @@ where
             if let Some(options) = smoothing {
                 match options {
                     MeshSmoothCommands::Smooth {
+                        remeshing: _,
                         iterations,
                         method,
                         hierarchical,
@@ -1542,6 +1593,7 @@ where
             if let Some(options) = smoothing {
                 match options {
                     MeshSmoothCommands::Smooth {
+                        remeshing,
                         iterations,
                         method,
                         hierarchical,
@@ -1557,6 +1609,25 @@ where
                             scale,
                             quiet,
                         )?;
+                        if let Some(MeshRemeshCommands::Remesh { iterations, quiet }) = remeshing {
+                            let time = Instant::now();
+                            if !quiet {
+                                println!(
+                                    "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations"
+                                )
+                            }
+                            output_type.remesh(
+                                iterations,
+                                &Smoothing::Taubin(
+                                    TAUBIN_DEFAULT_ITERS,
+                                    TAUBIN_DEFAULT_BAND,
+                                    TAUBIN_DEFAULT_SCALE,
+                                ),
+                            );
+                            if !quiet {
+                                println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed())
+                            }
+                        }
                     }
                 }
             }
@@ -1567,7 +1638,7 @@ where
                 Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<3, TriangularFiniteElements>::Stl(output_type.into_tesselation()),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(output_type.into()),
                     quiet,
                 )?,
                 Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
@@ -1740,6 +1811,60 @@ fn octree(
     Ok(())
 }
 
+fn remesh(
+    input: String,
+    output: String,
+    iterations: usize,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+    let mut finite_elements = match read_input::<TRI, TriangularFiniteElements>(
+        &input,
+        None,
+        None,
+        None,
+        Remove::default(),
+        Scale::default(),
+        Translate::default(),
+        quiet,
+        true,
+    )? {
+        InputTypes::Abaqus(finite_elements) => finite_elements,
+        InputTypes::Stl(tessellation) => tessellation.into(),
+        _ => return invalid_input(&input, input_extension),
+    };
+    let time = Instant::now();
+    if !quiet {
+        println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations")
+    }
+    finite_elements.node_element_connectivity()?;
+    finite_elements.node_node_connectivity()?;
+    finite_elements.remesh(
+        iterations,
+        &Smoothing::Taubin(
+            TAUBIN_DEFAULT_ITERS,
+            TAUBIN_DEFAULT_BAND,
+            TAUBIN_DEFAULT_SCALE,
+        ),
+    );
+    if !quiet {
+        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    }
+    match output_extension {
+        Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
+        Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
+        Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
+        Some("stl") => write_output(
+            output,
+            OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
+            quiet,
+        ),
+        Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
+        _ => invalid_output(&output, output_extension),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn smooth<const N: usize, T>(
     input: String,
@@ -1754,6 +1879,7 @@ fn smooth<const N: usize, T>(
 ) -> Result<(), ErrorWrapper>
 where
     T: FiniteElementMethods<N>,
+    Tessellation: From<T>,
 {
     let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
     match read_input::<N, T>(
@@ -1786,9 +1912,7 @@ where
                 Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(
-                        finite_elements.into_tesselation(),
-                    ),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                     quiet,
                 ),
                 Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
@@ -1796,7 +1920,7 @@ where
             }
         }
         InputTypes::Stl(tesselation) => {
-            let mut finite_elements = tesselation.into_finite_elements();
+            let mut finite_elements = TriangularFiniteElements::from(tesselation);
             apply_smoothing_method(
                 &mut finite_elements,
                 iterations,
@@ -1812,9 +1936,7 @@ where
                 Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
                 Some("stl") => write_output(
                     output,
-                    OutputTypes::<3, TriangularFiniteElements>::Stl(
-                        finite_elements.into_tesselation(),
-                    ),
+                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
                     quiet,
                 ),
                 Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
@@ -1866,10 +1988,10 @@ where
         output_type.nodal_influencers();
         match smoothing_method.as_str() {
             "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-                output_type.smooth(Smoothing::Laplacian(iterations, scale))?;
+                output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;
             }
             "Taubin" | "taubin" => {
-                output_type.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
+                output_type.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
             }
             _ => panic!(),
         }

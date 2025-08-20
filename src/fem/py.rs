@@ -86,10 +86,10 @@ impl HexahedralFiniteElements {
         match method {
             "Gauss" | "gauss" | "Gaussian" | "gaussian" | "Laplacian" | "Laplace" | "laplacian"
             | "laplace" => {
-                finite_elements.smooth(Smoothing::Laplacian(iterations, scale))?;
+                finite_elements.smooth(&Smoothing::Laplacian(iterations, scale))?;
             }
             "Taubin" | "taubin" => {
-                finite_elements.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
+                finite_elements.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
             }
             _ => return Err(format!("Invalid smoothing method {method} specified."))?,
         }
@@ -195,10 +195,10 @@ impl TetrahedralFiniteElements {
         match method {
             "Gauss" | "gauss" | "Gaussian" | "gaussian" | "Laplacian" | "Laplace" | "laplacian"
             | "laplace" => {
-                finite_elements.smooth(Smoothing::Laplacian(iterations, scale))?;
+                finite_elements.smooth(&Smoothing::Laplacian(iterations, scale))?;
             }
             "Taubin" | "taubin" => {
-                finite_elements.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
+                finite_elements.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
             }
             _ => return Err(format!("Invalid smoothing method {method} specified."))?,
         }
@@ -304,10 +304,10 @@ impl TriangularFiniteElements {
         match method {
             "Gauss" | "gauss" | "Gaussian" | "gaussian" | "Laplacian" | "Laplace" | "laplacian"
             | "laplace" => {
-                finite_elements.smooth(Smoothing::Laplacian(iterations, scale))?;
+                finite_elements.smooth(&Smoothing::Laplacian(iterations, scale))?;
             }
             "Taubin" | "taubin" => {
-                finite_elements.smooth(Smoothing::Taubin(iterations, pass_band, scale))?;
+                finite_elements.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
             }
             _ => return Err(format!("Invalid smoothing method {method} specified."))?,
         }

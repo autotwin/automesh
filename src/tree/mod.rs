@@ -106,8 +106,8 @@ const fn subcells_on_own_face_contains(face: usize, subcell: usize) -> bool {
 }
 
 type Cells = [Cell; NUM_OCTANTS];
-type Edge = [usize; 2];
-type Edges = Vec<Edge>;
+pub type Edge = [usize; 2];
+pub type Edges = Vec<Edge>;
 type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
 type NodeMap = HashMap<(usize, usize, usize), usize>;
@@ -1854,12 +1854,12 @@ fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> V
 fn edges(faces_connectivity: &[[usize; 4]]) -> Edges {
     let mut edges: Edges = faces_connectivity
         .iter()
-        .flat_map(|connectivity| {
+        .flat_map(|&[node_0, node_1, node_2, node_3]| {
             [
-                [connectivity[0], connectivity[1]],
-                [connectivity[1], connectivity[2]],
-                [connectivity[2], connectivity[3]],
-                [connectivity[3], connectivity[0]],
+                [node_0, node_1],
+                [node_1, node_2],
+                [node_2, node_3],
+                [node_3, node_0],
             ]
             .into_iter()
         })

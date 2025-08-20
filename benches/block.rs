@@ -199,7 +199,7 @@ macro_rules! bench_block {
             fem.node_node_connectivity()?;
             fem.nodal_influencers();
             bencher.iter(|| {
-                fem.smooth(Smoothing::Laplacian(
+                fem.smooth(&Smoothing::Laplacian(
                     SMOOTHING_ITERATIONS,
                     SMOOTHING_SCALE_DEFLATE,
                 ))
@@ -221,7 +221,7 @@ macro_rules! bench_block {
             fem.node_node_connectivity()?;
             fem.nodal_influencers();
             bencher.iter(|| {
-                fem.smooth(Smoothing::Taubin(
+                fem.smooth(&Smoothing::Taubin(
                     SMOOTHING_ITERATIONS,
                     SMOOTHING_SCALE_DEFLATE,
                     SMOOTHING_PASS_BAND,

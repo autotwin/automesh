@@ -98,7 +98,7 @@ fn test_finite_elements(
             finite_elements.nodal_hierarchy().unwrap();
             finite_elements.nodal_influencers();
             finite_elements
-                .smooth(Smoothing::Laplacian(iterations, SMOOTHING_SCALE))
+                .smooth(&Smoothing::Laplacian(iterations, SMOOTHING_SCALE))
                 .unwrap();
             let smoothed_nodal_coordinates = finite_elements.get_nodal_coordinates();
             assert!(smoothed_nodal_coordinates.len() == gold.len());
@@ -125,7 +125,7 @@ fn test_finite_elements(
             .set_prescribed_nodes(Some(prescribed_nodes), None)
             .unwrap();
         finite_elements
-            .smooth(Smoothing::Laplacian(1, SMOOTHING_SCALE))
+            .smooth(&Smoothing::Laplacian(1, SMOOTHING_SCALE))
             .unwrap();
         finite_elements
             .get_nodal_coordinates()
@@ -1647,7 +1647,7 @@ fn bracket() {
         .unwrap();
     finite_elements.nodal_influencers();
     finite_elements
-        .smooth(Smoothing::Laplacian(10, SMOOTHING_SCALE))
+        .smooth(&Smoothing::Laplacian(10, SMOOTHING_SCALE))
         .unwrap();
     finite_elements
         .get_nodal_coordinates()

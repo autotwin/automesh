@@ -93,7 +93,7 @@ where
     /// Calculates and sets the node-to-node connectivity.
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
     /// Smooths the nodal coordinates according to the provided smoothing method.
-    fn smooth(&mut self, method: Smoothing) -> Result<(), &str>;
+    fn smooth(&mut self, method: &Smoothing) -> Result<(), &str>;
     /// Writes the finite elements data to a new Exodus file.
     fn write_exo(&self, file_path: &str) -> Result<(), ErrorNetCDF>;
     /// Writes the finite elements data to a new Abaqus file.
@@ -361,12 +361,12 @@ where
             Err("Need to calculate the node-to-element connectivity first")
         }
     }
-    fn smooth(&mut self, method: Smoothing) -> Result<(), &str> {
+    fn smooth(&mut self, method: &Smoothing) -> Result<(), &str> {
         if !self.get_node_node_connectivity().is_empty() {
             let smoothing_iterations;
             let smoothing_scale_deflate;
             let mut smoothing_scale_inflate = 0.0;
-            match method {
+            match *method {
                 Smoothing::Laplacian(iterations, scale) => {
                     if scale <= 0.0 || scale >= 1.0 {
                         return Err("Need to specify 0.0 < scale < 1.0");
@@ -581,8 +581,6 @@ where
 pub trait FiniteElementSpecifics {
     /// Returns the nodes connected to the given node within an element.
     fn connected_nodes(node: &usize) -> Vec<usize>;
-    /// Converts the finite elements into a tessellation, consuming the finite elements.
-    fn into_tesselation(self) -> Tessellation;
     /// Calculates the maximum edge ratios.
     fn maximum_edge_ratios(&self) -> Metrics;
     /// Calculates the maximum skews.
