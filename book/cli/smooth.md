@@ -19,7 +19,7 @@ automesh smooth tri --help
 <!-- cmdrun automesh smooth tri --help -->
 ```
 
-## Mesh Smooth Tri Remesh
+## Smooth Tri Remesh
 
 ```sh
 automesh smooth tri remesh --help
