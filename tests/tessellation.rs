@@ -43,44 +43,44 @@ fn tessellation_two_facet() -> Tessellation {
     Tessellation::new(indexed_mesh)
 }
 
-mod from_stl {
+mod try_from {
     use super::*;
     #[test]
     #[cfg(not(target_os = "windows"))]
     #[should_panic(expected = "No such file or directory")]
     fn file_nonexistent() {
-        Tessellation::from_stl("tests/input/f_file_nonexistent.stl").unwrap();
+        Tessellation::try_from("tests/input/f_file_nonexistent.stl").unwrap();
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_one_facet() {
-        let tess = Tessellation::from_stl("tests/input/one_facet.stl").unwrap();
+        let tess = Tessellation::try_from("tests/input/one_facet.stl").unwrap();
         println!("{tess:?}");
         assert_eq!(tess, tessellation_one_facet());
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_two_facet() {
-        let tess = Tessellation::from_stl("tests/input/two_facet.stl").unwrap();
+        let tess = Tessellation::try_from("tests/input/two_facet.stl").unwrap();
         // println!("{:?}", tess);
         assert_eq!(tess, tessellation_two_facet());
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_single() {
-        let _tess = Tessellation::from_stl("tests/input/single.stl");
+        let _tess = Tessellation::try_from("tests/input/single.stl");
         // println!("{:?}", _tess);
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_double() {
-        let _tess = Tessellation::from_stl("tests/input/double.stl");
+        let _tess = Tessellation::try_from("tests/input/double.stl");
         // println!("{:?}", _tess);
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_single_valence_04_noise2() {
-        let _tess = Tessellation::from_stl("tests/input/single_valence_04_noise2.stl");
+        let _tess = Tessellation::try_from("tests/input/single_valence_04_noise2.stl");
         // println!("{:?}", _tess);
         println!("{_tess:#?}"); // pretty-print
     }
@@ -93,7 +93,7 @@ mod write_stl {
     fn one_facet_write_read() {
         // Write a binary stl from a gold standard.
         let file_gold = "tests/input/one_facet.stl";
-        let tess_gold = Tessellation::from_stl(file_gold).unwrap();
+        let tess_gold = Tessellation::try_from(file_gold).unwrap();
         println!("gold: {tess_gold:?}");
         let file_test = "tests/input/one_facet_test.stl";
         let mesh_iter = tess_gold.get_data().faces.iter().map(|face| Triangle {
@@ -114,7 +114,7 @@ mod write_stl {
         stl_io::write_stl(&mut file, mesh_iter).unwrap();
         println!("tess -> stl(binary), wrote temporary test file: {file_test}",);
         // Read the binary data back in and assure it equals the gold standard.
-        let tess_test = Tessellation::from_stl(file_test).unwrap();
+        let tess_test = Tessellation::try_from(file_test).unwrap();
         assert_eq!(tess_test, tessellation_one_facet());
         // Delete the temporary test stl.
         match remove_file(file_test) {
@@ -126,7 +126,7 @@ mod write_stl {
     fn two_facet_write_read() {
         // Write a binary stl from a gold standard.
         let file_gold = "tests/input/two_facet.stl";
-        let tess_gold = Tessellation::from_stl(file_gold).unwrap();
+        let tess_gold = Tessellation::try_from(file_gold).unwrap();
         println!("{tess_gold:?}");
         let file_test = "tests/input/two_facet_test.stl";
         let mesh_iter = tess_gold.get_data().faces.iter().map(|face| Triangle {
@@ -147,7 +147,7 @@ mod write_stl {
         stl_io::write_stl(&mut file, mesh_iter).unwrap();
         println!("tess -> stl(binary), wrote test file: {file_test}");
         // Read the binary data back in and assure it equals the gold standard.
-        let tess_test = Tessellation::from_stl(file_test).unwrap();
+        let tess_test = Tessellation::try_from(file_test).unwrap();
         assert_eq!(tess_test, tessellation_two_facet());
         // Delete the temporary test stl.
         match remove_file(file_test) {
