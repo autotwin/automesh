@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::{
     Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics,
-    NODE_NUMBERING_OFFSET, Vector,
+    NODE_NUMBERING_OFFSET, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
 use ndarray::{Array2, s};
@@ -298,5 +298,11 @@ impl HexahedralFiniteElements {
                 &x2.cross(&x3) * &x1 / 64.0
             })
             .collect()
+    }
+}
+
+impl From<Tessellation> for HexahedralFiniteElements {
+    fn from(_tessellation: Tessellation) -> Self {
+        unimplemented!()
     }
 }

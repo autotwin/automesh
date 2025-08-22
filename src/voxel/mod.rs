@@ -71,6 +71,12 @@ impl Nel {
     }
 }
 
+impl Default for Nel {
+    fn default() -> Self {
+        Self { x: 1, y: 1, z: 1 }
+    }
+}
+
 impl From<[usize; NSD]> for Nel {
     fn from([x, y, z]: [usize; NSD]) -> Self {
         if x < 1 || y < 1 || z < 1 {
