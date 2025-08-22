@@ -1,6 +1,8 @@
 use crate::FiniteElementMethods;
 
-use super::{FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics};
+use super::{
+    FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics, Tessellation,
+};
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
 /// The number of nodes in a tetrahedral finite element.
@@ -88,5 +90,11 @@ impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
         let element_node_connectivity =
             hex_connectivity.iter().flat_map(Self::hex_to_tet).collect();
         Self::from_data(blocks, element_node_connectivity, nodal_coordinates)
+    }
+}
+
+impl From<Tessellation> for TetrahedralFiniteElements {
+    fn from(_tessellation: Tessellation) -> Self {
+        unimplemented!()
     }
 }

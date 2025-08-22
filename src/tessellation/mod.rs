@@ -8,7 +8,7 @@ use super::{
 use conspire::math::{Tensor, TensorArray};
 use std::fmt::{self, Display, Formatter};
 use std::fs::File;
-use std::io::{BufWriter, Error};
+use std::io::{BufWriter, Error as ErrorIO};
 use stl_io::{IndexedMesh, IndexedTriangle, Normal, Triangle, Vertex, read_stl, write_stl};
 
 /// The tessellation type.
@@ -70,16 +70,19 @@ impl From<TriangularFiniteElements> for Tessellation {
     }
 }
 
+impl TryFrom<&str> for Tessellation {
+    type Error = ErrorIO;
+    fn try_from(file: &str) -> Result<Self, Self::Error> {
+        Ok(Self {
+            data: read_stl(&mut File::open(file)?)?,
+        })
+    }
+}
+
 impl Tessellation {
     /// Construct a tessellation from an IndexedMesh.
     pub fn new(indexed_mesh: IndexedMesh) -> Self {
         Self { data: indexed_mesh }
-    }
-    /// Constructs and returns a new tessellation type from an STL file.
-    pub fn from_stl(file_path: &str) -> Result<Self, Error> {
-        let mut file = File::open(file_path)?;
-        let data = read_stl(&mut file)?;
-        Ok(Self { data })
     }
     /// Returns a reference to the internal tessellation data.
     pub fn get_data(&self) -> &IndexedMesh {
@@ -92,12 +95,12 @@ impl Tessellation {
         finite_elements.into()
     }
     /// Writes the tessellation data to a new STL file.
-    pub fn write_stl(&self, file_path: &str) -> Result<(), Error> {
+    pub fn write_stl(&self, file_path: &str) -> Result<(), ErrorIO> {
         write_tessellation_to_stl(self.get_data(), file_path)
     }
 }
 
-fn write_tessellation_to_stl(data: &IndexedMesh, file_path: &str) -> Result<(), Error> {
+fn write_tessellation_to_stl(data: &IndexedMesh, file_path: &str) -> Result<(), ErrorIO> {
     let mut file = BufWriter::new(File::create(file_path)?);
     let mesh_iter = data.faces.iter().map(|face| Triangle {
         normal: face.normal,

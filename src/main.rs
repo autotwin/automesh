@@ -1,16 +1,20 @@
 use automesh::{
-    Extraction, FiniteElementMethods, HEX, HexahedralFiniteElements, Nel, Octree, Remove, Scale,
+    Extraction, FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale,
     Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
-    TriangularFiniteElements, Voxels,
+    TriangularFiniteElements,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
-use ndarray_npy::{ReadNpyError, WriteNpyError};
-use netcdf::Error as ErrorNetCDF;
-use std::{io::Error as ErrorIO, path::Path, time::Instant};
-use vtkio::Error as ErrorVtk;
+use std::time::Instant;
 
-const REMESH_DEFAULT_ITERS: usize = 5;
+mod cli;
+use cli::{
+    ErrorWrapper,
+    input::{read_finite_elements, read_segmentation},
+    output::{write_finite_elements, write_segmentation},
+    remesh::{MeshRemeshCommands, REMESH_DEFAULT_ITERS},
+};
+
 const TAUBIN_DEFAULT_ITERS: usize = 20;
 const TAUBIN_DEFAULT_BAND: f64 = 0.1;
 const TAUBIN_DEFAULT_SCALE: f64 = 0.6307;
@@ -761,124 +765,6 @@ struct SmoothTriArgs {
     quiet: bool,
 }
 
-#[derive(Subcommand, Debug)]
-enum MeshRemeshCommands {
-    /// Applies isotropic remeshing to the mesh before output
-    Remesh {
-        /// Number of remeshing iterations
-        #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
-        iterations: usize,
-
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
-    },
-}
-
-struct ErrorWrapper {
-    message: String,
-}
-
-impl std::fmt::Debug for ErrorWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\x1b[1;91m{}.\x1b[0m", self.message)
-    }
-}
-
-impl From<ErrorIO> for ErrorWrapper {
-    fn from(error: ErrorIO) -> ErrorWrapper {
-        ErrorWrapper {
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<ErrorNetCDF> for ErrorWrapper {
-    fn from(error: ErrorNetCDF) -> ErrorWrapper {
-        ErrorWrapper {
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<ErrorVtk> for ErrorWrapper {
-    fn from(error: ErrorVtk) -> ErrorWrapper {
-        ErrorWrapper {
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<ReadNpyError> for ErrorWrapper {
-    fn from(error: ReadNpyError) -> ErrorWrapper {
-        ErrorWrapper {
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<String> for ErrorWrapper {
-    fn from(message: String) -> ErrorWrapper {
-        ErrorWrapper { message }
-    }
-}
-
-impl From<&str> for ErrorWrapper {
-    fn from(message: &str) -> ErrorWrapper {
-        ErrorWrapper {
-            message: message.to_string(),
-        }
-    }
-}
-
-impl From<WriteNpyError> for ErrorWrapper {
-    fn from(error: WriteNpyError) -> ErrorWrapper {
-        ErrorWrapper {
-            message: error.to_string(),
-        }
-    }
-}
-
-#[allow(clippy::large_enum_variant)]
-enum InputTypes<const N: usize, T>
-where
-    T: FiniteElementMethods<N>,
-{
-    Abaqus(T),
-    Npy(Voxels),
-    Spn(Voxels),
-    Stl(Tessellation),
-}
-
-enum OutputTypes<const N: usize, T>
-where
-    T: FiniteElementMethods<N>,
-{
-    Abaqus(T),
-    Exodus(T),
-    Mesh(T),
-    Npy(Voxels),
-    Spn(Voxels),
-    Stl(Tessellation),
-    Vtk(T),
-}
-
-fn invalid_input(file: &str, extension: Option<&str>) -> Result<(), ErrorWrapper> {
-    Ok(Err(format!(
-        "Invalid extension .{} from input file {}",
-        extension.unwrap_or("UNDEFINED"),
-        file
-    ))?)
-}
-
-fn invalid_output(file: &str, extension: Option<&str>) -> Result<(), ErrorWrapper> {
-    Ok(Err(format!(
-        "Invalid extension .{} from output file {}",
-        extension.unwrap_or("UNDEFINED"),
-        file
-    ))?)
-}
-
 fn main() -> Result<(), ErrorWrapper> {
     let time = Instant::now();
     let is_quiet;
@@ -946,7 +832,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                mesh::<HEX, HexahedralFiniteElements>(
+                mesh::<HEX>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -968,7 +854,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             MeshSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                mesh::<TET, TetrahedralFiniteElements>(
+                mesh::<TET>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -990,7 +876,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                mesh::<TRI, TriangularFiniteElements>(
+                mesh::<TRI>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -1017,7 +903,11 @@ fn main() -> Result<(), ErrorWrapper> {
             quiet,
         }) => {
             is_quiet = quiet;
-            metrics::<HEX, HexahedralFiniteElements>(input, output, quiet)
+            write_metrics(
+                &read_finite_elements::<_, TriangularFiniteElements>(&input, quiet, true)?,
+                output,
+                quiet,
+            )
         }
         Some(Commands::Octree {
             input,
@@ -1054,7 +944,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                smooth::<HEX, HexahedralFiniteElements>(
+                smooth::<_, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -1068,7 +958,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SmoothSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                smooth::<TET, TetrahedralFiniteElements>(
+                smooth::<_, TetrahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -1082,7 +972,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SmoothSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                smooth::<TRI, TriangularFiniteElements>(
+                smooth::<_, TriangularFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -1104,48 +994,11 @@ fn main() -> Result<(), ErrorWrapper> {
 }
 
 fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorWrapper> {
-    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input::<HEX, HexahedralFiniteElements>(
-        &input,
-        None,
-        None,
-        None,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
+    write_finite_elements(
+        output,
+        read_finite_elements::<_, TriangularFiniteElements>(&input, quiet, true)?,
         quiet,
-        true,
-    )? {
-        InputTypes::Abaqus(finite_elements) => match output_extension {
-            Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
-            Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
-            Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
-            Some("stl") => write_output(
-                output,
-                OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
-                quiet,
-            ),
-            Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
-            _ => invalid_output(&output, output_extension),
-        },
-        InputTypes::Stl(tessellation) => {
-            let finite_elements = TriangularFiniteElements::from(tessellation);
-            match output_extension {
-                Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
-                Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
-                Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
-                Some("stl") => write_output(
-                    output,
-                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
-                    quiet,
-                ),
-                Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
-                _ => invalid_output(&output, output_extension),
-            }
-        }
-        _ => invalid_input(&input, input_extension),
-    }
+    )
 }
 
 fn convert_segmentation(
@@ -1156,35 +1009,21 @@ fn convert_segmentation(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input::<HEX, HexahedralFiniteElements>(
-        &input,
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
+    write_segmentation(
+        output,
+        read_segmentation(
+            input,
+            nelx,
+            nely,
+            nelz,
+            Remove::default(),
+            Scale::default(),
+            Translate::default(),
+            quiet,
+            true,
+        )?,
         quiet,
-        true,
-    )? {
-        InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
-        InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => match output_extension {
-            Some("spn") => write_output(
-                output,
-                OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels),
-                quiet,
-            ),
-            Some("npy") => write_output(
-                output,
-                OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels),
-                quiet,
-            ),
-            _ => invalid_output(&output, output_extension),
-        },
-        InputTypes::Stl(_voxels) => invalid_input(&input, input_extension),
-    }
+    )
 }
 
 fn defeature(
@@ -1196,9 +1035,8 @@ fn defeature(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input::<HEX, HexahedralFiniteElements>(
-        &input,
+    let mut voxels = read_segmentation(
+        input,
         nelx,
         nely,
         nelz,
@@ -1207,49 +1045,16 @@ fn defeature(
         Translate::default(),
         quiet,
         true,
-    )? {
-        InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
-            Some("npy") => {
-                let time = Instant::now();
-                if !quiet {
-                    println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less",);
-                }
-                voxels = voxels.defeature(min);
-                if !quiet {
-                    println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-                }
-                write_output(
-                    output,
-                    OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels),
-                    quiet,
-                )
-            }
-            Some("spn") => {
-                let time = Instant::now();
-                if !quiet {
-                    println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less",);
-                }
-                voxels = voxels.defeature(min);
-                if !quiet {
-                    println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-                }
-                write_output(
-                    output,
-                    OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels),
-                    quiet,
-                )
-            }
-            _ => invalid_output(&output, output_extension),
-        },
-        _ => {
-            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-            Err(format!(
-                "Invalid extension .{} from input file {}",
-                input_extension.unwrap_or("UNDEFINED"),
-                input
-            ))?
-        }
+    )?;
+    let time = Instant::now();
+    if !quiet {
+        println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less",);
     }
+    voxels = voxels.defeature(min);
+    if !quiet {
+        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    }
+    write_segmentation(output, voxels, quiet)
 }
 
 fn diff(
@@ -1260,9 +1065,8 @@ fn diff(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    let voxels_1 = match read_input::<HEX, HexahedralFiniteElements>(
-        &input[0],
+    let voxels_1 = read_segmentation(
+        input[0].clone(),
         nelx,
         nely,
         nelz,
@@ -1271,12 +1075,9 @@ fn diff(
         Translate::default(),
         quiet,
         true,
-    )? {
-        InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => voxels,
-        _ => return invalid_input(&output, output_extension),
-    };
-    let voxels_2 = match read_input::<HEX, HexahedralFiniteElements>(
-        &input[1],
+    )?;
+    let voxels_2 = read_segmentation(
+        input[1].clone(),
         nelx,
         nely,
         nelz,
@@ -1285,23 +1086,8 @@ fn diff(
         Translate::default(),
         quiet,
         false,
-    )? {
-        InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => voxels,
-        _ => return invalid_input(&output, output_extension),
-    };
-    match output_extension {
-        Some("spn") => write_output(
-            output,
-            OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels_1.diff(&voxels_2)),
-            quiet,
-        ),
-        Some("npy") => write_output(
-            output,
-            OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels_1.diff(&voxels_2)),
-            quiet,
-        ),
-        _ => invalid_output(&output, output_extension),
-    }
+    )?;
+    write_segmentation(output, voxels_1.diff(&voxels_2), quiet)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1319,11 +1105,8 @@ fn extract(
     zmax: usize,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let extraction = Extraction::from_input([xmin, xmax, ymin, ymax, zmin, zmax])?;
-    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input::<HEX, HexahedralFiniteElements>(
-        &input,
+    let mut voxels = read_segmentation(
+        input,
         nelx,
         nely,
         nelz,
@@ -1332,29 +1115,11 @@ fn extract(
         Translate::default(),
         quiet,
         true,
-    )? {
-        InputTypes::Abaqus(_finite_elements) => invalid_input(&input, input_extension),
-        InputTypes::Npy(mut voxels) | InputTypes::Spn(mut voxels) => match output_extension {
-            Some("spn") => {
-                voxels.extract(extraction);
-                write_output(
-                    output,
-                    OutputTypes::<HEX, HexahedralFiniteElements>::Spn(voxels),
-                    quiet,
-                )
-            }
-            Some("npy") => {
-                voxels.extract(extraction);
-                write_output(
-                    output,
-                    OutputTypes::<HEX, HexahedralFiniteElements>::Npy(voxels),
-                    quiet,
-                )
-            }
-            _ => invalid_output(&output, output_extension),
-        },
-        InputTypes::Stl(_voxels) => invalid_input(&input, input_extension),
-    }
+    )?;
+    voxels.extract(Extraction::from_input([
+        xmin, xmax, ymin, ymax, zmin, zmax,
+    ])?);
+    write_segmentation(output, voxels, quiet)
 }
 
 enum MeshBasis {
@@ -1364,7 +1129,7 @@ enum MeshBasis {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn mesh<const N: usize, T>(
+fn mesh<const N: usize>(
     smoothing: Option<MeshSmoothCommands>,
     input: String,
     output: String,
@@ -1382,30 +1147,16 @@ fn mesh<const N: usize, T>(
     metrics: Option<String>,
     quiet: bool,
     adapt: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<N>,
-{
+) -> Result<(), ErrorWrapper> {
     let mut time = Instant::now();
     let scale_temporary = Scale::from([xscale, yscale, zscale]);
     let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
     let remove = Remove::from(remove);
     let scale = Scale::from([xscale, yscale, zscale]);
     let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let mut input_type = match read_input::<N, T>(
-        &input, nelx, nely, nelz, remove, scale, translate, quiet, true,
-    )? {
-        InputTypes::Npy(voxels) => voxels,
-        InputTypes::Spn(voxels) => voxels,
-        _ => {
-            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-            Err(format!(
-                "Invalid extension .{} from input file {}",
-                input_extension.unwrap_or("UNDEFINED"),
-                input
-            ))?
-        }
-    };
+    let mut input_type = read_segmentation(
+        input, nelx, nely, nelz, remove, scale, translate, quiet, true,
+    )?;
     match N {
         HEX => {
             if let Some(min_num_voxels) = defeature {
@@ -1474,16 +1225,9 @@ where
                 }
             }
             if let Some(file) = metrics {
-                metrics_inner(&output_type, file, quiet)?
+                write_metrics(&output_type, file, quiet)?
             }
-            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-            match output_extension {
-                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-                _ => invalid_output(&output, output_extension)?,
-            }
+            write_finite_elements(output, output_type, quiet)?;
         }
         TET => {
             if let Some(min_num_voxels) = defeature {
@@ -1546,16 +1290,9 @@ where
                 }
             }
             if let Some(file) = metrics {
-                metrics_inner(&output_type, file, quiet)?
+                write_metrics(&output_type, file, quiet)?
             }
-            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-            match output_extension {
-                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-                _ => invalid_output(&output, output_extension)?,
-            }
+            write_finite_elements(output, output_type, quiet)?;
         }
         TRI => {
             if !quiet {
@@ -1631,19 +1368,10 @@ where
                     }
                 }
             }
-            let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-            match output_extension {
-                Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-                Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-                Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-                Some("stl") => write_output(
-                    output,
-                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(output_type.into()),
-                    quiet,
-                )?,
-                Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-                _ => invalid_output(&output, output_extension)?,
+            if let Some(file) = metrics {
+                write_metrics(&output_type, file, quiet)?
             }
+            write_finite_elements(output, output_type, quiet)?;
         }
         _ => panic!(),
     }
@@ -1686,53 +1414,6 @@ fn mesh_print_info(basis: MeshBasis, scale: &Scale, translate: &Translate) {
     }
 }
 
-fn metrics<const N: usize, T>(
-    input: String,
-    output: String,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<N>,
-{
-    let output_type = match read_input::<N, T>(
-        &input,
-        None,
-        None,
-        None,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        true,
-    )? {
-        InputTypes::Abaqus(finite_elements) => finite_elements,
-        InputTypes::Npy(_) | InputTypes::Spn(_) => {
-            Err(format!("No metrics for segmentation file {input}"))?
-        }
-        InputTypes::Stl(_) => todo!(),
-    };
-    metrics_inner(&output_type, output, quiet)
-}
-
-fn metrics_inner<const N: usize, T>(
-    fem: &T,
-    output: String,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<N>,
-{
-    let time = Instant::now();
-    if !quiet {
-        println!("     \x1b[1;96mMetrics\x1b[0m {output}");
-    }
-    fem.write_metrics(&output)?;
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
-    Ok(())
-}
-
 #[allow(clippy::too_many_arguments)]
 fn octree(
     input: String,
@@ -1759,20 +1440,9 @@ fn octree(
     let scale = [xscale, yscale, zscale].into();
     let translate = [xtranslate, ytranslate, ztranslate].into();
     let remove = Remove::from(remove);
-    let input_type = match read_input::<HEX, HexahedralFiniteElements>(
-        &input, nelx, nely, nelz, remove, scale, translate, quiet, true,
-    )? {
-        InputTypes::Npy(voxels) => voxels,
-        InputTypes::Spn(voxels) => voxels,
-        _ => {
-            let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-            Err(format!(
-                "Invalid extension .{} from input file {}",
-                input_extension.unwrap_or("UNDEFINED"),
-                input
-            ))?
-        }
-    };
+    let input_type = read_segmentation(
+        input, nelx, nely, nelz, remove, scale, translate, quiet, true,
+    )?;
     let time = Instant::now();
     if !quiet {
         mesh_print_info(MeshBasis::Leaves, &scale_temporary, &translate_temporary)
@@ -1785,7 +1455,6 @@ fn octree(
         tree.balance(strong);
     }
     tree.prune();
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
     let output_type =
         tree.octree_into_finite_elements(remove_temporary, scale_temporary, translate_temporary)?;
     if !quiet {
@@ -1801,14 +1470,7 @@ fn octree(
             output_type.get_nodal_coordinates().len()
         );
     }
-    match output_extension {
-        Some("exo") => write_output(output, OutputTypes::Exodus(output_type), quiet)?,
-        Some("inp") => write_output(output, OutputTypes::Abaqus(output_type), quiet)?,
-        Some("mesh") => write_output(output, OutputTypes::Mesh(output_type), quiet)?,
-        Some("vtk") => write_output(output, OutputTypes::Vtk(output_type), quiet)?,
-        _ => invalid_output(&output, output_extension)?,
-    }
-    Ok(())
+    write_finite_elements(output, output_type, quiet)
 }
 
 fn remesh(
@@ -1817,23 +1479,8 @@ fn remesh(
     iterations: usize,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    let mut finite_elements = match read_input::<TRI, TriangularFiniteElements>(
-        &input,
-        None,
-        None,
-        None,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        true,
-    )? {
-        InputTypes::Abaqus(finite_elements) => finite_elements,
-        InputTypes::Stl(tessellation) => tessellation.into(),
-        _ => return invalid_input(&input, input_extension),
-    };
+    let mut finite_elements =
+        read_finite_elements::<_, TriangularFiniteElements>(&input, quiet, true)?;
     let time = Instant::now();
     if !quiet {
         println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations")
@@ -1851,18 +1498,7 @@ fn remesh(
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
-    match output_extension {
-        Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
-        Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
-        Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
-        Some("stl") => write_output(
-            output,
-            OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
-            quiet,
-        ),
-        Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
-        _ => invalid_output(&output, output_extension),
-    }
+    write_finite_elements(output, finite_elements, quiet)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -1878,75 +1514,23 @@ fn smooth<const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<N>,
+    T: FiniteElementMethods<N> + From<Tessellation>,
     Tessellation: From<T>,
 {
-    let output_extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
-    match read_input::<N, T>(
-        &input,
-        None,
-        None,
-        None,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
+    let mut finite_elements = read_finite_elements(&input, quiet, true)?;
+    apply_smoothing_method(
+        &mut finite_elements,
+        iterations,
+        method,
+        hierarchical,
+        pass_band,
+        scale,
         quiet,
-        true,
-    )? {
-        InputTypes::Abaqus(mut finite_elements) => {
-            apply_smoothing_method(
-                &mut finite_elements,
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-                quiet,
-            )?;
-            if let Some(file) = metrics {
-                metrics_inner(&finite_elements, file, quiet)?
-            }
-            match output_extension {
-                Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
-                Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
-                Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
-                Some("stl") => write_output(
-                    output,
-                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
-                    quiet,
-                ),
-                Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
-                _ => invalid_output(&output, output_extension),
-            }
-        }
-        InputTypes::Stl(tesselation) => {
-            let mut finite_elements = TriangularFiniteElements::from(tesselation);
-            apply_smoothing_method(
-                &mut finite_elements,
-                iterations,
-                method,
-                hierarchical,
-                pass_band,
-                scale,
-                quiet,
-            )?;
-            match output_extension {
-                Some("exo") => write_output(output, OutputTypes::Exodus(finite_elements), quiet),
-                Some("inp") => write_output(output, OutputTypes::Abaqus(finite_elements), quiet),
-                Some("mesh") => write_output(output, OutputTypes::Mesh(finite_elements), quiet),
-                Some("stl") => write_output(
-                    output,
-                    OutputTypes::<TRI, TriangularFiniteElements>::Stl(finite_elements.into()),
-                    quiet,
-                ),
-                Some("vtk") => write_output(output, OutputTypes::Vtk(finite_elements), quiet),
-                _ => invalid_output(&output, output_extension),
-            }
-        }
-        InputTypes::Npy(_) | InputTypes::Spn(_) => {
-            Err(format!("No smoothing for segmentation file {input}"))?
-        }
+    )?;
+    if let Some(file) = metrics {
+        write_metrics(&finite_elements, file, quiet)?
     }
+    write_finite_elements(output, finite_elements, quiet)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -2006,84 +1590,9 @@ where
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-fn read_input<const N: usize, T>(
-    input: &str,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    remove: Remove,
-    scale: Scale,
-    translate: Translate,
-    quiet: bool,
-    title: bool,
-) -> Result<InputTypes<N, T>, ErrorWrapper>
-where
-    T: FiniteElementMethods<N>,
-{
-    let time = Instant::now();
-    if !quiet {
-        if title {
-            println!(
-                "\x1b[1m    {} {}\x1b[0m",
-                env!("CARGO_PKG_NAME"),
-                env!("CARGO_PKG_VERSION")
-            );
-        }
-        print!("     \x1b[1;96mReading\x1b[0m {input}");
-    }
-    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-    let result = match input_extension {
-        Some("inp") => InputTypes::Abaqus(T::from_inp(input)?),
-        Some("npy") => InputTypes::Npy(Voxels::from_npy(input, remove, scale, translate)?),
-        Some("spn") => {
-            let nel = Nel::from_input([nelx, nely, nelz])?;
-            if !quiet {
-                print!(
-                    " \x1b[2m[nelx: {}, nely: {}, nelz: {}]",
-                    nel.x(),
-                    nel.y(),
-                    nel.z(),
-                );
-            }
-            InputTypes::Spn(Voxels::from_spn(input, nel, remove, scale, translate)?)
-        }
-        Some("stl") => InputTypes::Stl(Tessellation::from_stl(input)?),
-        _ => Err(format!(
-            "Invalid extension .{} from input file {}",
-            input_extension.unwrap_or("UNDEFINED"),
-            input
-        ))?,
-    };
-    if !quiet {
-        match &result {
-            InputTypes::Npy(voxels) | InputTypes::Spn(voxels) => {
-                let data = voxels.get_data();
-                let mut materials = vec![false; u8::MAX as usize];
-                data.iter()
-                    .for_each(|&voxel| materials[voxel as usize] = true);
-                let num_voxels = data.iter().count();
-                let num_materials = materials.iter().filter(|&&entry| entry).count();
-                print!(
-                    "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
-                    time.elapsed()
-                );
-                println!(" \x1b[2m[{num_materials} materials, {num_voxels} voxels]\x1b[0m",);
-            }
-            _ => {
-                println!(
-                    "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
-                    time.elapsed()
-                );
-            }
-        }
-    }
-    Ok(result)
-}
-
-fn write_output<const N: usize, T>(
+fn write_metrics<const N: usize, T>(
+    fem: &T,
     output: String,
-    output_type: OutputTypes<N, T>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
@@ -2091,17 +1600,9 @@ where
 {
     let time = Instant::now();
     if !quiet {
-        println!("     \x1b[1;96mWriting\x1b[0m {output}");
+        println!("     \x1b[1;96mMetrics\x1b[0m {output}");
     }
-    match output_type {
-        OutputTypes::Abaqus(fem) => fem.write_inp(&output)?,
-        OutputTypes::Exodus(fem) => fem.write_exo(&output)?,
-        OutputTypes::Mesh(fem) => fem.write_mesh(&output)?,
-        OutputTypes::Npy(voxels) => voxels.write_npy(&output)?,
-        OutputTypes::Spn(voxels) => voxels.write_spn(&output)?,
-        OutputTypes::Stl(tessellation) => tessellation.write_stl(&output)?,
-        OutputTypes::Vtk(fem) => fem.write_vtk(&output)?,
-    }
+    fem.write_metrics(&output)?;
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
