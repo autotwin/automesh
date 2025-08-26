@@ -10,9 +10,10 @@ use std::time::Instant;
 mod cli;
 use cli::{
     ErrorWrapper,
+    convert::{ConvertSubcommand, convert_mesh, convert_segmentation},
     input::{read_finite_elements, read_segmentation},
     output::{write_finite_elements, write_segmentation},
-    remesh::{MeshRemeshCommands, REMESH_DEFAULT_ITERS},
+    remesh::{MeshRemeshCommands, REMESH_DEFAULT_ITERS, remesh},
 };
 
 const TAUBIN_DEFAULT_ITERS: usize = 20;
@@ -289,56 +290,6 @@ enum Commands {
         #[command(subcommand)]
         subcommand: SmoothSubcommand,
     },
-}
-
-#[derive(Subcommand)]
-enum ConvertSubcommand {
-    /// Converts mesh file types (inp | stl) -> (exo | mesh | stl | vtk)
-    Mesh(ConvertMeshArgs),
-    /// Converts segmentation file types (npy | spn) -> (npy | spn)
-    Segmentation(ConvertSegmentationArgs),
-}
-
-#[derive(clap::Args)]
-struct ConvertMeshArgs {
-    /// Mesh input file (inp | stl)
-    #[arg(long, short, value_name = "FILE")]
-    input: String,
-
-    /// Mesh output file (exo | mesh | stl | vtk)
-    #[arg(long, short, value_name = "FILE")]
-    output: String,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    quiet: bool,
-}
-
-#[derive(clap::Args)]
-struct ConvertSegmentationArgs {
-    /// Segmentation input file (npy | spn)
-    #[arg(long, short, value_name = "FILE")]
-    input: String,
-
-    /// Segmentation output file (npy | spn)
-    #[arg(long, short, value_name = "FILE")]
-    output: String,
-
-    /// Number of voxels in the x-direction (spn)
-    #[arg(long, short = 'x', value_name = "NEL")]
-    nelx: Option<usize>,
-
-    /// Number of voxels in the y-direction (spn)
-    #[arg(long, short = 'y', value_name = "NEL")]
-    nely: Option<usize>,
-
-    /// Number of voxels in the z-direction (spn)
-    #[arg(long, short = 'z', value_name = "NEL")]
-    nelz: Option<usize>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    quiet: bool,
 }
 
 #[derive(Subcommand)]
@@ -993,39 +944,6 @@ fn main() -> Result<(), ErrorWrapper> {
     result
 }
 
-fn convert_mesh(input: String, output: String, quiet: bool) -> Result<(), ErrorWrapper> {
-    write_finite_elements(
-        output,
-        read_finite_elements::<_, TriangularFiniteElements>(&input, quiet, true)?,
-        quiet,
-    )
-}
-
-fn convert_segmentation(
-    input: String,
-    output: String,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    write_segmentation(
-        output,
-        read_segmentation(
-            input,
-            nelx,
-            nely,
-            nelz,
-            Remove::default(),
-            Scale::default(),
-            Translate::default(),
-            quiet,
-            true,
-        )?,
-        quiet,
-    )
-}
-
 fn defeature(
     input: String,
     output: String,
@@ -1471,34 +1389,6 @@ fn octree(
         );
     }
     write_finite_elements(output, output_type, quiet)
-}
-
-fn remesh(
-    input: String,
-    output: String,
-    iterations: usize,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let mut finite_elements =
-        read_finite_elements::<_, TriangularFiniteElements>(&input, quiet, true)?;
-    let time = Instant::now();
-    if !quiet {
-        println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations")
-    }
-    finite_elements.node_element_connectivity()?;
-    finite_elements.node_node_connectivity()?;
-    finite_elements.remesh(
-        iterations,
-        &Smoothing::Taubin(
-            TAUBIN_DEFAULT_ITERS,
-            TAUBIN_DEFAULT_BAND,
-            TAUBIN_DEFAULT_SCALE,
-        ),
-    );
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
-    write_finite_elements(output, finite_elements, quiet)
 }
 
 #[allow(clippy::too_many_arguments)]
