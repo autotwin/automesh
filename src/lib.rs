@@ -19,7 +19,7 @@ mod voxel;
 
 pub use fem::{
     Blocks, Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, HEX,
-    HexahedralFiniteElements, NODE_NUMBERING_OFFSET, Smoothing, TET, TRI,
+    HexahedralFiniteElements, Smoothing, TET, TRI,
     TetrahedralFiniteElements, TriangularFiniteElements,
 };
 pub use tessellation::Tessellation;

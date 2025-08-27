@@ -1,5 +1,5 @@
 use automesh::{
-    FiniteElementMethods, NODE_NUMBERING_OFFSET, TET, TetrahedralFiniteElements, Voxels,
+    FiniteElementMethods, TET, TetrahedralFiniteElements, Voxels,
 };
 use conspire::{
     constitutive::{
@@ -20,6 +20,7 @@ use conspire::{
     mechanics::Scalar,
 };
 
+const NODE_NUMBERING_OFFSET: usize = 1;
 const PARAMETERS: &[Scalar; 2] = &[13.0, 3.0];
 const STRAIN: Scalar = 1.23;
 
