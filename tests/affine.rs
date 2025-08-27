@@ -1,6 +1,4 @@
-use automesh::{
-    FiniteElementMethods, TET, TetrahedralFiniteElements, Voxels,
-};
+use automesh::{FiniteElementMethods, TET, TetrahedralFiniteElements, Voxels};
 use conspire::{
     constitutive::{
         Constitutive,

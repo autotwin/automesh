@@ -19,8 +19,8 @@ mod voxel;
 
 pub use fem::{
     Blocks, Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, HEX,
-    HexahedralFiniteElements, Smoothing, TET, TRI,
-    TetrahedralFiniteElements, TriangularFiniteElements,
+    HexahedralFiniteElements, Smoothing, TET, TRI, TetrahedralFiniteElements,
+    TriangularFiniteElements,
 };
 pub use tessellation::Tessellation;
 pub use tree::Octree;
