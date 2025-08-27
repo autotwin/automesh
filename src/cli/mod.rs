@@ -3,6 +3,7 @@ pub mod defeature;
 pub mod diff;
 pub mod extract;
 pub mod input;
+pub mod mesh;
 pub mod output;
 pub mod remesh;
 pub mod smooth;
