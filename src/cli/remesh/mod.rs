@@ -1,8 +1,8 @@
 use super::{
-    super::{TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_ITERS, TAUBIN_DEFAULT_SCALE},
     ErrorWrapper,
     input::read_finite_elements,
     output::write_finite_elements,
+    smooth::{TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_ITERS, TAUBIN_DEFAULT_SCALE},
 };
 use automesh::{FiniteElementMethods, Smoothing, TriangularFiniteElements};
 use clap::Subcommand;

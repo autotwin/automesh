@@ -1,6 +1,4 @@
-use automesh::{
-    FiniteElementMethods, NODE_NUMBERING_OFFSET, TET, TetrahedralFiniteElements, Voxels,
-};
+use automesh::{FiniteElementMethods, TET, TetrahedralFiniteElements, Voxels};
 use conspire::{
     constitutive::{
         Constitutive,
@@ -20,6 +18,7 @@ use conspire::{
     mechanics::Scalar,
 };
 
+const NODE_NUMBERING_OFFSET: usize = 1;
 const PARAMETERS: &[Scalar; 2] = &[13.0, 3.0];
 const STRAIN: Scalar = 1.23;
 

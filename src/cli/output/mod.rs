@@ -40,6 +40,25 @@ where
     Ok(())
 }
 
+pub fn write_metrics<const N: usize, T>(
+    fem: &T,
+    output: String,
+    quiet: bool,
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<N>,
+{
+    let time = Instant::now();
+    if !quiet {
+        println!("     \x1b[1;96mMetrics\x1b[0m {output}");
+    }
+    fem.write_metrics(&output)?;
+    if !quiet {
+        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    }
+    Ok(())
+}
+
 pub fn write_segmentation(file: String, voxels: Voxels, quiet: bool) -> Result<(), ErrorWrapper> {
     let time = Instant::now();
     if !quiet {
