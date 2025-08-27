@@ -1,7 +1,6 @@
 use automesh::{
-    Extraction, FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale,
-    Smoothing, TET, TRI, Tessellation, TetrahedralFiniteElements, Translate,
-    TriangularFiniteElements,
+    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, Smoothing, TET,
+    TRI, TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::{Parser, Subcommand};
 use conspire::math::TensorVec;
@@ -11,14 +10,17 @@ mod cli;
 use cli::{
     ErrorWrapper,
     convert::{ConvertSubcommand, convert_mesh, convert_segmentation},
+    defeature::defeature,
+    diff::diff,
+    extract::extract,
     input::{read_finite_elements, read_segmentation},
-    output::{write_finite_elements, write_segmentation},
+    output::{write_finite_elements, write_metrics},
     remesh::{MeshRemeshCommands, REMESH_DEFAULT_ITERS, remesh},
+    smooth::{
+        MeshSmoothCommands, SmoothSubcommand, TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_ITERS,
+        TAUBIN_DEFAULT_SCALE, apply_smoothing_method, smooth,
+    },
 };
-
-const TAUBIN_DEFAULT_ITERS: usize = 20;
-const TAUBIN_DEFAULT_BAND: f64 = 0.1;
-const TAUBIN_DEFAULT_SCALE: f64 = 0.6307;
 
 macro_rules! about {
     () => {
@@ -557,165 +559,6 @@ struct MeshTriArgs {
     adapt: bool,
 }
 
-#[derive(Subcommand, Debug)]
-enum MeshSmoothCommands {
-    /// Applies smoothing to the mesh before output
-    Smooth {
-        #[command(subcommand)]
-        remeshing: Option<MeshRemeshCommands>,
-
-        /// Pass to enable hierarchical control
-        #[arg(action, long, short = 'c')]
-        hierarchical: bool,
-
-        /// Number of smoothing iterations
-        #[arg(default_value_t = TAUBIN_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
-        iterations: usize,
-
-        /// Smoothing method (Laplace | Taubin) [default: Taubin]
-        #[arg(long, short, value_name = "NAME")]
-        method: Option<String>,
-
-        /// Pass-band frequency (for Taubin only)
-        #[arg(default_value_t = TAUBIN_DEFAULT_BAND, long, short = 'k', value_name = "FREQ")]
-        pass_band: f64,
-
-        /// Scaling parameter for all smoothing methods
-        #[arg(default_value_t = TAUBIN_DEFAULT_SCALE, long, short, value_name = "SCALE")]
-        scale: f64,
-    },
-}
-
-#[derive(Subcommand)]
-enum SmoothSubcommand {
-    /// Smooths an all-hexahedral mesh
-    Hex(SmoothHexArgs),
-    /// Smooths an all-tetrahedral mesh
-    Tet(SmoothTetArgs),
-    /// Smooths an all-triangular mesh
-    Tri(SmoothTriArgs),
-}
-
-#[derive(clap::Args)]
-struct SmoothHexArgs {
-    /// Pass to enable hierarchical control
-    #[arg(action, long, short = 'c')]
-    hierarchical: bool,
-
-    /// Mesh input file (inp)
-    #[arg(long, short, value_name = "FILE")]
-    input: String,
-
-    /// Smoothed mesh output file (exo | inp | mesh | vtk)
-    #[arg(long, short, value_name = "FILE")]
-    output: String,
-
-    /// Number of smoothing iterations
-    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-    iterations: usize,
-
-    /// Smoothing method (Laplace | Taubin) [default: Taubin]
-    #[arg(long, short, value_name = "NAME")]
-    method: Option<String>,
-
-    /// Pass-band frequency (for Taubin only)
-    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-    pass_band: f64,
-
-    /// Scaling parameter for all smoothing methods
-    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-    scale: f64,
-
-    /// Quality metrics output file (csv | npy)
-    #[arg(long, value_name = "FILE")]
-    metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    quiet: bool,
-}
-
-#[derive(clap::Args)]
-struct SmoothTetArgs {
-    /// Pass to enable hierarchical control
-    #[arg(action, long, short = 'c')]
-    hierarchical: bool,
-
-    /// Mesh input file (inp)
-    #[arg(long, short, value_name = "FILE")]
-    input: String,
-
-    /// Smoothed mesh output file (exo | inp | mesh | vtk)
-    #[arg(long, short, value_name = "FILE")]
-    output: String,
-
-    /// Number of smoothing iterations
-    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-    iterations: usize,
-
-    /// Smoothing method (Laplace | Taubin) [default: Taubin]
-    #[arg(long, short, value_name = "NAME")]
-    method: Option<String>,
-
-    /// Pass-band frequency (for Taubin only)
-    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-    pass_band: f64,
-
-    /// Scaling parameter for all smoothing methods
-    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-    scale: f64,
-
-    /// Quality metrics output file (csv | npy)
-    #[arg(long, value_name = "FILE")]
-    metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    quiet: bool,
-}
-
-#[derive(clap::Args)]
-struct SmoothTriArgs {
-    #[command(subcommand)]
-    remeshing: Option<MeshRemeshCommands>,
-
-    /// Pass to enable hierarchical control
-    #[arg(action, long, short = 'c')]
-    hierarchical: bool,
-
-    /// Mesh input file (stl); #TODO: the (inp) file type is a work in progress
-    #[arg(long, short, value_name = "FILE")]
-    input: String,
-
-    /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
-    #[arg(long, short, value_name = "FILE")]
-    output: String,
-
-    /// Number of smoothing iterations
-    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-    iterations: usize,
-
-    /// Smoothing method (Laplace | Taubin) [default: Taubin]
-    #[arg(long, short, value_name = "NAME")]
-    method: Option<String>,
-
-    /// Pass-band frequency (for Taubin only)
-    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-    pass_band: f64,
-
-    /// Scaling parameter for all smoothing methods
-    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-    scale: f64,
-
-    /// Quality metrics output file (csv | npy)
-    #[arg(long, value_name = "FILE")]
-    metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    quiet: bool,
-}
-
 fn main() -> Result<(), ErrorWrapper> {
     let time = Instant::now();
     let is_quiet;
@@ -942,102 +785,6 @@ fn main() -> Result<(), ErrorWrapper> {
         println!("       \x1b[1;98mTotal\x1b[0m {:?}", time.elapsed());
     }
     result
-}
-
-fn defeature(
-    input: String,
-    output: String,
-    min: usize,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let mut voxels = read_segmentation(
-        input,
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        true,
-    )?;
-    let time = Instant::now();
-    if !quiet {
-        println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less",);
-    }
-    voxels = voxels.defeature(min);
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
-    write_segmentation(output, voxels, quiet)
-}
-
-fn diff(
-    input: Vec<String>,
-    output: String,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let voxels_1 = read_segmentation(
-        input[0].clone(),
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        true,
-    )?;
-    let voxels_2 = read_segmentation(
-        input[1].clone(),
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        false,
-    )?;
-    write_segmentation(output, voxels_1.diff(&voxels_2), quiet)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn extract(
-    input: String,
-    output: String,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    xmin: usize,
-    xmax: usize,
-    ymin: usize,
-    ymax: usize,
-    zmin: usize,
-    zmax: usize,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let mut voxels = read_segmentation(
-        input,
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        true,
-    )?;
-    voxels.extract(Extraction::from_input([
-        xmin, xmax, ymin, ymax, zmin, zmax,
-    ])?);
-    write_segmentation(output, voxels, quiet)
 }
 
 enum MeshBasis {
@@ -1332,6 +1079,7 @@ fn mesh_print_info(basis: MeshBasis, scale: &Scale, translate: &Translate) {
     }
 }
 
+// temporary beta feature to aid in debugging
 #[allow(clippy::too_many_arguments)]
 fn octree(
     input: String,
@@ -1389,112 +1137,4 @@ fn octree(
         );
     }
     write_finite_elements(output, output_type, quiet)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn smooth<const N: usize, T>(
-    input: String,
-    output: String,
-    iterations: usize,
-    method: Option<String>,
-    hierarchical: bool,
-    pass_band: f64,
-    scale: f64,
-    metrics: Option<String>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<N> + From<Tessellation>,
-    Tessellation: From<T>,
-{
-    let mut finite_elements = read_finite_elements(&input, quiet, true)?;
-    apply_smoothing_method(
-        &mut finite_elements,
-        iterations,
-        method,
-        hierarchical,
-        pass_band,
-        scale,
-        quiet,
-    )?;
-    if let Some(file) = metrics {
-        write_metrics(&finite_elements, file, quiet)?
-    }
-    write_finite_elements(output, finite_elements, quiet)
-}
-
-#[allow(clippy::too_many_arguments)]
-fn apply_smoothing_method<const N: usize, T>(
-    output_type: &mut T,
-    iterations: usize,
-    method: Option<String>,
-    hierarchical: bool,
-    pass_band: f64,
-    scale: f64,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<N>,
-{
-    let time_smooth = Instant::now();
-    let smoothing_method = method.unwrap_or("Taubin".to_string());
-    if matches!(
-        smoothing_method.as_str(),
-        "Laplacian" | "Laplace" | "laplacian" | "laplace" | "Taubin" | "taubin"
-    ) {
-        if !quiet {
-            print!("   \x1b[1;96mSmoothing\x1b[0m ");
-            match smoothing_method.as_str() {
-                "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-                    println!("with {iterations} iterations of Laplace")
-                }
-                "Taubin" | "taubin" => {
-                    println!("with {iterations} iterations of Taubin")
-                }
-                _ => panic!(),
-            }
-        }
-        output_type.node_element_connectivity()?;
-        output_type.node_node_connectivity()?;
-        if hierarchical {
-            output_type.nodal_hierarchy()?;
-        }
-        output_type.nodal_influencers();
-        match smoothing_method.as_str() {
-            "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-                output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;
-            }
-            "Taubin" | "taubin" => {
-                output_type.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
-            }
-            _ => panic!(),
-        }
-        if !quiet {
-            println!("        \x1b[1;92mDone\x1b[0m {:?}", time_smooth.elapsed());
-        }
-        Ok(())
-    } else {
-        Err(format!(
-            "Invalid smoothing method {smoothing_method} specified",
-        ))?
-    }
-}
-
-fn write_metrics<const N: usize, T>(
-    fem: &T,
-    output: String,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<N>,
-{
-    let time = Instant::now();
-    if !quiet {
-        println!("     \x1b[1;96mMetrics\x1b[0m {output}");
-    }
-    fem.write_metrics(&output)?;
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
-    Ok(())
 }
