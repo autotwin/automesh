@@ -1,9 +1,8 @@
 use super::{
     super::py::{IntoFoo, PyCoordinates, PyIntermediateError},
     Blocks, Connectivity, FiniteElementMethods, FiniteElementSpecifics, HEX, Smoothing, TRI,
-    finite_element_data_from_exo, finite_element_data_from_inp,
-    write_finite_elements_to_abaqus, write_finite_elements_to_exodus,
-    write_finite_elements_to_mesh, write_finite_elements_to_vtk,
+    finite_element_data_from_exo, finite_element_data_from_inp, write_finite_elements_to_abaqus,
+    write_finite_elements_to_exodus, write_finite_elements_to_mesh, write_finite_elements_to_vtk,
 };
 use pyo3::prelude::*;
 

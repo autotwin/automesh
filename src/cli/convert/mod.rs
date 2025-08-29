@@ -1,5 +1,8 @@
 use super::{
-    super::{Remove, Scale, Translate, HexahedralFiniteElements, TetrahedralFiniteElements, TriangularFiniteElements},
+    super::{
+        HexahedralFiniteElements, Remove, Scale, TetrahedralFiniteElements, Translate,
+        TriangularFiniteElements,
+    },
     ErrorWrapper,
     input::{read_finite_elements, read_segmentation},
     output::{write_finite_elements, write_segmentation},
@@ -8,7 +11,7 @@ use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum ConvertSubcommand {
-    /// Converts mesh file types (inp | stl) -> (exo | mesh | stl | vtk)
+    /// Converts mesh file types (exo | inp | stl) -> (exo | mesh | stl | vtk)
     Mesh(ConvertMeshArgs),
     /// Converts segmentation file types (npy | spn) -> (npy | spn)
     Segmentation(ConvertSegmentationArgs),
@@ -84,27 +87,21 @@ pub struct ConvertSegmentationArgs {
 
 pub fn convert_mesh(subcommand: ConvertMeshSubcommand) -> Result<(), ErrorWrapper> {
     match subcommand {
-        ConvertMeshSubcommand::Hex(args) => {
-            write_finite_elements(
-                args.output,
-                read_finite_elements::<_, HexahedralFiniteElements>(&args.input, args.quiet, true)?,
-                args.quiet,
-            )
-        }
-        ConvertMeshSubcommand::Tet(args) => {
-            write_finite_elements(
-                args.output,
-                read_finite_elements::<_, TetrahedralFiniteElements>(&args.input, args.quiet, true)?,
-                args.quiet,
-            )
-        }
-        ConvertMeshSubcommand::Tri(args) => {
-            write_finite_elements(
-                args.output,
-                read_finite_elements::<_, TriangularFiniteElements>(&args.input, args.quiet, true)?,
-                args.quiet,
-            )
-        }
+        ConvertMeshSubcommand::Hex(args) => write_finite_elements(
+            args.output,
+            read_finite_elements::<_, HexahedralFiniteElements>(&args.input, args.quiet, true)?,
+            args.quiet,
+        ),
+        ConvertMeshSubcommand::Tet(args) => write_finite_elements(
+            args.output,
+            read_finite_elements::<_, TetrahedralFiniteElements>(&args.input, args.quiet, true)?,
+            args.quiet,
+        ),
+        ConvertMeshSubcommand::Tri(args) => write_finite_elements(
+            args.output,
+            read_finite_elements::<_, TriangularFiniteElements>(&args.input, args.quiet, true)?,
+            args.quiet,
+        ),
     }
 }
 

@@ -1,8 +1,8 @@
 use super::{
     Vector,
     fem::{
-        FiniteElementMethods, HexahedralFiniteElements, NODE_NUMBERING_OFFSET, Smoothing, TRI,
-        TetrahedralFiniteElements, TriangularFiniteElements,
+        FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
+        NODE_NUMBERING_OFFSET, Smoothing, TRI, TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
 use conspire::math::{Tensor, TensorArray};

@@ -1,7 +1,8 @@
 use crate::FiniteElementMethods;
 
 use super::{
-    FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics, Tessellation,
+    FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics, Smoothing,
+    Tessellation,
 };
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
@@ -30,6 +31,9 @@ impl FiniteElementSpecifics for TetrahedralFiniteElements {
         todo!()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
+        todo!()
+    }
+    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing) {
         todo!()
     }
     fn write_metrics(&self, _file_path: &str) -> Result<(), ErrorIO> {

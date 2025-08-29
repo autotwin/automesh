@@ -53,11 +53,14 @@ pub enum SmoothSubcommand {
 
 #[derive(clap::Args)]
 pub struct SmoothHexArgs {
+    #[command(subcommand)]
+    pub remeshing: Option<MeshRemeshCommands>,
+
     /// Pass to enable hierarchical control
     #[arg(action, long, short = 'c')]
     pub hierarchical: bool,
 
-    /// Mesh input file (inp)
+    /// Mesh input file (exo | inp)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
@@ -92,11 +95,14 @@ pub struct SmoothHexArgs {
 
 #[derive(clap::Args)]
 pub struct SmoothTetArgs {
+    #[command(subcommand)]
+    pub remeshing: Option<MeshRemeshCommands>,
+
     /// Pass to enable hierarchical control
     #[arg(action, long, short = 'c')]
     pub hierarchical: bool,
 
-    /// Mesh input file (inp)
+    /// Mesh input file (exo | inp)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
@@ -138,7 +144,7 @@ pub struct SmoothTriArgs {
     #[arg(action, long, short = 'c')]
     pub hierarchical: bool,
 
-    /// Mesh input file (stl); #TODO: the (inp) file type is a work in progress
+    /// Mesh input file (exo | inp | stl)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
@@ -180,6 +186,7 @@ pub fn smooth<const N: usize, T>(
     hierarchical: bool,
     pass_band: f64,
     scale: f64,
+    remeshing: Option<MeshRemeshCommands>,
     metrics: Option<String>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
@@ -187,7 +194,7 @@ where
     T: FiniteElementMethods<N> + From<Tessellation>,
     Tessellation: From<T>,
 {
-    let mut finite_elements = read_finite_elements(&input, quiet, true)?;
+    let mut finite_elements: T = read_finite_elements(&input, quiet, true)?;
     apply_smoothing_method(
         &mut finite_elements,
         iterations,
@@ -197,6 +204,20 @@ where
         scale,
         quiet,
     )?;
+    if let Some(MeshRemeshCommands::Remesh {
+        iterations,
+        quiet: _,
+    }) = remeshing
+    {
+        finite_elements.remesh(
+            iterations,
+            &Smoothing::Taubin(
+                TAUBIN_DEFAULT_ITERS,
+                TAUBIN_DEFAULT_BAND,
+                TAUBIN_DEFAULT_SCALE,
+            ),
+        );
+    }
     if let Some(file) = metrics {
         write_metrics(&finite_elements, file, quiet)?
     }

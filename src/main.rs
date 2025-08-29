@@ -15,6 +15,7 @@ use cli::{
     extract::extract,
     input::{read_finite_elements, read_segmentation},
     mesh::{MeshSubcommand, mesh, mesh_print_info},
+    metrics::MetricsSubcommand,
     output::{write_finite_elements, write_metrics},
     remesh::{REMESH_DEFAULT_ITERS, remesh},
     smooth::{SmoothSubcommand, smooth},
@@ -174,17 +175,8 @@ enum Commands {
 
     /// Quality metrics for an existing finite element mesh
     Metrics {
-        /// Mesh input file (inp | stl)
-        #[arg(long, short, value_name = "FILE")]
-        input: String,
-
-        /// Quality metrics output file (csv | npy)
-        #[arg(long, short, value_name = "FILE")]
-        output: String,
-
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
+        #[command(subcommand)]
+        subcommand: MetricsSubcommand,
     },
 
     /// Creates a balanced octree from a segmentation
@@ -268,7 +260,7 @@ enum Commands {
 
     /// Applies isotropic remeshing to an existing mesh
     Remesh {
-        /// Mesh input file (inp | stl)
+        /// Mesh input file (exo | inp | stl)
         #[arg(long, short, value_name = "FILE")]
         input: String,
 
@@ -424,18 +416,44 @@ fn main() -> Result<(), ErrorWrapper> {
                 )
             }
         },
-        Some(Commands::Metrics {
-            input,
-            output,
-            quiet,
-        }) => {
-            is_quiet = quiet;
-            write_metrics(
-                &read_finite_elements::<_, TriangularFiniteElements>(&input, quiet, true)?,
-                output,
-                quiet,
-            )
-        }
+        Some(Commands::Metrics { subcommand }) => match subcommand {
+            MetricsSubcommand::Hex(args) => {
+                is_quiet = args.quiet;
+                write_metrics(
+                    &read_finite_elements::<_, HexahedralFiniteElements>(
+                        &args.input,
+                        args.quiet,
+                        true,
+                    )?,
+                    args.output,
+                    args.quiet,
+                )
+            }
+            MetricsSubcommand::Tet(args) => {
+                is_quiet = args.quiet;
+                write_metrics(
+                    &read_finite_elements::<_, TetrahedralFiniteElements>(
+                        &args.input,
+                        args.quiet,
+                        true,
+                    )?,
+                    args.output,
+                    args.quiet,
+                )
+            }
+            MetricsSubcommand::Tri(args) => {
+                is_quiet = args.quiet;
+                write_metrics(
+                    &read_finite_elements::<_, TriangularFiniteElements>(
+                        &args.input,
+                        args.quiet,
+                        true,
+                    )?,
+                    args.output,
+                    args.quiet,
+                )
+            }
+        },
         Some(Commands::Octree {
             input,
             output,
@@ -479,6 +497,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.hierarchical,
                     args.pass_band,
                     args.scale,
+                    args.remeshing,
                     args.metrics,
                     args.quiet,
                 )
@@ -493,6 +512,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.hierarchical,
                     args.pass_band,
                     args.scale,
+                    args.remeshing,
                     args.metrics,
                     args.quiet,
                 )
@@ -507,6 +527,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.hierarchical,
                     args.pass_band,
                     args.scale,
+                    args.remeshing,
                     args.metrics,
                     args.quiet,
                 )

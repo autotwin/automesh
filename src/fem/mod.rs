@@ -598,6 +598,8 @@ pub trait FiniteElementSpecifics {
     fn maximum_skews(&self) -> Metrics;
     /// Calculates the minimum scaled Jacobians.
     fn minimum_scaled_jacobians(&self) -> Metrics;
+    /// Isotropic remeshing of the finite elements.
+    fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing);
     /// Writes the finite elements quality metrics to a new file.
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO>;
 }
@@ -652,8 +654,14 @@ fn finite_element_data_from_exo<const N: usize>(
                         .collect::<Vec<usize>>()
                         .try_into()
                         .expect("Error getting element connectivity")
-                }).collect::<Connectivity<N>>();
-            blocks.extend(vec![variable.name()["connect".len()..].parse::<u8>().expect("Error getting block index"); connect.len()]);
+                })
+                .collect::<Connectivity<N>>();
+            blocks.extend(vec![
+                variable.name()["connect".len()..]
+                    .parse::<u8>()
+                    .expect("Error getting block index");
+                connect.len()
+            ]);
             connect
         })
         .collect();

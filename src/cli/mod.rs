@@ -4,6 +4,7 @@ pub mod diff;
 pub mod extract;
 pub mod input;
 pub mod mesh;
+pub mod metrics;
 pub mod output;
 pub mod remesh;
 pub mod smooth;

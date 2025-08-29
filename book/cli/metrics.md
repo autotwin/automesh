@@ -7,6 +7,10 @@ automesh metrics --help
 
 ## Hexahedral Metrics
 
+```sh
+automesh metrics hex --help
+<!-- cmdrun automesh metrics hex --help -->
+
 `automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
 
 * Maximum edge ratio ${\rm ER}_{\max}$
@@ -150,6 +154,10 @@ The element coordinates follow:
 ```
 
 ## Triangular Metrics
+
+```sh
+automesh metrics tri --help
+<!-- cmdrun automesh metrics tri --help -->
 
 `automesh` implements the following triangular element quality metrics:
 

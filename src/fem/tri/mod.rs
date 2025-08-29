@@ -112,6 +112,9 @@ impl FiniteElementSpecifics for TriangularFiniteElements {
             .map(|angle| angle.sin() / J_EQUILATERAL)
             .collect()
     }
+    fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing) {
+        remesh(self, iterations, smoothing_method)
+    }
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
         let areas = self.areas();
         let maximum_skews = self.maximum_skews();
@@ -233,10 +236,6 @@ impl TriangularFiniteElements {
                 .unwrap()
             })
             .collect()
-    }
-    /// Isotropic remeshing of the finite elements.
-    pub fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing) {
-        remesh(self, iterations, smoothing_method)
     }
 }
 

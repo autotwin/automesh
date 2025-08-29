@@ -4,7 +4,7 @@ use super::{
     output::write_finite_elements,
     smooth::{TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_ITERS, TAUBIN_DEFAULT_SCALE},
 };
-use automesh::{FiniteElementMethods, Smoothing, TriangularFiniteElements};
+use automesh::{FiniteElementMethods, FiniteElementSpecifics, Smoothing, TriangularFiniteElements};
 use clap::Subcommand;
 use std::time::Instant;
 
