@@ -9,8 +9,8 @@ use super::{
     },
 };
 use automesh::{
-    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, Smoothing, TET,
-    TRI, TetrahedralFiniteElements, Translate, TriangularFiniteElements,
+    FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Octree, Remove,
+    Scale, Smoothing, TET, TRI, TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::Subcommand;
 use conspire::math::TensorVec;
@@ -19,185 +19,15 @@ use std::time::Instant;
 #[derive(Subcommand)]
 pub enum MeshSubcommand {
     /// Creates an all-hexahedral mesh from a segmentation
-    Hex(MeshHexArgs),
+    Hex(MeshArgs),
     /// Creates an all-tetrahedral mesh from a segmentation
-    Tet(MeshTetArgs),
+    Tet(MeshArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
-    Tri(MeshTriArgs),
+    Tri(MeshArgs),
 }
 
 #[derive(clap::Args)]
-pub struct MeshHexArgs {
-    #[command(subcommand)]
-    pub smoothing: Option<MeshSmoothCommands>,
-
-    /// Segmentation input file (npy | spn)
-    #[arg(long, short, value_name = "FILE")]
-    pub input: String,
-
-    /// Mesh output file (exo | inp | mesh | vtk)
-    #[arg(long, short, value_name = "FILE")]
-    pub output: String,
-
-    /// Defeature clusters with less than NUM voxels
-    #[arg(long, short, value_name = "NUM")]
-    pub defeature: Option<usize>,
-
-    /// Number of voxels in the x-direction (spn)
-    #[arg(long, short = 'x', value_name = "NEL")]
-    pub nelx: Option<usize>,
-
-    /// Number of voxels in the y-direction (spn)
-    #[arg(long, short = 'y', value_name = "NEL")]
-    pub nely: Option<usize>,
-
-    /// Number of voxels in the z-direction (spn)
-    #[arg(long, short = 'z', value_name = "NEL")]
-    pub nelz: Option<usize>,
-
-    /// Voxel IDs to remove from the mesh
-    #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
-    pub remove: Option<Vec<usize>>,
-
-    /// Scaling (> 0.0) in the x-direction, applied before translation
-    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
-    pub xscale: f64,
-
-    /// Scaling (> 0.0) in the y-direction, applied before translation
-    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
-    pub yscale: f64,
-
-    /// Scaling (> 0.0) in the z-direction, applied before translation
-    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
-    pub zscale: f64,
-
-    /// Translation in the x-direction
-    #[arg(
-        long,
-        default_value_t = 0.0,
-        allow_negative_numbers = true,
-        value_name = "VAL"
-    )]
-    pub xtranslate: f64,
-
-    /// Translation in the y-direction
-    #[arg(
-        long,
-        default_value_t = 0.0,
-        allow_negative_numbers = true,
-        value_name = "VAL"
-    )]
-    pub ytranslate: f64,
-
-    /// Translation in the z-direction
-    #[arg(
-        long,
-        default_value_t = 0.0,
-        allow_negative_numbers = true,
-        value_name = "VAL"
-    )]
-    pub ztranslate: f64,
-
-    /// Quality metrics output file (csv | npy)
-    #[arg(long, value_name = "FILE")]
-    pub metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
-
-    /// Pass to mesh adaptively
-    #[arg(action, hide = true, long)]
-    pub adapt: bool,
-}
-
-#[derive(clap::Args)]
-pub struct MeshTetArgs {
-    #[command(subcommand)]
-    pub smoothing: Option<MeshSmoothCommands>,
-
-    /// Segmentation input file (npy | spn)
-    #[arg(long, short, value_name = "FILE")]
-    pub input: String,
-
-    /// Mesh output file (exo | inp | mesh | vtk)
-    #[arg(long, short, value_name = "FILE")]
-    pub output: String,
-
-    /// Defeature clusters with less than NUM voxels
-    #[arg(long, short, value_name = "NUM")]
-    pub defeature: Option<usize>,
-
-    /// Number of voxels in the x-direction (spn)
-    #[arg(long, short = 'x', value_name = "NEL")]
-    pub nelx: Option<usize>,
-
-    /// Number of voxels in the y-direction (spn)
-    #[arg(long, short = 'y', value_name = "NEL")]
-    pub nely: Option<usize>,
-
-    /// Number of voxels in the z-direction (spn)
-    #[arg(long, short = 'z', value_name = "NEL")]
-    pub nelz: Option<usize>,
-
-    /// Voxel IDs to remove from the mesh
-    #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
-    pub remove: Option<Vec<usize>>,
-
-    /// Scaling (> 0.0) in the x-direction, applied before translation
-    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
-    pub xscale: f64,
-
-    /// Scaling (> 0.0) in the y-direction, applied before translation
-    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
-    pub yscale: f64,
-
-    /// Scaling (> 0.0) in the z-direction, applied before translation
-    #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
-    pub zscale: f64,
-
-    /// Translation in the x-direction
-    #[arg(
-        long,
-        default_value_t = 0.0,
-        allow_negative_numbers = true,
-        value_name = "VAL"
-    )]
-    pub xtranslate: f64,
-
-    /// Translation in the y-direction
-    #[arg(
-        long,
-        default_value_t = 0.0,
-        allow_negative_numbers = true,
-        value_name = "VAL"
-    )]
-    pub ytranslate: f64,
-
-    /// Translation in the z-direction
-    #[arg(
-        long,
-        default_value_t = 0.0,
-        allow_negative_numbers = true,
-        value_name = "VAL"
-    )]
-    pub ztranslate: f64,
-
-    /// Quality metrics output file (csv | npy)
-    #[arg(long, value_name = "FILE")]
-    pub metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
-
-    /// Pass to mesh adaptively
-    #[arg(action, hide = true, long)]
-    pub adapt: bool,
-}
-
-#[derive(clap::Args)]
-pub struct MeshTriArgs {
+pub struct MeshArgs {
     #[command(subcommand)]
     pub smoothing: Option<MeshSmoothCommands>,
 
@@ -280,7 +110,6 @@ pub struct MeshTriArgs {
     #[arg(action, hide = true, long)]
     pub adapt: bool,
 }
-
 pub enum MeshBasis {
     Leaves,
     Surfaces,

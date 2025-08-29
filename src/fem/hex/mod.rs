@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::{
     Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics,
-    NODE_NUMBERING_OFFSET, Tessellation, Vector,
+    NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
 use ndarray::{Array2, s};
@@ -187,6 +187,9 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
                     .unwrap()
             })
             .collect()
+    }
+    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing) {
+        todo!()
     }
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
         let maximum_edge_ratios = self.maximum_edge_ratios();

@@ -15,7 +15,7 @@ use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
 use chrono::Utc;
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array1, parallel::prelude::*};
-use netcdf::{Error as ErrorNetCDF, create};
+use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
@@ -41,7 +41,7 @@ pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 pub type VecConnectivity = Vec<Vec<usize>>;
 pub type Metrics = Array1<f64>;
 pub type Nodes = Vec<usize>;
-pub type ReorderedConnectivity = Vec<Vec<i32>>;
+pub type ReorderedConnectivity = Vec<Vec<u32>>;
 
 /// Possible smoothing methods.
 pub enum Smoothing {
@@ -80,6 +80,8 @@ where
         element_node_connectivity: Connectivity<N>,
         nodal_coordinates: Coordinates,
     ) -> Self;
+    /// Constructs and returns a new finite elements type from an Exodus input file.
+    fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF>;
     /// Constructs and returns a new finite elements type from an Abaqus input file.
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO>;
     /// Calculates and returns the discrete Laplacian for the given node-to-node connectivity.
@@ -172,6 +174,15 @@ where
             prescribed_nodes_inhomogeneous: vec![],
             prescribed_nodes_inhomogeneous_coordinates: Coordinates::zero(0),
         }
+    }
+    fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF> {
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_element_data_from_exo(file_path)?;
+        Ok(Self::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates,
+        ))
     }
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
@@ -587,6 +598,8 @@ pub trait FiniteElementSpecifics {
     fn maximum_skews(&self) -> Metrics;
     /// Calculates the minimum scaled Jacobians.
     fn minimum_scaled_jacobians(&self) -> Metrics;
+    /// Isotropic remeshing of the finite elements.
+    fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing);
     /// Writes the finite elements quality metrics to a new file.
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO>;
 }
@@ -606,7 +619,7 @@ fn reorder_connectivity<const N: usize>(
                 .flat_map(|(element, _)| {
                     element_node_connectivity[element]
                         .iter()
-                        .map(|&entry| entry as i32)
+                        .map(|&entry| entry as u32)
                 })
                 .collect()
         })
@@ -619,6 +632,58 @@ fn automesh_header() -> String {
         env!("CARGO_PKG_VERSION"),
         Utc::now()
     )
+}
+
+fn finite_element_data_from_exo<const N: usize>(
+    file_path: &str,
+) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorNetCDF> {
+    let file = open(file_path)?;
+    let mut blocks = vec![];
+    let connectivity = file
+        .variables()
+        .filter(|variable| variable.name().starts_with("connect"))
+        .flat_map(|variable| {
+            let connect = variable
+                .get_values::<u32, _>(..)
+                .expect("Error getting block connectivity")
+                .chunks(N)
+                .map(|chunk| {
+                    chunk
+                        .iter()
+                        .map(|&node| node as usize)
+                        .collect::<Vec<usize>>()
+                        .try_into()
+                        .expect("Error getting element connectivity")
+                })
+                .collect::<Connectivity<N>>();
+            blocks.extend(vec![
+                variable.name()["connect".len()..]
+                    .parse::<u8>()
+                    .expect("Error getting block index");
+                connect.len()
+            ]);
+            connect
+        })
+        .collect();
+    let nodal_coordinates = file
+        .variable("coordx")
+        .expect("Coordinates x not found")
+        .get_values(..)?
+        .into_iter()
+        .zip(
+            file.variable("coordy")
+                .expect("Coordinates y not found")
+                .get_values(..)?
+                .into_iter()
+                .zip(
+                    file.variable("coordz")
+                        .expect("Coordinates z not found")
+                        .get_values(..)?,
+                ),
+        )
+        .map(|(x, (y, z))| [x, y, z].into())
+        .collect();
+    Ok((blocks, connectivity, nodal_coordinates))
 }
 
 fn finite_element_data_from_inp<const N: usize>(
@@ -718,8 +783,8 @@ fn write_finite_elements_to_exodus<const N: usize>(
 ) -> Result<(), ErrorNetCDF> {
     let mut file = create(file_path)?;
     file.add_attribute::<f32>("api_version", 8.25)?;
-    file.add_attribute::<i32>("file_size", 1)?;
-    file.add_attribute::<i32>("floating_point_word_size", 8)?;
+    file.add_attribute::<u32>("file_size", 1)?;
+    file.add_attribute::<u32>("floating_point_word_size", 8)?;
     file.add_attribute::<String>("title", automesh_header())?;
     file.add_attribute::<f32>("version", 8.25)?;
     let mut element_blocks_unique = element_blocks.clone();
@@ -728,11 +793,11 @@ fn write_finite_elements_to_exodus<const N: usize>(
     file.add_dimension("num_dim", NSD)?;
     file.add_dimension("num_elem", element_blocks.len())?;
     file.add_dimension("num_el_blk", element_blocks_unique.len())?;
-    let mut eb_prop1 = file.add_variable::<i32>("eb_prop1", &["num_el_blk"])?;
+    let mut eb_prop1 = file.add_variable::<u32>("eb_prop1", &["num_el_blk"])?;
     element_blocks_unique
         .iter()
         .enumerate()
-        .try_for_each(|(index, unique_block)| eb_prop1.put_value(*unique_block as i32, index))?;
+        .try_for_each(|(index, unique_block)| eb_prop1.put_value(*unique_block as u32, index))?;
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let block_connectivities = reorder_connectivity(
@@ -756,7 +821,7 @@ fn write_finite_elements_to_exodus<const N: usize>(
                 number_of_elements,
             )?;
             file.add_dimension(format!("num_nod_per_el{current_block}").as_str(), N)?;
-            let mut connectivities = file.add_variable::<i32>(
+            let mut connectivities = file.add_variable::<u32>(
                 format!("connect{current_block}").as_str(),
                 &[
                     format!("num_el_in_blk{current_block}").as_str(),
