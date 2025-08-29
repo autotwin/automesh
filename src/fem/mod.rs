@@ -41,7 +41,7 @@ pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 pub type VecConnectivity = Vec<Vec<usize>>;
 pub type Metrics = Array1<f64>;
 pub type Nodes = Vec<usize>;
-pub type ReorderedConnectivity = Vec<Vec<i32>>;
+pub type ReorderedConnectivity = Vec<Vec<u32>>;
 
 /// Possible smoothing methods.
 pub enum Smoothing {
@@ -617,7 +617,7 @@ fn reorder_connectivity<const N: usize>(
                 .flat_map(|(element, _)| {
                     element_node_connectivity[element]
                         .iter()
-                        .map(|&entry| entry as i32)
+                        .map(|&entry| entry as u32)
                 })
                 .collect()
         })
@@ -635,9 +635,6 @@ fn automesh_header() -> String {
 fn finite_element_data_from_exo<const N: usize>(
     file_path: &str,
 ) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorNetCDF> {
-    //
-    // Change all i32 instances to u32?
-    //
     let file = open(file_path)?;
     let mut blocks = vec![];
     let connectivity = file
@@ -645,7 +642,7 @@ fn finite_element_data_from_exo<const N: usize>(
         .filter(|variable| variable.name().starts_with("connect"))
         .flat_map(|variable| {
             let connect = variable
-                .get_values::<i32, _>(..)
+                .get_values::<u32, _>(..)
                 .expect("Error getting block connectivity")
                 .chunks(N)
                 .map(|chunk| {
@@ -778,8 +775,8 @@ fn write_finite_elements_to_exodus<const N: usize>(
 ) -> Result<(), ErrorNetCDF> {
     let mut file = create(file_path)?;
     file.add_attribute::<f32>("api_version", 8.25)?;
-    file.add_attribute::<i32>("file_size", 1)?;
-    file.add_attribute::<i32>("floating_point_word_size", 8)?;
+    file.add_attribute::<u32>("file_size", 1)?;
+    file.add_attribute::<u32>("floating_point_word_size", 8)?;
     file.add_attribute::<String>("title", automesh_header())?;
     file.add_attribute::<f32>("version", 8.25)?;
     let mut element_blocks_unique = element_blocks.clone();
@@ -788,11 +785,11 @@ fn write_finite_elements_to_exodus<const N: usize>(
     file.add_dimension("num_dim", NSD)?;
     file.add_dimension("num_elem", element_blocks.len())?;
     file.add_dimension("num_el_blk", element_blocks_unique.len())?;
-    let mut eb_prop1 = file.add_variable::<i32>("eb_prop1", &["num_el_blk"])?;
+    let mut eb_prop1 = file.add_variable::<u32>("eb_prop1", &["num_el_blk"])?;
     element_blocks_unique
         .iter()
         .enumerate()
-        .try_for_each(|(index, unique_block)| eb_prop1.put_value(*unique_block as i32, index))?;
+        .try_for_each(|(index, unique_block)| eb_prop1.put_value(*unique_block as u32, index))?;
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let block_connectivities = reorder_connectivity(
@@ -816,7 +813,7 @@ fn write_finite_elements_to_exodus<const N: usize>(
                 number_of_elements,
             )?;
             file.add_dimension(format!("num_nod_per_el{current_block}").as_str(), N)?;
-            let mut connectivities = file.add_variable::<i32>(
+            let mut connectivities = file.add_variable::<u32>(
                 format!("connect{current_block}").as_str(),
                 &[
                     format!("num_el_in_blk{current_block}").as_str(),
