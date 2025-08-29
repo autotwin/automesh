@@ -299,8 +299,8 @@ fn main() -> Result<(), ErrorWrapper> {
     let result = match args.command {
         Some(Commands::Convert { subcommand }) => match subcommand {
             ConvertSubcommand::Mesh(args) => {
-                is_quiet = args.quiet;
-                convert_mesh(args.input, args.output, args.quiet)
+                is_quiet = args.subcommand.is_quiet();
+                convert_mesh(args.subcommand)
             }
             ConvertSubcommand::Segmentation(args) => {
                 is_quiet = args.quiet;

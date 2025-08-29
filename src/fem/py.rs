@@ -1,7 +1,8 @@
 use super::{
     super::py::{IntoFoo, PyCoordinates, PyIntermediateError},
     Blocks, Connectivity, FiniteElementMethods, FiniteElementSpecifics, HEX, Smoothing, TRI,
-    finite_element_data_from_inp, write_finite_elements_to_abaqus, write_finite_elements_to_exodus,
+    finite_element_data_from_exo, finite_element_data_from_inp,
+    write_finite_elements_to_abaqus, write_finite_elements_to_exodus,
     write_finite_elements_to_mesh, write_finite_elements_to_vtk,
 };
 use pyo3::prelude::*;
@@ -50,6 +51,17 @@ impl HexahedralFiniteElements {
             element_node_connectivity,
             nodal_coordinates,
         }
+    }
+    /// Constructs and returns a new hexahedral finite elements class from an Exodus file.
+    #[staticmethod]
+    pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_element_data_from_exo(file_path)?;
+        Ok(Self::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates.as_foo(),
+        ))
     }
     /// Constructs and returns a new hexahedral finite elements class from an Abaqus file.
     #[staticmethod]
@@ -160,6 +172,17 @@ impl TetrahedralFiniteElements {
             nodal_coordinates,
         }
     }
+    /// Constructs and returns a new hexahedral finite elements class from an Exodus file.
+    #[staticmethod]
+    pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_element_data_from_exo(file_path)?;
+        Ok(Self::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates.as_foo(),
+        ))
+    }
     /// Constructs and returns a new tetrahedral finite elements class from an Abaqus file.
     #[staticmethod]
     pub fn from_inp(file_path: &str) -> Result<Self, PyIntermediateError> {
@@ -268,6 +291,17 @@ impl TriangularFiniteElements {
             element_node_connectivity,
             nodal_coordinates,
         }
+    }
+    /// Constructs and returns a new hexahedral finite elements class from an Exodus file.
+    #[staticmethod]
+    pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_element_data_from_exo(file_path)?;
+        Ok(Self::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates.as_foo(),
+        ))
     }
     /// Constructs and returns a new hexahedral finite elements class from an Abaqus file.
     #[staticmethod]

@@ -15,7 +15,7 @@ use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
 use chrono::Utc;
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array1, parallel::prelude::*};
-use netcdf::{Error as ErrorNetCDF, create};
+use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
@@ -80,6 +80,8 @@ where
         element_node_connectivity: Connectivity<N>,
         nodal_coordinates: Coordinates,
     ) -> Self;
+    /// Constructs and returns a new finite elements type from an Exodus input file.
+    fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF>;
     /// Constructs and returns a new finite elements type from an Abaqus input file.
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO>;
     /// Calculates and returns the discrete Laplacian for the given node-to-node connectivity.
@@ -172,6 +174,15 @@ where
             prescribed_nodes_inhomogeneous: vec![],
             prescribed_nodes_inhomogeneous_coordinates: Coordinates::zero(0),
         }
+    }
+    fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF> {
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_element_data_from_exo(file_path)?;
+        Ok(Self::from_data(
+            element_blocks,
+            element_node_connectivity,
+            nodal_coordinates,
+        ))
     }
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
@@ -619,6 +630,55 @@ fn automesh_header() -> String {
         env!("CARGO_PKG_VERSION"),
         Utc::now()
     )
+}
+
+fn finite_element_data_from_exo<const N: usize>(
+    file_path: &str,
+) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorNetCDF> {
+    //
+    // Change all i32 instances to u32?
+    //
+    let file = open(file_path)?;
+    let mut blocks = vec![];
+    let connectivity = file
+        .variables()
+        .filter(|variable| variable.name().starts_with("connect"))
+        .flat_map(|variable| {
+            let connect = variable
+                .get_values::<i32, _>(..)
+                .expect("Error getting block connectivity")
+                .chunks(N)
+                .map(|chunk| {
+                    chunk
+                        .iter()
+                        .map(|&node| node as usize)
+                        .collect::<Vec<usize>>()
+                        .try_into()
+                        .expect("Error getting element connectivity")
+                }).collect::<Connectivity<N>>();
+            blocks.extend(vec![variable.name()["connect".len()..].parse::<u8>().expect("Error getting block index"); connect.len()]);
+            connect
+        })
+        .collect();
+    let nodal_coordinates = file
+        .variable("coordx")
+        .expect("Coordinates x not found")
+        .get_values(..)?
+        .into_iter()
+        .zip(
+            file.variable("coordy")
+                .expect("Coordinates y not found")
+                .get_values(..)?
+                .into_iter()
+                .zip(
+                    file.variable("coordz")
+                        .expect("Coordinates z not found")
+                        .get_values(..)?,
+                ),
+        )
+        .map(|(x, (y, z))| [x, y, z].into())
+        .collect();
+    Ok((blocks, connectivity, nodal_coordinates))
 }
 
 fn finite_element_data_from_inp<const N: usize>(

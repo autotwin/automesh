@@ -20,32 +20,27 @@ pub struct Input<'a> {
     translate: Translate,
 }
 
-pub enum FiniteElementInputTypes<const N: usize, T>
+pub struct FiniteElementInput<const N: usize, T>(T)
 where
-    T: FiniteElementMethods<N>,
-{
-    Abaqus(T),
-    Stl(T),
-}
+    T: FiniteElementMethods<N> + From<Tessellation>;
 
-impl<const N: usize, T> TryFrom<&str> for FiniteElementInputTypes<N, T>
+impl<const N: usize, T> TryFrom<&str> for FiniteElementInput<N, T>
 where
     T: FiniteElementMethods<N> + From<Tessellation>,
 {
     type Error = ErrorWrapper;
     fn try_from(file: &str) -> Result<Self, Self::Error> {
-        let extension = Path::new(&file).extension().and_then(|ext| ext.to_str());
+        let extension = Path::new(file).extension().and_then(|ext| ext.to_str());
         match extension {
-            Some("inp") => Ok(FiniteElementInputTypes::Abaqus(T::from_inp(file)?)),
-            Some("stl") => Ok(FiniteElementInputTypes::Stl(T::from(
-                Tessellation::try_from(file)?,
-            ))),
+            Some("exo") => Ok(Self(T::from_exo(file)?)),
+            Some("inp") => Ok(Self(T::from_inp(file)?)),
+            Some("stl") => Ok(Self(T::from(Tessellation::try_from(file)?))),
             _ => Err(invalid_input(file, extension)),
         }
     }
 }
 
-impl<const N: usize, T> TryFrom<String> for FiniteElementInputTypes<N, T>
+impl<const N: usize, T> TryFrom<String> for FiniteElementInput<N, T>
 where
     T: FiniteElementMethods<N> + From<Tessellation>,
 {
@@ -94,10 +89,7 @@ where
         }
         print!("     \x1b[1;96mReading\x1b[0m {file}");
     }
-    let finite_elements = match FiniteElementInputTypes::<N, T>::try_from(file)? {
-        FiniteElementInputTypes::Abaqus(finite_elements) => finite_elements,
-        FiniteElementInputTypes::Stl(finite_elements) => finite_elements,
-    };
+    let finite_elements = FiniteElementInput::<N, T>::try_from(file)?.0;
     println!(
         "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
         time.elapsed()
