@@ -280,10 +280,9 @@ impl Cell {
         let y_max = self.get_max_y() as usize;
         let z_max = self.get_max_z() as usize;
         let contained = data.slice(s![x_min..x_max, y_min..y_max, z_min..z_max]);
-        let mut materials: Blocks = contained.iter().cloned().collect();
-        materials.dedup();
-        if materials.len() == 1 {
-            Some(materials[0])
+        let block_0 = contained[(0, 0, 0)];
+        if contained.iter().all(|&block| block == block_0) {
+            Some(block_0)
         } else {
             None
         }
