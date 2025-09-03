@@ -18,6 +18,7 @@ use cli::{
     metrics::MetricsSubcommand,
     output::{write_finite_elements, write_metrics},
     remesh::{REMESH_DEFAULT_ITERS, remesh},
+    segment::{SegmentSubcommand, segment},
     smooth::{SmoothSubcommand, smooth},
 };
 
@@ -277,6 +278,12 @@ enum Commands {
         quiet: bool,
     },
 
+    /// Creates a segmentation from a finite element mesh
+    Segment {
+        #[command(subcommand)]
+        subcommand: SegmentSubcommand,
+    },
+
     /// Applies smoothing to an existing mesh
     Smooth {
         #[command(subcommand)]
@@ -486,6 +493,35 @@ fn main() -> Result<(), ErrorWrapper> {
             is_quiet = quiet;
             remesh(input, output, iterations, quiet)
         }
+        Some(Commands::Segment { subcommand }) => match subcommand {
+            SegmentSubcommand::Hex(args) => {
+                is_quiet = args.quiet;
+                segment::<_, HexahedralFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.levels,
+                    args.quiet,
+                )
+            }
+            SegmentSubcommand::Tet(args) => {
+                is_quiet = args.quiet;
+                segment::<_, TetrahedralFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.levels,
+                    args.quiet,
+                )
+            }
+            SegmentSubcommand::Tri(args) => {
+                is_quiet = args.quiet;
+                segment::<_, TriangularFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.levels,
+                    args.quiet,
+                )
+            }
+        },
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;

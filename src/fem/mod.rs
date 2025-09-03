@@ -72,6 +72,8 @@ pub trait FiniteElementMethods<const N: usize>
 where
     Self: FiniteElementSpecifics + Sized,
 {
+    /// Calculates the centroids.
+    fn centroids(&self) -> Coordinates;
     /// Returns and moves the data associated with the finite elements.
     fn data(self) -> (Blocks, Connectivity<N>, Coordinates);
     /// Constructs and returns a new finite elements type from data.
@@ -146,6 +148,20 @@ impl<const N: usize> FiniteElementMethods<N> for FiniteElements<N>
 where
     Self: FiniteElementSpecifics + Sized,
 {
+    fn centroids(&self) -> Coordinates {
+        let coordinates = self.get_nodal_coordinates();
+        let number_of_nodes = N as f64;
+        self.get_element_node_connectivity()
+            .iter()
+            .map(|nodes| {
+                nodes
+                    .iter()
+                    .map(|node| coordinates[node - NODE_NUMBERING_OFFSET].clone())
+                    .sum::<Coordinate>()
+                    / number_of_nodes
+            })
+            .collect()
+    }
     fn data(self) -> (Blocks, Connectivity<N>, Coordinates) {
         (
             self.element_blocks,

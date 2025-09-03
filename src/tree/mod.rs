@@ -11,7 +11,7 @@ use super::{
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
-use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
+use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
 use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
@@ -284,6 +284,26 @@ impl Cell {
         materials.dedup();
         if materials.len() == 1 {
             Some(materials[0])
+        } else {
+            None
+        }
+    }
+    pub fn homogeneous_coordinates(&self, blocks: &Blocks, coordinates: &Coordinates) -> Option<Vec<usize>> {
+        let x_min = *self.get_min_x() as f64;
+        let y_min = *self.get_min_y() as f64;
+        let z_min = *self.get_min_z() as f64;
+        let x_max = self.get_max_x() as f64;
+        let y_max = self.get_max_y() as f64;
+        let z_max = self.get_max_z() as f64;
+        let insides = coordinates.iter().enumerate().filter(|(_, coordinate)|
+            coordinate[0] <= x_min && coordinate[0] > x_max && 
+            coordinate[1] <= y_min && coordinate[1] > y_max && 
+            coordinate[2] <= z_min && coordinate[2] > z_max
+        ).map(|(index, _)| index).collect::<Vec<usize>>();
+        let mut materials = insides.iter().map(|&index| blocks[index]).collect::<Vec<u8>>();
+        materials.dedup();
+        if materials.len() == 1 {
+            Some(insides)
         } else {
             None
         }
@@ -1246,6 +1266,54 @@ impl Octree {
                 return;
             }
         }
+    }
+    pub fn from_finite_elements<const N: usize, T>(finite_elements: T, levels: usize) -> Self
+    where
+        T: FiniteElementMethods<N>,
+    {
+        let blocks = finite_elements.get_element_blocks();
+        let mut centroids = finite_elements.centroids();
+        let (minimum, mut maximum) = centroids.iter().fold(
+        (Coordinate::new([f64::INFINITY; NSD]), Coordinate::new([f64::NEG_INFINITY; NSD])),
+        |(mut minimum, mut maximum), coordinate| {
+            minimum.iter_mut().zip(maximum.iter_mut().zip(coordinate.iter())).for_each(|(min, (max, &coord))| {
+                *min = min.min(coord);
+                *max = max.max(coord);
+            });
+            (minimum, maximum)
+            }
+        );
+        centroids.iter_mut().for_each(|centroid|
+            *centroid -= &minimum
+        );
+        maximum -= minimum;
+        let lngth = maximum.into_iter().reduce(f64::max).unwrap().ceil() as u16;
+        let mut tree = Octree {
+            nel: Nel::from([lngth as usize; NSD]),
+            octree: vec![],
+            remove: Remove::Some(vec![PADDING]),
+            scale: Scale::default(),
+            translate: Translate::default(),
+        };
+        tree.push(Cell {
+            block: None,
+            cells: None,
+            faces: [None; NUM_FACES],
+            lngth,
+            min_x: 0,
+            min_y: 0,
+            min_z: 0,
+        });
+        // let mut index = 0;
+        // while index < tree.len() {
+        //     if let Some(block) = tree[index].homogeneous(&data) {
+        //         tree[index].block = Some(block)
+        //     } else {
+        //         tree.subdivide(index)
+        //     }
+        //     index += 1;
+        // }
+        todo!()
     }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())

@@ -7,13 +7,11 @@ pub mod test;
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use crate::TetrahedralFiniteElements;
-
 use super::{
     Coordinate, Coordinates, NSD, Octree, Vector,
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
-        NODE_NUMBERING_OFFSET,
+        NODE_NUMBERING_OFFSET, TetrahedralFiniteElements,
     },
 };
 use conspire::math::TensorArray;
@@ -346,6 +344,13 @@ impl Voxels {
     /// Extract a specified range of voxels from the segmentation.
     pub fn extract(&mut self, extraction: Extraction) {
         extract_voxels(self, extraction)
+    }
+    /// Constructs and returns a segmentation from a finite element mesh.
+    pub fn from_finite_elements<const N: usize, T>(finite_elements: T, levels: usize) -> Self
+    where
+        T: FiniteElementMethods<N>,
+    {
+        Octree::from_finite_elements(finite_elements, levels).into()
     }
     /// Constructs and returns a new voxels type from an NPY file.
     pub fn from_npy(
