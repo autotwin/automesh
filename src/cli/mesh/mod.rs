@@ -336,7 +336,7 @@ pub fn mesh<const N: usize>(
                             quiet: _,
                         }) = remeshing
                         {
-                            apply_remeshing(&mut finite_elements, iterations, quiet, false)?;
+                            apply_remeshing(&mut finite_elements, iterations, quiet, true)?;
                         }
                     }
                 }
