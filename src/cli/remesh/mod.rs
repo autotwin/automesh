@@ -6,6 +6,7 @@ use super::{
 };
 use automesh::{FiniteElementMethods, FiniteElementSpecifics, Smoothing, TriangularFiniteElements};
 use clap::Subcommand;
+use conspire::math::TensorVec;
 use std::time::Instant;
 
 pub const REMESH_DEFAULT_ITERS: usize = 5;
@@ -47,7 +48,59 @@ pub fn remesh(
         ),
     );
     if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+        let mut blocks = finite_elements.get_element_blocks().clone();
+        let elements = blocks.len();
+        blocks.sort();
+        blocks.dedup();
+        println!(
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+            time.elapsed(),
+            blocks.len(),
+            elements,
+            finite_elements.get_nodal_coordinates().len()
+        );
     }
     write_finite_elements(output, finite_elements, quiet)
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn apply_remeshing<const N: usize, T>(
+    finite_elements: &mut T,
+    iterations: usize,
+    quiet: bool,
+    smoothed: bool,
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<N>,
+{
+    let time = Instant::now();
+    if !quiet {
+        println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations")
+    }
+    if smoothed {
+        finite_elements.node_element_connectivity()?;
+        finite_elements.node_node_connectivity()?;
+    }
+    finite_elements.remesh(
+        iterations,
+        &Smoothing::Taubin(
+            TAUBIN_DEFAULT_ITERS,
+            TAUBIN_DEFAULT_BAND,
+            TAUBIN_DEFAULT_SCALE,
+        ),
+    );
+    if !quiet {
+        let mut blocks = finite_elements.get_element_blocks().clone();
+        let elements = blocks.len();
+        blocks.sort();
+        blocks.dedup();
+        println!(
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+            time.elapsed(),
+            blocks.len(),
+            elements,
+            finite_elements.get_nodal_coordinates().len()
+        );
+    }
+    Ok(())
 }

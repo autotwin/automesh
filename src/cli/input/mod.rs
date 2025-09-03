@@ -90,10 +90,12 @@ where
         print!("     \x1b[1;96mReading\x1b[0m {file}");
     }
     let finite_elements = FiniteElementInput::<N, T>::try_from(file)?.0;
-    println!(
-        "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
-        time.elapsed()
-    );
+    if !quiet {
+        println!(
+            "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
+            time.elapsed()
+        );
+    }
     Ok(finite_elements)
 }
 

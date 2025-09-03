@@ -2,15 +2,12 @@ use super::{
     ErrorWrapper,
     input::read_segmentation,
     output::{write_finite_elements, write_metrics},
-    remesh::MeshRemeshCommands,
-    smooth::{
-        MeshSmoothCommands, TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_ITERS, TAUBIN_DEFAULT_SCALE,
-        apply_smoothing_method,
-    },
+    remesh::{MeshRemeshCommands, apply_remeshing},
+    smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
 use automesh::{
-    FiniteElementMethods, FiniteElementSpecifics, HEX, HexahedralFiniteElements, Octree, Remove,
-    Scale, Smoothing, TET, TRI, TetrahedralFiniteElements, Translate, TriangularFiniteElements,
+    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, TET, TRI,
+    TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::Subcommand;
 use conspire::math::TensorVec;
@@ -162,7 +159,7 @@ pub fn mesh<const N: usize>(
             if !quiet {
                 time = Instant::now();
             }
-            let mut output_type: HexahedralFiniteElements = if adapt {
+            let mut finite_elements: HexahedralFiniteElements = if adapt {
                 if !quiet {
                     print!("     \x1b[1;96mMeshing\x1b[0m adaptive hexahedra");
                     mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
@@ -178,7 +175,7 @@ pub fn mesh<const N: usize>(
                 input_type.into()
             };
             if !quiet {
-                let mut blocks = output_type.get_element_blocks().clone();
+                let mut blocks = finite_elements.get_element_blocks().clone();
                 let elements = blocks.len();
                 blocks.sort();
                 blocks.dedup();
@@ -187,7 +184,7 @@ pub fn mesh<const N: usize>(
                     time.elapsed(),
                     blocks.len(),
                     elements,
-                    output_type.get_nodal_coordinates().len()
+                    finite_elements.get_nodal_coordinates().len()
                 );
             }
             if let Some(options) = smoothing {
@@ -201,7 +198,7 @@ pub fn mesh<const N: usize>(
                         scale,
                     } => {
                         apply_smoothing_method(
-                            &mut output_type,
+                            &mut finite_elements,
                             iterations,
                             method,
                             hierarchical,
@@ -213,9 +210,9 @@ pub fn mesh<const N: usize>(
                 }
             }
             if let Some(file) = metrics {
-                write_metrics(&output_type, file, quiet)?
+                write_metrics(&finite_elements, file, quiet)?
             }
-            write_finite_elements(output, output_type, quiet)?;
+            write_finite_elements(output, finite_elements, quiet)?;
         }
         TET => {
             if let Some(min_num_voxels) = defeature {
@@ -233,7 +230,7 @@ pub fn mesh<const N: usize>(
             if !quiet {
                 time = Instant::now();
             }
-            let mut output_type: TetrahedralFiniteElements = if adapt {
+            let mut finite_elements: TetrahedralFiniteElements = if adapt {
                 Err("Adaptive tetrahedra not yet implemented".to_string())?
             } else {
                 if !quiet {
@@ -243,7 +240,7 @@ pub fn mesh<const N: usize>(
                 input_type.into()
             };
             if !quiet {
-                let mut blocks = output_type.get_element_blocks().clone();
+                let mut blocks = finite_elements.get_element_blocks().clone();
                 let elements = blocks.len();
                 blocks.sort();
                 blocks.dedup();
@@ -252,7 +249,7 @@ pub fn mesh<const N: usize>(
                     time.elapsed(),
                     blocks.len(),
                     elements,
-                    output_type.get_nodal_coordinates().len()
+                    finite_elements.get_nodal_coordinates().len()
                 );
             }
             if let Some(options) = smoothing {
@@ -266,7 +263,7 @@ pub fn mesh<const N: usize>(
                         scale,
                     } => {
                         apply_smoothing_method(
-                            &mut output_type,
+                            &mut finite_elements,
                             iterations,
                             method,
                             hierarchical,
@@ -278,9 +275,9 @@ pub fn mesh<const N: usize>(
                 }
             }
             if let Some(file) = metrics {
-                write_metrics(&output_type, file, quiet)?
+                write_metrics(&finite_elements, file, quiet)?
             }
-            write_finite_elements(output, output_type, quiet)?;
+            write_finite_elements(output, finite_elements, quiet)?;
         }
         TRI => {
             if !quiet {
@@ -301,9 +298,9 @@ pub fn mesh<const N: usize>(
                 time = Instant::now();
                 mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
             }
-            let mut output_type = TriangularFiniteElements::from(tree);
+            let mut finite_elements = TriangularFiniteElements::from(tree);
             if !quiet {
-                let mut blocks = output_type.get_element_blocks().clone();
+                let mut blocks = finite_elements.get_element_blocks().clone();
                 let elements = blocks.len();
                 blocks.sort();
                 blocks.dedup();
@@ -312,7 +309,7 @@ pub fn mesh<const N: usize>(
                     time.elapsed(),
                     blocks.len(),
                     elements,
-                    output_type.get_nodal_coordinates().len()
+                    finite_elements.get_nodal_coordinates().len()
                 );
             }
             if let Some(options) = smoothing {
@@ -326,7 +323,7 @@ pub fn mesh<const N: usize>(
                         scale,
                     } => {
                         apply_smoothing_method(
-                            &mut output_type,
+                            &mut finite_elements,
                             iterations,
                             method,
                             hierarchical,
@@ -334,32 +331,20 @@ pub fn mesh<const N: usize>(
                             scale,
                             quiet,
                         )?;
-                        if let Some(MeshRemeshCommands::Remesh { iterations, quiet }) = remeshing {
-                            let time = Instant::now();
-                            if !quiet {
-                                println!(
-                                    "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations"
-                                )
-                            }
-                            output_type.remesh(
-                                iterations,
-                                &Smoothing::Taubin(
-                                    TAUBIN_DEFAULT_ITERS,
-                                    TAUBIN_DEFAULT_BAND,
-                                    TAUBIN_DEFAULT_SCALE,
-                                ),
-                            );
-                            if !quiet {
-                                println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed())
-                            }
+                        if let Some(MeshRemeshCommands::Remesh {
+                            iterations,
+                            quiet: _,
+                        }) = remeshing
+                        {
+                            apply_remeshing(&mut finite_elements, iterations, quiet, false)?;
                         }
                     }
                 }
             }
             if let Some(file) = metrics {
-                write_metrics(&output_type, file, quiet)?
+                write_metrics(&finite_elements, file, quiet)?
             }
-            write_finite_elements(output, output_type, quiet)?;
+            write_finite_elements(output, finite_elements, quiet)?;
         }
         _ => panic!(),
     }

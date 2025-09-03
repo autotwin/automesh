@@ -2,7 +2,7 @@ use super::{
     ErrorWrapper,
     input::read_finite_elements,
     output::{write_finite_elements, write_metrics},
-    remesh::MeshRemeshCommands,
+    remesh::{MeshRemeshCommands, apply_remeshing},
 };
 use automesh::{FiniteElementMethods, Smoothing, Tessellation};
 use clap::Subcommand;
@@ -209,14 +209,7 @@ where
         quiet: _,
     }) = remeshing
     {
-        finite_elements.remesh(
-            iterations,
-            &Smoothing::Taubin(
-                TAUBIN_DEFAULT_ITERS,
-                TAUBIN_DEFAULT_BAND,
-                TAUBIN_DEFAULT_SCALE,
-            ),
-        );
+        apply_remeshing(&mut finite_elements, iterations, quiet, false)?;
     }
     if let Some(file) = metrics {
         write_metrics(&finite_elements, file, quiet)?
@@ -237,7 +230,7 @@ pub fn apply_smoothing_method<const N: usize, T>(
 where
     T: FiniteElementMethods<N>,
 {
-    let time_smooth = Instant::now();
+    let time = Instant::now();
     let smoothing_method = method.unwrap_or("Taubin".to_string());
     if matches!(
         smoothing_method.as_str(),
@@ -271,7 +264,7 @@ where
             _ => panic!(),
         }
         if !quiet {
-            println!("        \x1b[1;92mDone\x1b[0m {:?}", time_smooth.elapsed());
+            println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
         }
         Ok(())
     } else {
