@@ -136,7 +136,7 @@ pub fn read_segmentation(
     let voxels = Voxels::try_from(input)?;
     if !quiet {
         let data = voxels.get_data();
-        let mut materials = vec![false; u8::MAX as usize];
+        let mut materials = vec![false; u8::MAX as usize + 1];
         data.iter()
             .for_each(|&voxel| materials[voxel as usize] = true);
         let num_voxels = data.iter().count();

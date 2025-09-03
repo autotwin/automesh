@@ -15,7 +15,7 @@ use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
 use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     ops::{Deref, DerefMut},
 };
 
@@ -280,15 +280,14 @@ impl Cell {
         let y_max = self.get_max_y() as usize;
         let z_max = self.get_max_z() as usize;
         let contained = data.slice(s![x_min..x_max, y_min..y_max, z_min..z_max]);
-        let mut materials: Blocks = contained.iter().cloned().collect();
-        materials.dedup();
-        if materials.len() == 1 {
-            Some(materials[0])
+        let block_0 = contained[(0, 0, 0)];
+        if contained.iter().all(|&block| block == block_0) {
+            Some(block_0)
         } else {
             None
         }
     }
-    pub fn homogeneous_coordinates(&self, blocks: &Blocks, coordinates: &Coordinates) -> Option<Vec<usize>> {
+    pub fn homogeneous_coordinates(&self, blocks: &Blocks, coordinates: &Coordinates) -> Option<(u8, HashSet<usize>)> {
         let x_min = *self.get_min_x() as f64;
         let y_min = *self.get_min_y() as f64;
         let z_min = *self.get_min_z() as f64;
@@ -300,12 +299,15 @@ impl Cell {
             coordinate[1] <= y_min && coordinate[1] > y_max && 
             coordinate[2] <= z_min && coordinate[2] > z_max
         ).map(|(index, _)| index).collect::<Vec<usize>>();
-        let mut materials = insides.iter().map(|&index| blocks[index]).collect::<Vec<u8>>();
-        materials.dedup();
-        if materials.len() == 1 {
-            Some(insides)
+        if insides.len() == 0 {
+            Some((PADDING, HashSet::new()))
         } else {
-            None
+            let block_0 = blocks[insides[0]];
+            if insides.iter().map(|&index| blocks[index]).all(|block| block == block_0) {
+                Some((block_0, insides.into_iter().collect()))
+            } else {
+                None
+            }
         }
     }
     pub fn is_face_on_octree_boundary(&self, face_index: &usize, nel: Nel) -> bool {
@@ -1271,7 +1273,7 @@ impl Octree {
     where
         T: FiniteElementMethods<N>,
     {
-        let blocks = finite_elements.get_element_blocks();
+        let mut blocks = finite_elements.get_element_blocks().clone();
         let mut centroids = finite_elements.centroids();
         let (minimum, mut maximum) = centroids.iter().fold(
         (Coordinate::new([f64::INFINITY; NSD]), Coordinate::new([f64::NEG_INFINITY; NSD])),
@@ -1286,6 +1288,9 @@ impl Octree {
         centroids.iter_mut().for_each(|centroid|
             *centroid -= &minimum
         );
+        //
+        // Scale centroids so that voxel size of resulting Nel matches levels?
+        //
         maximum -= minimum;
         let lngth = maximum.into_iter().reduce(f64::max).unwrap().ceil() as u16;
         let mut tree = Octree {
@@ -1304,16 +1309,43 @@ impl Octree {
             min_y: 0,
             min_z: 0,
         });
-        // let mut index = 0;
-        // while index < tree.len() {
-        //     if let Some(block) = tree[index].homogeneous(&data) {
-        //         tree[index].block = Some(block)
-        //     } else {
-        //         tree.subdivide(index)
-        //     }
-        //     index += 1;
-        // }
-        todo!()
+        let mut index = 0;
+        while index < tree.len() {
+            if let Some((block, insides)) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
+                tree[index].block = Some(block);
+                blocks =
+                    blocks.into_iter()
+                        .enumerate()
+                        .filter_map(|(i, block)| {
+                            if insides.contains(&i) {
+                                None
+                            } else {
+                                Some(block)
+                            }
+                        })
+                        .collect();
+                centroids =
+                    centroids.into_iter()
+                        .enumerate()
+                        .filter_map(|(i, centroid)| {
+                            if insides.contains(&i) {
+                                None
+                            } else {
+                                Some(centroid)
+                            }
+                        })
+                        .collect();
+            } else {
+                //
+                // Check if is_voxel?
+                //
+                if !tree[index].is_voxel() {
+                    tree.subdivide(index)
+                }
+            }
+            index += 1;
+        }
+        tree
     }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())
