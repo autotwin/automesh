@@ -295,11 +295,11 @@ impl Cell {
         let y_max = self.get_max_y() as f64;
         let z_max = self.get_max_z() as f64;
         let insides = coordinates.iter().enumerate().filter(|(_, coordinate)|
-            coordinate[0] <= x_min && coordinate[0] > x_max && 
-            coordinate[1] <= y_min && coordinate[1] > y_max && 
-            coordinate[2] <= z_min && coordinate[2] > z_max
+            coordinate[0] >= x_min && coordinate[0] < x_max && 
+            coordinate[1] >= y_min && coordinate[1] < y_max && 
+            coordinate[2] >= z_min && coordinate[2] < z_max
         ).map(|(index, _)| index).collect::<Vec<usize>>();
-        if insides.len() == 0 {
+        if insides.is_empty() {
             Some((PADDING, HashSet::new()))
         } else {
             let block_0 = blocks[insides[0]];
@@ -1289,12 +1289,36 @@ impl Octree {
             *centroid -= &minimum
         );
         //
-        // Scale centroids so that voxel size of resulting Nel matches levels?
+        // maybe align starting point so voxelized meshes have centroids in centers of cells instead of edges
+        //
+        // min of centroids should be (0.5, 0.5, 0.5) instead of (0, 0, 0)
+        // similar for max, should be (nel-0.5, nel-0.5, nel-0.5)
+        //
+        // should see the cow come back nicely as levels increase
         //
         maximum -= minimum;
-        let lngth = maximum.into_iter().reduce(f64::max).unwrap().ceil() as u16;
+        let nel = 2.0_f64.powi(levels as i32);
+        let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
+        let scale = (nel - 1.0) / length;
+        centroids.iter_mut().for_each(|centroid|
+            centroid.iter_mut().for_each(|coord|
+                *coord = *coord * &scale + 0.5
+            )
+        );
+        // let (minimum, mut maximum) = centroids.iter().fold(
+        // (Coordinate::new([f64::INFINITY; NSD]), Coordinate::new([f64::NEG_INFINITY; NSD])),
+        // |(mut minimum, mut maximum), coordinate| {
+        //     minimum.iter_mut().zip(maximum.iter_mut().zip(coordinate.iter())).for_each(|(min, (max, &coord))| {
+        //         *min = min.min(coord);
+        //         *max = max.max(coord);
+        //     });
+        //     (minimum, maximum)
+        //     }
+        // );
+        // println!("{minimum}, {maximum}");
+        // panic!();
         let mut tree = Octree {
-            nel: Nel::from([lngth as usize; NSD]),
+            nel: Nel::from([nel as usize; NSD]),
             octree: vec![],
             remove: Remove::Some(vec![PADDING]),
             scale: Scale::default(),
@@ -1304,7 +1328,7 @@ impl Octree {
             block: None,
             cells: None,
             faces: [None; NUM_FACES],
-            lngth,
+            lngth: nel as u16,
             min_x: 0,
             min_y: 0,
             min_z: 0,
@@ -1313,35 +1337,35 @@ impl Octree {
         while index < tree.len() {
             if let Some((block, insides)) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
                 tree[index].block = Some(block);
-                blocks =
-                    blocks.into_iter()
-                        .enumerate()
-                        .filter_map(|(i, block)| {
-                            if insides.contains(&i) {
-                                None
-                            } else {
-                                Some(block)
-                            }
-                        })
-                        .collect();
-                centroids =
-                    centroids.into_iter()
-                        .enumerate()
-                        .filter_map(|(i, centroid)| {
-                            if insides.contains(&i) {
-                                None
-                            } else {
-                                Some(centroid)
-                            }
-                        })
-                        .collect();
+                // blocks =
+                //     blocks.into_iter()
+                //         .enumerate()
+                //         .filter_map(|(i, block)| {
+                //             if insides.contains(&i) {
+                //                 None
+                //             } else {
+                //                 Some(block)
+                //             }
+                //         })
+                //         .collect();
+                // centroids =
+                //     centroids.into_iter()
+                //         .enumerate()
+                //         .filter_map(|(i, centroid)| {
+                //             if insides.contains(&i) {
+                //                 None
+                //             } else {
+                //                 Some(centroid)
+                //             }
+                //         })
+                //         .collect();
+            } else if tree[index].is_voxel() {
+                //
+                // How to pick which material when hit levels (cell is a voxel) but have more than one?
+                //
+                tree[index].block = Some(123)
             } else {
-                //
-                // Check if is_voxel?
-                //
-                if !tree[index].is_voxel() {
-                    tree.subdivide(index)
-                }
+                tree.subdivide(index)
             }
             index += 1;
         }
