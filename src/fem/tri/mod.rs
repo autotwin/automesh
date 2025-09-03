@@ -292,6 +292,7 @@ fn split_edges(
     let mut new_edge = [0; 2];
     let mut new_edges = vec![];
     let mut new_lengths = Lengths::zero(0);
+    let element_blocks = &mut fem.element_blocks;
     let element_node_connectivity = &mut fem.element_node_connectivity;
     let node_element_connectivity = &mut fem.node_element_connectivity;
     let node_node_connectivity = &mut fem.node_node_connectivity;
@@ -362,6 +363,10 @@ fn split_edges(
                 element_index_2 + ELEMENT_NUMBERING_OFFSET,
                 element_index_3 + ELEMENT_NUMBERING_OFFSET,
                 element_index_4 + ELEMENT_NUMBERING_OFFSET,
+            ]);
+            element_blocks.extend(vec![
+                element_blocks[element_index_1],
+                element_blocks[element_index_2],
             ]);
             node_node_connectivity[*node_a - NODE_NUMBERING_OFFSET].retain(|node| node != node_b);
             node_node_connectivity[*node_a - NODE_NUMBERING_OFFSET].push(node_e);
