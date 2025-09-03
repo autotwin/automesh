@@ -209,7 +209,7 @@ where
         quiet: _,
     }) = remeshing
     {
-        apply_remeshing(&mut finite_elements, iterations, quiet, false)?;
+        apply_remeshing(&mut finite_elements, iterations, quiet, true)?;
     }
     if let Some(file) = metrics {
         write_metrics(&finite_elements, file, quiet)?
