@@ -278,7 +278,7 @@ enum Commands {
         quiet: bool,
     },
 
-    /// Creates a segmentation from a finite element mesh
+    /// Creates a segmentation or voxelized mesh from an existing mesh
     Segment {
         #[command(subcommand)]
         subcommand: SegmentSubcommand,
@@ -496,28 +496,31 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Segment { subcommand }) => match subcommand {
             SegmentSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                segment::<_, HexahedralFiniteElements>(
+                segment::<_, HexahedralFiniteElements, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.levels,
+                    args.remove,
                     args.quiet,
                 )
             }
             SegmentSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                segment::<_, TetrahedralFiniteElements>(
+                segment::<_, TetrahedralFiniteElements, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.levels,
+                    args.remove,
                     args.quiet,
                 )
             }
             SegmentSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                segment::<_, TriangularFiniteElements>(
+                segment::<_, TriangularFiniteElements, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.levels,
+                    args.remove,
                     args.quiet,
                 )
             }

@@ -1,9 +1,9 @@
-use super::{ErrorWrapper, input::read_finite_elements, output::write_segmentation};
+use super::{ErrorWrapper, input::read_finite_elements, output::{invalid_output, write_finite_elements, write_segmentation}};
 use automesh::{
     FiniteElementMethods, Tessellation, Voxels,
 };
 use clap::Subcommand;
-use std::time::Instant;
+use std::{path::Path, time::Instant};
 
 #[derive(Subcommand)]
 pub enum SegmentSubcommand {
@@ -21,7 +21,7 @@ pub struct SegmentArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Segmentation output file (npy | spn)
+    /// Segmentation (npy | spn) or mesh (exo | inp) output file
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -29,29 +29,41 @@ pub struct SegmentArgs {
     #[arg(long, short = 'n', value_name = "NUM")]
     pub levels: usize,
 
+    /// Block IDs to remove from the mesh
+    #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
+    pub remove: Option<Vec<usize>>,
+
     /// Pass to quiet the terminal output
     #[arg(action, long, short)]
     pub quiet: bool,
 }
 
-pub fn segment<const N: usize, T>(
+pub fn segment<const N: usize, T, const M: usize, U>(
     input: String,
     output: String,
     levels: usize,
+    remove: Option<Vec<usize>>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
     T: FiniteElementMethods<N> + From<Tessellation>,
-    Tessellation: From<T>,
+    U: FiniteElementMethods<M> + From<Voxels>,
+    Tessellation: From<U>,
 {
     let finite_elements = read_finite_elements::<_, T>(&input, quiet, true)?;
     let time = Instant::now();
     if !quiet {
         println!("  \x1b[1;96mSegmenting\x1b[0m from finite elements")
     }
-    let segmentation = Voxels::from_finite_elements(finite_elements, levels);
+    let mut voxels = Voxels::from_finite_elements(finite_elements, levels);
+    voxels.extend_removal(remove.into());
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
-    write_segmentation(output, segmentation, quiet)
+    let extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
+    match extension {
+        Some("exo") | Some("inp") => write_finite_elements(output, U::from(voxels), quiet),
+        Some("npy") | Some("spn") => write_segmentation(output, voxels, quiet),
+        _ => Err(invalid_output(&output, extension)),
+    }
 }

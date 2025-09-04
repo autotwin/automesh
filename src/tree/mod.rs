@@ -1288,14 +1288,6 @@ impl Octree {
         centroids.iter_mut().for_each(|centroid|
             *centroid -= &minimum
         );
-        //
-        // maybe align starting point so voxelized meshes have centroids in centers of cells instead of edges
-        //
-        // min of centroids should be (0.5, 0.5, 0.5) instead of (0, 0, 0)
-        // similar for max, should be (nel-0.5, nel-0.5, nel-0.5)
-        //
-        // should see the cow come back nicely as levels increase
-        //
         maximum -= minimum;
         let nel = 2.0_f64.powi(levels as i32);
         let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
@@ -1305,23 +1297,11 @@ impl Octree {
                 *coord = *coord * &scale + 0.5
             )
         );
-        // let (minimum, mut maximum) = centroids.iter().fold(
-        // (Coordinate::new([f64::INFINITY; NSD]), Coordinate::new([f64::NEG_INFINITY; NSD])),
-        // |(mut minimum, mut maximum), coordinate| {
-        //     minimum.iter_mut().zip(maximum.iter_mut().zip(coordinate.iter())).for_each(|(min, (max, &coord))| {
-        //         *min = min.min(coord);
-        //         *max = max.max(coord);
-        //     });
-        //     (minimum, maximum)
-        //     }
-        // );
-        // println!("{minimum}, {maximum}");
-        // panic!();
         let mut tree = Octree {
             nel: Nel::from([nel as usize; NSD]),
             octree: vec![],
             remove: Remove::Some(vec![PADDING]),
-            scale: Scale::default(),
+            scale: Scale::from([1.0 / scale; NSD]),
             translate: Translate::default(),
         };
         tree.push(Cell {

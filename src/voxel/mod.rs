@@ -11,7 +11,7 @@ use super::{
     Coordinate, Coordinates, NSD, Octree, Vector,
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
-        NODE_NUMBERING_OFFSET, TetrahedralFiniteElements,
+        NODE_NUMBERING_OFFSET, TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
 use conspire::math::TensorArray;
@@ -178,7 +178,7 @@ impl From<[f64; NSD]> for Translate {
     }
 }
 
-/// The voxels to be removed.
+/// The voxels IDs to be removed.
 pub enum Remove {
     None,
     Some(Blocks),
@@ -187,6 +187,15 @@ pub enum Remove {
 impl Default for Remove {
     fn default() -> Self {
         Self::None
+    }
+}
+
+impl From<Remove> for Vec<u8> {
+    fn from(remove: Remove) -> Self {
+        match remove {
+            Remove::Some(blocks) => blocks,
+            Remove::None => vec![],
+        }
     }
 }
 
@@ -341,6 +350,17 @@ impl Voxels {
             translate: Translate::default(),
         }
     }
+    /// Extends the voxel IDs to be removed.
+    pub fn extend_removal(&mut self, remove: Remove) {
+        match &mut self.remove {
+            Remove::None => {
+                self.remove = remove
+            }
+            Remove::Some(blocks) => {
+                <Vec<u8> as Extend<_>>::extend::<Vec<u8>>(blocks, remove.into())
+            }
+        }
+    }
     /// Extract a specified range of voxels from the segmentation.
     pub fn extract(&mut self, extraction: Extraction) {
         extract_voxels(self, extraction)
@@ -437,6 +457,12 @@ impl From<Voxels> for HexahedralFiniteElements {
 impl From<Voxels> for TetrahedralFiniteElements {
     fn from(voxels: Voxels) -> Self {
         HexahedralFiniteElements::from(voxels).into()
+    }
+}
+
+impl From<Voxels> for TriangularFiniteElements {
+    fn from(_voxels: Voxels) -> Self {
+        unimplemented!()
     }
 }
 
