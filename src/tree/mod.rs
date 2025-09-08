@@ -15,7 +15,7 @@ use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
 use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     ops::{Deref, DerefMut},
 };
 
@@ -315,7 +315,7 @@ impl Cell {
         &self,
         blocks: &Blocks,
         coordinates: &Coordinates,
-    ) -> Option<(u8, HashSet<usize>)> {
+    ) -> Option<u8> {
         let x_min = *self.get_min_x() as f64;
         let y_min = *self.get_min_y() as f64;
         let z_min = *self.get_min_z() as f64;
@@ -336,7 +336,7 @@ impl Cell {
             .map(|(index, _)| index)
             .collect::<Vec<usize>>();
         if insides.is_empty() {
-            Some((PADDING, HashSet::new()))
+            Some(PADDING)
         } else {
             let block_0 = blocks[insides[0]];
             if insides
@@ -344,14 +344,14 @@ impl Cell {
                 .map(|&index| blocks[index])
                 .all(|block| block == block_0)
             {
-                Some((block_0, insides.into_iter().collect()))
+                Some(block_0)
             } else if self.is_voxel() {
                 let center = Coordinate::new(self.get_center());
                 let min_index = insides
-                    .iter()
+                    .into_iter()
                     .reduce(|min_index, index| {
-                        if (&coordinates[*min_index] - &center).norm()
-                            > (&coordinates[*index] - &center).norm()
+                        if (&coordinates[min_index] - &center).norm()
+                            > (&coordinates[index] - &center).norm()
                         {
                             index
                         } else {
@@ -359,7 +359,7 @@ impl Cell {
                         }
                     })
                     .unwrap();
-                Some((blocks[*min_index], insides.into_iter().collect()))
+                Some(blocks[min_index])
             } else {
                 None
             }
@@ -1385,32 +1385,8 @@ impl Octree {
         });
         let mut index = 0;
         while index < tree.len() {
-            if let Some((block, insides)) =
-                tree[index].homogeneous_coordinates(&blocks, &centroids)
-            {
+            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
                 tree[index].block = Some(block);
-                blocks = blocks
-                    .into_iter()
-                    .enumerate()
-                    .filter_map(|(i, block)| {
-                        if insides.contains(&i) {
-                            None
-                        } else {
-                            Some(block)
-                        }
-                    })
-                    .collect();
-                centroids = centroids
-                    .into_iter()
-                    .enumerate()
-                    .filter_map(|(i, centroid)| {
-                        if insides.contains(&i) {
-                            None
-                        } else {
-                            Some(centroid)
-                        }
-                    })
-                    .collect();
             } else {
                 tree.subdivide(index)
             }
