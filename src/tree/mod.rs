@@ -1365,6 +1365,7 @@ impl Octree {
             *centroid -= &minimum;
             *centroid *= &scale;
         });
+
         blocks.extend(vec![PADDING; exterior_face_centroids.len()]);
         centroids.append(&mut exterior_face_centroids);
         let mut tree = Octree {
