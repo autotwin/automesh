@@ -42,7 +42,7 @@ pub struct SegmentArgs {
     pub quiet: bool,
 }
 
-pub fn segment<const N: usize, T, const M: usize, U>(
+pub fn segment<const M1: usize, const N1: usize, T, const M2: usize, const N2: usize, U>(
     input: String,
     output: String,
     levels: usize,
@@ -50,11 +50,11 @@ pub fn segment<const N: usize, T, const M: usize, U>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<N> + From<Tessellation>,
-    U: FiniteElementMethods<M> + From<Voxels>,
+    T: FiniteElementMethods<M1, N1> + From<Tessellation>,
+    U: FiniteElementMethods<M2, N2> + From<Voxels>,
     Tessellation: From<U>,
 {
-    let finite_elements = read_finite_elements::<_, T>(&input, quiet, true)?;
+    let finite_elements = read_finite_elements::<_, _, T>(&input, quiet, true)?;
     let mut time = Instant::now();
     if !quiet {
         println!("  \x1b[1;96mSegmenting\x1b[0m from finite elements")

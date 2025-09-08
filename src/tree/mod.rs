@@ -151,6 +151,22 @@ pub struct Cell {
 }
 
 impl Cell {
+    pub fn any_coordinates_inside(&self, coordinates: &Coordinates) -> bool {
+        let x_min = *self.get_min_x() as f64;
+        let y_min = *self.get_min_y() as f64;
+        let z_min = *self.get_min_z() as f64;
+        let x_max = self.get_max_x() as f64;
+        let y_max = self.get_max_y() as f64;
+        let z_max = self.get_max_z() as f64;
+        coordinates.iter().any(|coordinate| {
+            coordinate[0] >= x_min
+                && coordinate[0] < x_max
+                && coordinate[1] >= y_min
+                && coordinate[1] < y_max
+                && coordinate[2] >= z_min
+                && coordinate[2] < z_max
+        })
+    }
     pub const fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
             block
@@ -368,6 +384,9 @@ impl Cell {
     }
     pub const fn is_voxel(&self) -> bool {
         self.lngth == 1
+    }
+    pub const fn is_not_voxel(&self) -> bool {
+        self.lngth != 1
     }
     pub fn subdivide(&mut self, indices: Indices) -> Cells {
         self.cells = Some(indices);
@@ -1308,9 +1327,12 @@ impl Octree {
             }
         }
     }
-    pub fn from_finite_elements<const N: usize, T>(finite_elements: T, levels: usize) -> Self
+    pub fn from_finite_elements<const M: usize, const N: usize, T>(
+        finite_elements: T,
+        levels: usize,
+    ) -> Self
     where
-        T: FiniteElementMethods<N>,
+        T: FiniteElementMethods<M, N>,
     {
         let mut blocks = finite_elements.get_element_blocks().clone();
         let mut centroids = finite_elements.centroids();
@@ -1330,26 +1352,27 @@ impl Octree {
                 (minimum, maximum)
             },
         );
-        centroids
-            .iter_mut()
-            .for_each(|centroid| *centroid -= &minimum);
         maximum -= &minimum;
         let nel = 2.0_f64.powi(levels as i32);
         let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
-        println!(
-            "minimum: {:?}, maximum: {:?}, nel: {:?}, length: {:?}",
-            minimum, maximum, nel, length
-        );
         let scale = (nel - 1.0) / length;
         centroids.iter_mut().for_each(|centroid| {
+            *centroid -= &minimum;
             *centroid *= &scale;
         });
+        let mut exterior_face_centroids = finite_elements.exterior_faces_centroids();
+        exterior_face_centroids.iter_mut().for_each(|centroid| {
+            *centroid -= &minimum;
+            *centroid *= &scale;
+        });
+        blocks.extend(vec![PADDING; exterior_face_centroids.len()]);
+        centroids.append(&mut exterior_face_centroids);
         let mut tree = Octree {
             nel: Nel::from([nel as usize; NSD]),
             octree: vec![],
             remove: Remove::Some(vec![PADDING]),
             scale: Scale::from([1.0 / scale; NSD]),
-            translate: Translate::from(minimum - Coordinate::from([0.5 / scale; NSD])),
+            translate: Translate::from(minimum),
         };
         tree.push(Cell {
             block: None,
@@ -1362,7 +1385,8 @@ impl Octree {
         });
         let mut index = 0;
         while index < tree.len() {
-            if let Some((block, insides)) = tree[index].homogeneous_coordinates(&blocks, &centroids)
+            if let Some((block, insides)) =
+                tree[index].homogeneous_coordinates(&blocks, &centroids)
             {
                 tree[index].block = Some(block);
                 blocks = blocks

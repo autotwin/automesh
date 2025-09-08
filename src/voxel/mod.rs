@@ -370,9 +370,12 @@ impl Voxels {
         extract_voxels(self, extraction)
     }
     /// Constructs and returns a segmentation from a finite element mesh.
-    pub fn from_finite_elements<const N: usize, T>(finite_elements: T, levels: usize) -> Self
+    pub fn from_finite_elements<const M: usize, const N: usize, T>(
+        finite_elements: T,
+        levels: usize,
+    ) -> Self
     where
-        T: FiniteElementMethods<N>,
+        T: FiniteElementMethods<M, N>,
     {
         Octree::from_finite_elements(finite_elements, levels).into()
     }

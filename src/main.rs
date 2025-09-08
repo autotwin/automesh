@@ -427,7 +427,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MetricsSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
                 write_metrics(
-                    &read_finite_elements::<_, HexahedralFiniteElements>(
+                    &read_finite_elements::<_, _, HexahedralFiniteElements>(
                         &args.input,
                         args.quiet,
                         true,
@@ -439,7 +439,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MetricsSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
                 write_metrics(
-                    &read_finite_elements::<_, TetrahedralFiniteElements>(
+                    &read_finite_elements::<_, _, TetrahedralFiniteElements>(
                         &args.input,
                         args.quiet,
                         true,
@@ -451,7 +451,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MetricsSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
                 write_metrics(
-                    &read_finite_elements::<_, TriangularFiniteElements>(
+                    &read_finite_elements::<_, _, TriangularFiniteElements>(
                         &args.input,
                         args.quiet,
                         true,
@@ -496,7 +496,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Segment { subcommand }) => match subcommand {
             SegmentSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                segment::<_, HexahedralFiniteElements, _, HexahedralFiniteElements>(
+                segment::<_, _, HexahedralFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.levels,
@@ -506,7 +506,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SegmentSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                segment::<_, TetrahedralFiniteElements, _, HexahedralFiniteElements>(
+                segment::<_, _, TetrahedralFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.levels,
@@ -516,7 +516,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SegmentSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                segment::<_, TriangularFiniteElements, _, HexahedralFiniteElements>(
+                segment::<_, _, TriangularFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.levels,
@@ -528,7 +528,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                smooth::<_, HexahedralFiniteElements>(
+                smooth::<_, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -543,7 +543,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SmoothSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                smooth::<_, TetrahedralFiniteElements>(
+                smooth::<_, _, TetrahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -558,7 +558,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SmoothSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                smooth::<_, TriangularFiniteElements>(
+                smooth::<_, _, TriangularFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
