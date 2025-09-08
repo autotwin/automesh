@@ -1,17 +1,21 @@
-use super::{ErrorWrapper, input::read_finite_elements, output::{invalid_output, write_finite_elements, write_segmentation}};
-use automesh::{
-    FiniteElementMethods, Tessellation, Voxels,
+use super::{
+    ErrorWrapper,
+    input::read_finite_elements,
+    mesh::{MeshBasis, mesh_print_info},
+    output::{invalid_output, write_finite_elements, write_segmentation},
 };
+use automesh::{FiniteElementMethods, Tessellation, Voxels};
 use clap::Subcommand;
+use conspire::math::TensorVec;
 use std::{path::Path, time::Instant};
 
 #[derive(Subcommand)]
 pub enum SegmentSubcommand {
     /// Segments an all-hexahedral mesh
     Hex(SegmentArgs),
-    /// Segments an all-hexahedral mesh
+    /// Segments an all-tetrahedral mesh
     Tet(SegmentArgs),
-    /// Segments an all-hexahedral mesh
+    /// Segments an all-triangular mesh
     Tri(SegmentArgs),
 }
 
@@ -51,7 +55,7 @@ where
     Tessellation: From<U>,
 {
     let finite_elements = read_finite_elements::<_, T>(&input, quiet, true)?;
-    let time = Instant::now();
+    let mut time = Instant::now();
     if !quiet {
         println!("  \x1b[1;96mSegmenting\x1b[0m from finite elements")
     }
@@ -59,10 +63,35 @@ where
     voxels.extend_removal(remove.into());
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+        time = Instant::now()
     }
     let extension = Path::new(&output).extension().and_then(|ext| ext.to_str());
     match extension {
-        Some("exo") | Some("inp") => write_finite_elements(output, U::from(voxels), quiet),
+        Some("exo") | Some("inp") => {
+            if !quiet {
+                print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
+                mesh_print_info(
+                    MeshBasis::Voxels,
+                    voxels.get_scale(),
+                    voxels.get_translate(),
+                )
+            }
+            let finite_elements = U::from(voxels);
+            if !quiet {
+                let mut blocks = finite_elements.get_element_blocks().clone();
+                let elements = blocks.len();
+                blocks.sort();
+                blocks.dedup();
+                println!(
+                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+                    time.elapsed(),
+                    blocks.len(),
+                    elements,
+                    finite_elements.get_nodal_coordinates().len()
+                );
+            }
+            write_finite_elements(output, finite_elements, quiet)
+        }
         Some("npy") | Some("spn") => write_segmentation(output, voxels, quiet),
         _ => Err(invalid_output(&output, extension)),
     }

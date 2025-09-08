@@ -161,6 +161,14 @@ impl Cell {
     pub const fn get_cells(&self) -> &Option<Indices> {
         &self.cells
     }
+    pub const fn get_center(&self) -> [f64; 3] {
+        let half_length: f64 = 0.5 * self.lngth as f64;
+        [
+            self.min_x as f64 + half_length,
+            self.min_y as f64 + half_length,
+            self.min_z as f64 + half_length,
+        ]
+    }
     pub const fn get_faces(&self) -> &Faces {
         &self.faces
     }
@@ -287,24 +295,55 @@ impl Cell {
             None
         }
     }
-    pub fn homogeneous_coordinates(&self, blocks: &Blocks, coordinates: &Coordinates) -> Option<(u8, HashSet<usize>)> {
+    pub fn homogeneous_coordinates(
+        &self,
+        blocks: &Blocks,
+        coordinates: &Coordinates,
+    ) -> Option<(u8, HashSet<usize>)> {
         let x_min = *self.get_min_x() as f64;
         let y_min = *self.get_min_y() as f64;
         let z_min = *self.get_min_z() as f64;
         let x_max = self.get_max_x() as f64;
         let y_max = self.get_max_y() as f64;
         let z_max = self.get_max_z() as f64;
-        let insides = coordinates.iter().enumerate().filter(|(_, coordinate)|
-            coordinate[0] >= x_min && coordinate[0] < x_max && 
-            coordinate[1] >= y_min && coordinate[1] < y_max && 
-            coordinate[2] >= z_min && coordinate[2] < z_max
-        ).map(|(index, _)| index).collect::<Vec<usize>>();
+        let insides = coordinates
+            .iter()
+            .enumerate()
+            .filter(|(_, coordinate)| {
+                coordinate[0] >= x_min
+                    && coordinate[0] < x_max
+                    && coordinate[1] >= y_min
+                    && coordinate[1] < y_max
+                    && coordinate[2] >= z_min
+                    && coordinate[2] < z_max
+            })
+            .map(|(index, _)| index)
+            .collect::<Vec<usize>>();
         if insides.is_empty() {
             Some((PADDING, HashSet::new()))
         } else {
             let block_0 = blocks[insides[0]];
-            if insides.iter().map(|&index| blocks[index]).all(|block| block == block_0) {
+            if insides
+                .iter()
+                .map(|&index| blocks[index])
+                .all(|block| block == block_0)
+            {
                 Some((block_0, insides.into_iter().collect()))
+            } else if self.is_voxel() {
+                let center = Coordinate::new(self.get_center());
+                let min_index = insides
+                    .iter()
+                    .reduce(|min_index, index| {
+                        if (&coordinates[*min_index] - &center).norm()
+                            > (&coordinates[*index] - &center).norm()
+                        {
+                            index
+                        } else {
+                            min_index
+                        }
+                    })
+                    .unwrap();
+                Some((blocks[*min_index], insides.into_iter().collect()))
             } else {
                 None
             }
@@ -1276,33 +1315,41 @@ impl Octree {
         let mut blocks = finite_elements.get_element_blocks().clone();
         let mut centroids = finite_elements.centroids();
         let (minimum, mut maximum) = centroids.iter().fold(
-        (Coordinate::new([f64::INFINITY; NSD]), Coordinate::new([f64::NEG_INFINITY; NSD])),
-        |(mut minimum, mut maximum), coordinate| {
-            minimum.iter_mut().zip(maximum.iter_mut().zip(coordinate.iter())).for_each(|(min, (max, &coord))| {
-                *min = min.min(coord);
-                *max = max.max(coord);
-            });
-            (minimum, maximum)
-            }
+            (
+                Coordinate::new([f64::INFINITY; NSD]),
+                Coordinate::new([f64::NEG_INFINITY; NSD]),
+            ),
+            |(mut minimum, mut maximum), coordinate| {
+                minimum
+                    .iter_mut()
+                    .zip(maximum.iter_mut().zip(coordinate.iter()))
+                    .for_each(|(min, (max, &coord))| {
+                        *min = min.min(coord);
+                        *max = max.max(coord);
+                    });
+                (minimum, maximum)
+            },
         );
-        centroids.iter_mut().for_each(|centroid|
-            *centroid -= &minimum
-        );
-        maximum -= minimum;
+        centroids
+            .iter_mut()
+            .for_each(|centroid| *centroid -= &minimum);
+        maximum -= &minimum;
         let nel = 2.0_f64.powi(levels as i32);
         let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
-        let scale = (nel - 1.0) / length;
-        centroids.iter_mut().for_each(|centroid|
-            centroid.iter_mut().for_each(|coord|
-                *coord = *coord * &scale + 0.5
-            )
+        println!(
+            "minimum: {:?}, maximum: {:?}, nel: {:?}, length: {:?}",
+            minimum, maximum, nel, length
         );
+        let scale = (nel - 1.0) / length;
+        centroids.iter_mut().for_each(|centroid| {
+            *centroid *= &scale;
+        });
         let mut tree = Octree {
             nel: Nel::from([nel as usize; NSD]),
             octree: vec![],
             remove: Remove::Some(vec![PADDING]),
             scale: Scale::from([1.0 / scale; NSD]),
-            translate: Translate::default(),
+            translate: Translate::from(minimum - Coordinate::from([0.5 / scale; NSD])),
         };
         tree.push(Cell {
             block: None,
@@ -1315,35 +1362,31 @@ impl Octree {
         });
         let mut index = 0;
         while index < tree.len() {
-            if let Some((block, insides)) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
+            if let Some((block, insides)) = tree[index].homogeneous_coordinates(&blocks, &centroids)
+            {
                 tree[index].block = Some(block);
-                // blocks =
-                //     blocks.into_iter()
-                //         .enumerate()
-                //         .filter_map(|(i, block)| {
-                //             if insides.contains(&i) {
-                //                 None
-                //             } else {
-                //                 Some(block)
-                //             }
-                //         })
-                //         .collect();
-                // centroids =
-                //     centroids.into_iter()
-                //         .enumerate()
-                //         .filter_map(|(i, centroid)| {
-                //             if insides.contains(&i) {
-                //                 None
-                //             } else {
-                //                 Some(centroid)
-                //             }
-                //         })
-                //         .collect();
-            } else if tree[index].is_voxel() {
-                //
-                // How to pick which material when hit levels (cell is a voxel) but have more than one?
-                //
-                tree[index].block = Some(123)
+                blocks = blocks
+                    .into_iter()
+                    .enumerate()
+                    .filter_map(|(i, block)| {
+                        if insides.contains(&i) {
+                            None
+                        } else {
+                            Some(block)
+                        }
+                    })
+                    .collect();
+                centroids = centroids
+                    .into_iter()
+                    .enumerate()
+                    .filter_map(|(i, centroid)| {
+                        if insides.contains(&i) {
+                            None
+                        } else {
+                            Some(centroid)
+                        }
+                    })
+                    .collect();
             } else {
                 tree.subdivide(index)
             }

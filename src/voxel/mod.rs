@@ -172,9 +172,15 @@ impl Default for Translate {
     }
 }
 
+impl From<Coordinate> for Translate {
+    fn from(translate: Coordinate) -> Self {
+        Self(translate)
+    }
+}
+
 impl From<[f64; NSD]> for Translate {
-    fn from(scale: [f64; NSD]) -> Self {
-        Self(Vector::new(scale))
+    fn from(translate: [f64; NSD]) -> Self {
+        Self(Vector::new(translate))
     }
 }
 
@@ -353,9 +359,7 @@ impl Voxels {
     /// Extends the voxel IDs to be removed.
     pub fn extend_removal(&mut self, remove: Remove) {
         match &mut self.remove {
-            Remove::None => {
-                self.remove = remove
-            }
+            Remove::None => self.remove = remove,
             Remove::Some(blocks) => {
                 <Vec<u8> as Extend<_>>::extend::<Vec<u8>>(blocks, remove.into())
             }
@@ -404,6 +408,18 @@ impl Voxels {
     /// Returns a reference to the internal voxels data.
     pub fn get_data(&self) -> &VoxelData {
         &self.data
+    }
+    /// Returns a reference to the voxels removal.
+    pub fn get_remove(&self) -> &Remove {
+        &self.remove
+    }
+    /// Returns a reference to the voxels scale.
+    pub fn get_scale(&self) -> &Scale {
+        &self.scale
+    }
+    /// Returns a reference to the voxels translation.
+    pub fn get_translate(&self) -> &Translate {
+        &self.translate
     }
     /// Writes the internal voxels data to an NPY file.
     pub fn write_npy(&self, file_path: &str) -> Result<(), WriteNpyError> {
