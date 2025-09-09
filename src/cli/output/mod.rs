@@ -12,6 +12,17 @@ pub fn invalid_output(file: &str, extension: Option<&str>) -> ErrorWrapper {
     }
 }
 
+pub fn validate_output(command: &str, file: &str) -> Result<(), ErrorWrapper> {
+    let extension = Path::new(file).extension().and_then(|ext| ext.to_str());
+    match command {
+        "mesh" => match extension {
+            Some("inp") | Some("exo") | Some("mesh") | Some("stl") | Some("vtk") => Ok(()),
+            _ => Err(invalid_output(file, extension)),
+        },
+        _ => panic!(),
+    }
+}
+
 pub fn write_finite_elements<const M: usize, const N: usize, T>(
     file: String,
     finite_elements: T,

@@ -1,7 +1,7 @@
 use super::{
     ErrorWrapper,
     input::read_segmentation,
-    output::{write_finite_elements, write_metrics},
+    output::{validate_output, write_finite_elements, write_metrics},
     remesh::{MeshRemeshCommands, apply_remeshing},
     smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
@@ -142,6 +142,7 @@ pub fn mesh<const N: usize>(
     let mut input_type = read_segmentation(
         input, nelx, nely, nelz, remove, scale, translate, quiet, true,
     )?;
+    validate_output("mesh", &output)?;
     match N {
         HEX => {
             if let Some(min_num_voxels) = defeature {
