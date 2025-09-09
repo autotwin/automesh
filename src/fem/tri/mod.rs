@@ -22,7 +22,7 @@ use std::{
 };
 
 const FOUR_THIRDS: Scalar = 4.0 / 3.0;
-// const FOUR_FIFTHS: Scalar = 4.0 / 5.0;
+const FOUR_FIFTHS: Scalar = 4.0 / 5.0;
 const J_EQUILATERAL: Scalar = 0.8660254037844387;
 const REGULAR_DEGREE: i8 = 6;
 
@@ -273,11 +273,11 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_metho
                     .norm()
             });
         average_length = lengths.iter().sum::<Scalar>() / (lengths.len() as Scalar);
-        split_edges(fem, &mut edges, &mut lengths, average_length);
-        // collapse_edges(fem, &mut edges, &lengths, average_length);
-        flip_edges(fem, &mut edges);
-        fem.nodal_influencers();
-        fem.smooth(smoothing_method).unwrap();
+        // split_edges(fem, &mut edges, &mut lengths, average_length);
+        collapse_edges(fem, &mut edges, &mut lengths, average_length);
+        // flip_edges(fem, &mut edges);
+        // fem.nodal_influencers();
+        // fem.smooth(smoothing_method).unwrap();
     });
 }
 
@@ -398,7 +398,204 @@ fn split_edges(
     lengths.append(&mut new_lengths);
 }
 
-// fn collapse_edges(
+fn collapse_edges(
+    fem: &mut TriangularFiniteElements,
+    edges: &mut Edges,
+    lengths: &mut Lengths,
+    average_length: Scalar,
+) {
+    let mut element_index_1 = 0;
+    let mut element_index_2 = 0;
+    // let element_blocks = &mut fem.element_blocks;
+    // let element_node_connectivity = &mut fem.element_node_connectivity;
+    // let node_element_connectivity = &mut fem.node_element_connectivity;
+    // let node_node_connectivity = &mut fem.node_node_connectivity;
+    // let nodal_coordinates = &mut fem.nodal_coordinates;
+    // let mut removed_edges = vec![];
+    // let mut removed_elements = vec![];
+    // let mut merged_nodes = vec![None; nodal_coordinates.len()];
+
+    let mut foo = 0;
+
+    let mut node_a;
+    let mut node_b;
+    let mut edge_index = 0;
+    while edge_index < edges.len() {
+        [node_a, node_b] = edges[edge_index];
+        if lengths[edge_index] < FOUR_FIFTHS * average_length {
+            if edge_index < 1826 {
+                // 1826: [299, 737] also some slivers nearby from beforehand
+                println!("{}: [{}, {}]", edge_index, node_a, node_b);
+                [element_index_1, element_index_2, _, _] = edge_info(
+                    node_a,
+                    node_b,
+                    &fem.element_node_connectivity,
+                    &fem.node_element_connectivity,
+                );
+                fem.nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] = (&fem.nodal_coordinates
+                    [node_a - NODE_NUMBERING_OFFSET]
+                    + fem.nodal_coordinates[node_b - NODE_NUMBERING_OFFSET].clone())
+                    * 0.5;
+                fem.nodal_coordinates.remove(node_b - NODE_NUMBERING_OFFSET);
+                if element_index_1 < element_index_2 {
+                    fem.element_blocks.remove(element_index_1);
+                    fem.element_blocks.remove(element_index_2 - 1);
+                    fem.element_node_connectivity.remove(element_index_1);
+                    fem.element_node_connectivity.remove(element_index_2 - 1);
+                } else if element_index_2 < element_index_1 {
+                    fem.element_blocks.remove(element_index_2);
+                    fem.element_blocks.remove(element_index_1 - 1);
+                    fem.element_node_connectivity.remove(element_index_2);
+                    fem.element_node_connectivity.remove(element_index_1 - 1);
+                }
+                fem.element_node_connectivity
+                    .iter_mut()
+                    .for_each(|connectivity| {
+                        connectivity.iter_mut().for_each(|node| {
+                            if *node == node_b {
+                                *node = node_a
+                            } else if *node > node_b {
+                                *node -= 1
+                            }
+                        })
+                    });
+                fem.node_element_connectivity().unwrap();
+                edges.remove(edge_index);
+                lengths.remove(edge_index);
+                edges.iter_mut().for_each(|edge| {
+                    edge.iter_mut().for_each(|node| {
+                        if *node == node_b {
+                            *node = node_a
+                        } else if *node > node_b {
+                            *node -= 1
+                        }
+                    });
+                    edge.sort()
+                });
+                //
+                // NEED TO REMOVE REDUNDANT EDGES (and lengths) SOMEHOW!
+                // collapsing one edge makes two sets of two on top of one another
+                // merging nodes a and b in edges then makes two duplicate edges
+                // then if one of those gets collapsed, you get another edge with [node_a, node_a] to hit later
+                //
+                let mut dups = vec![];
+                edges
+                    .iter()
+                    .enumerate()
+                    .for_each(|(index, [node_a, node_b])| {
+                        if node_a == node_b {
+                            dups.push(index)
+                        }
+                    });
+                println!("{:?}", dups);
+                let mut foo_index = 0;
+                dups.into_iter().for_each(|index| {
+                    edges.remove(index + foo_index);
+                    lengths.remove(index + foo_index);
+                    foo_index += 1;
+                });
+                //
+                // update lengths? change drastically here, not in the other cases
+                //
+                edges
+                    .iter()
+                    .zip(lengths.iter_mut())
+                    .for_each(|(&[node_a, node_b], length)| {
+                        *length = (&fem.get_nodal_coordinates()[node_a - NODE_NUMBERING_OFFSET]
+                            - &fem.get_nodal_coordinates()[node_b - NODE_NUMBERING_OFFSET])
+                            .norm()
+                    });
+                foo += 1
+            }
+        }
+        edge_index += 1;
+    }
+
+    // edges
+    //     .iter()
+    //     .enumerate()
+    //     .zip(lengths.iter())
+    //     .filter(|&(_, &length)| length < FOUR_FIFTHS * average_length)
+    //     .for_each(|((edge_index, &[node_a, node_b]), _)| {
+    //         if foo {
+    //             [element_index_1, element_index_2, _, _] = edge_info(
+    //                 node_a,
+    //                 node_b,
+    //                 element_node_connectivity,
+    //                 node_element_connectivity,
+    //             );
+    //             // println!("{}", nodal_coordinates[node_a - NODE_NUMBERING_OFFSET]);
+    //             // println!("{}", nodal_coordinates[node_b - NODE_NUMBERING_OFFSET]);
+    //             nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] = (
+    //                 &nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] + nodal_coordinates[node_b - NODE_NUMBERING_OFFSET].clone()
+    //             ) * 0.5;
+    //             // nodal_coordinates[node_b - NODE_NUMBERING_OFFSET] = nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
+    //             // merged_nodes[node_b - NODE_NUMBERING_OFFSET] = Some(node_a);
+    //             // removed_edges.push(edge_index);
+
+    //             if element_index_1 < element_index_2 {
+    //                 element_blocks.remove(element_index_1);
+    //                 element_blocks.remove(element_index_2 - 1);
+    //                 element_node_connectivity.remove(element_index_1);
+    //                 element_node_connectivity.remove(element_index_2 - 1);
+    //             } else {
+    //                 element_blocks.remove(element_index_2);
+    //                 element_blocks.remove(element_index_1 - 1);
+    //                 element_node_connectivity.remove(element_index_2);
+    //                 element_node_connectivity.remove(element_index_1 - 1);
+    //             }
+    //             nodal_coordinates.remove(node_b - NODE_NUMBERING_OFFSET);
+
+    //             element_node_connectivity.iter_mut().for_each(|connectivity|
+    //                 connectivity.iter_mut().for_each(|node|
+    //                     if *node == node_b {
+    //                         *node = node_a
+    //                     } else if *node > node_b {
+    //                         *node -= 1
+    //                     }
+    //                 )
+    //             );
+
+    //             // let asdf = node_element_connectivity[node_b - NODE_NUMBERING_OFFSET].clone();
+    //             // node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].extend(asdf);
+    //             // node_element_connectivity.remove(node_b - NODE_NUMBERING_OFFSET);
+
+    //             // node_element_connectivity.iter_mut().for_each(|connectivity| {
+    //             //     if let Some(index) = connectivity.iter().position(|&element| element == element_index_1 + 1) {
+    //             //         connectivity.remove(index);
+    //             //     }
+    //             //     if let Some(index) = connectivity.iter().position(|&element| element == element_index_2 + 1) {
+    //             //         connectivity.remove(index);
+    //             //     }
+    //             // });
+
+    //             let mut asdf = vec![vec![]; nodal_coordinates.len()];
+    //             element_node_connectivity
+    //                 .iter()
+    //                 .enumerate()
+    //                 .for_each(|(element, connectivity)| {
+    //                     connectivity.iter().for_each(|node| {
+    //                         asdf[node - NODE_NUMBERING_OFFSET]
+    //                             .push(element + ELEMENT_NUMBERING_OFFSET)
+    //                     })
+    //                 });
+    //             node_element_connectivity.iter_mut().zip(asdf).for_each(|(entry, yrtne)|
+    //                 *entry = yrtne
+    //             );
+
+    //             // println!("edge {} between {} and {} is too short", edge_index + 1, node_a, node_b);
+    //             // println!("would delete elements {} and {}", element_index_1 + 1, element_index_2 + 1);
+    //             // foo = false
+    //         }
+    // });
+    // fem.node_element_connectivity().unwrap(); // needs to happen on the fly to not screw up the edge_info
+    fem.node_node_connectivity().unwrap();
+    //
+    // remove edges from edges AND lengths
+    //
+}
+
+// fn collapse_edges_old(
 //     fem: &mut TriangularFiniteElements,
 //     edges: &mut Edges,
 //     lengths: &Lengths,
