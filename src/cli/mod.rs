@@ -7,6 +7,7 @@ pub mod mesh;
 pub mod metrics;
 pub mod output;
 pub mod remesh;
+pub mod segment;
 pub mod smooth;
 
 use ndarray_npy::{ReadNpyError, WriteNpyError};

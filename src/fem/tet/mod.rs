@@ -1,20 +1,22 @@
 use crate::FiniteElementMethods;
 
 use super::{
-    FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics, Smoothing,
-    Tessellation,
+    Connectivity, FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics,
+    Smoothing, Tessellation,
 };
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
 /// The number of nodes in a tetrahedral finite element.
 pub const TET: usize = 4;
 
+const NUM_NODES_FACE: usize = 3;
+
 /// The tetrahedral finite elements type.
 pub type TetrahedralFiniteElements = FiniteElements<TET>;
 
 pub const NUM_TETS_PER_HEX: usize = 6;
 
-impl FiniteElementSpecifics for TetrahedralFiniteElements {
+impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
         match node {
             0 => vec![1, 2, 3],
@@ -23,6 +25,12 @@ impl FiniteElementSpecifics for TetrahedralFiniteElements {
             3 => vec![0, 1, 2],
             _ => panic!(),
         }
+    }
+    fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
+        todo!()
+    }
+    fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
+        todo!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         todo!()

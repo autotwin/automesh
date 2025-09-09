@@ -11,7 +11,7 @@ use super::{
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
-use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
+use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
 use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
@@ -151,6 +151,22 @@ pub struct Cell {
 }
 
 impl Cell {
+    pub fn any_coordinates_inside(&self, coordinates: &Coordinates) -> bool {
+        let x_min = *self.get_min_x() as f64;
+        let y_min = *self.get_min_y() as f64;
+        let z_min = *self.get_min_z() as f64;
+        let x_max = self.get_max_x() as f64;
+        let y_max = self.get_max_y() as f64;
+        let z_max = self.get_max_z() as f64;
+        coordinates.iter().any(|coordinate| {
+            coordinate[0] >= x_min
+                && coordinate[0] < x_max
+                && coordinate[1] >= y_min
+                && coordinate[1] < y_max
+                && coordinate[2] >= z_min
+                && coordinate[2] < z_max
+        })
+    }
     pub const fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
             block
@@ -160,6 +176,14 @@ impl Cell {
     }
     pub const fn get_cells(&self) -> &Option<Indices> {
         &self.cells
+    }
+    pub const fn get_center(&self) -> [f64; 3] {
+        let half_length: f64 = 0.5 * self.lngth as f64;
+        [
+            self.min_x as f64 + half_length,
+            self.min_y as f64 + half_length,
+            self.min_z as f64 + half_length,
+        ]
     }
     pub const fn get_faces(&self) -> &Faces {
         &self.faces
@@ -287,6 +311,60 @@ impl Cell {
             None
         }
     }
+    pub fn homogeneous_coordinates(
+        &self,
+        blocks: &Blocks,
+        coordinates: &Coordinates,
+    ) -> Option<u8> {
+        let x_min = *self.get_min_x() as f64;
+        let y_min = *self.get_min_y() as f64;
+        let z_min = *self.get_min_z() as f64;
+        let x_max = self.get_max_x() as f64;
+        let y_max = self.get_max_y() as f64;
+        let z_max = self.get_max_z() as f64;
+        let insides = coordinates
+            .iter()
+            .enumerate()
+            .filter(|(_, coordinate)| {
+                coordinate[0] >= x_min
+                    && coordinate[0] < x_max
+                    && coordinate[1] >= y_min
+                    && coordinate[1] < y_max
+                    && coordinate[2] >= z_min
+                    && coordinate[2] < z_max
+            })
+            .map(|(index, _)| index)
+            .collect::<Vec<usize>>();
+        if insides.is_empty() {
+            Some(PADDING)
+        } else {
+            let block_0 = blocks[insides[0]];
+            if insides
+                .iter()
+                .map(|&index| blocks[index])
+                .all(|block| block == block_0)
+            {
+                Some(block_0)
+            } else if self.is_voxel() {
+                let center = Coordinate::new(self.get_center());
+                let min_index = insides
+                    .into_iter()
+                    .reduce(|min_index, index| {
+                        if (&coordinates[min_index] - &center).norm()
+                            > (&coordinates[index] - &center).norm()
+                        {
+                            index
+                        } else {
+                            min_index
+                        }
+                    })
+                    .unwrap();
+                Some(blocks[min_index])
+            } else {
+                None
+            }
+        }
+    }
     pub fn is_face_on_octree_boundary(&self, face_index: &usize, nel: Nel) -> bool {
         match face_index {
             0 => self.get_min_y() == &0,
@@ -306,6 +384,9 @@ impl Cell {
     }
     pub const fn is_voxel(&self) -> bool {
         self.lngth == 1
+    }
+    pub const fn is_not_voxel(&self) -> bool {
+        self.lngth != 1
     }
     pub fn subdivide(&mut self, indices: Indices) -> Cells {
         self.cells = Some(indices);
@@ -1245,6 +1326,73 @@ impl Octree {
                 return;
             }
         }
+    }
+    pub fn from_finite_elements<const M: usize, const N: usize, T>(
+        finite_elements: T,
+        levels: usize,
+    ) -> Self
+    where
+        T: FiniteElementMethods<M, N>,
+    {
+        let mut blocks = finite_elements.get_element_blocks().clone();
+        let mut centroids = finite_elements.centroids();
+        let (minimum, mut maximum) = centroids.iter().fold(
+            (
+                Coordinate::new([f64::INFINITY; NSD]),
+                Coordinate::new([f64::NEG_INFINITY; NSD]),
+            ),
+            |(mut minimum, mut maximum), coordinate| {
+                minimum
+                    .iter_mut()
+                    .zip(maximum.iter_mut().zip(coordinate.iter()))
+                    .for_each(|(min, (max, &coord))| {
+                        *min = min.min(coord);
+                        *max = max.max(coord);
+                    });
+                (minimum, maximum)
+            },
+        );
+        maximum -= &minimum;
+        let nel = 2.0_f64.powi(levels as i32);
+        let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
+        let scale = (nel - 1.0) / length;
+        centroids.iter_mut().for_each(|centroid| {
+            *centroid -= &minimum;
+            *centroid *= &scale;
+        });
+        let mut exterior_face_centroids = finite_elements.exterior_faces_centroids();
+        exterior_face_centroids.iter_mut().for_each(|centroid| {
+            *centroid -= &minimum;
+            *centroid *= &scale;
+        });
+        blocks.extend(vec![PADDING; exterior_face_centroids.len()]);
+        centroids.append(&mut exterior_face_centroids);
+        let mut tree = Octree {
+            nel: Nel::from([nel as usize; NSD]),
+            octree: vec![],
+            remove: Remove::Some(vec![PADDING]),
+            scale: Scale::from([1.0 / scale; NSD]),
+            translate: Translate::from(minimum),
+        };
+        tree.push(Cell {
+            block: None,
+            cells: None,
+            faces: [None; NUM_FACES],
+            lngth: nel as u16,
+            min_x: 0,
+            min_y: 0,
+            min_z: 0,
+        });
+        let mut index = 0;
+        while index < tree.len() {
+            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
+                tree[index].block = Some(block);
+            } else {
+                tree.subdivide(index)
+            }
+            index += 1;
+        }
+        tree
     }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())

@@ -68,12 +68,16 @@ pub struct FiniteElements<const N: usize> {
 }
 
 /// Methods common to all finite element types.
-pub trait FiniteElementMethods<const N: usize>
+pub trait FiniteElementMethods<const M: usize, const N: usize>
 where
-    Self: FiniteElementSpecifics + Sized,
+    Self: FiniteElementSpecifics<M> + Sized,
 {
+    /// Calculates the centroids.
+    fn centroids(&self) -> Coordinates;
     /// Returns and moves the data associated with the finite elements.
     fn data(self) -> (Blocks, Connectivity<N>, Coordinates);
+    /// Returns the centroid for each exterior face.
+    fn exterior_faces_centroids(&self) -> Coordinates;
     /// Constructs and returns a new finite elements type from data.
     fn from_data(
         element_blocks: Blocks,
@@ -142,16 +146,43 @@ where
     ) -> Result<(), &str>;
 }
 
-impl<const N: usize> FiniteElementMethods<N> for FiniteElements<N>
+impl<const M: usize, const N: usize> FiniteElementMethods<M, N> for FiniteElements<N>
 where
-    Self: FiniteElementSpecifics + Sized,
+    Self: FiniteElementSpecifics<M> + Sized,
 {
+    fn centroids(&self) -> Coordinates {
+        let coordinates = self.get_nodal_coordinates();
+        let number_of_nodes = N as f64;
+        self.get_element_node_connectivity()
+            .iter()
+            .map(|nodes| {
+                nodes
+                    .iter()
+                    .map(|node| coordinates[node - NODE_NUMBERING_OFFSET].clone())
+                    .sum::<Coordinate>()
+                    / number_of_nodes
+            })
+            .collect()
+    }
     fn data(self) -> (Blocks, Connectivity<N>, Coordinates) {
         (
             self.element_blocks,
             self.element_node_connectivity,
             self.nodal_coordinates,
         )
+    }
+    fn exterior_faces_centroids(&self) -> Coordinates {
+        let coordinates = self.get_nodal_coordinates();
+        let number_of_nodes = M as f64;
+        self.exterior_faces()
+            .iter()
+            .map(|face| {
+                face.iter()
+                    .map(|node| coordinates[node - NODE_NUMBERING_OFFSET].clone())
+                    .sum::<Coordinate>()
+                    / number_of_nodes
+            })
+            .collect()
     }
     fn from_data(
         element_blocks: Blocks,
@@ -589,9 +620,13 @@ where
 }
 
 /// Methods specific to each finite element type.
-pub trait FiniteElementSpecifics {
+pub trait FiniteElementSpecifics<const M: usize> {
     /// Returns the nodes connected to the given node within an element.
     fn connected_nodes(node: &usize) -> Vec<usize>;
+    /// Returns the exterior faces.
+    fn exterior_faces(&self) -> Connectivity<M>;
+    /// Returns the faces.
+    fn faces(&self) -> Connectivity<M>;
     /// Calculates the maximum edge ratios.
     fn maximum_edge_ratios(&self) -> Metrics;
     /// Calculates the maximum skews.

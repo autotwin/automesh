@@ -7,13 +7,11 @@ pub mod test;
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use crate::TetrahedralFiniteElements;
-
 use super::{
     Coordinate, Coordinates, NSD, Octree, Vector,
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
-        NODE_NUMBERING_OFFSET,
+        NODE_NUMBERING_OFFSET, TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
 use conspire::math::TensorArray;
@@ -174,13 +172,19 @@ impl Default for Translate {
     }
 }
 
-impl From<[f64; NSD]> for Translate {
-    fn from(scale: [f64; NSD]) -> Self {
-        Self(Vector::new(scale))
+impl From<Coordinate> for Translate {
+    fn from(translate: Coordinate) -> Self {
+        Self(translate)
     }
 }
 
-/// The voxels to be removed.
+impl From<[f64; NSD]> for Translate {
+    fn from(translate: [f64; NSD]) -> Self {
+        Self(Vector::new(translate))
+    }
+}
+
+/// The voxels IDs to be removed.
 pub enum Remove {
     None,
     Some(Blocks),
@@ -189,6 +193,15 @@ pub enum Remove {
 impl Default for Remove {
     fn default() -> Self {
         Self::None
+    }
+}
+
+impl From<Remove> for Vec<u8> {
+    fn from(remove: Remove) -> Self {
+        match remove {
+            Remove::Some(blocks) => blocks,
+            Remove::None => vec![],
+        }
     }
 }
 
@@ -343,9 +356,28 @@ impl Voxels {
             translate: Translate::default(),
         }
     }
+    /// Extends the voxel IDs to be removed.
+    pub fn extend_removal(&mut self, remove: Remove) {
+        match &mut self.remove {
+            Remove::None => self.remove = remove,
+            Remove::Some(blocks) => {
+                <Vec<u8> as Extend<_>>::extend::<Vec<u8>>(blocks, remove.into())
+            }
+        }
+    }
     /// Extract a specified range of voxels from the segmentation.
     pub fn extract(&mut self, extraction: Extraction) {
         extract_voxels(self, extraction)
+    }
+    /// Constructs and returns a segmentation from a finite element mesh.
+    pub fn from_finite_elements<const M: usize, const N: usize, T>(
+        finite_elements: T,
+        levels: usize,
+    ) -> Self
+    where
+        T: FiniteElementMethods<M, N>,
+    {
+        Octree::from_finite_elements(finite_elements, levels).into()
     }
     /// Constructs and returns a new voxels type from an NPY file.
     pub fn from_npy(
@@ -379,6 +411,18 @@ impl Voxels {
     /// Returns a reference to the internal voxels data.
     pub fn get_data(&self) -> &VoxelData {
         &self.data
+    }
+    /// Returns a reference to the voxels removal.
+    pub fn get_remove(&self) -> &Remove {
+        &self.remove
+    }
+    /// Returns a reference to the voxels scale.
+    pub fn get_scale(&self) -> &Scale {
+        &self.scale
+    }
+    /// Returns a reference to the voxels translation.
+    pub fn get_translate(&self) -> &Translate {
+        &self.translate
     }
     /// Writes the internal voxels data to an NPY file.
     pub fn write_npy(&self, file_path: &str) -> Result<(), WriteNpyError> {
@@ -432,6 +476,12 @@ impl From<Voxels> for HexahedralFiniteElements {
 impl From<Voxels> for TetrahedralFiniteElements {
     fn from(voxels: Voxels) -> Self {
         HexahedralFiniteElements::from(voxels).into()
+    }
+}
+
+impl From<Voxels> for TriangularFiniteElements {
+    fn from(_voxels: Voxels) -> Self {
+        unimplemented!()
     }
 }
 

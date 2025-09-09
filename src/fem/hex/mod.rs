@@ -12,6 +12,7 @@ use conspire::math::{Tensor, TensorArray};
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
+    collections::HashMap,
     fs::File,
     io::{BufWriter, Error as ErrorIO, Write},
     path::Path,
@@ -20,13 +21,15 @@ use std::{
 /// The number of nodes in a hexahedral finite element.
 pub const HEX: usize = 8;
 
+const NUM_NODES_FACE: usize = 4;
+
 /// The element-to-node connectivity for hexahedral finite elements.
 pub type HexConnectivity = Connectivity<HEX>;
 
 /// The hexahedral finite elements type.
 pub type HexahedralFiniteElements = FiniteElements<HEX>;
 
-impl FiniteElementSpecifics for HexahedralFiniteElements {
+impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
         match node {
             0 => vec![1, 3, 4],
@@ -40,6 +43,74 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
             _ => panic!(),
         }
     }
+    fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
+        let mut faces: Connectivity<NUM_NODES_FACE> = self
+            .get_element_node_connectivity()
+            .iter()
+            .flat_map(
+                |&[
+                    node_0,
+                    node_1,
+                    node_2,
+                    node_3,
+                    node_4,
+                    node_5,
+                    node_6,
+                    node_7,
+                ]| {
+                    [
+                        [node_0, node_1, node_5, node_4],
+                        [node_1, node_2, node_6, node_5],
+                        [node_2, node_3, node_7, node_6],
+                        [node_3, node_0, node_4, node_7],
+                        [node_3, node_2, node_1, node_0],
+                        [node_4, node_5, node_6, node_7],
+                    ]
+                },
+            )
+            .collect();
+        faces.iter_mut().for_each(|face| face.sort());
+        let mut face_counts = HashMap::new();
+        faces
+            .iter()
+            .for_each(|&face| *face_counts.entry(face).or_insert(0) += 1);
+        let exterior_faces: Connectivity<NUM_NODES_FACE> = face_counts
+            .into_iter()
+            .filter_map(|(face, count)| if count == 1 { Some(face) } else { None })
+            .collect();
+        exterior_faces
+    }
+    fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
+        let mut faces: Connectivity<NUM_NODES_FACE> = self
+            .get_element_node_connectivity()
+            .iter()
+            .flat_map(
+                |&[
+                    node_0,
+                    node_1,
+                    node_2,
+                    node_3,
+                    node_4,
+                    node_5,
+                    node_6,
+                    node_7,
+                ]| {
+                    [
+                        [node_0, node_1, node_5, node_4],
+                        [node_1, node_2, node_6, node_5],
+                        [node_2, node_3, node_7, node_6],
+                        [node_3, node_0, node_4, node_7],
+                        [node_3, node_2, node_1, node_0],
+                        [node_4, node_5, node_6, node_7],
+                    ]
+                },
+            )
+            .collect();
+        faces.iter_mut().for_each(|face| face.sort());
+        faces.sort();
+        faces.dedup();
+        faces
+    }
     fn maximum_edge_ratios(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();
         let mut l1 = 0.0;
@@ -47,37 +118,48 @@ impl FiniteElementSpecifics for HexahedralFiniteElements {
         let mut l3 = 0.0;
         self.get_element_node_connectivity()
             .iter()
-            .map(|connectivity| {
-                l1 = (&nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET])
-                    .norm();
-                l2 = (&nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET])
-                    .norm();
-                l3 = (&nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-                    + &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET]
-                    - &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET])
-                    .norm();
-                [l1, l2, l3].into_iter().reduce(f64::max).unwrap()
-                    / [l1, l2, l3].into_iter().reduce(f64::min).unwrap()
-            })
+            .map(
+                |&[
+                    node_0,
+                    node_1,
+                    node_2,
+                    node_3,
+                    node_4,
+                    node_5,
+                    node_6,
+                    node_7,
+                ]| {
+                    l1 = (&nodal_coordinates[node_1 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_0 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_2 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_3 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_5 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_4 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_6 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_7 - NODE_NUMBERING_OFFSET])
+                        .norm();
+                    l2 = (&nodal_coordinates[node_3 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_0 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_2 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_1 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_7 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_4 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_6 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_5 - NODE_NUMBERING_OFFSET])
+                        .norm();
+                    l3 = (&nodal_coordinates[node_4 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_0 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_5 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_1 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_6 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_2 - NODE_NUMBERING_OFFSET]
+                        + &nodal_coordinates[node_7 - NODE_NUMBERING_OFFSET]
+                        - &nodal_coordinates[node_3 - NODE_NUMBERING_OFFSET])
+                        .norm();
+                    [l1, l2, l3].into_iter().reduce(f64::max).unwrap()
+                        / [l1, l2, l3].into_iter().reduce(f64::min).unwrap()
+                },
+            )
             .collect()
     }
     fn maximum_skews(&self) -> Metrics {

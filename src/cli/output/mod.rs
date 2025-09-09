@@ -12,13 +12,13 @@ pub fn invalid_output(file: &str, extension: Option<&str>) -> ErrorWrapper {
     }
 }
 
-pub fn write_finite_elements<const N: usize, T>(
+pub fn write_finite_elements<const M: usize, const N: usize, T>(
     file: String,
     finite_elements: T,
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<N>,
+    T: FiniteElementMethods<M, N>,
     Tessellation: From<T>,
 {
     let time = Instant::now();
@@ -40,13 +40,13 @@ where
     Ok(())
 }
 
-pub fn write_metrics<const N: usize, T>(
+pub fn write_metrics<const M: usize, const N: usize, T>(
     fem: &T,
     output: String,
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<N>,
+    T: FiniteElementMethods<M, N>,
 {
     let time = Instant::now();
     if !quiet {

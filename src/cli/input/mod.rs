@@ -20,13 +20,13 @@ pub struct Input<'a> {
     translate: Translate,
 }
 
-pub struct FiniteElementInput<const N: usize, T>(T)
+pub struct FiniteElementInput<const M: usize, const N: usize, T>(T)
 where
-    T: FiniteElementMethods<N> + From<Tessellation>;
+    T: FiniteElementMethods<M, N> + From<Tessellation>;
 
-impl<const N: usize, T> TryFrom<&str> for FiniteElementInput<N, T>
+impl<const M: usize, const N: usize, T> TryFrom<&str> for FiniteElementInput<M, N, T>
 where
-    T: FiniteElementMethods<N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N> + From<Tessellation>,
 {
     type Error = ErrorWrapper;
     fn try_from(file: &str) -> Result<Self, Self::Error> {
@@ -40,9 +40,9 @@ where
     }
 }
 
-impl<const N: usize, T> TryFrom<String> for FiniteElementInput<N, T>
+impl<const M: usize, const N: usize, T> TryFrom<String> for FiniteElementInput<M, N, T>
 where
-    T: FiniteElementMethods<N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N> + From<Tessellation>,
 {
     type Error = ErrorWrapper;
     fn try_from(file: String) -> Result<Self, Self::Error> {
@@ -70,13 +70,13 @@ impl<'a> TryFrom<Input<'a>> for Voxels {
     }
 }
 
-pub fn read_finite_elements<const N: usize, T>(
+pub fn read_finite_elements<const M: usize, const N: usize, T>(
     file: &str,
     quiet: bool,
     title: bool,
 ) -> Result<T, ErrorWrapper>
 where
-    T: FiniteElementMethods<N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N> + From<Tessellation>,
 {
     let time = Instant::now();
     if !quiet {
@@ -89,7 +89,7 @@ where
         }
         print!("     \x1b[1;96mReading\x1b[0m {file}");
     }
-    let finite_elements = FiniteElementInput::<N, T>::try_from(file)?.0;
+    let finite_elements = FiniteElementInput::<M, N, T>::try_from(file)?.0;
     if !quiet {
         println!(
             "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
@@ -136,7 +136,7 @@ pub fn read_segmentation(
     let voxels = Voxels::try_from(input)?;
     if !quiet {
         let data = voxels.get_data();
-        let mut materials = vec![false; u8::MAX as usize];
+        let mut materials = vec![false; u8::MAX as usize + 1];
         data.iter()
             .for_each(|&voxel| materials[voxel as usize] = true);
         let num_voxels = data.iter().count();

@@ -28,6 +28,7 @@
   - [Mesh](cli/mesh.md)
   - [Metrics](cli/metrics.md)
   - [Remesh](cli/remesh.md)
+  - [Segment](cli/segment.md)
   - [Smooth](cli/smooth.md)
 - [Analysis](analysis/README.md)
   - [Sphere with Shells](analysis/sphere_with_shells/README.md)

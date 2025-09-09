@@ -5,7 +5,7 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    super::tree::Edges, Coordinate, ELEMENT_NUMBERING_OFFSET, FiniteElementMethods,
+    super::tree::Edges, Connectivity, Coordinate, ELEMENT_NUMBERING_OFFSET, FiniteElementMethods,
     FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET, Smoothing,
     Tessellation, VecConnectivity, Vector,
 };
@@ -29,7 +29,8 @@ const REGULAR_DEGREE: i8 = 6;
 /// The number of nodes in a triangular finite element.
 pub const TRI: usize = 3;
 
-type Connectivity = super::Connectivity<TRI>;
+const NUM_NODES_FACE: usize = 1;
+
 type Lengths = conspire::math::Vector;
 
 /// The triangular finite elements type.
@@ -63,7 +64,7 @@ impl From<Tessellation> for TriangularFiniteElements {
     }
 }
 
-impl FiniteElementSpecifics for TriangularFiniteElements {
+impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
         match node {
             0 => vec![1, 2],
@@ -71,6 +72,12 @@ impl FiniteElementSpecifics for TriangularFiniteElements {
             2 => vec![0, 1],
             _ => panic!(),
         }
+    }
+    fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
+        unimplemented!()
+    }
+    fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
+        unimplemented!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         // Knupp 2006
@@ -594,7 +601,7 @@ fn flip_edges(fem: &mut TriangularFiniteElements, edges: &mut Edges) {
 fn edge_info(
     node_a: usize,
     node_b: usize,
-    element_node_connectivity: &Connectivity,
+    element_node_connectivity: &Connectivity<TRI>,
     node_element_connectivity: &VecConnectivity,
 ) -> [usize; 4] {
     let [element_index_1, element_index_2] = node_element_connectivity

@@ -18,6 +18,7 @@ use cli::{
     metrics::MetricsSubcommand,
     output::{write_finite_elements, write_metrics},
     remesh::{REMESH_DEFAULT_ITERS, remesh},
+    segment::{SegmentSubcommand, segment},
     smooth::{SmoothSubcommand, smooth},
 };
 
@@ -277,6 +278,12 @@ enum Commands {
         quiet: bool,
     },
 
+    /// Creates a segmentation or voxelized mesh from an existing mesh
+    Segment {
+        #[command(subcommand)]
+        subcommand: SegmentSubcommand,
+    },
+
     /// Applies smoothing to an existing mesh
     Smooth {
         #[command(subcommand)]
@@ -420,7 +427,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MetricsSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
                 write_metrics(
-                    &read_finite_elements::<_, HexahedralFiniteElements>(
+                    &read_finite_elements::<_, _, HexahedralFiniteElements>(
                         &args.input,
                         args.quiet,
                         true,
@@ -432,7 +439,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MetricsSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
                 write_metrics(
-                    &read_finite_elements::<_, TetrahedralFiniteElements>(
+                    &read_finite_elements::<_, _, TetrahedralFiniteElements>(
                         &args.input,
                         args.quiet,
                         true,
@@ -444,7 +451,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MetricsSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
                 write_metrics(
-                    &read_finite_elements::<_, TriangularFiniteElements>(
+                    &read_finite_elements::<_, _, TriangularFiniteElements>(
                         &args.input,
                         args.quiet,
                         true,
@@ -486,10 +493,42 @@ fn main() -> Result<(), ErrorWrapper> {
             is_quiet = quiet;
             remesh(input, output, iterations, quiet)
         }
+        Some(Commands::Segment { subcommand }) => match subcommand {
+            SegmentSubcommand::Hex(args) => {
+                is_quiet = args.quiet;
+                segment::<_, _, HexahedralFiniteElements, _, _, HexahedralFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.levels,
+                    args.remove,
+                    args.quiet,
+                )
+            }
+            SegmentSubcommand::Tet(args) => {
+                is_quiet = args.quiet;
+                segment::<_, _, TetrahedralFiniteElements, _, _, HexahedralFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.levels,
+                    args.remove,
+                    args.quiet,
+                )
+            }
+            SegmentSubcommand::Tri(args) => {
+                is_quiet = args.quiet;
+                segment::<_, _, TriangularFiniteElements, _, _, HexahedralFiniteElements>(
+                    args.input,
+                    args.output,
+                    args.levels,
+                    args.remove,
+                    args.quiet,
+                )
+            }
+        },
         Some(Commands::Smooth { subcommand }) => match subcommand {
             SmoothSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                smooth::<_, HexahedralFiniteElements>(
+                smooth::<_, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -504,7 +543,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SmoothSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                smooth::<_, TetrahedralFiniteElements>(
+                smooth::<_, _, TetrahedralFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
@@ -519,7 +558,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             SmoothSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                smooth::<_, TriangularFiniteElements>(
+                smooth::<_, _, TriangularFiniteElements>(
                     args.input,
                     args.output,
                     args.iterations,
