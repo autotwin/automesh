@@ -224,7 +224,7 @@ where
         output_type.nodal_influencers();
         match smoothing_method.as_str() {
             "Energetic" | "energetic" => {
-                output_type.smooth(&Smoothing::Energetic(iterations))?;
+                output_type.smooth(&Smoothing::Energetic)?;
             }
             "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                 output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;

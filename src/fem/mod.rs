@@ -436,18 +436,26 @@ where
                         self.get_nodal_coordinates().clone().into(),
                     );
                     block.reset();
-                    //
-                    // Find the exterior nodes (see exterior_faces) to populate the indices (remember to subtract NODE_NUMBERING_OFFSET).
-                    //
-                    let indices = vec![];
-                    let solution = block.minimize(
+                    let mut nodes: Vec<usize> =
+                        self.exterior_faces().into_iter().flatten().collect();
+                    nodes.sort();
+                    nodes.dedup();
+                    println!("{:?}", nodes);
+                    let indices = nodes
+                        .iter()
+                        .flat_map(|node: &usize| {
+                            [
+                                NSD * node - NODE_NUMBERING_OFFSET,
+                                NSD * node - NODE_NUMBERING_OFFSET + 1,
+                                NSD * node - NODE_NUMBERING_OFFSET + 2,
+                            ]
+                        })
+                        .collect();
+                    self.nodal_coordinates = block.minimize(
                         EqualityConstraint::Fixed(indices),
                         GradientDescent::default(),
                     )?;
-                    //
-                    // Rewrite coordinates of self using the solution
-                    //
-                    unimplemented!()
+                    return Ok(());
                 }
                 Smoothing::Laplacian(iterations, scale) => {
                     if scale <= 0.0 || scale >= 1.0 {
