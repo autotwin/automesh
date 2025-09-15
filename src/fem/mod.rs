@@ -487,7 +487,11 @@ where
                     println!("{:?}", indices);
                     self.nodal_coordinates = block.minimize(
                         EqualityConstraint::Fixed(indices),
-                        GradientDescent::default(),
+                        // GradientDescent::default(),
+                        GradientDescent {
+                            max_steps: 500,
+                            ..Default::default()
+                        }
                     )?;
                     return Ok(());
                 }
