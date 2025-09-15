@@ -13,7 +13,14 @@ use std::time::Instant;
 
 use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
 use chrono::Utc;
-use conspire::math::{Tensor, TensorArray, TensorVec};
+use conspire::{
+    constitutive::solid::hyperelastic::NeoHookean,
+    fem::{ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron},
+    math::{
+        Tensor, TensorArray, TensorVec,
+        optimize::{EqualityConstraint, GradientDescent},
+    },
+};
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
@@ -45,6 +52,7 @@ pub type ReorderedConnectivity = Vec<Vec<u32>>;
 
 /// Possible smoothing methods.
 pub enum Smoothing {
+    Energetic,
     Laplacian(usize, f64),
     Taubin(usize, f64, f64),
 }
@@ -99,7 +107,7 @@ where
     /// Calculates and sets the node-to-node connectivity.
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
     /// Smooths the nodal coordinates according to the provided smoothing method.
-    fn smooth(&mut self, method: &Smoothing) -> Result<(), &str>;
+    fn smooth(&mut self, method: &Smoothing) -> Result<(), String>;
     /// Writes the finite elements data to a new Exodus file.
     fn write_exo(&self, file_path: &str) -> Result<(), ErrorNetCDF>;
     /// Writes the finite elements data to a new Abaqus file.
@@ -403,15 +411,47 @@ where
             Err("Need to calculate the node-to-element connectivity first")
         }
     }
-    fn smooth(&mut self, method: &Smoothing) -> Result<(), &str> {
+    fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {
             let smoothing_iterations;
             let smoothing_scale_deflate;
             let mut smoothing_scale_inflate = 0.0;
             match *method {
+                Smoothing::Energetic => {
+                    let connectivity = self
+                        .get_element_node_connectivity()
+                        .iter()
+                        .map(|entry| {
+                            entry
+                                .iter()
+                                .map(|node| node - NODE_NUMBERING_OFFSET)
+                                .collect::<Vec<usize>>()
+                                .try_into()
+                                .unwrap()
+                        })
+                        .collect();
+                    let mut block = ElementBlock::<LinearHexahedron<NeoHookean<_>>, HEX>::new(
+                        &[0.0, 1.0],
+                        connectivity,
+                        self.get_nodal_coordinates().clone().into(),
+                    );
+                    block.reset();
+                    //
+                    // Find the exterior nodes (see exterior_faces) to populate the indices (remember to subtract NODE_NUMBERING_OFFSET).
+                    //
+                    let indices = vec![];
+                    let solution = block.minimize(
+                        EqualityConstraint::Fixed(indices),
+                        GradientDescent::default(),
+                    )?;
+                    //
+                    // Rewrite coordinates of self using the solution
+                    //
+                    unimplemented!()
+                }
                 Smoothing::Laplacian(iterations, scale) => {
                     if scale <= 0.0 || scale >= 1.0 {
-                        return Err("Need to specify 0.0 < scale < 1.0");
+                        return Err("Need to specify 0.0 < scale < 1.0".to_string());
                     } else {
                         smoothing_iterations = iterations;
                         smoothing_scale_deflate = scale;
@@ -419,15 +459,17 @@ where
                 }
                 Smoothing::Taubin(iterations, pass_band, scale) => {
                     if pass_band <= 0.0 || pass_band >= 1.0 {
-                        return Err("Need to specify 0.0 < pass-band < 1.0");
+                        return Err("Need to specify 0.0 < pass-band < 1.0".to_string());
                     } else if scale <= 0.0 || scale >= 1.0 {
-                        return Err("Need to specify 0.0 < scale < 1.0");
+                        return Err("Need to specify 0.0 < scale < 1.0".to_string());
                     } else {
                         smoothing_iterations = iterations;
                         smoothing_scale_deflate = scale;
                         smoothing_scale_inflate = scale / (pass_band * scale - 1.0);
                         if smoothing_scale_deflate >= -smoothing_scale_inflate {
-                            return Err("Inflation scale must be larger than deflation scale");
+                            return Err(
+                                "Inflation scale must be larger than deflation scale".to_string()
+                            );
                         }
                     }
                 }
@@ -509,7 +551,7 @@ where
             }
             Ok(())
         } else {
-            Err("Need to calculate the node-to-node connectivity first")
+            Err("Need to calculate the node-to-node connectivity first".to_string())
         }
     }
     fn write_exo(&self, file_path: &str) -> Result<(), ErrorNetCDF> {
