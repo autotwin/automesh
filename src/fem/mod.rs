@@ -20,7 +20,7 @@ use conspire::{
     },
     math::{
         Tensor, TensorArray, TensorVec,
-        optimize::{EqualityConstraint, GradientDescent},
+        optimize::{EqualityConstraint, GradientDescent, LineSearch},
     },
 };
 use ndarray::{Array1, parallel::prelude::*};
@@ -424,6 +424,13 @@ where
                     let mut nodes: Nodes = self.exterior_faces().into_iter().flatten().collect();
                     nodes.sort();
                     nodes.dedup();
+                    let solver = GradientDescent {
+                        abs_tol: 1e-6,
+                        dual: false,
+                        line_search: LineSearch::Error(0.9, 100),
+                        max_steps: 1000,
+                        rel_tol: Some(1e-2),
+                    };
                     let indices = nodes
                         .into_iter()
                         .flat_map(|node: usize| {
@@ -455,10 +462,7 @@ where
                                     self.get_nodal_coordinates().clone().into(),
                                 );
                             block.reset();
-                            block.minimize(
-                                EqualityConstraint::Fixed(indices),
-                                GradientDescent::default(),
-                            )?
+                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
                         }
                         TET => {
                             let connectivity = self
@@ -480,10 +484,7 @@ where
                                     self.get_nodal_coordinates().clone().into(),
                                 );
                             block.reset();
-                            block.minimize(
-                                EqualityConstraint::Fixed(indices),
-                                GradientDescent::default(),
-                            )?
+                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
                         }
                         _ => panic!(),
                     };
