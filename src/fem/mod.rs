@@ -15,7 +15,9 @@ use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
 use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
-    fem::{ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron},
+    fem::{
+        ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron, LinearTetrahedron,
+    },
     math::{
         Tensor, TensorArray, TensorVec,
         optimize::{EqualityConstraint, GradientDescent},
@@ -45,10 +47,11 @@ pub type Blocks = Vec<u8>;
 /// An element-to-node connectivity.
 pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 
-pub type VecConnectivity = Vec<Vec<usize>>;
+pub type Elements = Vec<usize>;
 pub type Metrics = Array1<f64>;
 pub type Nodes = Vec<usize>;
 pub type ReorderedConnectivity = Vec<Vec<u32>>;
+pub type VecConnectivity = Vec<Vec<usize>>;
 
 /// Possible smoothing methods.
 pub enum Smoothing {
@@ -418,65 +421,12 @@ where
             let mut smoothing_scale_inflate = 0.0;
             match *method {
                 Smoothing::Energetic => {
-                    let connectivity = self
-                        .get_element_node_connectivity()
-                        .iter()
-                        .map(|entry| {
-                            entry
-                                .iter()
-                                .map(|node| node - NODE_NUMBERING_OFFSET)
-                                .collect::<Vec<usize>>()
-                                .try_into()
-                                .unwrap()
-                        })
-                        .collect();
-                    let mut block = ElementBlock::<LinearHexahedron<NeoHookean<_>>, HEX>::new(
-                        &[0.0, 1.0],
-                        connectivity,
-                        self.get_nodal_coordinates().clone().into(),
-                    );
-                    block.reset();
-                    // let mut nodes: Vec<usize> =
-                    //     self.exterior_faces().into_iter().flatten().collect();
-                    // nodes.sort();
-                    // nodes.dedup();
-                    // println!("{:?}", nodes);
-                    let nodes = vec![
-     289,     290,     291,     292,     293,     294,
-     295,     296,     297,     298,     299,     300,
-     301,     302,     303,     304,     305,     306,
-     307,     308,     309,     310,     311,     312,
-     313,     314,     315,     316,     317,     318,
-     319,     320,     321,     322,     323,     324,
-     325,     326,     327,     328,     329,     330,
-     331,     332,     333,     334,     335,     336,
-     337,     338,     339,     340,     341,     342,
-     343,     344,     345,     346,     347,     348,
-     349,     350,     351,     352,     353,     354,
-     355,     356,     357,     358,     359,     360,
-     361,     362,     363,     364,     365,     366,
-     367,     368,     369,     370,     371,     372,
-     373,     374,     375,     376,     377,     378,
-     379,     380,     381,     382,     383,     384,
-     385,     386,     387,     388,     389,     390,
-     391,     392,     393,     394,     395,     396,
-     397,     398,     399,     400,     401,     402,
-     403,     404,     405,     406,     407,     408,
-     409,     410,     411,     412,     413,     414,
-     415,     416,     417,     418,     419,     420,
-     421,     422,     423,     424,     425,     426,
-     427,     428,     429,     430,     431,     432,
-     433,     434,     435,     436,     437,     438,
-     439,     440,     441,     442,     443,     444,
-     445,     446,     447,     448,     449,     450,
-     451,     452,     453,     454,     455,     456,
-     457,     458,     459,     460,     461,     462,
-     463,     464,     465,     466,     467,     468,
-     469,     470,     471,     472,     473,     474,
-     475,     476,     477,     478,     479,     480,];
+                    let mut nodes: Nodes = self.exterior_faces().into_iter().flatten().collect();
+                    nodes.sort();
+                    nodes.dedup();
                     let indices = nodes
-                        .iter()
-                        .flat_map(|node: &usize| {
+                        .into_iter()
+                        .flat_map(|node: usize| {
                             [
                                 NSD * (node - NODE_NUMBERING_OFFSET),
                                 NSD * (node - NODE_NUMBERING_OFFSET) + 1,
@@ -484,15 +434,59 @@ where
                             ]
                         })
                         .collect();
-                    println!("{:?}", indices);
-                    self.nodal_coordinates = block.minimize(
-                        EqualityConstraint::Fixed(indices),
-                        // GradientDescent::default(),
-                        GradientDescent {
-                            max_steps: 500,
-                            ..Default::default()
+                    self.nodal_coordinates = match N {
+                        HEX => {
+                            let connectivity = self
+                                .get_element_node_connectivity()
+                                .iter()
+                                .map(|entry| {
+                                    entry
+                                        .iter()
+                                        .map(|node| node - NODE_NUMBERING_OFFSET)
+                                        .collect::<Nodes>()
+                                        .try_into()
+                                        .unwrap()
+                                })
+                                .collect();
+                            let mut block =
+                                ElementBlock::<LinearHexahedron<NeoHookean<_>>, HEX>::new(
+                                    &[0.0, 1.0],
+                                    connectivity,
+                                    self.get_nodal_coordinates().clone().into(),
+                                );
+                            block.reset();
+                            block.minimize(
+                                EqualityConstraint::Fixed(indices),
+                                GradientDescent::default(),
+                            )?
                         }
-                    )?;
+                        TET => {
+                            let connectivity = self
+                                .get_element_node_connectivity()
+                                .iter()
+                                .map(|entry| {
+                                    entry
+                                        .iter()
+                                        .map(|node| node - NODE_NUMBERING_OFFSET)
+                                        .collect::<Nodes>()
+                                        .try_into()
+                                        .unwrap()
+                                })
+                                .collect();
+                            let mut block =
+                                ElementBlock::<LinearTetrahedron<NeoHookean<_>>, TET>::new(
+                                    &[0.0, 1.0],
+                                    connectivity,
+                                    self.get_nodal_coordinates().clone().into(),
+                                );
+                            block.reset();
+                            block.minimize(
+                                EqualityConstraint::Fixed(indices),
+                                GradientDescent::default(),
+                            )?
+                        }
+                        _ => panic!(),
+                    };
                     return Ok(());
                 }
                 Smoothing::Laplacian(iterations, scale) => {
@@ -762,7 +756,7 @@ fn finite_element_data_from_exo<const N: usize>(
 ) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorNetCDF> {
     let file = open(file_path)?;
     let mut blocks = vec![];
-    let connectivity = file
+    let mut connectivity: Connectivity<N> = file
         .variables()
         .filter(|variable| variable.name().starts_with("connect"))
         .flat_map(|variable| {
@@ -788,7 +782,7 @@ fn finite_element_data_from_exo<const N: usize>(
             connect
         })
         .collect();
-    let nodal_coordinates = file
+    let mut coordinates: Coordinates = file
         .variable("coordx")
         .expect("Coordinates x not found")
         .get_values(..)?
@@ -806,7 +800,63 @@ fn finite_element_data_from_exo<const N: usize>(
         )
         .map(|(x, (y, z))| [x, y, z].into())
         .collect();
-    Ok((blocks, connectivity, nodal_coordinates))
+    if let Some(variable) = file.variable("elem_map") {
+        let elem_map: Elements = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting element map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !elem_map.is_sorted() {
+            unimplemented!("Please notify developers to handle this case")
+        }
+    }
+    if let Some(variable) = file.variable("elem_num_map") {
+        let elem_num_map: Elements = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting element numbering map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !elem_num_map.is_sorted() {
+            unimplemented!("Please notify developers to handle this case")
+        }
+    }
+    if let Some(variable) = file.variable("node_map") {
+        let node_map: Nodes = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting node map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !node_map.is_sorted() {
+            unimplemented!("Please notify developers to handle this case")
+        }
+    }
+    if let Some(variable) = file.variable("node_num_map") {
+        let node_num_map: Nodes = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting node numbering map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !node_num_map.is_sorted() {
+            connectivity.iter_mut().for_each(|nodes| {
+                nodes
+                    .iter_mut()
+                    .for_each(|node| *node = node_num_map[*node - NODE_NUMBERING_OFFSET])
+            });
+            let mut coordinates_temporary = Coordinates::zero(coordinates.len());
+            node_num_map
+                .into_iter()
+                .enumerate()
+                .for_each(|(index, map)| {
+                    coordinates_temporary[map - NODE_NUMBERING_OFFSET] = coordinates[index].clone()
+                });
+            coordinates = coordinates_temporary
+        }
+    }
+    Ok((blocks, connectivity, coordinates))
 }
 
 fn finite_element_data_from_inp<const N: usize>(
