@@ -13,7 +13,16 @@ use std::time::Instant;
 
 use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
 use chrono::Utc;
-use conspire::math::{Tensor, TensorArray, TensorVec};
+use conspire::{
+    constitutive::solid::hyperelastic::NeoHookean,
+    fem::{
+        ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron, LinearTetrahedron,
+    },
+    math::{
+        Tensor, TensorArray, TensorVec,
+        optimize::{EqualityConstraint, GradientDescent, LineSearch},
+    },
+};
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
@@ -38,13 +47,15 @@ pub type Blocks = Vec<u8>;
 /// An element-to-node connectivity.
 pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 
-pub type VecConnectivity = Vec<Vec<usize>>;
+pub type Elements = Vec<usize>;
 pub type Metrics = Array1<f64>;
 pub type Nodes = Vec<usize>;
 pub type ReorderedConnectivity = Vec<Vec<u32>>;
+pub type VecConnectivity = Vec<Vec<usize>>;
 
 /// Possible smoothing methods.
 pub enum Smoothing {
+    Energetic,
     Laplacian(usize, f64),
     Taubin(usize, f64, f64),
 }
@@ -99,7 +110,7 @@ where
     /// Calculates and sets the node-to-node connectivity.
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
     /// Smooths the nodal coordinates according to the provided smoothing method.
-    fn smooth(&mut self, method: &Smoothing) -> Result<(), &str>;
+    fn smooth(&mut self, method: &Smoothing) -> Result<(), String>;
     /// Writes the finite elements data to a new Exodus file.
     fn write_exo(&self, file_path: &str) -> Result<(), ErrorNetCDF>;
     /// Writes the finite elements data to a new Abaqus file.
@@ -403,15 +414,89 @@ where
             Err("Need to calculate the node-to-element connectivity first")
         }
     }
-    fn smooth(&mut self, method: &Smoothing) -> Result<(), &str> {
+    fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {
             let smoothing_iterations;
             let smoothing_scale_deflate;
             let mut smoothing_scale_inflate = 0.0;
             match *method {
+                Smoothing::Energetic => {
+                    let mut nodes: Nodes = self.exterior_faces().into_iter().flatten().collect();
+                    nodes.sort();
+                    nodes.dedup();
+                    let solver = GradientDescent {
+                        abs_tol: 1e-6,
+                        dual: false,
+                        line_search: LineSearch::Armijo {
+                            control: 1e-3,
+                            cut_back: 0.9,
+                            max_steps: 100,
+                        },
+                        max_steps: 1000,
+                        rel_tol: Some(1e-2),
+                    };
+                    let indices = nodes
+                        .into_iter()
+                        .flat_map(|node: usize| {
+                            [
+                                NSD * (node - NODE_NUMBERING_OFFSET),
+                                NSD * (node - NODE_NUMBERING_OFFSET) + 1,
+                                NSD * (node - NODE_NUMBERING_OFFSET) + 2,
+                            ]
+                        })
+                        .collect();
+                    self.nodal_coordinates = match N {
+                        HEX => {
+                            let connectivity = self
+                                .get_element_node_connectivity()
+                                .iter()
+                                .map(|entry| {
+                                    entry
+                                        .iter()
+                                        .map(|node| node - NODE_NUMBERING_OFFSET)
+                                        .collect::<Nodes>()
+                                        .try_into()
+                                        .unwrap()
+                                })
+                                .collect();
+                            let mut block =
+                                ElementBlock::<LinearHexahedron<NeoHookean<_>>, HEX>::new(
+                                    &[0.0, 1.0],
+                                    connectivity,
+                                    self.get_nodal_coordinates().clone().into(),
+                                );
+                            block.reset();
+                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
+                        }
+                        TET => {
+                            let connectivity = self
+                                .get_element_node_connectivity()
+                                .iter()
+                                .map(|entry| {
+                                    entry
+                                        .iter()
+                                        .map(|node| node - NODE_NUMBERING_OFFSET)
+                                        .collect::<Nodes>()
+                                        .try_into()
+                                        .unwrap()
+                                })
+                                .collect();
+                            let mut block =
+                                ElementBlock::<LinearTetrahedron<NeoHookean<_>>, TET>::new(
+                                    &[0.0, 1.0],
+                                    connectivity,
+                                    self.get_nodal_coordinates().clone().into(),
+                                );
+                            block.reset();
+                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
+                        }
+                        _ => panic!(),
+                    };
+                    return Ok(());
+                }
                 Smoothing::Laplacian(iterations, scale) => {
                     if scale <= 0.0 || scale >= 1.0 {
-                        return Err("Need to specify 0.0 < scale < 1.0");
+                        return Err("Need to specify 0.0 < scale < 1.0".to_string());
                     } else {
                         smoothing_iterations = iterations;
                         smoothing_scale_deflate = scale;
@@ -419,15 +504,17 @@ where
                 }
                 Smoothing::Taubin(iterations, pass_band, scale) => {
                     if pass_band <= 0.0 || pass_band >= 1.0 {
-                        return Err("Need to specify 0.0 < pass-band < 1.0");
+                        return Err("Need to specify 0.0 < pass-band < 1.0".to_string());
                     } else if scale <= 0.0 || scale >= 1.0 {
-                        return Err("Need to specify 0.0 < scale < 1.0");
+                        return Err("Need to specify 0.0 < scale < 1.0".to_string());
                     } else {
                         smoothing_iterations = iterations;
                         smoothing_scale_deflate = scale;
                         smoothing_scale_inflate = scale / (pass_band * scale - 1.0);
                         if smoothing_scale_deflate >= -smoothing_scale_inflate {
-                            return Err("Inflation scale must be larger than deflation scale");
+                            return Err(
+                                "Inflation scale must be larger than deflation scale".to_string()
+                            );
                         }
                     }
                 }
@@ -509,7 +596,7 @@ where
             }
             Ok(())
         } else {
-            Err("Need to calculate the node-to-node connectivity first")
+            Err("Need to calculate the node-to-node connectivity first".to_string())
         }
     }
     fn write_exo(&self, file_path: &str) -> Result<(), ErrorNetCDF> {
@@ -674,7 +761,7 @@ fn finite_element_data_from_exo<const N: usize>(
 ) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorNetCDF> {
     let file = open(file_path)?;
     let mut blocks = vec![];
-    let connectivity = file
+    let mut connectivity: Connectivity<N> = file
         .variables()
         .filter(|variable| variable.name().starts_with("connect"))
         .flat_map(|variable| {
@@ -700,7 +787,7 @@ fn finite_element_data_from_exo<const N: usize>(
             connect
         })
         .collect();
-    let nodal_coordinates = file
+    let mut coordinates: Coordinates = file
         .variable("coordx")
         .expect("Coordinates x not found")
         .get_values(..)?
@@ -718,7 +805,63 @@ fn finite_element_data_from_exo<const N: usize>(
         )
         .map(|(x, (y, z))| [x, y, z].into())
         .collect();
-    Ok((blocks, connectivity, nodal_coordinates))
+    if let Some(variable) = file.variable("elem_map") {
+        let elem_map: Elements = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting element map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !elem_map.is_sorted() {
+            unimplemented!("Please notify developers to handle this case")
+        }
+    }
+    if let Some(variable) = file.variable("elem_num_map") {
+        let elem_num_map: Elements = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting element numbering map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !elem_num_map.is_sorted() {
+            unimplemented!("Please notify developers to handle this case")
+        }
+    }
+    if let Some(variable) = file.variable("node_map") {
+        let node_map: Nodes = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting node map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !node_map.is_sorted() {
+            unimplemented!("Please notify developers to handle this case")
+        }
+    }
+    if let Some(variable) = file.variable("node_num_map") {
+        let node_num_map: Nodes = variable
+            .get_values::<u32, _>(..)
+            .expect("Error getting node numbering map")
+            .into_iter()
+            .map(|node| node as usize)
+            .collect();
+        if !node_num_map.is_sorted() {
+            connectivity.iter_mut().for_each(|nodes| {
+                nodes
+                    .iter_mut()
+                    .for_each(|node| *node = node_num_map[*node - NODE_NUMBERING_OFFSET])
+            });
+            let mut coordinates_temporary = Coordinates::zero(coordinates.len());
+            node_num_map
+                .into_iter()
+                .enumerate()
+                .for_each(|(index, map)| {
+                    coordinates_temporary[map - NODE_NUMBERING_OFFSET] = coordinates[index].clone()
+                });
+            coordinates = coordinates_temporary
+        }
+    }
+    Ok((blocks, connectivity, coordinates))
 }
 
 fn finite_element_data_from_inp<const N: usize>(

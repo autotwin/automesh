@@ -44,57 +44,15 @@ pub enum MeshSmoothCommands {
 #[derive(Subcommand)]
 pub enum SmoothSubcommand {
     /// Smooths an all-hexahedral mesh
-    Hex(SmoothHexArgs),
+    Hex(SmoothElementArgs),
     /// Smooths an all-tetrahedral mesh
-    Tet(SmoothTetArgs),
+    Tet(SmoothElementArgs),
     /// Smooths an all-triangular mesh
     Tri(SmoothTriArgs),
 }
 
 #[derive(clap::Args)]
-pub struct SmoothHexArgs {
-    #[command(subcommand)]
-    pub remeshing: Option<MeshRemeshCommands>,
-
-    /// Pass to enable hierarchical control
-    #[arg(action, long, short = 'c')]
-    pub hierarchical: bool,
-
-    /// Mesh input file (exo | inp)
-    #[arg(long, short, value_name = "FILE")]
-    pub input: String,
-
-    /// Smoothed mesh output file (exo | inp | mesh | vtk)
-    #[arg(long, short, value_name = "FILE")]
-    pub output: String,
-
-    /// Number of smoothing iterations
-    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-    pub iterations: usize,
-
-    /// Smoothing method (Laplace | Taubin) [default: Taubin]
-    #[arg(long, short, value_name = "NAME")]
-    pub method: Option<String>,
-
-    /// Pass-band frequency (for Taubin only)
-    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-    pub pass_band: f64,
-
-    /// Scaling parameter for all smoothing methods
-    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-    pub scale: f64,
-
-    /// Quality metrics output file (csv | npy)
-    #[arg(long, value_name = "FILE")]
-    pub metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
-}
-
-#[derive(clap::Args)]
-pub struct SmoothTetArgs {
+pub struct SmoothElementArgs {
     #[command(subcommand)]
     pub remeshing: Option<MeshRemeshCommands>,
 
@@ -234,11 +192,21 @@ where
     let smoothing_method = method.unwrap_or("Taubin".to_string());
     if matches!(
         smoothing_method.as_str(),
-        "Laplacian" | "Laplace" | "laplacian" | "laplace" | "Taubin" | "taubin"
+        "Energetic"
+            | "energetic"
+            | "Laplacian"
+            | "Laplace"
+            | "laplacian"
+            | "laplace"
+            | "Taubin"
+            | "taubin"
     ) {
         if !quiet {
             print!("   \x1b[1;96mSmoothing\x1b[0m ");
             match smoothing_method.as_str() {
+                "Energetic" | "energetic" => {
+                    println!("with energetic smoothing")
+                }
                 "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                     println!("with {iterations} iterations of Laplace")
                 }
@@ -255,6 +223,9 @@ where
         }
         output_type.nodal_influencers();
         match smoothing_method.as_str() {
+            "Energetic" | "energetic" => {
+                output_type.smooth(&Smoothing::Energetic)?;
+            }
             "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                 output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;
             }
