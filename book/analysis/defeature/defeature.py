@@ -1,5 +1,10 @@
-"""This module creates spheres and blobs inside of a domain for the purposes
+r"""This module creates spheres and blobs inside of a domain for the purposes
 of illustrating the defeature command.
+
+Example:
+source ~/autotwin/automesh/.venv/bin/activate
+cd ~/autotwin/automesh/book/analysis/defeature
+python defeature.py
 """
 
 import logging
@@ -78,19 +83,9 @@ def create_blob(data: np.ndarray, center: np.ndarray, radius_max: int) -> None:
     )
 
     # Create a random radius for each voxel based on a Gaussian distribution
-    # radius_variation = np.random.normal(
-    #     loc=radius_max, scale=radius_max * 0.2, size=data.shape
-    # )
-    # radius_variation = np.random.normal(
-    #     loc=radius_max, scale=radius_max * 0.0, size=data.shape
-    # )
-    # radius_variation = np.random.normal(
-    #     loc=radius_max, scale=radius_max * 0.2, size=data.shape
-    # )
     radius_variation = np.random.normal(
         loc=radius_max, scale=radius_max * 0.5, size=data.shape
     )
-    # breakpoint()
 
     # Set the voxels to 1 if they are within the radius variation
     data[distance <= radius_variation] = 1
