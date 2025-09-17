@@ -111,8 +111,11 @@ pip --version
 On all environments, a [virtual environment](https://docs.python.org/3/tutorial/venv.html) is recommended, but not required.  Create a virtual environment:
 
 ```sh
-python3 -m venv .venv
+python3 -m venv .venv  # venv, or
+uv venv .venv          # using uv
 ```
+
+[`uv`](https://docs.astral.sh/uv/) is a fast PYthon package manager, written in Rust.  It is an alternative to `pip`.
 
 Activate the virtual environment:
 
@@ -151,7 +154,8 @@ cargo add automesh
 [![docs](https://img.shields.io/badge/Docs-API-8CA1AF?logo=readthedocs)](https://automesh.readthedocs.io)
 
 ```sh
-pip install automesh
+pip install automesh     # using pip, or
+uv pip install automesh  # using uv
 ```
 
 ## Step 3: Verify Installation

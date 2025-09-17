@@ -23,7 +23,7 @@
   * document:
     * `mdbook build`
        * output: automesh/book/build
-    * `mdbook serve`
+    * `mdbook serve --open`
       * interactive mode
       * on local machine, with Firefox, open the `index.html` file., e.g.,
       * `file:///Users/chovey/autotwin/automesh/book/build/index.html`
