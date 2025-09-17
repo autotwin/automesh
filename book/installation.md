@@ -115,7 +115,7 @@ python3 -m venv .venv  # venv, or
 uv venv .venv          # using uv
 ```
 
-[`uv`](https://docs.astral.sh/uv/) is a fast PYthon package manager, written in Rust.  It is an alternative to `pip`.
+[`uv`](https://docs.astral.sh/uv/) is a fast Python package manager, written in Rust.  It is an alternative to `pip`.
 
 Activate the virtual environment:
 
@@ -162,8 +162,16 @@ uv pip install automesh  # using uv
 
 ### Rust Interfaces
 
+Run the command line help:
+
 ```sh
 automesh
+```
+
+which should display the following:
+
+```sh
+<!-- cmdrun automesh --help -->
 ```
 
 ### Python Interface
