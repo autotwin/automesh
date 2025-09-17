@@ -1,5 +1,6 @@
 use automesh::{
-    FiniteElementMethods, HexahedralFiniteElements, NSD, Remove, Scale, Translate, Voxels,
+    FiniteElementMethods, HexahedralFiniteElements, NSD, Remove, Scale, Smoothing, Translate,
+    Voxels,
 };
 use std::{
     fs::File,
@@ -164,4 +165,14 @@ mod write_vtk {
         let fem = HexahedralFiniteElements::from(voxels);
         fem.write_vtk("target/letter_f_3d.vtk").unwrap();
     }
+}
+
+#[test]
+fn smooth_energetic() {
+    let mut finite_elements =
+        HexahedralFiniteElements::from_exo("tests/input/cube_1_10.exo").unwrap();
+    finite_elements.node_element_connectivity().unwrap();
+    finite_elements.node_node_connectivity().unwrap();
+    finite_elements.smooth(&Smoothing::Energetic).unwrap();
+    finite_elements.write_exo("target/cube_1_10.exo").unwrap();
 }

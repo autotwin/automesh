@@ -427,7 +427,11 @@ where
                     let solver = GradientDescent {
                         abs_tol: 1e-6,
                         dual: false,
-                        line_search: LineSearch::Error(0.9, 100),
+                        line_search: LineSearch::Armijo {
+                            control: 1e-3,
+                            cut_back: 0.9,
+                            max_steps: 100,
+                        },
                         max_steps: 1000,
                         rel_tol: Some(1e-2),
                     };
