@@ -2,6 +2,7 @@ use automesh::{
     FiniteElementMethods, HexahedralFiniteElements, NSD, Remove, Scale, Smoothing, Translate,
     Voxels,
 };
+use conspire::math::TestError;
 use std::{
     fs::File,
     io::{BufRead, BufReader, Read},
@@ -168,11 +169,12 @@ mod write_vtk {
 }
 
 #[test]
-fn smooth_energetic() {
+fn smooth_energetic() -> Result<(), TestError> {
     let mut finite_elements =
         HexahedralFiniteElements::from_exo("tests/input/cube_1_10.exo").unwrap();
-    finite_elements.node_element_connectivity().unwrap();
-    finite_elements.node_node_connectivity().unwrap();
-    finite_elements.smooth(&Smoothing::Energetic).unwrap();
+    finite_elements.node_element_connectivity()?;
+    finite_elements.node_node_connectivity()?;
+    finite_elements.smooth(&Smoothing::Energetic)?;
     finite_elements.write_exo("target/cube_1_10.exo").unwrap();
+    Ok(())
 }
