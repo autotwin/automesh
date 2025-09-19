@@ -39,7 +39,7 @@ use vtkio::{
 };
 
 const ELEMENT_NUMBERING_OFFSET: usize = 1;
-pub const NODE_NUMBERING_OFFSET: usize = 1;
+const NODE_NUMBERING_OFFSET: usize = 1;
 
 /// A vector of finite element block IDs.
 pub type Blocks = Vec<u8>;
@@ -169,7 +169,7 @@ where
             .map(|nodes| {
                 nodes
                     .iter()
-                    .map(|node| coordinates[node - NODE_NUMBERING_OFFSET].clone())
+                    .map(|&node| coordinates[node].clone())
                     .sum::<Coordinate>()
                     / number_of_nodes
             })
@@ -189,7 +189,7 @@ where
             .iter()
             .map(|face| {
                 face.iter()
-                    .map(|node| coordinates[node - NODE_NUMBERING_OFFSET].clone())
+                    .map(|&node| coordinates[node].clone())
                     .sum::<Coordinate>()
                     / number_of_nodes
             })
@@ -246,7 +246,7 @@ where
                 } else {
                     connectivity
                         .iter()
-                        .map(|node_j| nodal_coordinates[node_j - NODE_NUMBERING_OFFSET].clone())
+                        .map(|&node_j| nodal_coordinates[node_j].clone())
                         .sum::<Coordinate>()
                         / (connectivity.len() as f64)
                         - &nodal_coordinates[node_index_i]
@@ -263,16 +263,16 @@ where
             let mut boundary_nodes = self.get_boundary_nodes().clone();
             boundary_nodes
                 .retain(|boundary_node| prescribed_nodes.binary_search(boundary_node).is_err());
-            boundary_nodes.iter().for_each(|boundary_node| {
-                nodal_influencers[boundary_node - NODE_NUMBERING_OFFSET].retain(|node| {
+            boundary_nodes.iter().for_each(|&boundary_node| {
+                nodal_influencers[boundary_node].retain(|node| {
                     boundary_nodes.binary_search(node).is_ok()
                         || prescribed_nodes.binary_search(node).is_ok()
                 })
             });
         }
-        prescribed_nodes.iter().for_each(|prescribed_node| {
-            nodal_influencers[prescribed_node - NODE_NUMBERING_OFFSET].clear()
-        });
+        prescribed_nodes
+            .iter()
+            .for_each(|&prescribed_node| nodal_influencers[prescribed_node].clear());
         self.nodal_influencers = nodal_influencers;
         #[cfg(feature = "profile")]
         println!(
@@ -308,18 +308,18 @@ where
                     number_of_connected_blocks = connected_blocks.len();
                     number_of_connected_elements = connected_elements.len();
                     if number_of_connected_blocks > 1 {
-                        interface_nodes.push(node + NODE_NUMBERING_OFFSET);
+                        interface_nodes.push(node);
                         //
                         // THIS IS WHERE IT IS ASSUMED THAT THE MESH IS PERFECTLY STRUCTURED
                         // ONLY AFFECTS HIERARCHICAL SMOOTHING
                         //
                         if number_of_connected_elements < HEX {
-                            exterior_nodes.push(node + NODE_NUMBERING_OFFSET);
+                            exterior_nodes.push(node);
                         }
                     } else if number_of_connected_elements < HEX {
-                        exterior_nodes.push(node + NODE_NUMBERING_OFFSET);
+                        exterior_nodes.push(node);
                     } else {
-                        interior_nodes.push(node + NODE_NUMBERING_OFFSET);
+                        interior_nodes.push(node);
                     }
                 });
             exterior_nodes.sort();
@@ -354,9 +354,9 @@ where
             .iter()
             .enumerate()
             .for_each(|(element, connectivity)| {
-                connectivity.iter().for_each(|node| {
-                    node_element_connectivity[node - NODE_NUMBERING_OFFSET].push(element)
-                })
+                connectivity
+                    .iter()
+                    .for_each(|&node| node_element_connectivity[node].push(element))
             });
         self.node_element_connectivity = node_element_connectivity;
         #[cfg(feature = "profile")]
@@ -381,9 +381,8 @@ where
                 .try_for_each(|(connectivity, (node, node_connectivity))| {
                     node_connectivity.iter().try_for_each(|&element| {
                         element_connectivity.clone_from(&element_node_connectivity[element]);
-                        if let Some(neighbors) = element_connectivity
-                            .iter()
-                            .position(|&n| n == node + NODE_NUMBERING_OFFSET)
+                        if let Some(neighbors) =
+                            element_connectivity.iter().position(|n| n == &node)
                         {
                             Self::connected_nodes(&neighbors)
                                 .iter()
@@ -434,13 +433,7 @@ where
                     };
                     let indices = nodes
                         .into_iter()
-                        .flat_map(|node: usize| {
-                            [
-                                NSD * (node - NODE_NUMBERING_OFFSET),
-                                NSD * (node - NODE_NUMBERING_OFFSET) + 1,
-                                NSD * (node - NODE_NUMBERING_OFFSET) + 2,
-                            ]
-                        })
+                        .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
                         .collect();
                     self.nodal_coordinates = match N {
                         HEX => {
@@ -448,12 +441,7 @@ where
                                 .get_element_node_connectivity()
                                 .iter()
                                 .map(|entry| {
-                                    entry
-                                        .iter()
-                                        .map(|node| node - NODE_NUMBERING_OFFSET)
-                                        .collect::<Nodes>()
-                                        .try_into()
-                                        .unwrap()
+                                    entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
                             let mut block =
@@ -470,12 +458,7 @@ where
                                 .get_element_node_connectivity()
                                 .iter()
                                 .map(|entry| {
-                                    entry
-                                        .iter()
-                                        .map(|node| node - NODE_NUMBERING_OFFSET)
-                                        .collect::<Nodes>()
-                                        .try_into()
-                                        .unwrap()
+                                    entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
                             let mut block =
@@ -526,9 +509,7 @@ where
             prescribed_nodes_inhomogeneous
                 .iter()
                 .zip(prescribed_nodes_inhomogeneous_coordinates.iter())
-                .for_each(|(node, coordinates)| {
-                    nodal_coordinates_mut[node - NODE_NUMBERING_OFFSET] = coordinates.clone()
-                });
+                .for_each(|(&node, coordinates)| nodal_coordinates_mut[node] = coordinates.clone());
             let mut iteration = 1;
             let mut laplacian;
             let mut scale;
@@ -846,15 +827,13 @@ fn finite_element_data_from_exo<const N: usize>(
             connectivity.iter_mut().for_each(|nodes| {
                 nodes
                     .iter_mut()
-                    .for_each(|node| *node = node_num_map[*node - NODE_NUMBERING_OFFSET])
+                    .for_each(|node| *node = node_num_map[*node])
             });
             let mut coordinates_temporary = Coordinates::zero(coordinates.len());
             node_num_map
                 .into_iter()
                 .enumerate()
-                .for_each(|(index, map)| {
-                    coordinates_temporary[map - NODE_NUMBERING_OFFSET] = coordinates[index].clone()
-                });
+                .for_each(|(index, map)| coordinates_temporary[map] = coordinates[index].clone());
             coordinates = coordinates_temporary
         }
     }
@@ -902,7 +881,7 @@ fn finite_element_data_from_inp<const N: usize>(
     inverse_mapping
         .iter()
         .enumerate()
-        .for_each(|(new, old)| mapping[old - NODE_NUMBERING_OFFSET] = new + NODE_NUMBERING_OFFSET);
+        .for_each(|(new, &old)| mapping[old] = new);
     buffer.clear();
     file.read_line(&mut buffer)?;
     buffer.clear();
@@ -945,7 +924,7 @@ fn finite_element_data_from_inp<const N: usize>(
         .for_each(|connectivity| {
             connectivity
                 .iter_mut()
-                .for_each(|node| *node = mapping[*node - NODE_NUMBERING_OFFSET])
+                .for_each(|node| *node = mapping[*node])
         });
     Ok((element_blocks, element_node_connectivity, nodal_coordinates))
 }
@@ -1238,7 +1217,7 @@ fn write_finite_elements_to_vtk<const N: usize>(
     let connectivity = element_node_connectivity
         .iter()
         .flatten()
-        .map(|node| (node - NODE_NUMBERING_OFFSET) as u64)
+        .map(|&node| node as u64)
         .collect();
     let nodal_coordinates_flattened = nodal_coordinates
         .iter()

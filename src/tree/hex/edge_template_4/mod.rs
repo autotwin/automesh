@@ -1,7 +1,4 @@
-use super::super::{
-    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS, NodeMap, Octree,
-    face_direction,
-};
+use super::super::{Coordinates, HexConnectivity, NUM_OCTANTS, NodeMap, Octree, face_direction};
 
 pub fn apply(
     cells_nodes: &[usize],
@@ -152,7 +149,7 @@ fn template(
         {
             let lngth = *tree[subcell_a_face_m_subcells[subcell_face_m_p]].get_lngth() as f64;
             let coordinates_1 = &nodal_coordinates
-                [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]] - NODE_NUMBERING_OFFSET]
+                [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]]]
                 - face_direction(face_m) * lngth;
             let node_1 = *nodes_map
                 .get(&(
@@ -162,7 +159,7 @@ fn template(
                 ))
                 .expect("nonexistent entry");
             let coordinates_2 = &nodal_coordinates
-                [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]] - NODE_NUMBERING_OFFSET]
+                [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]]]
                 - face_direction(face_m) * lngth;
             let node_2 = *nodes_map
                 .get(&(
@@ -172,7 +169,7 @@ fn template(
                 ))
                 .expect("nonexistent entry");
             let coordinates_3 = &nodal_coordinates
-                [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]] - NODE_NUMBERING_OFFSET]
+                [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]]]
                 + face_direction(face_n) * lngth;
             let node_3 = *nodes_map
                 .get(&(
@@ -182,7 +179,7 @@ fn template(
                 ))
                 .expect("nonexistent entry");
             let coordinates_4 = &nodal_coordinates
-                [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]] - NODE_NUMBERING_OFFSET]
+                [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]]]
                 + face_direction(face_n) * lngth;
             let node_4 = *nodes_map
                 .get(&(

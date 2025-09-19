@@ -1,6 +1,6 @@
 use super::super::{
-    Coordinate, Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS,
-    NUM_SUBCELLS_FACE, NodeMap, Octree, SubSubCellsFace, subcells_on_own_face,
+    Coordinate, Coordinates, HexConnectivity, NUM_OCTANTS, NUM_SUBCELLS_FACE, NodeMap, Octree,
+    SubSubCellsFace, subcells_on_own_face,
 };
 use crate::Vector;
 use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
@@ -84,18 +84,17 @@ fn template(
         *node_index + 3,
     ];
     *node_index += 4;
-    adjacent_interior_nodes.iter().for_each(|foo_i| {
-        nodal_coordinates.push(&nodal_coordinates[foo_i - NODE_NUMBERING_OFFSET] + scale_1.clone())
-    });
+    adjacent_interior_nodes
+        .iter()
+        .for_each(|&foo_i| nodal_coordinates.push(&nodal_coordinates[foo_i] + scale_1.clone()));
     let mut coordinates = Coordinate::zero();
     let mut indices = (0, 0, 0);
     let mut exterior_nodes = [0; 8];
     adjacent_exterior_nodes
         .iter()
         .zip(exterior_nodes.iter_mut())
-        .for_each(|(adjacent_exterior_node_i, exterior_node_i)| {
-            coordinates = &nodal_coordinates[adjacent_exterior_node_i - NODE_NUMBERING_OFFSET]
-                + scale_2.clone();
+        .for_each(|(&adjacent_exterior_node_i, exterior_node_i)| {
+            coordinates = &nodal_coordinates[adjacent_exterior_node_i] + scale_2.clone();
             indices = (
                 (2.0 * coordinates[0]) as usize,
                 (2.0 * coordinates[1]) as usize,
