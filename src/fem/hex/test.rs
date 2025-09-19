@@ -138,7 +138,7 @@ fn test_finite_elements(
 #[test]
 fn single() {
     let element_blocks = vec![11];
-    let element_node_connectivity = vec![[1, 2, 4, 3, 5, 6, 8, 7]];
+    let element_node_connectivity = vec![[0, 1, 3, 2, 4, 5, 7, 6]];
     let nodal_coordinates = Coordinates::new(&[
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
@@ -151,16 +151,16 @@ fn single() {
     ]);
     let node_element_connectivity_gold = vec![vec![0]; 8];
     let node_node_connectivity_gold = vec![
-        vec![2, 3, 5],
-        vec![1, 4, 6],
+        vec![1, 2, 4],
+        vec![0, 3, 5],
+        vec![0, 3, 6],
+        vec![1, 2, 7],
+        vec![0, 5, 6],
         vec![1, 4, 7],
-        vec![2, 3, 8],
-        vec![1, 6, 7],
-        vec![2, 5, 8],
-        vec![3, 5, 8],
-        vec![4, 6, 7],
+        vec![2, 4, 7],
+        vec![3, 5, 6],
     ];
-    let exterior_nodes_gold = (1..=8).collect();
+    let exterior_nodes_gold = (0..8).collect();
     let interface_nodes_gold = vec![];
     let interior_nodes_gold = vec![];
     let laplacian_gold = Coordinates::new(&[
@@ -192,7 +192,7 @@ fn single() {
 #[test]
 fn double_x() {
     let element_blocks = vec![11; 2];
-    let element_node_connectivity = vec![[1, 2, 5, 4, 7, 8, 11, 10], [2, 3, 6, 5, 8, 9, 12, 11]];
+    let element_node_connectivity = vec![[0, 1, 4, 3, 6, 7, 10, 9], [1, 2, 5, 4, 7, 8, 11, 10]];
     let nodal_coordinates = Coordinates::new(&[
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
@@ -222,20 +222,20 @@ fn double_x() {
         vec![1],
     ];
     let node_node_connectivity_gold = vec![
-        vec![2, 4, 7],
-        vec![1, 3, 5, 8],
-        vec![2, 6, 9],
-        vec![1, 5, 10],
-        vec![2, 4, 6, 11],
-        vec![3, 5, 12],
-        vec![1, 8, 10],
-        vec![2, 7, 9, 11],
-        vec![3, 8, 12],
-        vec![4, 7, 11],
-        vec![5, 8, 10, 12],
-        vec![6, 9, 11],
+        vec![1, 3, 6],
+        vec![0, 2, 4, 7],
+        vec![1, 5, 8],
+        vec![0, 4, 9],
+        vec![1, 3, 5, 10],
+        vec![2, 4, 11],
+        vec![0, 7, 9],
+        vec![1, 6, 8, 10],
+        vec![2, 7, 11],
+        vec![3, 6, 10],
+        vec![4, 7, 9, 11],
+        vec![5, 8, 10],
     ];
-    let exterior_nodes_gold = (1..=12).collect();
+    let exterior_nodes_gold = (0..12).collect();
     let interface_nodes_gold = vec![];
     let interior_nodes_gold = vec![];
     let laplacian_gold = Coordinates::new(&[
@@ -301,7 +301,7 @@ fn double_x() {
 #[test]
 fn double_y() {
     let element_blocks = vec![11; 2];
-    let element_node_connectivity = vec![[1, 2, 4, 3, 7, 8, 10, 9], [3, 4, 6, 5, 9, 10, 12, 11]];
+    let element_node_connectivity = vec![[0, 1, 3, 2, 6, 7, 9, 8], [2, 3, 5, 4, 8, 9, 11, 10]];
     let nodal_coordinates = Coordinates::new(&[
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
@@ -331,20 +331,20 @@ fn double_y() {
         vec![1],
     ];
     let node_node_connectivity_gold = vec![
-        vec![2, 3, 7],
-        vec![1, 4, 8],
-        vec![1, 4, 5, 9],
-        vec![2, 3, 6, 10],
-        vec![3, 6, 11],
-        vec![4, 5, 12],
-        vec![1, 8, 9],
-        vec![2, 7, 10],
-        vec![3, 7, 10, 11],
-        vec![4, 8, 9, 12],
-        vec![5, 9, 12],
-        vec![6, 10, 11],
+        vec![1, 2, 6],
+        vec![0, 3, 7],
+        vec![0, 3, 4, 8],
+        vec![1, 2, 5, 9],
+        vec![2, 5, 10],
+        vec![3, 4, 11],
+        vec![0, 7, 8],
+        vec![1, 6, 9],
+        vec![2, 6, 9, 10],
+        vec![3, 7, 8, 11],
+        vec![4, 8, 11],
+        vec![5, 9, 10],
     ];
-    let exterior_nodes_gold = (1..=12).collect();
+    let exterior_nodes_gold = (0..12).collect();
     let interface_nodes_gold = vec![];
     let interior_nodes_gold = vec![];
     let nodal_influencers_gold = node_node_connectivity_gold.clone();
@@ -367,9 +367,9 @@ fn double_y() {
 fn triple() {
     let element_blocks = vec![11; 3];
     let element_node_connectivity = vec![
+        [0, 1, 5, 4, 8, 9, 13, 12],
         [1, 2, 6, 5, 9, 10, 14, 13],
         [2, 3, 7, 6, 10, 11, 15, 14],
-        [3, 4, 8, 7, 11, 12, 16, 15],
     ];
     let nodal_coordinates = Coordinates::new(&[
         [0.0, 0.0, 0.0],
@@ -408,24 +408,24 @@ fn triple() {
         vec![2],
     ];
     let node_node_connectivity_gold = vec![
-        vec![2, 5, 9],
+        vec![1, 4, 8],
+        vec![0, 2, 5, 9],
         vec![1, 3, 6, 10],
-        vec![2, 4, 7, 11],
-        vec![3, 8, 12],
-        vec![1, 6, 13],
+        vec![2, 7, 11],
+        vec![0, 5, 12],
+        vec![1, 4, 6, 13],
         vec![2, 5, 7, 14],
-        vec![3, 6, 8, 15],
-        vec![4, 7, 16],
-        vec![1, 10, 13],
+        vec![3, 6, 15],
+        vec![0, 9, 12],
+        vec![1, 8, 10, 13],
         vec![2, 9, 11, 14],
-        vec![3, 10, 12, 15],
-        vec![4, 11, 16],
-        vec![5, 9, 14],
+        vec![3, 10, 15],
+        vec![4, 8, 13],
+        vec![5, 9, 12, 14],
         vec![6, 10, 13, 15],
-        vec![7, 11, 14, 16],
-        vec![8, 12, 15],
+        vec![7, 11, 14],
     ];
-    let exterior_nodes_gold = (1..=16).collect();
+    let exterior_nodes_gold = (0..16).collect();
     let interface_nodes_gold = vec![];
     let interior_nodes_gold = vec![];
     let nodal_influencers_gold = node_node_connectivity_gold.clone();
@@ -448,10 +448,10 @@ fn triple() {
 fn quadruple() {
     let element_blocks = vec![11; 4];
     let element_node_connectivity = vec![
+        [0, 1, 6, 5, 10, 11, 16, 15],
         [1, 2, 7, 6, 11, 12, 17, 16],
         [2, 3, 8, 7, 12, 13, 18, 17],
         [3, 4, 9, 8, 13, 14, 19, 18],
-        [4, 5, 10, 9, 14, 15, 20, 19],
     ];
     let nodal_coordinates = Coordinates::new(&[
         [0.0, 0.0, 0.0],
@@ -498,28 +498,28 @@ fn quadruple() {
         vec![3],
     ];
     let node_node_connectivity_gold = vec![
-        vec![2, 6, 11],
+        vec![1, 5, 10],
+        vec![0, 2, 6, 11],
         vec![1, 3, 7, 12],
         vec![2, 4, 8, 13],
-        vec![3, 5, 9, 14],
-        vec![4, 10, 15],
-        vec![1, 7, 16],
+        vec![3, 9, 14],
+        vec![0, 6, 15],
+        vec![1, 5, 7, 16],
         vec![2, 6, 8, 17],
         vec![3, 7, 9, 18],
-        vec![4, 8, 10, 19],
-        vec![5, 9, 20],
-        vec![1, 12, 16],
+        vec![4, 8, 19],
+        vec![0, 11, 15],
+        vec![1, 10, 12, 16],
         vec![2, 11, 13, 17],
         vec![3, 12, 14, 18],
-        vec![4, 13, 15, 19],
-        vec![5, 14, 20],
-        vec![6, 11, 17],
+        vec![4, 13, 19],
+        vec![5, 10, 16],
+        vec![6, 11, 15, 17],
         vec![7, 12, 16, 18],
         vec![8, 13, 17, 19],
-        vec![9, 14, 18, 20],
-        vec![10, 15, 19],
+        vec![9, 14, 18],
     ];
-    let exterior_nodes_gold = (1..=20).collect();
+    let exterior_nodes_gold = (0..20).collect();
     let interface_nodes_gold = vec![];
     let interior_nodes_gold = vec![];
     let nodal_influencers_gold = node_node_connectivity_gold.clone();
@@ -541,7 +541,7 @@ fn quadruple() {
 #[test]
 fn quadruple_2_voids() {
     let element_blocks = vec![99; 2];
-    let element_node_connectivity = vec![[1, 2, 6, 5, 9, 10, 14, 13], [3, 4, 8, 7, 11, 12, 16, 15]];
+    let element_node_connectivity = vec![[0, 1, 5, 4, 8, 9, 13, 12], [2, 3, 7, 6, 10, 11, 15, 14]];
     let nodal_coordinates = Coordinates::new(&[
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
@@ -579,24 +579,24 @@ fn quadruple_2_voids() {
         vec![1],
     ];
     let node_node_connectivity_gold = vec![
-        vec![2, 5, 9],
-        vec![1, 6, 10],
-        vec![4, 7, 11],
-        vec![3, 8, 12],
-        vec![1, 6, 13],
-        vec![2, 5, 14],
-        vec![3, 8, 15],
-        vec![4, 7, 16],
-        vec![1, 10, 13],
-        vec![2, 9, 14],
-        vec![3, 12, 15],
-        vec![4, 11, 16],
-        vec![5, 9, 14],
-        vec![6, 10, 13],
-        vec![7, 11, 16],
-        vec![8, 12, 15],
+        vec![1, 4, 8],
+        vec![0, 5, 9],
+        vec![3, 6, 10],
+        vec![2, 7, 11],
+        vec![0, 5, 12],
+        vec![1, 4, 13],
+        vec![2, 7, 14],
+        vec![3, 6, 15],
+        vec![0, 9, 12],
+        vec![1, 8, 13],
+        vec![2, 11, 14],
+        vec![3, 10, 15],
+        vec![4, 8, 13],
+        vec![5, 9, 12],
+        vec![6, 10, 15],
+        vec![7, 11, 14],
     ];
-    let exterior_nodes_gold = (1..=16).collect();
+    let exterior_nodes_gold = (0..16).collect();
     let interface_nodes_gold = vec![];
     let interior_nodes_gold = vec![];
     let nodal_influencers_gold = node_node_connectivity_gold.clone();

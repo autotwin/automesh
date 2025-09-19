@@ -1,8 +1,8 @@
 use super::{
     Vector,
     fem::{
-        FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements,
-        NODE_NUMBERING_OFFSET, Smoothing, TRI, TetrahedralFiniteElements, TriangularFiniteElements,
+        FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements, Smoothing,
+        TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
 use conspire::math::{Tensor, TensorArray};
@@ -31,39 +31,28 @@ impl From<TetrahedralFiniteElements> for Tessellation {
 
 impl From<TriangularFiniteElements> for Tessellation {
     fn from(finite_elements: TriangularFiniteElements) -> Self {
+        let (_, connectivity, coordinates) = finite_elements.data();
         let mut normal = Vector::zero();
-        let mut vertices_tri = [0; TRI];
-        let nodal_coordinates = finite_elements.get_nodal_coordinates();
-        let vertices = nodal_coordinates
-            .iter()
+        let faces = connectivity
+            .into_iter()
+            .map(|connectivity| {
+                normal = (&coordinates[connectivity[1]] - &coordinates[connectivity[0]])
+                    .cross(&(&coordinates[connectivity[2]] - &coordinates[connectivity[0]]))
+                    .normalized();
+                IndexedTriangle {
+                    normal: Normal::new([normal[0] as f32, normal[1] as f32, normal[2] as f32]),
+                    vertices: connectivity,
+                }
+            })
+            .collect();
+        let vertices = coordinates
+            .into_iter()
             .map(|coordinate| {
                 Vertex::new([
                     coordinate[0] as f32,
                     coordinate[1] as f32,
                     coordinate[2] as f32,
                 ])
-            })
-            .collect();
-        let faces = finite_elements
-            .get_element_node_connectivity()
-            .iter()
-            .map(|&connectivity| {
-                vertices_tri = [
-                    connectivity[0] - NODE_NUMBERING_OFFSET,
-                    connectivity[1] - NODE_NUMBERING_OFFSET,
-                    connectivity[2] - NODE_NUMBERING_OFFSET,
-                ];
-                normal = (&nodal_coordinates[vertices_tri[1]]
-                    - &nodal_coordinates[vertices_tri[0]])
-                    .cross(
-                        &(&nodal_coordinates[vertices_tri[2]]
-                            - &nodal_coordinates[vertices_tri[0]]),
-                    )
-                    .normalized();
-                IndexedTriangle {
-                    normal: Normal::new([normal[0] as f32, normal[1] as f32, normal[2] as f32]),
-                    vertices: vertices_tri,
-                }
             })
             .collect();
         Tessellation::new(IndexedMesh { vertices, faces })
