@@ -38,7 +38,8 @@ use vtkio::{
     },
 };
 
-const ELEMENT_NUMBERING_OFFSET: usize = 1;
+const ELEMENT_NUMBERING_OFFSET: usize = 0;
+const ELEMENT_NUMBERING_OFFSET_OLD: usize = 1;
 pub const NODE_NUMBERING_OFFSET: usize = 1;
 
 /// A vector of finite element block IDs.
@@ -1148,7 +1149,7 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
                     file.write_all(
                         format!(
                             "{:>width$}",
-                            element + ELEMENT_NUMBERING_OFFSET,
+                            element + ELEMENT_NUMBERING_OFFSET_OLD,
                             width = element_number_width
                         )
                         .as_bytes(),
