@@ -301,7 +301,7 @@ where
                 .for_each(|(node, connected_elements)| {
                     connected_blocks = connected_elements
                         .iter()
-                        .map(|element| element_blocks[element - ELEMENT_NUMBERING_OFFSET])
+                        .map(|&element| element_blocks[element])
                         .collect();
                     connected_blocks.sort();
                     connected_blocks.dedup();
@@ -355,8 +355,7 @@ where
             .enumerate()
             .for_each(|(element, connectivity)| {
                 connectivity.iter().for_each(|node| {
-                    node_element_connectivity[node - NODE_NUMBERING_OFFSET]
-                        .push(element + ELEMENT_NUMBERING_OFFSET)
+                    node_element_connectivity[node - NODE_NUMBERING_OFFSET].push(element)
                 })
             });
         self.node_element_connectivity = node_element_connectivity;
@@ -380,10 +379,8 @@ where
                 .iter_mut()
                 .zip(node_element_connectivity.iter().enumerate())
                 .try_for_each(|(connectivity, (node, node_connectivity))| {
-                    node_connectivity.iter().try_for_each(|element| {
-                        element_connectivity.clone_from(
-                            &element_node_connectivity[element - ELEMENT_NUMBERING_OFFSET],
-                        );
+                    node_connectivity.iter().try_for_each(|&element| {
+                        element_connectivity.clone_from(&element_node_connectivity[element]);
                         if let Some(neighbors) = element_connectivity
                             .iter()
                             .position(|&n| n == node + NODE_NUMBERING_OFFSET)

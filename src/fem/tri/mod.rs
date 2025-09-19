@@ -5,9 +5,9 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    super::tree::Edges, Connectivity, Coordinate, ELEMENT_NUMBERING_OFFSET, FiniteElementMethods,
-    FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET, Smoothing,
-    Tessellation, VecConnectivity, Vector,
+    super::tree::Edges, Connectivity, Coordinate, FiniteElementMethods, FiniteElementSpecifics,
+    FiniteElements, Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, VecConnectivity,
+    Vector,
 };
 use conspire::{
     math::{Tensor, TensorArray, TensorVec},
@@ -346,30 +346,22 @@ fn split_edges(
             element_index_3 = element_node_connectivity.len() - 2;
             element_index_4 = element_node_connectivity.len() - 1;
             node_element_connectivity[*node_a - NODE_NUMBERING_OFFSET]
-                .retain(|element| element - ELEMENT_NUMBERING_OFFSET != element_index_1);
-            node_element_connectivity[*node_a - NODE_NUMBERING_OFFSET]
-                .push(element_index_3 + ELEMENT_NUMBERING_OFFSET);
+                .retain(|element| element != &element_index_1);
+            node_element_connectivity[*node_a - NODE_NUMBERING_OFFSET].push(element_index_3);
             node_element_connectivity[*node_b - NODE_NUMBERING_OFFSET]
-                .retain(|element| element - ELEMENT_NUMBERING_OFFSET != element_index_2);
-            node_element_connectivity[*node_b - NODE_NUMBERING_OFFSET]
-                .push(element_index_4 + ELEMENT_NUMBERING_OFFSET);
-            node_element_connectivity[node_c - NODE_NUMBERING_OFFSET]
-                .push(element_index_2 + ELEMENT_NUMBERING_OFFSET);
+                .retain(|element| element != &element_index_2);
+            node_element_connectivity[*node_b - NODE_NUMBERING_OFFSET].push(element_index_4);
+            node_element_connectivity[node_c - NODE_NUMBERING_OFFSET].push(element_index_2);
+            node_element_connectivity[node_d - NODE_NUMBERING_OFFSET].push(element_index_1);
             node_element_connectivity[node_d - NODE_NUMBERING_OFFSET]
-                .push(element_index_1 + ELEMENT_NUMBERING_OFFSET);
-            node_element_connectivity[node_d - NODE_NUMBERING_OFFSET].retain(|element| {
-                element - ELEMENT_NUMBERING_OFFSET != element_index_1
-                    && element - ELEMENT_NUMBERING_OFFSET != element_index_2
-            });
-            node_element_connectivity[node_d - NODE_NUMBERING_OFFSET].extend(vec![
-                element_index_3 + ELEMENT_NUMBERING_OFFSET,
-                element_index_4 + ELEMENT_NUMBERING_OFFSET,
-            ]);
+                .retain(|element| element != &element_index_1 && element != &element_index_2);
+            node_element_connectivity[node_d - NODE_NUMBERING_OFFSET]
+                .extend(vec![element_index_3, element_index_4]);
             node_element_connectivity.push(vec![
-                element_index_1 + ELEMENT_NUMBERING_OFFSET,
-                element_index_2 + ELEMENT_NUMBERING_OFFSET,
-                element_index_3 + ELEMENT_NUMBERING_OFFSET,
-                element_index_4 + ELEMENT_NUMBERING_OFFSET,
+                element_index_1,
+                element_index_2,
+                element_index_3,
+                element_index_4,
             ]);
             element_blocks.extend(vec![
                 element_blocks[element_index_1],
@@ -397,127 +389,6 @@ fn split_edges(
     edges.append(&mut new_edges);
     lengths.append(&mut new_lengths);
 }
-
-// fn collapse_edges(
-//     fem: &mut TriangularFiniteElements,
-//     edges: &mut Edges,
-//     lengths: &Lengths,
-//     average_length: Scalar,
-// ) {
-//     let mut element_index_1;
-//     let mut element_index_2;
-//     let element_node_connectivity = &mut fem.element_node_connectivity;
-//     let node_element_connectivity = &mut fem.node_element_connectivity;
-//     let node_node_connectivity = &mut fem.node_node_connectivity;
-//     let nodal_coordinates = &mut fem.nodal_coordinates;
-
-//     let mut edge_index = 0;
-//     let mut node_a;
-//     let mut node_b;
-//     while edge_index < edges.len() {
-//         node_a = edges[edge_index][0];
-//         node_b = edges[edge_index][1];
-// println!("\n{:?}", (node_a, node_b));
-//         if (&nodal_coordinates[node_a - NODE_NUMBERING_OFFSET]
-//             - &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET])
-//             .norm()
-//             < FOUR_FIFTHS * average_length
-//         {
-//             if node_a != node_b {
-//                 if node_a > node_b {
-//                     panic!("TEMPORARY BLOCK TO VERIFY ASSUMPTION")
-//                 }
-// println!("{:?}", node_element_connectivity[node_a - 1]);
-// println!("{:?}", node_element_connectivity[node_b - 1]);
-// println!("{:?}", element_node_connectivity[1333 - 1]);
-// println!("{:?}", element_node_connectivity[1334 - 1]);
-//                 [element_index_1, element_index_2, _, _] = edge_info(
-//                     node_a,
-//                     node_b,
-//                     element_node_connectivity,
-//                     node_element_connectivity,
-//                 );
-// println!("{:?}", [[element_index_1 + 1, element_index_2 + 1]]);
-//                 if element_index_1 == element_index_2 {
-//                     panic!("TEMPORARY BLOCK TO VERIFY ASSUMPTION")
-//                 } else if element_index_1 > element_index_2 {
-//                     element_node_connectivity.remove(element_index_1);
-//                     node_element_connectivity.iter_mut().for_each(|elements| {
-//                         elements.retain(|&element| element != element_index_1 + ELEMENT_NUMBERING_OFFSET);
-//                         elements.iter_mut().for_each(|element| {
-//                             if *element > element_index_1 + ELEMENT_NUMBERING_OFFSET {
-//                                 *element -= 1
-//                             }
-//                         })
-//                     });
-//                     element_node_connectivity.remove(element_index_2);
-//                     node_element_connectivity.iter_mut().for_each(|elements| {
-//                         elements.retain(|&element| element != element_index_2 + ELEMENT_NUMBERING_OFFSET);
-//                         elements.iter_mut().for_each(|element| {
-//                             if *element > element_index_2 + ELEMENT_NUMBERING_OFFSET {
-//                                 *element -= 1
-//                             }
-//                         })
-//                     });
-//                 } else if element_index_2 > element_index_1 {
-//                     element_node_connectivity.remove(element_index_2);
-//                     node_element_connectivity.iter_mut().for_each(|elements| {
-//                         elements.retain(|&element| element != element_index_2 + ELEMENT_NUMBERING_OFFSET);
-//                         elements.iter_mut().for_each(|element| {
-//                             if *element > element_index_2 + ELEMENT_NUMBERING_OFFSET {
-//                                 *element -= 1
-//                             }
-//                         })
-//                     });
-//                     element_node_connectivity.remove(element_index_1);
-//                     node_element_connectivity.iter_mut().for_each(|elements| {
-//                         elements.retain(|&element| element != element_index_1 + ELEMENT_NUMBERING_OFFSET);
-//                         elements.iter_mut().for_each(|element| {
-//                             if *element > element_index_1 + ELEMENT_NUMBERING_OFFSET {
-//                                 *element -= 1
-//                             }
-//                         })
-//                     });
-//                 }
-//                 let mut foo = node_element_connectivity[node_b - NODE_NUMBERING_OFFSET].clone();
-//                 node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].append(&mut foo);
-//                 node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].sort();
-//                 node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].dedup();
-//                 node_element_connectivity.remove(node_b - NODE_NUMBERING_OFFSET);
-//                 element_node_connectivity.iter_mut().for_each(|nodes| {
-//                     nodes.iter_mut().for_each(|node| {
-//                         if node == &node_b {
-//                             *node = node_a
-//                         } else if *node > node_b {
-//                             *node -= 1
-//                         }
-//                     })
-//                 });
-//                 edges.iter_mut().for_each(|nodes| {
-//                     nodes.iter_mut().for_each(|node| {
-//                         if node == &node_b {
-//                             *node = node_a
-//                         } else if *node > node_b {
-//                             *node -= 1
-//                         }
-//                     });
-//                     nodes.sort() // can sort when change from b to a only
-//                 });
-//                 nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] = (
-//                     nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone() +
-//                     &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET]
-//                 ) * 0.5;
-//                 nodal_coordinates.remove(node_b - NODE_NUMBERING_OFFSET);
-//             }
-//         }
-//         edge_index += 1
-//     }
-//     //
-//     // Need to adjust the node-to-node connectivity, keep sorted.
-//     //
-//     // Could also remove edges that are collapsed (a == b) or duplicated?
-//     //
-// }
 
 fn flip_edges(fem: &mut TriangularFiniteElements, edges: &mut Edges) {
     let mut before = 0;
@@ -574,13 +445,11 @@ fn flip_edges(fem: &mut TriangularFiniteElements, edges: &mut Edges) {
                 element_node_connectivity[element_index_2] = [node_d, *node_a, node_c];
             }
             node_element_connectivity[*node_a - NODE_NUMBERING_OFFSET]
-                .retain(|element| element - ELEMENT_NUMBERING_OFFSET != element_index_1);
+                .retain(|element| element != &element_index_1);
             node_element_connectivity[*node_b - NODE_NUMBERING_OFFSET]
-                .retain(|element| element - ELEMENT_NUMBERING_OFFSET != element_index_2);
-            node_element_connectivity[node_c - NODE_NUMBERING_OFFSET]
-                .push(element_index_2 + ELEMENT_NUMBERING_OFFSET);
-            node_element_connectivity[node_d - NODE_NUMBERING_OFFSET]
-                .push(element_index_1 + ELEMENT_NUMBERING_OFFSET);
+                .retain(|element| element != &element_index_2);
+            node_element_connectivity[node_c - NODE_NUMBERING_OFFSET].push(element_index_2);
+            node_element_connectivity[node_d - NODE_NUMBERING_OFFSET].push(element_index_1);
             node_node_connectivity[*node_a - NODE_NUMBERING_OFFSET].retain(|node| node != node_b);
             node_node_connectivity[*node_b - NODE_NUMBERING_OFFSET].retain(|node| node != node_a);
             node_node_connectivity[node_c - NODE_NUMBERING_OFFSET].push(node_d);
@@ -604,13 +473,12 @@ fn edge_info(
     element_node_connectivity: &Connectivity<TRI>,
     node_element_connectivity: &VecConnectivity,
 ) -> [usize; 4] {
-    let [element_index_1, element_index_2] = node_element_connectivity
+    let [&element_index_1, &element_index_2] = node_element_connectivity
         [node_a - NODE_NUMBERING_OFFSET]
         .iter()
         .filter(|element_a| {
             node_element_connectivity[node_b - NODE_NUMBERING_OFFSET].contains(element_a)
         })
-        .map(|element_a| element_a - ELEMENT_NUMBERING_OFFSET)
         .collect::<Vec<_>>()
         .try_into()
         .unwrap();
