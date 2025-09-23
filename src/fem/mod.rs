@@ -750,7 +750,7 @@ fn finite_element_data_from_exo<const N: usize>(
                 .map(|chunk| {
                     chunk
                         .iter()
-                        .map(|&node| node as usize)
+                        .map(|&node| node as usize - NODE_NUMBERING_OFFSET)
                         .collect::<Vec<usize>>()
                         .try_into()
                         .expect("Error getting element connectivity")
@@ -791,7 +791,7 @@ fn finite_element_data_from_exo<const N: usize>(
             .map(|node| node as usize)
             .collect();
         if !elem_map.is_sorted() {
-            unimplemented!("Please notify developers to handle this case")
+            unimplemented!()
         }
     }
     if let Some(variable) = file.variable("elem_num_map") {
@@ -802,7 +802,7 @@ fn finite_element_data_from_exo<const N: usize>(
             .map(|node| node as usize)
             .collect();
         if !elem_num_map.is_sorted() {
-            unimplemented!("Please notify developers to handle this case")
+            unimplemented!()
         }
     }
     if let Some(variable) = file.variable("node_map") {
@@ -813,7 +813,7 @@ fn finite_element_data_from_exo<const N: usize>(
             .map(|node| node as usize)
             .collect();
         if !node_map.is_sorted() {
-            unimplemented!("Please notify developers to handle this case")
+            unimplemented!()
         }
     }
     if let Some(variable) = file.variable("node_num_map") {
@@ -821,7 +821,7 @@ fn finite_element_data_from_exo<const N: usize>(
             .get_values::<u32, _>(..)
             .expect("Error getting node numbering map")
             .into_iter()
-            .map(|node| node as usize)
+            .map(|node| node as usize - NODE_NUMBERING_OFFSET)
             .collect();
         if !node_num_map.is_sorted() {
             connectivity.iter_mut().for_each(|nodes| {
@@ -863,8 +863,9 @@ fn finite_element_data_from_inp<const N: usize>(
                 .next()
                 .unwrap()
                 .trim()
-                .parse()
-                .unwrap(),
+                .parse::<usize>()
+                .unwrap()
+                - NODE_NUMBERING_OFFSET,
         );
         nodal_coordinates.push(
             buffer
@@ -877,7 +878,7 @@ fn finite_element_data_from_inp<const N: usize>(
         buffer.clear();
         file.read_line(&mut buffer)?;
     }
-    let mut mapping = vec![0_usize; *inverse_mapping.iter().max().unwrap()];
+    let mut mapping = vec![0_usize; *inverse_mapping.iter().max().unwrap() + NODE_NUMBERING_OFFSET];
     inverse_mapping
         .iter()
         .enumerate()
@@ -889,7 +890,6 @@ fn finite_element_data_from_inp<const N: usize>(
     let mut current_block = 0;
     let mut element_blocks: Blocks = vec![];
     let mut element_node_connectivity: Connectivity<N> = vec![];
-    let mut element_numbers = vec![];
     while buffer != "**" {
         if buffer.trim().chars().take(8).collect::<String>() == "*ELEMENT" {
             current_block = buffer.trim().chars().last().unwrap().to_digit(10).unwrap() as u8;
@@ -900,19 +900,9 @@ fn finite_element_data_from_inp<const N: usize>(
                     .trim()
                     .split(",")
                     .skip(1)
-                    .map(|entry| entry.trim().parse::<usize>().unwrap())
+                    .map(|entry| entry.trim().parse::<usize>().unwrap() - NODE_NUMBERING_OFFSET)
                     .collect::<Vec<usize>>()
                     .try_into()
-                    .unwrap(),
-            );
-            element_numbers.push(
-                buffer
-                    .trim()
-                    .split(",")
-                    .take(1)
-                    .next()
-                    .unwrap()
-                    .parse::<usize>()
                     .unwrap(),
             );
         }
@@ -1134,8 +1124,12 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
                         .try_for_each(|entry| {
                             delimiter(file)?;
                             file.write_all(
-                                format!("{:>width$}", entry, width = node_number_width + 3)
-                                    .as_bytes(),
+                                format!(
+                                    "{:>width$}",
+                                    entry + NODE_NUMBERING_OFFSET,
+                                    width = node_number_width + 3
+                                )
+                                .as_bytes(),
                             )
                         })
                 })?;
