@@ -5,8 +5,8 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics,
-    NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
+    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
+    Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray};
 use ndarray::{Array2, s};
@@ -80,6 +80,44 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
             .collect();
         exterior_faces
     }
+    fn exterior_faces_integration_points(&self) -> Coordinates {
+        let sqrt3_inv = 1.0 / 3.0_f64.sqrt();
+        let shape_functions_integration_points: [[f64; NUM_NODES_FACE]; NUM_NODES_FACE] = [
+            [-sqrt3_inv, -sqrt3_inv],
+            [-sqrt3_inv, sqrt3_inv],
+            [sqrt3_inv, -sqrt3_inv],
+            [sqrt3_inv, sqrt3_inv],
+        ]
+        .into_iter()
+        .map(|[xi, eta]| {
+            [
+                0.25 * (1.0 - xi) * (1.0 - eta),
+                0.25 * (1.0 + xi) * (1.0 - eta),
+                0.25 * (1.0 + xi) * (1.0 + eta),
+                0.25 * (1.0 - xi) * (1.0 + eta),
+            ]
+        })
+        .collect::<Vec<[f64; NUM_NODES_FACE]>>()
+        .try_into()
+        .unwrap();
+        let nodal_coordinates = self.get_nodal_coordinates();
+        self.exterior_faces()
+            .iter()
+            .flat_map(|nodes| {
+                shape_functions_integration_points
+                    .iter()
+                    .map(|shape_functions| {
+                        nodes
+                            .iter()
+                            .zip(shape_functions.iter())
+                            .map(|(&node, shape_function)| {
+                                &nodal_coordinates[node - NODE_NUMBERING_OFFSET] * shape_function
+                            })
+                            .sum()
+                    })
+            })
+            .collect()
+    }
     fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
         let mut faces: Connectivity<NUM_NODES_FACE> = self
             .get_element_node_connectivity()
@@ -110,6 +148,53 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         faces.sort();
         faces.dedup();
         faces
+    }
+    fn integration_points(&self) -> Coordinates {
+        let one_eighth = 1.0 / 8.0;
+        let sqrt3_inv = 1.0 / 3.0_f64.sqrt();
+        let shape_functions_integration_points: [[f64; HEX]; HEX] = [
+            [-sqrt3_inv, -sqrt3_inv, -sqrt3_inv],
+            [-sqrt3_inv, -sqrt3_inv, sqrt3_inv],
+            [-sqrt3_inv, sqrt3_inv, -sqrt3_inv],
+            [-sqrt3_inv, sqrt3_inv, sqrt3_inv],
+            [sqrt3_inv, -sqrt3_inv, -sqrt3_inv],
+            [sqrt3_inv, -sqrt3_inv, sqrt3_inv],
+            [sqrt3_inv, sqrt3_inv, -sqrt3_inv],
+            [sqrt3_inv, sqrt3_inv, sqrt3_inv],
+        ]
+        .into_iter()
+        .map(|[xi, eta, zeta]| {
+            [
+                one_eighth * (1.0 - xi) * (1.0 - eta) * (1.0 - zeta),
+                one_eighth * (1.0 + xi) * (1.0 - eta) * (1.0 - zeta),
+                one_eighth * (1.0 + xi) * (1.0 + eta) * (1.0 - zeta),
+                one_eighth * (1.0 - xi) * (1.0 + eta) * (1.0 - zeta),
+                one_eighth * (1.0 - xi) * (1.0 - eta) * (1.0 + zeta),
+                one_eighth * (1.0 + xi) * (1.0 - eta) * (1.0 + zeta),
+                one_eighth * (1.0 + xi) * (1.0 + eta) * (1.0 + zeta),
+                one_eighth * (1.0 - xi) * (1.0 + eta) * (1.0 + zeta),
+            ]
+        })
+        .collect::<Vec<[f64; HEX]>>()
+        .try_into()
+        .unwrap();
+        let nodal_coordinates = self.get_nodal_coordinates();
+        self.get_element_node_connectivity()
+            .iter()
+            .flat_map(|nodes| {
+                shape_functions_integration_points
+                    .iter()
+                    .map(|shape_functions| {
+                        nodes
+                            .iter()
+                            .zip(shape_functions.iter())
+                            .map(|(&node, shape_function)| {
+                                &nodal_coordinates[node - NODE_NUMBERING_OFFSET] * shape_function
+                            })
+                            .sum()
+                    })
+            })
+            .collect()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();

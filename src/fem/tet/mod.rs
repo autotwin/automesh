@@ -1,8 +1,8 @@
 use crate::FiniteElementMethods;
 
 use super::{
-    Connectivity, FiniteElementSpecifics, FiniteElements, HEX, HexahedralFiniteElements, Metrics,
-    Smoothing, Tessellation,
+    Connectivity, Coordinates, FiniteElementSpecifics, FiniteElements, HEX,
+    HexahedralFiniteElements, Metrics, Smoothing, Tessellation,
 };
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
@@ -29,8 +29,14 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
         todo!()
     }
+    fn exterior_faces_integration_points(&self) -> Coordinates {
+        self.exterior_faces_centroids()
+    }
     fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
         todo!()
+    }
+    fn integration_points(&self) -> Coordinates {
+        self.centroids()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         todo!()

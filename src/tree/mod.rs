@@ -1335,8 +1335,13 @@ impl Octree {
         T: FiniteElementMethods<M, N>,
     {
         let mut blocks = finite_elements.get_element_blocks().clone();
-        let mut centroids = finite_elements.centroids();
-        let (minimum, mut maximum) = centroids.iter().fold(
+        let mut samples = finite_elements.centroids();
+        let extra_samples = true;
+        if extra_samples {
+            blocks.append(&mut blocks.iter().flat_map(|&block| [block; N]).collect());
+            samples.append(&mut finite_elements.integration_points());
+        }
+        let (minimum, mut maximum) = samples.iter().fold(
             (
                 Coordinate::new([f64::INFINITY; NSD]),
                 Coordinate::new([f64::NEG_INFINITY; NSD]),
@@ -1356,17 +1361,21 @@ impl Octree {
         let nel = 2.0_f64.powi(levels as i32);
         let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
         let scale = (nel - 1.0) / length;
-        centroids.iter_mut().for_each(|centroid| {
-            *centroid -= &minimum;
-            *centroid *= &scale;
+        samples.iter_mut().for_each(|sample| {
+            *sample -= &minimum;
+            *sample *= &scale;
         });
         let mut exterior_face_centroids = finite_elements.exterior_faces_centroids();
-        exterior_face_centroids.iter_mut().for_each(|centroid| {
-            *centroid -= &minimum;
-            *centroid *= &scale;
+        if extra_samples {
+            exterior_face_centroids
+                .append(&mut finite_elements.exterior_faces_integration_points());
+        }
+        exterior_face_centroids.iter_mut().for_each(|sample| {
+            *sample -= &minimum;
+            *sample *= &scale;
         });
         blocks.extend(vec![PADDING; exterior_face_centroids.len()]);
-        centroids.append(&mut exterior_face_centroids);
+        samples.append(&mut exterior_face_centroids);
         let mut tree = Octree {
             nel: Nel::from([nel as usize; NSD]),
             octree: vec![],
@@ -1385,7 +1394,7 @@ impl Octree {
         });
         let mut index = 0;
         while index < tree.len() {
-            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
+            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &samples) {
                 tree[index].block = Some(block);
             } else {
                 tree.subdivide(index)
