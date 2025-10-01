@@ -1737,7 +1737,7 @@ impl From<Octree> for TriangularFiniteElements {
         let mut face_connectivity = [0; NUM_NODES_FACE];
         let mut faces_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
-        let mut node_new = 1;
+        let mut node_new = 0;
         let nodes_len = (tree[0].get_lngth() + 1) as usize;
         let mut nodes = vec![vec![vec![None::<usize>; nodes_len]; nodes_len]; nodes_len];
         (0..boundaries_cells_faces.len()).for_each(|boundary| {
