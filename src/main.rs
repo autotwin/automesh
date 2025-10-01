@@ -507,7 +507,7 @@ fn main() -> Result<(), ErrorWrapper> {
                 segment::<_, _, HexahedralFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
-                    args.length,
+                    args.grid,
                     args.levels,
                     args.remove,
                     args.quiet,
@@ -518,7 +518,7 @@ fn main() -> Result<(), ErrorWrapper> {
                 segment::<_, _, TetrahedralFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
-                    args.length,
+                    args.grid,
                     args.levels,
                     args.remove,
                     args.quiet,
@@ -529,7 +529,7 @@ fn main() -> Result<(), ErrorWrapper> {
                 segment::<_, _, TriangularFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
-                    args.length,
+                    args.grid,
                     args.levels,
                     args.remove,
                     args.quiet,

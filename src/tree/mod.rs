@@ -1330,7 +1330,7 @@ impl Octree {
     }
     pub fn from_finite_elements<const M: usize, const N: usize, T>(
         finite_elements: T,
-        length: usize,
+        grid_length: usize,
         levels: usize,
     ) -> Self
     where
@@ -1339,25 +1339,20 @@ impl Octree {
         let mut blocks: Blocks = finite_elements
             .get_element_blocks()
             .iter()
-            .flat_map(|&block| repeat(block).take(length.pow(3)))
+            .flat_map(|&block| repeat(block).take(grid_length.pow(3)))
             .collect();
-        let mut samples = finite_elements.interior_points(length);
-        println!("blocks: {}, samples: {}", blocks.len(), samples.len());
-        let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(length);
-        println!(
-            "faces: {}, samples: {}",
-            finite_elements.exterior_faces().len(),
-            exterior_face_samples.len()
-        );
+        let mut samples = finite_elements.interior_points(grid_length);
+        let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(grid_length);
         blocks.extend(vec![PADDING; exterior_face_samples.len()]);
-        samples.append(&mut exterior_face_samples); // can you just append right away at the start?
-        // let mut blocks = finite_elements.get_element_blocks().clone();
-        // let mut samples = finite_elements.centroids();
-        // let extra_samples = true;
-        // if extra_samples {
-        //     blocks.append(&mut blocks.iter().flat_map(|&block| [block; N]).collect());
-        //     samples.append(&mut finite_elements.integration_points());
-        // }
+        samples.append(&mut exterior_face_samples);
+
+// for sample in samples.iter() {
+//     println!(
+//         "create vertex location {} {} {}",
+//         sample[0], sample[1], sample[2]
+//     );
+// }
+
         let (minimum, mut maximum) = samples.iter().fold(
             (
                 Coordinate::new([f64::INFINITY; NSD]),
@@ -1376,23 +1371,24 @@ impl Octree {
         );
         maximum -= &minimum;
         let nel = 2.0_f64.powi(levels as i32);
-        let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
-        let scale = (nel - 1.0) / length;
-        samples.iter_mut().for_each(|sample| {
-            *sample -= &minimum;
-            *sample *= &scale;
-        });
-        // let mut exterior_face_centroids = finite_elements.exterior_faces_centroids();
-        // if extra_samples {
-        //     exterior_face_centroids
-        //         .append(&mut finite_elements.exterior_faces_integration_points());
-        // }
-        // exterior_face_centroids.iter_mut().for_each(|sample| {
-        //     *sample -= &minimum;
-        //     *sample *= &scale;
-        // });
-        // blocks.extend(vec![PADDING; exterior_face_centroids.len()]);
-        // samples.append(&mut exterior_face_centroids); // can you just append right away at the start?
+        let total_length = maximum
+            .clone()
+            .into_iter()
+            .reduce(f64::max)
+            .unwrap()
+            ;// .round();
+
+        println!("nel {nel}, maximum {maximum}, total_length {total_length}");
+
+        let scale: f64 = (nel - 1.0) / total_length;
+        // let scale: f64 = nel / total_length;
+
+        samples
+            .iter_mut()
+            .for_each(|sample: &mut conspire::math::TensorRank1<NSD, 1>| {
+                *sample -= &minimum;
+                *sample *= &scale;
+            });
         let mut tree = Octree {
             nel: Nel::from([nel as usize; NSD]),
             octree: vec![],

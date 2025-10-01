@@ -31,7 +31,7 @@ pub struct SegmentArgs {
 
     /// Grid length for sampling within each element
     #[arg(default_value_t = 1, long, short = 'g', value_name = "NUM")]
-    pub length: usize,
+    pub grid: usize,
 
     /// Number of subdivision levels
     #[arg(long, short = 'n', value_name = "NUM")]
@@ -49,7 +49,7 @@ pub struct SegmentArgs {
 pub fn segment<const M1: usize, const N1: usize, T, const M2: usize, const N2: usize, U>(
     input: String,
     output: String,
-    length: usize,
+    grid: usize,
     levels: usize,
     remove: Option<Vec<usize>>,
     quiet: bool,
@@ -64,7 +64,7 @@ where
     if !quiet {
         println!("  \x1b[1;96mSegmenting\x1b[0m from finite elements")
     }
-    let mut voxels = Voxels::from_finite_elements(finite_elements, length, levels);
+    let mut voxels = Voxels::from_finite_elements(finite_elements, grid, levels);
     voxels.extend_removal(remove.into());
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());

@@ -29,17 +29,11 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
         todo!()
     }
-    fn exterior_faces_integration_points(&self) -> Coordinates {
-        self.exterior_faces_centroids()
-    }
     fn exterior_faces_interior_points(&self, _grid_length: usize) -> Coordinates {
         todo!()
     }
     fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
         todo!()
-    }
-    fn integration_points(&self) -> Coordinates {
-        self.centroids()
     }
     fn interior_points(&self, _grid_length: usize) -> Coordinates {
         todo!()
