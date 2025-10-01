@@ -709,15 +709,11 @@ pub trait FiniteElementSpecifics<const M: usize> {
     fn connected_nodes(node: &usize) -> Vec<usize>;
     /// Returns the exterior faces.
     fn exterior_faces(&self) -> Connectivity<M>;
-    // /// Calculates and returns the coordinates of the integration points on the exterior faces.
-    // fn exterior_faces_integration_points(&self) -> Coordinates;
-    /// ???
+    /// Calculates evenly-spaced points interior to each exterior face.
     fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates;
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
-    // /// Calculates and returns the coordinates of the integration points.
-    // fn integration_points(&self) -> Coordinates;
-    /// ???
+    /// Calculates evenly-spaced points interior to each element.
     fn interior_points(&self, grid_length: usize) -> Coordinates;
     /// Calculates the maximum edge ratios.
     fn maximum_edge_ratios(&self) -> Metrics;
