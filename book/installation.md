@@ -35,7 +35,7 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
 2. Follow the on-screen instructions to complete the installation.
-3. Add Cargo's bin directory to your `PATH`:
+3. Add Cargo's `bin` directory to your `PATH`:
 
 ```sh
 source $HOME/.cargo/env
@@ -48,7 +48,7 @@ source $HOME/.cargo/env
     * Use the default settings (`standard installation`) to add `cargo`, `rustc`, `rustup` to your `PATH`.
     * The Cargo home directory is, e.g., `C:\Users\<User>\.cargo`, which can be modified with the `CARGO_HOME` environment variable.
     * You may need to restart your command prompt or system.
-    * Ensure that Cargo's bin directory is in your `PATH`.
+    * Ensure that Cargo's `bin` directory is in your `PATH`.
 3. Additional Windows installation details are available in [The rustup book](https://rust-lang.github.io/rustup/installation/windows.html).
 
 ### Python Prerequisites
