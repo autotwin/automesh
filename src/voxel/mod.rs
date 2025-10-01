@@ -372,12 +372,13 @@ impl Voxels {
     /// Constructs and returns a segmentation from a finite element mesh.
     pub fn from_finite_elements<const M: usize, const N: usize, T>(
         finite_elements: T,
+        length: usize,
         levels: usize,
     ) -> Self
     where
         T: FiniteElementMethods<M, N>,
     {
-        Octree::from_finite_elements(finite_elements, levels).into()
+        Octree::from_finite_elements(finite_elements, length, levels).into()
     }
     /// Constructs and returns a new voxels type from an NPY file.
     pub fn from_npy(

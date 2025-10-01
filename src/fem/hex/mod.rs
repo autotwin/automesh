@@ -5,10 +5,10 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
+    Connectivity, Coordinate, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
     Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
 };
-use conspire::math::{Tensor, TensorArray};
+use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
@@ -118,6 +118,50 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
             })
             .collect()
     }
+    fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates {
+        if grid_length == 0 {
+            panic!("Grid length must be greater than zero")
+        } else if grid_length == 1 {
+            self.exterior_faces_centroids()
+        } else {
+                let step = 1.0 / (grid_length as f64 + 1.0); // Step size in parametric space (avoids boundaries)
+                let nodal_coordinates = self.get_nodal_coordinates(); // Coordinates of all nodes
+                let exterior_faces = self.exterior_faces(); // Connectivity of exterior faces
+
+                // Iterate over each face
+                exterior_faces
+                    .iter()
+                    .flat_map(|nodes| {
+                        // Generate equally spaced points in parametric space
+                        (1..=grid_length).flat_map(move |i| {
+                            let xi = -1.0 + i as f64 * step; // Parametric coordinate along xi
+                            (1..=grid_length).map(move |j| {
+                                let eta = -1.0 + j as f64 * step; // Parametric coordinate along eta
+
+                                // Compute shape functions for this parametric point
+                                let shape_functions = [
+                                    0.25 * (1.0 - xi) * (1.0 - eta), // N1
+                                    0.25 * (1.0 + xi) * (1.0 - eta), // N2
+                                    0.25 * (1.0 + xi) * (1.0 + eta), // N3
+                                    0.25 * (1.0 - xi) * (1.0 + eta), // N4
+                                ];
+
+                                // Map parametric point to physical space
+                                let mut physical_point = Coordinate::new([0.0; 3]);
+                                for (&node, &shape_function) in nodes.iter().zip(shape_functions.iter()) {
+                                    let nodal_coord = &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                    physical_point[0] += nodal_coord[0] * shape_function;
+                                    physical_point[1] += nodal_coord[1] * shape_function;
+                                    physical_point[2] += nodal_coord[2] * shape_function;
+                                }
+
+                                physical_point
+                            })
+                        })
+                    })
+                    .collect()
+        }
+    }
     fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
         let mut faces: Connectivity<NUM_NODES_FACE> = self
             .get_element_node_connectivity()
@@ -195,6 +239,58 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                     })
             })
             .collect()
+    }
+    fn interior_points(&self, grid_length: usize) -> Coordinates {
+        if grid_length == 0 {
+            panic!("Grid length must be greater than zero");
+        } else if grid_length == 1 {
+            self.centroids()
+        } else {
+            let nodal_coordinates = self.get_nodal_coordinates();
+            let element_connectivity = self.get_element_node_connectivity(); // Connectivity for all elements
+            let mut points = Coordinates::zero(0); // Initialize empty list of points
+            let step = 1.0 / (grid_length as f64 + 1.0); // Step size in parametric space
+
+            // Iterate over each element
+            for nodes in element_connectivity.iter() {
+                // Iterate over interior points in parametric space
+                for i in 1..=grid_length {
+                    let xi = -1.0 + i as f64 * step; // Parametric coordinate along xi
+                    for j in 1..=grid_length {
+                        let eta = -1.0 + j as f64 * step; // Parametric coordinate along eta
+                        for k in 1..=grid_length {
+                            let zeta = -1.0 + k as f64 * step; // Parametric coordinate along zeta
+
+                            // Compute shape functions for this parametric point
+                            let shape_functions = [
+                                0.125 * (1.0 - xi) * (1.0 - eta) * (1.0 - zeta), // N1
+                                0.125 * (1.0 + xi) * (1.0 - eta) * (1.0 - zeta), // N2
+                                0.125 * (1.0 + xi) * (1.0 + eta) * (1.0 - zeta), // N3
+                                0.125 * (1.0 - xi) * (1.0 + eta) * (1.0 - zeta), // N4
+                                0.125 * (1.0 - xi) * (1.0 - eta) * (1.0 + zeta), // N5
+                                0.125 * (1.0 + xi) * (1.0 - eta) * (1.0 + zeta), // N6
+                                0.125 * (1.0 + xi) * (1.0 + eta) * (1.0 + zeta), // N7
+                                0.125 * (1.0 - xi) * (1.0 + eta) * (1.0 + zeta), // N8
+                            ];
+
+                            // Map parametric point to physical space for this element
+                            let mut physical_point = Coordinate::new([0.0; 3]);
+                            for (&node, &shape_function) in nodes.iter().zip(shape_functions.iter()) {
+                                let nodal_coord = &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                physical_point[0] += nodal_coord[0] * shape_function;
+                                physical_point[1] += nodal_coord[1] * shape_function;
+                                physical_point[2] += nodal_coord[2] * shape_function;
+                            }
+
+                            // Add the physical point to the list of points
+                            points.push(physical_point);
+                        }
+                    }
+                }
+            }
+
+            points
+        }
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();
