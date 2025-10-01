@@ -1345,14 +1345,6 @@ impl Octree {
         let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(grid_length);
         blocks.extend(vec![PADDING; exterior_face_samples.len()]);
         samples.append(&mut exterior_face_samples);
-
-// for sample in samples.iter() {
-//     println!(
-//         "create vertex location {} {} {}",
-//         sample[0], sample[1], sample[2]
-//     );
-// }
-
         let (minimum, mut maximum) = samples.iter().fold(
             (
                 Coordinate::new([f64::INFINITY; NSD]),
@@ -1377,8 +1369,6 @@ impl Octree {
             .reduce(f64::max)
             .unwrap()
             ;// .round();
-
-        println!("nel {nel}, maximum {maximum}, total_length {total_length}");
 
         let scale: f64 = (nel - 1.0) / total_length;
         // let scale: f64 = nel / total_length;
