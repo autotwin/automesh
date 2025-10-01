@@ -1336,11 +1336,19 @@ impl Octree {
     where
         T: FiniteElementMethods<M, N>,
     {
-        let mut blocks: Blocks = finite_elements.get_element_blocks().iter().flat_map(|&block| repeat(block).take(length.pow(3))).collect();
+        let mut blocks: Blocks = finite_elements
+            .get_element_blocks()
+            .iter()
+            .flat_map(|&block| repeat(block).take(length.pow(3)))
+            .collect();
         let mut samples = finite_elements.interior_points(length);
-println!("blocks: {}, samples: {}", blocks.len(), samples.len());
+        println!("blocks: {}, samples: {}", blocks.len(), samples.len());
         let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(length);
-println!("faces: {}, samples: {}", finite_elements.exterior_faces().len(), exterior_face_samples.len());
+        println!(
+            "faces: {}, samples: {}",
+            finite_elements.exterior_faces().len(),
+            exterior_face_samples.len()
+        );
         blocks.extend(vec![PADDING; exterior_face_samples.len()]);
         samples.append(&mut exterior_face_samples); // can you just append right away at the start?
         // let mut blocks = finite_elements.get_element_blocks().clone();

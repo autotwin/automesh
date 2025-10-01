@@ -21,6 +21,7 @@ use cli::{
     segment::{SegmentSubcommand, segment},
     smooth::{SmoothSubcommand, smooth},
 };
+use std::env::{consts, var};
 
 macro_rules! about {
     () => {
@@ -33,13 +34,20 @@ macro_rules! about {
     @@@@  @@@@@@@@@@@@    \x1b[1;4m{}: Automatic mesh generation\x1b[0m
       @@    @@    @@      {}
       @@    @@    @@      {}
-    @@@@@@@@@@@@  @@@
+    @@@@@@@@@@@@  @@@     {}
     @@@@@@@@@@@  @@@@
     @@@@@@@@@@ @@@@@ @
      @@@@@@@@@@@@@@@@",
             env!("CARGO_PKG_NAME"),
+            format!(
+                "v{} build {} {} {}",
+                env!("CARGO_PKG_VERSION"),
+                var("GIT_COMMIT_HASH").unwrap(),
+                consts::OS,
+                consts::ARCH
+            ),
             env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[0],
-            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[1]
+            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[1],
         )
     };
 }
