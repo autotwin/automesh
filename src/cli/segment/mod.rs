@@ -33,9 +33,9 @@ pub struct SegmentArgs {
     #[arg(default_value_t = 1, long, short = 'g', value_name = "NUM")]
     pub grid: usize,
 
-    /// Number of subdivision levels
-    #[arg(long, short = 'n', value_name = "NUM")]
-    pub levels: usize,
+    /// Element size which is the side length
+    #[arg(long, short = 's', value_name = "NUM")]
+    pub size: f64,
 
     /// Block IDs to remove from the mesh
     #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
@@ -50,7 +50,7 @@ pub fn segment<const M1: usize, const N1: usize, T, const M2: usize, const N2: u
     input: String,
     output: String,
     grid: usize,
-    levels: usize,
+    size: f64,
     remove: Option<Vec<usize>>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
@@ -64,7 +64,7 @@ where
     if !quiet {
         println!("  \x1b[1;96mSegmenting\x1b[0m from finite elements")
     }
-    let mut voxels = Voxels::from_finite_elements(finite_elements, grid, levels);
+    let mut voxels = Voxels::from_finite_elements(finite_elements, grid, size);
     voxels.extend_removal(remove.into());
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());

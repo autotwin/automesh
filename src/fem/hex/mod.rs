@@ -5,8 +5,8 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics,
-    FiniteElements, Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
+    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
+    Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
@@ -89,7 +89,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         if grid_length == 0 {
             panic!("Grid length must be greater than zero");
         } else if grid_length == 1 {
-            self.centroids()
+            self.exterior_faces_centroids()
         } else {
             let nodal_coordinates = self.get_nodal_coordinates();
             let mut points = Coordinates::zero(0);

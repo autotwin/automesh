@@ -508,7 +508,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.input,
                     args.output,
                     args.grid,
-                    args.levels,
+                    args.size,
                     args.remove,
                     args.quiet,
                 )
@@ -519,7 +519,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.input,
                     args.output,
                     args.grid,
-                    args.levels,
+                    args.size,
                     args.remove,
                     args.quiet,
                 )
@@ -530,7 +530,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.input,
                     args.output,
                     args.grid,
-                    args.levels,
+                    args.size,
                     args.remove,
                     args.quiet,
                 )

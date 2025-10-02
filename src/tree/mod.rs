@@ -16,7 +16,7 @@ use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
     collections::HashMap,
-    iter::repeat,
+    iter::repeat_n,
     ops::{Deref, DerefMut},
 };
 
@@ -1330,8 +1330,8 @@ impl Octree {
     }
     pub fn from_finite_elements<const M: usize, const N: usize, T>(
         finite_elements: T,
-        grid_length: usize,
-        levels: usize,
+        grid: usize,
+        size: f64,
     ) -> Self
     where
         T: FiniteElementMethods<M, N>,
@@ -1339,10 +1339,10 @@ impl Octree {
         let mut blocks: Blocks = finite_elements
             .get_element_blocks()
             .iter()
-            .flat_map(|&block| repeat(block).take(grid_length.pow(3)))
+            .flat_map(|&block| repeat_n(block, grid.pow(3)))
             .collect();
-        let mut samples = finite_elements.interior_points(grid_length);
-        let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(grid_length);
+        let mut samples = finite_elements.interior_points(grid);
+        let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(grid);
         blocks.extend(vec![PADDING; exterior_face_samples.len()]);
         samples.append(&mut exterior_face_samples);
         let (minimum, mut maximum) = samples.iter().fold(
@@ -1362,25 +1362,20 @@ impl Octree {
             },
         );
         maximum -= &minimum;
-        let nel = 2.0_f64.powi(levels as i32);
-        let total_length = maximum
-            .clone()
-            .into_iter()
-            .reduce(f64::max)
-            .unwrap()
-            ;// .round();
-
-        let scale: f64 = (nel - 1.0) / total_length;
-        // let scale: f64 = nel / total_length;
-
-        samples
-            .iter_mut()
-            .for_each(|sample: &mut conspire::math::TensorRank1<NSD, 1>| {
-                *sample -= &minimum;
-                *sample *= &scale;
-            });
+        let scale = 1.0 / size;
+        let total_length = maximum.clone().into_iter().reduce(f64::max).unwrap();
+        let nel0 = total_length / size;
+        let nel = if nel0 > 0.0 && (nel0.log2().fract() == 0.0) {
+            nel0 as usize
+        } else {
+            2.0_f64.powf(nel0.log2().ceil()) as usize
+        };
+        samples.iter_mut().for_each(|sample| {
+            *sample -= &minimum;
+            *sample *= &scale;
+        });
         let mut tree = Octree {
-            nel: Nel::from([nel as usize; NSD]),
+            nel: Nel::from([nel; NSD]),
             octree: vec![],
             remove: Remove::Some(vec![PADDING]),
             scale: Scale::from([1.0 / scale; NSD]),
