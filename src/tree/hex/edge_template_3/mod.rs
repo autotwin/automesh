@@ -1,6 +1,4 @@
-use super::super::{
-    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NUM_OCTANTS, NodeMap, Octree,
-};
+use super::super::{Coordinates, HexConnectivity, NUM_OCTANTS, NodeMap, Octree};
 use conspire::math::{TensorVec, tensor_rank_1};
 
 pub fn apply(
@@ -204,13 +202,11 @@ fn template(
         {
             let lngth = *tree[subcell_a_face_m_subcells[subcell_e]].get_lngth() as f64;
             nodal_coordinates.push(
-                &nodal_coordinates
-                    [cells_nodes[subcell_a_face_m_subcells[subcell_e]] - NODE_NUMBERING_OFFSET]
+                &nodal_coordinates[cells_nodes[subcell_a_face_m_subcells[subcell_e]]]
                     + &direction * lngth,
             );
             nodal_coordinates.push(
-                &nodal_coordinates
-                    [cells_nodes[subcell_b_face_m_subcells[subcell_c]] - NODE_NUMBERING_OFFSET]
+                &nodal_coordinates[cells_nodes[subcell_b_face_m_subcells[subcell_c]]]
                     + direction * lngth,
             );
             (0..2).for_each(|k| {
@@ -218,12 +214,9 @@ fn template(
                     nodes_map
                         .insert(
                             (
-                                (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET]
-                                    [0]) as usize,
-                                (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET]
-                                    [1]) as usize,
-                                (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET]
-                                    [2]) as usize,
+                                (2.0 * nodal_coordinates[*node_index + k][0]) as usize,
+                                (2.0 * nodal_coordinates[*node_index + k][1]) as usize,
+                                (2.0 * nodal_coordinates[*node_index + k][2]) as usize,
                             ),
                             *node_index + k,
                         )

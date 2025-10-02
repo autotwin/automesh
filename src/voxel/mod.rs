@@ -11,7 +11,7 @@ use super::{
     Coordinate, Coordinates, NSD, Octree, Vector,
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
-        NODE_NUMBERING_OFFSET, TetrahedralFiniteElements, TriangularFiniteElements,
+        TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
 use conspire::math::TensorArray;
@@ -21,8 +21,6 @@ use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error, Write},
 };
-
-const NODE_NUMBERING_OFFSET_PLUS_ONE: usize = NODE_NUMBERING_OFFSET + 1;
 
 type InitialNodalCoordinates = Vec<Option<Coordinate>>;
 type VoxelDataFlattened = Blocks;
@@ -623,20 +621,14 @@ fn initial_element_node_connectivity(
         .par_iter()
         .map(|&[i, j, k]| {
             [
-                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
-                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET_PLUS_ONE,
-                i + (j + 1) * nelxplus1
-                    + k * nelxplus1_mul_nelyplus1
-                    + NODE_NUMBERING_OFFSET_PLUS_ONE,
-                i + (j + 1) * nelxplus1 + k * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
-                i + j * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
-                i + j * nelxplus1
-                    + (k + 1) * nelxplus1_mul_nelyplus1
-                    + NODE_NUMBERING_OFFSET_PLUS_ONE,
-                i + (j + 1) * nelxplus1
-                    + (k + 1) * nelxplus1_mul_nelyplus1
-                    + NODE_NUMBERING_OFFSET_PLUS_ONE,
-                i + (j + 1) * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + NODE_NUMBERING_OFFSET,
+                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1,
+                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1 + 1,
+                i + (j + 1) * nelxplus1 + k * nelxplus1_mul_nelyplus1 + 1,
+                i + (j + 1) * nelxplus1 + k * nelxplus1_mul_nelyplus1,
+                i + j * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1,
+                i + j * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + 1,
+                i + (j + 1) * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + 1,
+                i + (j + 1) * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1,
             ]
         })
         .collect();
@@ -673,13 +665,12 @@ fn initial_nodal_coordinates(
         .zip(element_node_connectivity.iter())
         .for_each(|(&[x, y, z], connectivity)| {
             offsets.iter().enumerate().for_each(|(node, [cx, cy, cz])| {
-                if nodal_coordinates[connectivity[node] - NODE_NUMBERING_OFFSET].is_none() {
-                    nodal_coordinates[connectivity[node] - NODE_NUMBERING_OFFSET] =
-                        Some(Coordinate::new([
-                            (x + cx) as f64 * scale.x() + translate.x(),
-                            (y + cy) as f64 * scale.y() + translate.y(),
-                            (z + cz) as f64 * scale.z() + translate.z(),
-                        ]))
+                if nodal_coordinates[connectivity[node]].is_none() {
+                    nodal_coordinates[connectivity[node]] = Some(Coordinate::new([
+                        (x + cx) as f64 * scale.x() + translate.x(),
+                        (y + cy) as f64 * scale.y() + translate.y(),
+                        (z + cz) as f64 * scale.z() + translate.z(),
+                    ]))
                 }
             })
         });
@@ -704,13 +695,13 @@ fn renumber_nodes(
         .enumerate()
         .filter(|&(_, coordinate)| coordinate.is_some())
         .enumerate()
-        .for_each(|(node, (index, _))| mapping[index] = node + NODE_NUMBERING_OFFSET);
+        .for_each(|(node, (index, _))| mapping[index] = node);
     element_node_connectivity
         .par_iter_mut()
         .for_each(|connectivity| {
             connectivity
                 .iter_mut()
-                .for_each(|node| *node = mapping[*node - NODE_NUMBERING_OFFSET])
+                .for_each(|node| *node = mapping[*node])
         });
     initial_nodal_coordinates.retain(|coordinate| coordinate.is_some());
     #[allow(clippy::filter_map_identity)]

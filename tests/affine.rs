@@ -18,7 +18,6 @@ use conspire::{
     mechanics::Scalar,
 };
 
-const NODE_NUMBERING_OFFSET: usize = 1;
 const PARAMETERS: &[Scalar; 2] = &[13.0, 3.0];
 const STRAIN: Scalar = 1.23;
 
@@ -37,12 +36,7 @@ fn segmentation() -> [[[u8; 6]; 6]; 6] {
 
 macro_rules! affine_test {
     ($fem: ident, $corner: expr) => {
-        let (_, mut connectivity, coordinates) = $fem.data();
-        connectivity.iter_mut().for_each(|entry| {
-            entry
-                .iter_mut()
-                .for_each(|node| *node -= NODE_NUMBERING_OFFSET)
-        });
+        let (_, connectivity, coordinates) = $fem.data();
         let block = ElementBlock::<LinearTetrahedron<NeoHookean<_>>, TET>::new(
             PARAMETERS,
             connectivity,
@@ -103,6 +97,6 @@ macro_rules! affine_test {
 fn voxels_to_direct_tets() -> Result<(), TestError> {
     let voxels = Voxels::from(segmentation());
     let fem = TetrahedralFiniteElements::from(voxels);
-    affine_test!(fem, 35);
+    affine_test!(fem, 34);
     Ok(())
 }
