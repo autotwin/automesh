@@ -60,7 +60,7 @@ jobs:
         run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
       - name: Publish
         if: github.event_name == 'release'
-        run: cargo publish
+        run: cargo publish --allow-dirty
   Test:
     if: github.event_name != 'release'
     runs-on: ${{ matrix.os }}
