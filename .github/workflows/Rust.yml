@@ -58,7 +58,10 @@ jobs:
         run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
       - name: Publish
         if: github.event_name == 'release'
-        run: cargo publish
+        run: |
+          commit_hash=$(git rev-parse --short HEAD)
+          sed -i "s/std::env::var(\"GIT_COMMIT_HASH\").unwrap_or(env!(\"CARGO_PKG_VERSION\").to_string()),/\"$commit_hash\".to_string(),/" src/main.rs
+          cargo publish
   Test:
     if: github.event_name != 'release'
     runs-on: ${{ matrix.os }}
