@@ -21,10 +21,7 @@ use cli::{
     segment::{SegmentSubcommand, segment},
     smooth::{SmoothSubcommand, smooth},
 };
-use std::env::{
-    consts::{ARCH, OS},
-    var,
-};
+use std::env::consts::{ARCH, OS};
 
 macro_rules! about {
     () => {
@@ -45,7 +42,7 @@ macro_rules! about {
             format!(
                 "v{} build {} {} {}",
                 env!("CARGO_PKG_VERSION"),
-                var("GIT_COMMIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION").to_string()),
+                std::env::var("GIT_COMMIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION").to_string()),
                 OS,
                 ARCH,
             ),
