@@ -83,7 +83,7 @@ pub trait FiniteElementMethods<const M: usize, const N: usize>
 where
     Self: FiniteElementSpecifics<M> + Sized,
 {
-    /// Calculates the centroids.
+    /// Calculates and returns the coordinates of the centroids.
     fn centroids(&self) -> Coordinates;
     /// Returns and moves the data associated with the finite elements.
     fn data(self) -> (Blocks, Connectivity<N>, Coordinates);
@@ -709,8 +709,12 @@ pub trait FiniteElementSpecifics<const M: usize> {
     fn connected_nodes(node: &usize) -> Vec<usize>;
     /// Returns the exterior faces.
     fn exterior_faces(&self) -> Connectivity<M>;
+    /// Calculates evenly-spaced points interior to each exterior face.
+    fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates;
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
+    /// Calculates evenly-spaced points interior to each element.
+    fn interior_points(&self, grid_length: usize) -> Coordinates;
     /// Calculates the maximum edge ratios.
     fn maximum_edge_ratios(&self) -> Metrics;
     /// Calculates the maximum skews.

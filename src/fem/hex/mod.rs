@@ -5,14 +5,14 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics,
-    NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
+    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
+    Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
 };
-use conspire::math::{Tensor, TensorArray};
+use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     fs::File,
     io::{BufWriter, Error as ErrorIO, Write},
     path::Path,
@@ -44,7 +44,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         }
     }
     fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
-        let mut faces: Connectivity<NUM_NODES_FACE> = self
+        let faces: Connectivity<NUM_NODES_FACE> = self
             .get_element_node_connectivity()
             .iter()
             .flat_map(
@@ -69,19 +69,63 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                 },
             )
             .collect();
-        faces.iter_mut().for_each(|face| face.sort());
+        let mut canonical_face = [0; NUM_NODES_FACE];
         let mut face_counts = HashMap::new();
+        faces.iter().for_each(|&face| {
+            canonical_face = face;
+            canonical_face.sort_unstable();
+            *face_counts.entry(canonical_face).or_insert(0) += 1;
+        });
         faces
-            .iter()
-            .for_each(|&face| *face_counts.entry(face).or_insert(0) += 1);
-        let exterior_faces: Connectivity<NUM_NODES_FACE> = face_counts
             .into_iter()
-            .filter_map(|(face, count)| if count == 1 { Some(face) } else { None })
-            .collect();
-        exterior_faces
+            .filter(|face| {
+                canonical_face = *face;
+                canonical_face.sort_unstable();
+                face_counts.get(&canonical_face) == Some(&1)
+            })
+            .collect()
+    }
+    fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates {
+        if grid_length == 0 {
+            panic!("Grid length must be greater than zero");
+        } else if grid_length == 1 {
+            self.exterior_faces_centroids()
+        } else {
+            let nodal_coordinates = self.get_nodal_coordinates();
+            let mut points = Coordinates::zero(0);
+            let mut shape_functions = [0.0; NUM_NODES_FACE];
+            let step = 2.0 / (grid_length as f64);
+            let mut xi = 0.0;
+            let mut eta = 0.0;
+            self.exterior_faces().iter().for_each(|nodes| {
+                (0..grid_length).for_each(|i| {
+                    xi = -1.0 + (i as f64 + 0.5) * step;
+                    (0..grid_length).for_each(|j| {
+                        eta = -1.0 + (j as f64 + 0.5) * step;
+                        shape_functions = [
+                            0.25 * (1.0 - xi) * (1.0 - eta),
+                            0.25 * (1.0 + xi) * (1.0 - eta),
+                            0.25 * (1.0 + xi) * (1.0 + eta),
+                            0.25 * (1.0 - xi) * (1.0 + eta),
+                        ];
+                        points.push(
+                            nodes
+                                .iter()
+                                .zip(shape_functions.iter())
+                                .map(|(node, shape_function)| {
+                                    &nodal_coordinates[node - NODE_NUMBERING_OFFSET]
+                                        * shape_function
+                                })
+                                .sum(),
+                        );
+                    })
+                })
+            });
+            points
+        }
     }
     fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
-        let mut faces: Connectivity<NUM_NODES_FACE> = self
+        let faces: Connectivity<NUM_NODES_FACE> = self
             .get_element_node_connectivity()
             .iter()
             .flat_map(
@@ -106,10 +150,66 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                 },
             )
             .collect();
-        faces.iter_mut().for_each(|face| face.sort());
-        faces.sort();
-        faces.dedup();
-        faces
+        let mut canonical_face = [0; NUM_NODES_FACE];
+        let mut unique_faces = HashSet::new();
+        let mut deduplicated_faces = Vec::new();
+        faces.iter().for_each(|&face| {
+            canonical_face = face;
+            canonical_face.sort_unstable();
+            if unique_faces.insert(canonical_face) {
+                deduplicated_faces.push(face);
+            }
+        });
+        deduplicated_faces
+    }
+    fn interior_points(&self, grid_length: usize) -> Coordinates {
+        if grid_length == 0 {
+            panic!("Grid length must be greater than zero");
+        } else if grid_length == 1 {
+            self.centroids()
+        } else {
+            let nodal_coordinates = self.get_nodal_coordinates();
+            let mut points = Coordinates::zero(0);
+            let mut shape_functions = [0.0; HEX];
+            let step = 2.0 / (grid_length as f64);
+            let mut xi = 0.0;
+            let mut eta = 0.0;
+            let mut zeta = 0.0;
+            self.get_element_node_connectivity()
+                .iter()
+                .for_each(|nodes| {
+                    (0..grid_length).for_each(|i| {
+                        xi = -1.0 + (i as f64 + 0.5) * step;
+                        (0..grid_length).for_each(|j| {
+                            eta = -1.0 + (j as f64 + 0.5) * step;
+                            (0..grid_length).for_each(|k| {
+                                zeta = -1.0 + (k as f64 + 0.5) * step;
+                                shape_functions = [
+                                    0.125 * (1.0 - xi) * (1.0 - eta) * (1.0 - zeta),
+                                    0.125 * (1.0 + xi) * (1.0 - eta) * (1.0 - zeta),
+                                    0.125 * (1.0 + xi) * (1.0 + eta) * (1.0 - zeta),
+                                    0.125 * (1.0 - xi) * (1.0 + eta) * (1.0 - zeta),
+                                    0.125 * (1.0 - xi) * (1.0 - eta) * (1.0 + zeta),
+                                    0.125 * (1.0 + xi) * (1.0 - eta) * (1.0 + zeta),
+                                    0.125 * (1.0 + xi) * (1.0 + eta) * (1.0 + zeta),
+                                    0.125 * (1.0 - xi) * (1.0 + eta) * (1.0 + zeta),
+                                ];
+                                points.push(
+                                    nodes
+                                        .iter()
+                                        .zip(shape_functions.iter())
+                                        .map(|(node, shape_function)| {
+                                            &nodal_coordinates[node - NODE_NUMBERING_OFFSET]
+                                                * shape_function
+                                        })
+                                        .sum(),
+                                );
+                            })
+                        })
+                    })
+                });
+            points
+        }
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();

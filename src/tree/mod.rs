@@ -16,6 +16,7 @@ use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
     collections::HashMap,
+    iter::repeat_n,
     ops::{Deref, DerefMut},
 };
 
@@ -1329,14 +1330,22 @@ impl Octree {
     }
     pub fn from_finite_elements<const M: usize, const N: usize, T>(
         finite_elements: T,
-        levels: usize,
+        grid: usize,
+        size: f64,
     ) -> Self
     where
         T: FiniteElementMethods<M, N>,
     {
-        let mut blocks = finite_elements.get_element_blocks().clone();
-        let mut centroids = finite_elements.centroids();
-        let (minimum, mut maximum) = centroids.iter().fold(
+        let mut blocks: Blocks = finite_elements
+            .get_element_blocks()
+            .iter()
+            .flat_map(|&block| repeat_n(block, grid.pow(3)))
+            .collect();
+        let mut samples = finite_elements.interior_points(grid);
+        let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(grid);
+        blocks.extend(vec![PADDING; exterior_face_samples.len()]);
+        samples.append(&mut exterior_face_samples);
+        let (minimum, mut maximum) = samples.iter().fold(
             (
                 Coordinate::new([f64::INFINITY; NSD]),
                 Coordinate::new([f64::NEG_INFINITY; NSD]),
@@ -1353,22 +1362,20 @@ impl Octree {
             },
         );
         maximum -= &minimum;
-        let nel = 2.0_f64.powi(levels as i32);
-        let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
-        let scale = (nel - 1.0) / length;
-        centroids.iter_mut().for_each(|centroid| {
-            *centroid -= &minimum;
-            *centroid *= &scale;
+        let scale = 1.0 / size;
+        let total_length = maximum.clone().into_iter().reduce(f64::max).unwrap();
+        let nel0 = total_length / size;
+        let nel = if nel0 > 0.0 && (nel0.log2().fract() == 0.0) {
+            nel0 as usize
+        } else {
+            2.0_f64.powf(nel0.log2().ceil()) as usize
+        };
+        samples.iter_mut().for_each(|sample| {
+            *sample -= &minimum;
+            *sample *= &scale;
         });
-        let mut exterior_face_centroids = finite_elements.exterior_faces_centroids();
-        exterior_face_centroids.iter_mut().for_each(|centroid| {
-            *centroid -= &minimum;
-            *centroid *= &scale;
-        });
-        blocks.extend(vec![PADDING; exterior_face_centroids.len()]);
-        centroids.append(&mut exterior_face_centroids);
         let mut tree = Octree {
-            nel: Nel::from([nel as usize; NSD]),
+            nel: Nel::from([nel; NSD]),
             octree: vec![],
             remove: Remove::Some(vec![PADDING]),
             scale: Scale::from([1.0 / scale; NSD]),
@@ -1385,7 +1392,7 @@ impl Octree {
         });
         let mut index = 0;
         while index < tree.len() {
-            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
+            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &samples) {
                 tree[index].block = Some(block);
             } else {
                 tree.subdivide(index)
