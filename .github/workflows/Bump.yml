@@ -13,6 +13,7 @@ jobs:
       - name: Bump
         id: bump
         run: |
+          git pull
           VERSION=$(cargo tree | grep automesh | cut -d " " -f 2 | cut -d "v" -f 2)
           MAJOR_MINOR=$(echo $VERSION | rev | cut -d "." -f 2- | rev)
           PATCH=$(echo $VERSION | rev | cut -d "." -f 1)

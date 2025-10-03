@@ -9,7 +9,7 @@ keywords = ["mesh"]
 license = "GPL-3.0"
 name = "automesh"
 repository = "https://github.com/autotwin/automesh"
-version = "0.3.4"
+version = "0.3.5"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
