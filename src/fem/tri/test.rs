@@ -126,22 +126,22 @@ fn triangular_unit_tests() {
     ];
 
     let element_node_connectivity = vec![
-        [1, 2, 3], // single_valence_04_noise2.inp begin
-        [4, 2, 5],
-        [1, 6, 2],
-        [4, 3, 2],
-        [4, 1, 3],
-        [4, 7, 1],
-        [2, 8, 5],
-        [6, 8, 2],
-        [7, 8, 6],
-        [1, 7, 6],
-        [4, 5, 8],
-        [7, 4, 8],    // single_valence_04_noise2.inp end
-        [9, 10, 11],  // one_facet.stl
-        [12, 13, 14], // equilateral triangle of side length 4.0
-        [15, 16, 17], // equilateral triangle of side length 1.0
-        [18, 19, 20], // tilt.stl
+        [0, 1, 2], // single_valence_04_noise2.inp begin
+        [3, 1, 4],
+        [0, 5, 1],
+        [3, 2, 1],
+        [3, 0, 2],
+        [3, 6, 0],
+        [1, 7, 4],
+        [5, 7, 1],
+        [6, 7, 5],
+        [0, 6, 5],
+        [3, 4, 7],
+        [6, 3, 7],    // single_valence_04_noise2.inp end
+        [8, 9, 10],   // one_facet.stl
+        [11, 12, 13], // equilateral triangle of side length 4.0
+        [14, 15, 16], // equilateral triangle of side length 1.0
+        [17, 18, 19], // tilt.stl
     ];
 
     let nodal_coordinates = Coordinates::new(&[

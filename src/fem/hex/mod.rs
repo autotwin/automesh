@@ -5,8 +5,13 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
+<<<<<<< HEAD
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
     Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
+=======
+    Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, Smoothing,
+    Tessellation, Vector,
+>>>>>>> 50e2111 (very spooky renumbering of the nodes)
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
@@ -229,32 +234,29 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                     node_6,
                     node_7,
                 ]| {
-                    l1 = (&nodal_coordinates[node_1 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_0 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_2 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_3 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_5 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_4 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_6 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_7 - NODE_NUMBERING_OFFSET])
+                    l1 = (&nodal_coordinates[node_1] - &nodal_coordinates[node_0]
+                        + &nodal_coordinates[node_2]
+                        - &nodal_coordinates[node_3]
+                        + &nodal_coordinates[node_5]
+                        - &nodal_coordinates[node_4]
+                        + &nodal_coordinates[node_6]
+                        - &nodal_coordinates[node_7])
                         .norm();
-                    l2 = (&nodal_coordinates[node_3 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_0 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_2 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_1 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_7 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_4 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_6 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_5 - NODE_NUMBERING_OFFSET])
+                    l2 = (&nodal_coordinates[node_3] - &nodal_coordinates[node_0]
+                        + &nodal_coordinates[node_2]
+                        - &nodal_coordinates[node_1]
+                        + &nodal_coordinates[node_7]
+                        - &nodal_coordinates[node_4]
+                        + &nodal_coordinates[node_6]
+                        - &nodal_coordinates[node_5])
                         .norm();
-                    l3 = (&nodal_coordinates[node_4 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_0 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_5 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_1 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_6 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_2 - NODE_NUMBERING_OFFSET]
-                        + &nodal_coordinates[node_7 - NODE_NUMBERING_OFFSET]
-                        - &nodal_coordinates[node_3 - NODE_NUMBERING_OFFSET])
+                    l3 = (&nodal_coordinates[node_4] - &nodal_coordinates[node_0]
+                        + &nodal_coordinates[node_5]
+                        - &nodal_coordinates[node_1]
+                        + &nodal_coordinates[node_6]
+                        - &nodal_coordinates[node_2]
+                        + &nodal_coordinates[node_7]
+                        - &nodal_coordinates[node_3])
                         .norm();
                     [l1, l2, l3].into_iter().reduce(f64::max).unwrap()
                         / [l1, l2, l3].into_iter().reduce(f64::min).unwrap()
@@ -292,71 +294,47 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                 connectivity
                     .iter()
                     .enumerate()
-                    .map(|(index, node)| {
+                    .map(|(index, &node)| {
                         match index {
                             0 => {
-                                u = &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[node];
                             }
                             1 => {
-                                u = &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[5]] - &nodal_coordinates[node];
                             }
                             2 => {
-                                u = &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[6]] - &nodal_coordinates[node];
                             }
                             3 => {
-                                u = &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[7]] - &nodal_coordinates[node];
                             }
                             4 => {
-                                u = &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[7]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[5]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[node];
                             }
                             5 => {
-                                u = &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[6]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[node];
                             }
                             6 => {
-                                u = &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[5]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[7]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[node];
                             }
                             7 => {
-                                u = &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                v = &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
-                                w = &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET]
-                                    - &nodal_coordinates[node - NODE_NUMBERING_OFFSET];
+                                u = &nodal_coordinates[connectivity[6]] - &nodal_coordinates[node];
+                                v = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[node];
+                                w = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[node];
                             }
                             _ => panic!(),
                         }
@@ -446,30 +424,27 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
 impl HexahedralFiniteElements {
     fn principal_axes(&self, connectivity: &[usize; HEX]) -> (Vector, Vector, Vector) {
         let nodal_coordinates = self.get_nodal_coordinates();
-        let x1 = &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET];
-        let x2 = &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET];
-        let x3 = &nodal_coordinates[connectivity[4] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[0] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[5] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[1] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[6] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[2] - NODE_NUMBERING_OFFSET]
-            + &nodal_coordinates[connectivity[7] - NODE_NUMBERING_OFFSET]
-            - &nodal_coordinates[connectivity[3] - NODE_NUMBERING_OFFSET];
+        let x1 = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[connectivity[0]]
+            + &nodal_coordinates[connectivity[2]]
+            - &nodal_coordinates[connectivity[3]]
+            + &nodal_coordinates[connectivity[5]]
+            - &nodal_coordinates[connectivity[4]]
+            + &nodal_coordinates[connectivity[6]]
+            - &nodal_coordinates[connectivity[7]];
+        let x2 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[0]]
+            + &nodal_coordinates[connectivity[2]]
+            - &nodal_coordinates[connectivity[1]]
+            + &nodal_coordinates[connectivity[7]]
+            - &nodal_coordinates[connectivity[4]]
+            + &nodal_coordinates[connectivity[6]]
+            - &nodal_coordinates[connectivity[5]];
+        let x3 = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[connectivity[0]]
+            + &nodal_coordinates[connectivity[5]]
+            - &nodal_coordinates[connectivity[1]]
+            + &nodal_coordinates[connectivity[6]]
+            - &nodal_coordinates[connectivity[2]]
+            + &nodal_coordinates[connectivity[7]]
+            - &nodal_coordinates[connectivity[3]];
         (x1, x2, x3)
     }
     fn volumes(&self) -> Metrics {
