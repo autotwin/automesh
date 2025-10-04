@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
-    Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
+    Metrics, Smoothing, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
@@ -112,8 +112,8 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                             nodes
                                 .iter()
                                 .zip(shape_functions.iter())
-                                .map(|(node, shape_function)| {
-                                    &nodal_coordinates[node - NODE_NUMBERING_OFFSET]
+                                .map(|(&node, shape_function)| {
+                                    &nodal_coordinates[node]
                                         * shape_function
                                 })
                                 .sum(),
@@ -198,8 +198,8 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                                     nodes
                                         .iter()
                                         .zip(shape_functions.iter())
-                                        .map(|(node, shape_function)| {
-                                            &nodal_coordinates[node - NODE_NUMBERING_OFFSET]
+                                        .map(|(&node, shape_function)| {
+                                            &nodal_coordinates[node]
                                                 * shape_function
                                         })
                                         .sum(),
