@@ -39,7 +39,11 @@ macro_rules! bench_block {
         #[bench]
         fn laplacian(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -55,7 +59,11 @@ macro_rules! bench_block {
         #[bench]
         fn nodal_hierarchy(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -70,7 +78,11 @@ macro_rules! bench_block {
         #[bench]
         fn nodal_influencers(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -86,7 +98,11 @@ macro_rules! bench_block {
         #[bench]
         fn node_element_connectivity(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -99,7 +115,11 @@ macro_rules! bench_block {
         #[bench]
         fn node_node_connectivity(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -113,28 +133,40 @@ macro_rules! bench_block {
         #[bench]
         fn from_inp(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
                 TRANSLATE.into(),
             )?;
             let fem = HexahedralFiniteElements::from(voxels);
-            let inp = format!("target/block_{}.inp", $nel);
+            let path = Path::new("target").join(format!("block_{}.inp", $nel));
+            let inp = path.to_str().ok_or("Invalid path")?;
             fem.write_inp(&inp).unwrap();
             bencher.iter(|| HexahedralFiniteElements::from_inp(&inp).unwrap());
             Ok(())
         }
         #[bench]
-        fn from_npy(bencher: &mut Bencher) {
-            let npy = format!("benches/block/block_{}.npy", $nel);
+        fn from_npy(bencher: &mut Bencher) -> Result<(), String> {
+            let path = Path::new("benches")
+                .join("block")
+                .join(format!("block_{}.npy", $nel));
+            let npy = path.to_str().ok_or("Invalid path")?;
             bencher.iter(|| {
                 Voxels::from_npy(&npy, REMOVE.into(), SCALE.into(), TRANSLATE.into()).unwrap()
             });
+            Ok(())
         }
         #[bench]
-        fn from_spn(bencher: &mut Bencher) {
-            let spn = format!("benches/block/block_{}.spn", $nel);
+        fn from_spn(bencher: &mut Bencher) -> Result<(), String> {
+            let path = Path::new("benches")
+                .join("block")
+                .join(format!("block_{}.spn", $nel));
+            let spn = path.to_str().ok_or("Invalid path")?;
             bencher.iter(|| {
                 Voxels::from_spn(
                     &spn,
@@ -145,29 +177,42 @@ macro_rules! bench_block {
                 )
                 .unwrap()
             });
+            Ok(())
         }
         #[bench]
-        fn into_finite_elements_from_voxels(bencher: &mut Bencher) {
-            let npy = format!("benches/block/block_{}.npy", $nel);
+        fn into_finite_elements_from_voxels(bencher: &mut Bencher) -> Result<(), String> {
+            let path = Path::new("benches")
+                .join("block")
+                .join(format!("block_{}.npy", $nel));
+            let npy = path.to_str().ok_or("Invalid path")?;
             bencher.iter(|| {
                 HexahedralFiniteElements::from(
                     Voxels::from_npy(&npy, REMOVE.into(), SCALE.into(), TRANSLATE.into()).unwrap(),
                 )
             });
+            Ok(())
         }
         #[bench]
-        fn octree_from_voxels_from_npy(bencher: &mut Bencher) {
-            let npy = format!("benches/block/block_{}.npy", $nel);
+        fn octree_from_voxels_from_npy(bencher: &mut Bencher) -> Result<(), String> {
+            let path = Path::new("benches")
+                .join("block")
+                .join(format!("block_{}.npy", $nel));
+            let npy = path.to_str().ok_or("Invalid path")?;
             bencher.iter(|| {
                 Octree::from(
                     Voxels::from_npy(&npy, REMOVE.into(), SCALE.into(), TRANSLATE.into()).unwrap(),
                 )
             });
+            Ok(())
         }
         #[bench]
         fn set_prescribed_nodes(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -188,7 +233,11 @@ macro_rules! bench_block {
         #[bench]
         fn smooth_laplace(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -210,7 +259,11 @@ macro_rules! bench_block {
         #[bench]
         fn smooth_taubin(bencher: &mut Bencher) -> Result<(), String> {
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -234,7 +287,11 @@ macro_rules! bench_block {
         fn write_exo(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("exo");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -243,8 +300,14 @@ macro_rules! bench_block {
             let fem = HexahedralFiniteElements::from(voxels);
             let mut count = 0;
             bencher.iter(|| {
-                fem.write_exo(&format!("target/block_{}_{}.exo", $nel, count))
-                    .unwrap();
+                fem.write_exo(
+                    Path::new("target")
+                        .join(format!("block_{}_{}.exo", $nel, count))
+                        .to_str()
+                        .ok_or("Invalid path")
+                        .unwrap(),
+                )
+                .unwrap();
                 count += 1;
             });
             Ok(())
@@ -253,7 +316,11 @@ macro_rules! bench_block {
         fn write_inp(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("inp");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -262,8 +329,14 @@ macro_rules! bench_block {
             let fem = HexahedralFiniteElements::from(voxels);
             let mut count = 0;
             bencher.iter(|| {
-                fem.write_inp(&format!("target/block_{}_{}.inp", $nel, count))
-                    .unwrap();
+                fem.write_inp(
+                    Path::new("target")
+                        .join(format!("block_{}_{}.inp", $nel, count))
+                        .to_str()
+                        .ok_or("Invalid path")
+                        .unwrap(),
+                )
+                .unwrap();
                 count += 1;
             });
             Ok(())
@@ -272,7 +345,11 @@ macro_rules! bench_block {
         fn write_mesh(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("mesh");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -281,8 +358,14 @@ macro_rules! bench_block {
             let fem = HexahedralFiniteElements::from(voxels);
             let mut count = 0;
             bencher.iter(|| {
-                fem.write_mesh(&format!("target/block_{}_{}.mesh", $nel, count))
-                    .unwrap();
+                fem.write_mesh(
+                    Path::new("target")
+                        .join(format!("block_{}_{}.mesh", $nel, count))
+                        .to_str()
+                        .ok_or("Invalid path")
+                        .unwrap(),
+                )
+                .unwrap();
                 count += 1
             });
             Ok(())
@@ -291,7 +374,11 @@ macro_rules! bench_block {
         fn write_metrics_csv(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("csv");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -300,8 +387,14 @@ macro_rules! bench_block {
             let fem = HexahedralFiniteElements::from(voxels);
             let mut count = 0;
             bencher.iter(|| {
-                fem.write_metrics(&format!("target/block_{}_{}.csv", $nel, count))
-                    .unwrap();
+                fem.write_metrics(
+                    Path::new("target")
+                        .join(format!("block_{}_{}.csv", $nel, count))
+                        .to_str()
+                        .ok_or("Invalid path")
+                        .unwrap(),
+                )
+                .unwrap();
                 count += 1
             });
             Ok(())
@@ -310,7 +403,11 @@ macro_rules! bench_block {
         fn write_metrics_npy(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("npy");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -319,8 +416,14 @@ macro_rules! bench_block {
             let fem = HexahedralFiniteElements::from(voxels);
             let mut count = 0;
             bencher.iter(|| {
-                fem.write_metrics(&format!("target/block_{}_{}.npy", $nel, count))
-                    .unwrap();
+                fem.write_metrics(
+                    Path::new("target")
+                        .join(format!("block_{}_{}.npy", $nel, count))
+                        .to_str()
+                        .ok_or("Invalid path")
+                        .unwrap(),
+                )
+                .unwrap();
                 count += 1
             });
             Ok(())
@@ -329,7 +432,11 @@ macro_rules! bench_block {
         fn write_npy(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("npy");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -338,7 +445,13 @@ macro_rules! bench_block {
             let mut count = 0;
             bencher.iter(|| {
                 voxels
-                    .write_npy(&format!("target/block_{}_{}.npy", $nel, count))
+                    .write_npy(
+                        Path::new("target")
+                            .join(format!("block_{}_{}.npy", $nel, count))
+                            .to_str()
+                            .ok_or("Invalid path")
+                            .unwrap(),
+                    )
                     .unwrap();
                 count += 1;
             });
@@ -348,7 +461,11 @@ macro_rules! bench_block {
         fn write_spn(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("spn");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -357,7 +474,13 @@ macro_rules! bench_block {
             let mut count = 0;
             bencher.iter(|| {
                 voxels
-                    .write_spn(&format!("target/block_{}_{}.spn", $nel, count))
+                    .write_spn(
+                        Path::new("target")
+                            .join(format!("block_{}_{}.spn", $nel, count))
+                            .to_str()
+                            .ok_or("Invalid path")
+                            .unwrap(),
+                    )
                     .unwrap();
                 count += 1;
             });
@@ -367,7 +490,11 @@ macro_rules! bench_block {
         fn write_vtk(bencher: &mut Bencher) -> Result<(), String> {
             remove_files_with_extension!("vtk");
             let voxels = Voxels::from_spn(
-                &format!("benches/block/block_{}.spn", $nel),
+                Path::new("benches")
+                    .join("block")
+                    .join(format!("block_{}.spn", $nel))
+                    .to_str()
+                    .ok_or("Invalid path")?,
                 NEL.into(),
                 REMOVE.into(),
                 SCALE.into(),
@@ -376,8 +503,14 @@ macro_rules! bench_block {
             let fem = HexahedralFiniteElements::from(voxels);
             let mut count = 0;
             bencher.iter(|| {
-                fem.write_vtk(&format!("target/block_{}_{}.vtk", $nel, count))
-                    .unwrap();
+                fem.write_vtk(
+                    Path::new("target")
+                        .join(format!("block_{}_{}.vtk", $nel, count))
+                        .to_str()
+                        .ok_or("Invalid path")
+                        .unwrap(),
+                )
+                .unwrap();
                 count += 1;
             });
             Ok(())
