@@ -5,13 +5,8 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-<<<<<<< HEAD
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
     Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
-=======
-    Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, Smoothing,
-    Tessellation, Vector,
->>>>>>> 50e2111 (very spooky renumbering of the nodes)
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
