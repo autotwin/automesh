@@ -12,6 +12,7 @@ on:
 permissions: {}
 jobs:
   Bench:
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,6 +33,7 @@ jobs:
       - name: Bench
         run: rustup run nightly cargo bench
   Coverage:
+    if: github.event_name != 'release'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -50,15 +52,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
       - name: Cleanup
-        run: rm -fr benches/ book/ sandbox/ tests/
+        run: rm -fr benches/ book/ pubs/ sandbox/ tests/
+      - name: Info
+        run: sed -i "s/std::env::var(\"GIT_COMMIT_HASH\").unwrap_or(env!(\"CARGO_PKG_VERSION\").to_string()),/\"$(git rev-parse --short HEAD)\".to_string(),/" src/main.rs
       - name: Package
-        run: cargo package
+        run: cargo package --allow-dirty
       - name: Login
         if: github.event_name == 'release'
         run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
       - name: Publish
         if: github.event_name == 'release'
-        run: cargo publish
+        run: cargo publish --allow-dirty
   Test:
     if: github.event_name != 'release'
     runs-on: ${{ matrix.os }}
