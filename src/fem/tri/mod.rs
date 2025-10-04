@@ -5,9 +5,9 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    super::tree::Edges, Connectivity, Coordinate, FiniteElementMethods, FiniteElementSpecifics,
-    FiniteElements, Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, VecConnectivity,
-    Vector,
+    super::tree::Edges, Connectivity, Coordinate, Coordinates, FiniteElementMethods,
+    FiniteElementSpecifics, FiniteElements, Metrics, NODE_NUMBERING_OFFSET, Smoothing,
+    Tessellation, VecConnectivity, Vector,
 };
 use conspire::{
     math::{Tensor, TensorArray, TensorVec},
@@ -76,8 +76,14 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
     fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
         unimplemented!()
     }
+    fn exterior_faces_interior_points(&self, _grid_length: usize) -> Coordinates {
+        todo!()
+    }
     fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
         unimplemented!()
+    }
+    fn interior_points(&self, _grid_length: usize) -> Coordinates {
+        todo!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         // Knupp 2006
