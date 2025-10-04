@@ -1,6 +1,4 @@
-use super::super::{
-    Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NodeMap, Octree, face_direction,
-};
+use super::super::{Coordinates, HexConnectivity, NodeMap, Octree, face_direction};
 
 pub fn apply(
     cells_nodes: &[usize],
@@ -50,9 +48,8 @@ pub fn apply(
                                     let lngth = *tree[face_subsubcells[face_subsubcell_a]]
                                         .get_lngth()
                                         as f64;
-                                    let coordinates_1 = &nodal_coordinates[cells_nodes
-                                        [face_subsubcells[face_subsubcell_a]]
-                                        - NODE_NUMBERING_OFFSET]
+                                    let coordinates_1 = &nodal_coordinates
+                                        [cells_nodes[face_subsubcells[face_subsubcell_a]]]
                                         - face_direction(face_index) * lngth;
                                     let node_1 = *nodes_map
                                         .get(&(
@@ -61,9 +58,8 @@ pub fn apply(
                                             (2.0 * coordinates_1[2]) as usize,
                                         ))
                                         .expect("nonexistent entry");
-                                    let coordinates_2 = &nodal_coordinates[cells_nodes
-                                        [face_subsubcells[face_subsubcell_b]]
-                                        - NODE_NUMBERING_OFFSET]
+                                    let coordinates_2 = &nodal_coordinates
+                                        [cells_nodes[face_subsubcells[face_subsubcell_b]]]
                                         - face_direction(face_index) * lngth;
                                     let node_2 = *nodes_map
                                         .get(&(
@@ -73,8 +69,7 @@ pub fn apply(
                                         ))
                                         .expect("nonexistent entry");
                                     let coordinates_3 = &nodal_coordinates[cells_nodes
-                                        [adjacent_face_subsubcells[adjacent_face_subsubcell_a]]
-                                        - NODE_NUMBERING_OFFSET]
+                                        [adjacent_face_subsubcells[adjacent_face_subsubcell_a]]]
                                         - face_direction(face_index) * lngth;
                                     let node_3 = *nodes_map
                                         .get(&(
@@ -84,8 +79,7 @@ pub fn apply(
                                         ))
                                         .expect("nonexistent entry");
                                     let coordinates_4 = &nodal_coordinates[cells_nodes
-                                        [adjacent_face_subsubcells[adjacent_face_subsubcell_b]]
-                                        - NODE_NUMBERING_OFFSET]
+                                        [adjacent_face_subsubcells[adjacent_face_subsubcell_b]]]
                                         - face_direction(face_index) * lngth;
                                     let node_4 = *nodes_map
                                         .get(&(
