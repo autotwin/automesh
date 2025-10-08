@@ -6,9 +6,6 @@ use std::time::Instant;
 
 use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
-    Metrics, NODE_NUMBERING_OFFSET, Smoothing, Tessellation, Vector,
-    Connectivity, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, Metrics, Smoothing,
-    Tessellation, Vector,
     Metrics, Smoothing, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};

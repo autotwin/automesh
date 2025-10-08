@@ -5,8 +5,6 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    super::tree::Edges, Connectivity, Coordinate, FiniteElementMethods, FiniteElementSpecifics,
-    FiniteElements, Metrics, Smoothing, Tessellation, VecConnectivity, Vector,
     super::tree::Edges, Connectivity, Coordinate, Coordinates, FiniteElementMethods,
     FiniteElementSpecifics, FiniteElements, Metrics, Smoothing, Tessellation, VecConnectivity,
     Vector,
