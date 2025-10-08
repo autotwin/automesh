@@ -116,8 +116,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                                 .iter()
                                 .zip(shape_functions.iter())
                                 .map(|(&node, shape_function)| {
-                                    &nodal_coordinates[node]
-                                        * shape_function
+                                    &nodal_coordinates[node] * shape_function
                                 })
                                 .sum(),
                         );
@@ -202,8 +201,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                                         .iter()
                                         .zip(shape_functions.iter())
                                         .map(|(&node, shape_function)| {
-                                            &nodal_coordinates[node]
-                                                * shape_function
+                                            &nodal_coordinates[node] * shape_function
                                         })
                                         .sum(),
                                 );
