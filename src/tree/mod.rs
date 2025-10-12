@@ -6,8 +6,8 @@ mod hex;
 use super::{
     Coordinate, Coordinates, NSD, Vector,
     fem::{
-        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, NODE_NUMBERING_OFFSET,
-        TriangularFiniteElements, hex::HexConnectivity,
+        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, TriangularFiniteElements,
+        hex::HexConnectivity,
     },
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
@@ -1443,7 +1443,7 @@ impl Octree {
             )
             .for_each(|(cell, (block, connectivity))| {
                 *block = cell.get_block();
-                *connectivity = from_fn(|n| n + index + NODE_NUMBERING_OFFSET);
+                *connectivity = from_fn(|n| n + index);
                 x_min = *cell.get_min_x() as f64 * scale.x() + translate.x();
                 y_min = *cell.get_min_y() as f64 * scale.y() + translate.y();
                 z_min = *cell.get_min_z() as f64 * scale.z() + translate.z();
@@ -1737,7 +1737,7 @@ impl From<Octree> for TriangularFiniteElements {
         let mut face_connectivity = [0; NUM_NODES_FACE];
         let mut faces_connectivity = vec![];
         let mut nodal_coordinates = Coordinates::zero(0);
-        let mut node_new = 1;
+        let mut node_new = 0;
         let nodes_len = (tree[0].get_lngth() + 1) as usize;
         let mut nodes = vec![vec![vec![None::<usize>; nodes_len]; nodes_len]; nodes_len];
         (0..boundaries_cells_faces.len()).for_each(|boundary| {
@@ -1813,12 +1813,9 @@ impl From<Octree> for TriangularFiniteElements {
             })
         });
         non_manifold_edges.iter().for_each(|edge| {
-            let non_manifold_faces: Vec<usize> = node_face_connectivity
-                [edge[0] - NODE_NUMBERING_OFFSET]
+            let non_manifold_faces: Vec<usize> = node_face_connectivity[edge[0]]
                 .iter()
-                .filter(|face_a| {
-                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
-                })
+                .filter(|face_a| node_face_connectivity[edge[1]].contains(face_a))
                 .copied()
                 .collect();
             let mut non_manifold_cells_vec: Vec<usize> = non_manifold_faces
@@ -1893,14 +1890,14 @@ impl From<Octree> for TriangularFiniteElements {
                         .contains(node)
                 })
                 .unwrap();
-            let faces: [usize; 3] = node_face_connectivity[node - NODE_NUMBERING_OFFSET]
+            let faces: [usize; 3] = node_face_connectivity[*node]
                 .iter()
                 .filter(|face| cell_faces[non_manifold_cells[cell_index]].contains(face))
                 .copied()
                 .collect::<Vec<usize>>()
                 .try_into()
                 .expect("Should be 3 faces.");
-            nodal_coordinates.push(nodal_coordinates[node - NODE_NUMBERING_OFFSET].clone());
+            nodal_coordinates.push(nodal_coordinates[*node].clone());
             let node_new = nodal_coordinates.len();
             let mut position = 0;
             faces.iter().for_each(|&face| {
@@ -1948,7 +1945,7 @@ impl From<Octree> for TriangularFiniteElements {
                             })
                         }) {
                             nodal_coordinates.push(nodal_coordinates[node_index].clone());
-                            let node = node_index + NODE_NUMBERING_OFFSET;
+                            let node = node_index;
                             let node_new = nodal_coordinates.len();
                             let mut position = 0;
                             faces[0].iter().for_each(|&face| {
@@ -2000,7 +1997,7 @@ fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> V
         .for_each(|(face, connectivity)| {
             connectivity
                 .iter()
-                .for_each(|node| node_face_connectivity[node - NODE_NUMBERING_OFFSET].push(face))
+                .for_each(|&node| node_face_connectivity[node].push(face))
         });
     node_face_connectivity
 }
@@ -2028,11 +2025,9 @@ fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec
     edges(faces_connectivity)
         .iter()
         .flat_map(|&edge| {
-            if node_face_connectivity[edge[0] - NODE_NUMBERING_OFFSET]
+            if node_face_connectivity[edge[0]]
                 .iter()
-                .filter(|face_a| {
-                    node_face_connectivity[edge[1] - NODE_NUMBERING_OFFSET].contains(face_a)
-                })
+                .filter(|face_a| node_face_connectivity[edge[1]].contains(face_a))
                 .count()
                 == 4
             {
@@ -2050,7 +2045,7 @@ impl From<Octree> for HexahedralFiniteElements {
         let time = Instant::now();
         let mut cells_nodes = vec![0; tree.len()];
         let mut nodal_coordinates = Coordinates::zero(0);
-        let mut node_index = NODE_NUMBERING_OFFSET;
+        let mut node_index = 0;
         tree.iter()
             .enumerate()
             .filter(|(_, cell)| cell.is_leaf())

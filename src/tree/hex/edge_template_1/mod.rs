@@ -1,6 +1,4 @@
-use super::super::{
-    Cell, Coordinates, HexConnectivity, NODE_NUMBERING_OFFSET, NodeMap, Octree, mirror_face,
-};
+use super::super::{Cell, Coordinates, HexConnectivity, NodeMap, Octree, mirror_face};
 use conspire::math::{TensorRank1, TensorVec, tensor_rank_1};
 
 pub fn apply(
@@ -212,42 +210,35 @@ fn template(
     {
         let lngth = *tree[subcells_m[subcell_m_a]].get_lngth() as f64;
         nodal_coordinates.push(
-            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]] - NODE_NUMBERING_OFFSET]
-                + &directions[0] * lngth,
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]]] + &directions[0] * lngth,
         );
         nodal_coordinates.push(
-            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]] - NODE_NUMBERING_OFFSET]
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]]]
                 + &directions[0] * lngth
                 + &directions[1] * lngth,
         );
         nodal_coordinates.push(
-            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]] - NODE_NUMBERING_OFFSET]
-                + &directions[1] * lngth,
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_a]]] + &directions[1] * lngth,
         );
         nodal_coordinates.push(
-            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]] - NODE_NUMBERING_OFFSET]
-                + &directions[0] * lngth,
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]]] + &directions[0] * lngth,
         );
         nodal_coordinates.push(
-            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]] - NODE_NUMBERING_OFFSET]
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]]]
                 + &directions[0] * lngth
                 + &directions[1] * lngth,
         );
         nodal_coordinates.push(
-            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]] - NODE_NUMBERING_OFFSET]
-                + &directions[1] * lngth,
+            &nodal_coordinates[cells_nodes[subcells_m[subcell_m_b]]] + &directions[1] * lngth,
         );
         (0..6).for_each(|k| {
             assert!(
                 nodes_map
                     .insert(
                         (
-                            (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET][0])
-                                as usize,
-                            (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET][1])
-                                as usize,
-                            (2.0 * nodal_coordinates[*node_index + k - NODE_NUMBERING_OFFSET][2])
-                                as usize,
+                            (2.0 * nodal_coordinates[*node_index + k][0]) as usize,
+                            (2.0 * nodal_coordinates[*node_index + k][1]) as usize,
+                            (2.0 * nodal_coordinates[*node_index + k][2]) as usize,
                         ),
                         *node_index + k,
                     )
