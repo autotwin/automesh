@@ -34,7 +34,7 @@ folder | file | `md5` checksum | size
 :---: | :---: | :---: | :---:
 `sr2c` | [`conf_0.5cm.g`](https://1drv.ms/u/c/3cc1bee5e2795295/EX2HdDDxRT5Fvf5ZwP68LM4BtxWbPVTHQ6pCJlLQDzPB1g?e=H6ls1F) | `3731460f73da70ae79dd8155e2a8e0c6` | 7 MB
 `sr3c` | [`conf_0.25cm.g`](https://1drv.ms/u/c/3cc1bee5e2795295/EfkQdd2sWwBGoc0K0HCBShcBd-eG8XoxWe2mmArfe0eQFA?e=9G0tBR) | `bf65e329f43867c8fabc64b1b5273b8c` | 47 MB
-`sr4c` | [`conf_0.1cm.g`](https://1drv.ms/u/c/3cc1bee5e2795295/EUSzEcH9ZEtKktMr0WXQ5QYBBkGbOtTEuvkYZt5-nTGG8w?e=w91Jos) | `ae0b13dec173c8fb030feab306a09db6` & 700 MB
+`sr4c` | [`conf_0.1cm.g`](https://1drv.ms/u/c/3cc1bee5e2795295/EUSzEcH9ZEtKktMr0WXQ5QYBBkGbOtTEuvkYZt5-nTGG8w?e=w91Jos) | `ae0b13dec173c8fb030feab306a09db6` | 700 MB
 
 ## Tracers
 
