@@ -20,7 +20,7 @@ chrono = "=0.4.42"
 conspire = { version = "=0.5.11", features = ["fem"] }
 ndarray = { version = "=0.16.1", features = ["rayon"] }
 ndarray-npy = "=0.9.1"
-netcdf = { version = "=0.11.0", features = ["ndarray", "static"] }
+netcdf = { version = "=0.11.1", features = ["ndarray", "static"] }
 pyo3 = { version = "=0.26.0", features = ["extension-module"], optional = true }
 stl_io = "=0.8.5"
 vtkio = "=0.6.3"
