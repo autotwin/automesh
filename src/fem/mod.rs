@@ -47,7 +47,6 @@ pub type Blocks = Vec<u8>;
 /// An element-to-node connectivity.
 pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 
-pub type Elements = Vec<usize>;
 pub type Metrics = Array1<f64>;
 pub type Nodes = Vec<usize>;
 pub type ReorderedConnectivity = Vec<Vec<u32>>;
@@ -723,7 +722,7 @@ fn reorder_connectivity<const N: usize>(
                 .flat_map(|(element, _)| {
                     element_node_connectivity[element]
                         .iter()
-                        .map(|&entry| entry as u32)
+                        .map(|&entry| (entry + NODE_NUMBERING_OFFSET) as u32)
                 })
                 .collect()
         })
@@ -743,7 +742,7 @@ fn finite_element_data_from_exo<const N: usize>(
 ) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorNetCDF> {
     let file = open(file_path)?;
     let mut blocks = vec![];
-    let mut connectivity: Connectivity<N> = file
+    let connectivity = file
         .variables()
         .filter(|variable| variable.name().starts_with("connect"))
         .flat_map(|variable| {
@@ -769,7 +768,7 @@ fn finite_element_data_from_exo<const N: usize>(
             connect
         })
         .collect();
-    let mut coordinates: Coordinates = file
+    let coordinates = file
         .variable("coordx")
         .expect("Coordinates x not found")
         .get_values(..)?
@@ -787,60 +786,6 @@ fn finite_element_data_from_exo<const N: usize>(
         )
         .map(|(x, (y, z))| [x, y, z].into())
         .collect();
-    if let Some(variable) = file.variable("elem_map") {
-        let elem_map: Elements = variable
-            .get_values::<u32, _>(..)
-            .expect("Error getting element map")
-            .into_iter()
-            .map(|node| node as usize)
-            .collect();
-        if !elem_map.is_sorted() {
-            unimplemented!()
-        }
-    }
-    if let Some(variable) = file.variable("elem_num_map") {
-        let elem_num_map: Elements = variable
-            .get_values::<u32, _>(..)
-            .expect("Error getting element numbering map")
-            .into_iter()
-            .map(|node| node as usize)
-            .collect();
-        if !elem_num_map.is_sorted() {
-            unimplemented!()
-        }
-    }
-    if let Some(variable) = file.variable("node_map") {
-        let node_map: Nodes = variable
-            .get_values::<u32, _>(..)
-            .expect("Error getting node map")
-            .into_iter()
-            .map(|node| node as usize)
-            .collect();
-        if !node_map.is_sorted() {
-            unimplemented!()
-        }
-    }
-    if let Some(variable) = file.variable("node_num_map") {
-        let node_num_map: Nodes = variable
-            .get_values::<u32, _>(..)
-            .expect("Error getting node numbering map")
-            .into_iter()
-            .map(|node| node as usize - NODE_NUMBERING_OFFSET)
-            .collect();
-        if !node_num_map.is_sorted() {
-            connectivity.iter_mut().for_each(|nodes| {
-                nodes
-                    .iter_mut()
-                    .for_each(|node| *node = node_num_map[*node])
-            });
-            let mut coordinates_temporary = Coordinates::zero(coordinates.len());
-            node_num_map
-                .into_iter()
-                .enumerate()
-                .for_each(|(index, map)| coordinates_temporary[map] = coordinates[index].clone());
-            coordinates = coordinates_temporary
-        }
-    }
     Ok((blocks, connectivity, coordinates))
 }
 
