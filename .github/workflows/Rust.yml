@@ -51,8 +51,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-      - name: Cleanup
-        run: rm -fr benches/ book/ pubs/ sandbox/ tests/
       - name: Info
         run: sed -i "s/std::env::var(\"GIT_COMMIT_HASH\").unwrap_or(env!(\"CARGO_PKG_VERSION\").to_string()),/\"$(git rev-parse --short HEAD)\".to_string(),/" src/main.rs
       - name: Package
