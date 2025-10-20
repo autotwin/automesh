@@ -10,7 +10,7 @@ use super::{
     Vector,
 };
 use conspire::{
-    math::{Tensor, TensorArray, TensorVec},
+    math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire},
     mechanics::Scalar,
 };
 use ndarray::{Array2, s};
@@ -31,6 +31,7 @@ pub const TRI: usize = 3;
 
 const NUM_NODES_FACE: usize = 1;
 
+type Curvatures = VectorConspire;
 type Lengths = conspire::math::Vector;
 
 /// The triangular finite elements type.
@@ -209,6 +210,78 @@ impl TriangularFiniteElements {
                 0.5 * (l0.cross(&l1)).norm()
             })
             .collect()
+    }
+    /// Calculates and returns the Gaussian curvature.
+    pub fn curvature(&self) -> Result<Curvatures, String> {
+        let mut alpha = 0.0;
+        let mut beta = 0.0;
+        let mut element_index_1 = 0;
+        let mut element_index_2 = 0;
+        let mut node_c = 0;
+        let mut node_d = 0;
+        let element_node_connectivity = self.get_element_node_connectivity();
+        let node_element_connectivity = self.get_node_element_connectivity();
+        let node_node_connectivity = self.get_node_node_connectivity();
+        let nodal_coordinates = self.get_nodal_coordinates();
+        if !node_node_connectivity.is_empty() {
+            Ok(self
+                .get_nodal_coordinates()
+                .iter()
+                .zip(
+                    node_node_connectivity
+                        .iter()
+                        .enumerate()
+                        .zip(node_element_connectivity.iter()),
+                )
+                .map(|(coordinates_a, ((node_a, nodes), elements))| {
+                    let foo = nodes
+                        .iter()
+                        .map(|&node_b| {
+                            let foo = 1;
+                            if node_b == node_a {
+                                panic!()
+                            }
+                            [element_index_1, element_index_2, node_c, node_d] = edge_info(
+                                node_a,
+                                node_b,
+                                element_node_connectivity,
+                                node_element_connectivity,
+                            );
+                            alpha = ((coordinates_a - &nodal_coordinates[node_c]).normalized()
+                                * (&nodal_coordinates[node_b] - &nodal_coordinates[node_c])
+                                    .normalized())
+                            .acos();
+                            beta = ((coordinates_a - &nodal_coordinates[node_d]).normalized()
+                                * (&nodal_coordinates[node_b] - &nodal_coordinates[node_d])
+                                    .normalized())
+                            .acos();
+                            (coordinates_a - &nodal_coordinates[node_b])
+                                * (1.0 / alpha.tan() + 1.0 / beta.tan())
+                        })
+                        .sum::<Vector>()
+                        .norm();
+                    //
+                    // or mixed one that used barycenter when triangle is obtuse
+                    //
+                    let bar: f64 = elements
+                        .iter()
+                        .map(|&element| {
+                            let mut foo = element_node_connectivity[element].to_vec();
+                            foo.retain(|node| node != &node_a);
+                            let [bar, baz] = foo.try_into().expect("Not exactly two entries");
+                            let u = coordinates_a - &nodal_coordinates[bar];
+                            let v = coordinates_a - &nodal_coordinates[baz];
+                            let n = u.cross(&v);
+                            let c = coordinates_a + &n / (2.0 * n.norm_squared());
+                            1.0
+                        })
+                        .sum();
+                    foo / bar
+                })
+                .collect())
+        } else {
+            Err("Need to calculate the node-to-node connectivity first".to_string())
+        }
     }
     fn minimum_angles(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();
