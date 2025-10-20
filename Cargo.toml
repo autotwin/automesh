@@ -4,6 +4,7 @@ categories = ["mathematics", "science"]
 description = "Automatic mesh generation."
 documentation = "https://docs.rs/automesh"
 edition = "2024"
+exclude = [".github/", "benches/", "book*", "pubs/", "sandbox/", "tests/"]
 homepage = "https://autotwin.github.io/automesh"
 keywords = ["mesh"]
 license = "GPL-3.0"
