@@ -261,7 +261,7 @@ impl TriangularFiniteElements {
                         .sum::<Vector>()
                         .norm() /
                     //
-                    // Need to improve the area calculation, best would be the mixed approach from the book.
+                    // Need to improve the nodal area calculation, best would be the mixed approach from the book.
                     //
                     elements
                         .iter()

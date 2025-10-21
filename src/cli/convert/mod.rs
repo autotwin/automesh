@@ -7,6 +7,7 @@ use super::{
     input::{read_finite_elements, read_segmentation},
     output::{write_finite_elements, write_segmentation},
 };
+use automesh::FiniteElementMethods;
 use clap::Subcommand;
 
 #[derive(Subcommand)]
@@ -97,11 +98,22 @@ pub fn convert_mesh(subcommand: ConvertMeshSubcommand) -> Result<(), ErrorWrappe
             read_finite_elements::<_, _, TetrahedralFiniteElements>(&args.input, args.quiet, true)?,
             args.quiet,
         ),
-        ConvertMeshSubcommand::Tri(args) => write_finite_elements(
-            args.output,
-            read_finite_elements::<_, _, TriangularFiniteElements>(&args.input, args.quiet, true)?,
-            args.quiet,
-        ),
+        // ConvertMeshSubcommand::Tri(args) => write_finite_elements(
+        //     args.output,
+        //     read_finite_elements::<_, _, TriangularFiniteElements>(&args.input, args.quiet, true)?,
+        //     args.quiet,
+        // ),
+        ConvertMeshSubcommand::Tri(args) => {
+            let mut foo = read_finite_elements::<_, _, TriangularFiniteElements>(&args.input, args.quiet, true)?;
+            foo.node_element_connectivity()?;
+            foo.node_node_connectivity()?;
+            println!("curvature: {}", foo.curvature()?);
+            write_finite_elements(
+                args.output,
+                foo,
+                args.quiet,
+            )
+        }
     }
 }
 
