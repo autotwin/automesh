@@ -1898,7 +1898,7 @@ impl From<Octree> for TriangularFiniteElements {
                 .try_into()
                 .expect("Should be 3 faces.");
             nodal_coordinates.push(nodal_coordinates[*node].clone());
-            let node_new = nodal_coordinates.len();
+            let node_new = nodal_coordinates.len() - 1;
             let mut position = 0;
             faces.iter().for_each(|&face| {
                 position = faces_connectivity[face]
