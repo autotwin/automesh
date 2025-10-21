@@ -234,7 +234,7 @@ impl TriangularFiniteElements {
                         .zip(node_element_connectivity.iter()),
                 )
                 .map(|(coordinates_a, ((node_a, nodes), elements))| {
-                    let foo = nodes
+                    nodes
                         .iter()
                         .map(|&node_b| {
                             let foo = 1;
@@ -259,24 +259,20 @@ impl TriangularFiniteElements {
                                 * (1.0 / alpha.tan() + 1.0 / beta.tan())
                         })
                         .sum::<Vector>()
-                        .norm();
+                        .norm() /
                     //
-                    // or mixed one that used barycenter when triangle is obtuse
+                    // Need to improve the area calculation, best would be the mixed approach from the book.
                     //
-                    let bar: f64 = elements
+                    elements
                         .iter()
                         .map(|&element| {
-                            let mut foo = element_node_connectivity[element].to_vec();
-                            foo.retain(|node| node != &node_a);
-                            let [bar, baz] = foo.try_into().expect("Not exactly two entries");
-                            let u = coordinates_a - &nodal_coordinates[bar];
-                            let v = coordinates_a - &nodal_coordinates[baz];
-                            let n = u.cross(&v);
-                            let c = coordinates_a + &n / (2.0 * n.norm_squared());
-                            1.0
+                            let [a, b, c] = element_node_connectivity[element];
+                            let u = &nodal_coordinates[a] - &nodal_coordinates[b];
+                            let v = &nodal_coordinates[a] - &nodal_coordinates[c];
+                            let w = &nodal_coordinates[b] - &nodal_coordinates[c];
+                            (u * v.cross(&w)).abs() / 6.0
                         })
-                        .sum();
-                    foo / bar
+                        .sum::<Scalar>()
                 })
                 .collect())
         } else {
