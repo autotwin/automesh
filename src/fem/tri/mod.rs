@@ -219,6 +219,10 @@ impl TriangularFiniteElements {
         let mut element_index_2 = 0;
         let mut node_c = 0;
         let mut node_d = 0;
+        let mut node_e = 0;
+        let mut node_f = 0;
+        let mut midpoint_ae = Vector::zero();
+        let mut midpoint_af = Vector::zero();
         let element_node_connectivity = self.get_element_node_connectivity();
         let node_element_connectivity = self.get_node_element_connectivity();
         let node_node_connectivity = self.get_node_node_connectivity();
@@ -237,10 +241,6 @@ impl TriangularFiniteElements {
                     nodes
                         .iter()
                         .map(|&node_b| {
-                            let foo = 1;
-                            if node_b == node_a {
-                                panic!()
-                            }
                             [element_index_1, element_index_2, node_c, node_d] = edge_info(
                                 node_a,
                                 node_b,
@@ -259,30 +259,23 @@ impl TriangularFiniteElements {
                                 * (1.0 / alpha.tan() + 1.0 / beta.tan())
                         })
                         .sum::<Vector>()
-                        .norm() /
-                    //
-                    // Need to improve the nodal area calculation, best would be the mixed approach from the book.
-                    //
-                    elements
-                        .iter()
-                        .map(|&element| {
-                            let mut foo = element_node_connectivity[element].to_vec();
-                            foo.retain(|node| node != &node_a);
-                            let [node_e, node_f] = foo.try_into().expect("Not exactly two nodes");
-                            // let u = coordinates_a - &nodal_coordinates[node_e];
-                            // let v = coordinates_a - &nodal_coordinates[node_f];
-                            // u.cross(&v).norm() / 6.0
-                            let p_a = coordinates_a;
-                            let p_b = &nodal_coordinates[node_e];
-                            let p_c = &nodal_coordinates[node_f];
-                            let midpoint_ab = (p_a.clone() + p_b) / 2.0;
-                            let midpoint_ca = (p_c.clone() + p_a) / 2.0;
-                            let u_a = &midpoint_ab - p_a;
-                            let v_a = &midpoint_ca - p_a;
-                            let area_a = u_a.cross(&v_a).norm() / 2.0;
-                            area_a * 4.0
-                        })
-                        .sum::<Scalar>()
+                        .norm()
+                        / elements
+                            .iter()
+                            .map(|&element| {
+                                let mut conn = element_node_connectivity[element].to_vec();
+                                conn.retain(|node| node != &node_a);
+                                [node_e, node_f] = conn.try_into().expect("Not exactly two nodes");
+                                midpoint_ae =
+                                    (coordinates_a.clone() + &nodal_coordinates[node_e]) * 0.5;
+                                midpoint_af =
+                                    (coordinates_a.clone() + &nodal_coordinates[node_f]) * 0.5;
+                                (&midpoint_ae - coordinates_a)
+                                    .cross(&(&midpoint_af - coordinates_a))
+                                    .norm()
+                                    * 2.0
+                            })
+                            .sum::<Scalar>()
                 })
                 .collect())
         } else {

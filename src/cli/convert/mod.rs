@@ -104,17 +104,19 @@ pub fn convert_mesh(subcommand: ConvertMeshSubcommand) -> Result<(), ErrorWrappe
         //     args.quiet,
         // ),
         ConvertMeshSubcommand::Tri(args) => {
-            let mut foo = read_finite_elements::<_, _, TriangularFiniteElements>(&args.input, args.quiet, true)?;
+            let mut foo = read_finite_elements::<_, _, TriangularFiniteElements>(
+                &args.input,
+                args.quiet,
+                true,
+            )?;
             foo.node_element_connectivity()?;
             foo.node_node_connectivity()?;
             let curvature: ndarray::Array1<f64> = foo.curvature()?.into_iter().collect();
             use ndarray_npy::WriteNpyExt;
-            curvature.write_npy(std::io::BufWriter::new(std::fs::File::create("curvature.npy")?))?;
-            write_finite_elements(
-                args.output,
-                foo,
-                args.quiet,
-            )
+            curvature.write_npy(std::io::BufWriter::new(std::fs::File::create(
+                "curvature.npy",
+            )?))?;
+            write_finite_elements(args.output, foo, args.quiet)
         }
     }
 }
