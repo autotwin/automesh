@@ -309,7 +309,7 @@ fn split_edges(
             );
             nodal_coordinates
                 .push((nodal_coordinates[*node_a].clone() + &nodal_coordinates[*node_b]) / 2.0);
-            node_e = nodal_coordinates.len();
+            node_e = nodal_coordinates.len() - 1;
             spot_a = element_node_connectivity[element_index_1]
                 .iter()
                 .position(|node| node == node_a)
