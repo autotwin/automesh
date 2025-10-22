@@ -1946,7 +1946,7 @@ impl From<Octree> for TriangularFiniteElements {
                         }) {
                             nodal_coordinates.push(nodal_coordinates[node_index].clone());
                             let node = node_index;
-                            let node_new = nodal_coordinates.len();
+                            let node_new = nodal_coordinates.len() - 1;
                             let mut position = 0;
                             faces[0].iter().for_each(|&face| {
                                 position = faces_connectivity[face]
