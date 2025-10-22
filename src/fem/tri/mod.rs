@@ -213,16 +213,11 @@ impl TriangularFiniteElements {
     }
     /// Calculates and returns the Gaussian curvature.
     pub fn curvature(&self) -> Result<Curvatures, String> {
-        let mut alpha = 0.0;
-        let mut beta = 0.0;
+        let mut edge = Vector::zero();
         let mut element_index_1 = 0;
         let mut element_index_2 = 0;
         let mut node_c = 0;
         let mut node_d = 0;
-        let mut node_e = 0;
-        let mut node_f = 0;
-        let mut midpoint_ae = Vector::zero();
-        let mut midpoint_af = Vector::zero();
         let element_node_connectivity = self.get_element_node_connectivity();
         let node_element_connectivity = self.get_node_element_connectivity();
         let node_node_connectivity = self.get_node_node_connectivity();
@@ -235,9 +230,8 @@ impl TriangularFiniteElements {
                     node_node_connectivity
                         .iter()
                         .enumerate()
-                        .zip(node_element_connectivity.iter()),
                 )
-                .map(|(coordinates_a, ((node_a, nodes), elements))| {
+                .map(|(coordinates_a, (node_a, nodes))| {
                     nodes
                         .iter()
                         .map(|&node_b| {
@@ -247,35 +241,22 @@ impl TriangularFiniteElements {
                                 element_node_connectivity,
                                 node_element_connectivity,
                             );
-                            alpha = ((coordinates_a - &nodal_coordinates[node_c]).normalized()
-                                * (&nodal_coordinates[node_b] - &nodal_coordinates[node_c])
-                                    .normalized())
-                            .acos();
-                            beta = ((coordinates_a - &nodal_coordinates[node_d]).normalized()
-                                * (&nodal_coordinates[node_b] - &nodal_coordinates[node_d])
-                                    .normalized())
-                            .acos();
-                            (coordinates_a - &nodal_coordinates[node_b])
-                                * (1.0 / alpha.tan() + 1.0 / beta.tan())
+                            //
+                            // I think if the 4 vectors consecutively go around in a loop perfectly, do not have to check for up/down consistency?
+                            //
+                            edge = coordinates_a - &nodal_coordinates[node_b];
+                            ((&nodal_coordinates[node_c] - &nodal_coordinates[node_a])
+                                .cross(&(&nodal_coordinates[node_b] - &nodal_coordinates[node_c]))
+                                .normalized()
+                                * (&nodal_coordinates[node_d] - &nodal_coordinates[node_b])
+                                    .cross(&(&nodal_coordinates[node_a] - &nodal_coordinates[node_d]))
+                                    .normalized()).acos()
+                                // * edge.norm()
+                                //
+                                // Unsure if better or worse off with scaling by the edge length.
+                                //
                         })
-                        .sum::<Vector>()
-                        .norm()
-                        / elements
-                            .iter()
-                            .map(|&element| {
-                                let mut conn = element_node_connectivity[element].to_vec();
-                                conn.retain(|node| node != &node_a);
-                                [node_e, node_f] = conn.try_into().expect("Not exactly two nodes");
-                                midpoint_ae =
-                                    (coordinates_a.clone() + &nodal_coordinates[node_e]) * 0.5;
-                                midpoint_af =
-                                    (coordinates_a.clone() + &nodal_coordinates[node_f]) * 0.5;
-                                (&midpoint_ae - coordinates_a)
-                                    .cross(&(&midpoint_af - coordinates_a))
-                                    .norm()
-                                    * 2.0
-                            })
-                            .sum::<Scalar>()
+                        .sum()
                 })
                 .collect())
         } else {
