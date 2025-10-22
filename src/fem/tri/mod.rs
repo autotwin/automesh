@@ -266,11 +266,21 @@ impl TriangularFiniteElements {
                     elements
                         .iter()
                         .map(|&element| {
-                            let [a, b, c] = element_node_connectivity[element];
-                            let u = &nodal_coordinates[a] - &nodal_coordinates[b];
-                            let v = &nodal_coordinates[a] - &nodal_coordinates[c];
-                            let w = &nodal_coordinates[b] - &nodal_coordinates[c];
-                            (u * v.cross(&w)).abs() / 6.0
+                            let mut foo = element_node_connectivity[element].to_vec();
+                            foo.retain(|node| node != &node_a);
+                            let [node_e, node_f] = foo.try_into().expect("Not exactly two nodes");
+                            // let u = coordinates_a - &nodal_coordinates[node_e];
+                            // let v = coordinates_a - &nodal_coordinates[node_f];
+                            // u.cross(&v).norm() / 6.0
+                            let p_a = coordinates_a;
+                            let p_b = &nodal_coordinates[node_e];
+                            let p_c = &nodal_coordinates[node_f];
+                            let midpoint_ab = (p_a.clone() + p_b) / 2.0;
+                            let midpoint_ca = (p_c.clone() + p_a) / 2.0;
+                            let u_a = &midpoint_ab - p_a;
+                            let v_a = &midpoint_ca - p_a;
+                            let area_a = u_a.cross(&v_a).norm() / 2.0;
+                            area_a * 4.0
                         })
                         .sum::<Scalar>()
                 })
@@ -378,7 +388,7 @@ fn split_edges(
             );
             nodal_coordinates
                 .push((nodal_coordinates[*node_a].clone() + &nodal_coordinates[*node_b]) / 2.0);
-            node_e = nodal_coordinates.len();
+            node_e = nodal_coordinates.len() - 1;
             spot_a = element_node_connectivity[element_index_1]
                 .iter()
                 .position(|node| node == node_a)
