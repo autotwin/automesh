@@ -883,6 +883,7 @@ fn write_finite_elements_to_exodus<const N: usize>(
     let mut element_blocks_unique = element_blocks.clone();
     element_blocks_unique.sort();
     element_blocks_unique.dedup();
+    file.add_dimension("time_step", 0)?;
     file.add_dimension("num_dim", NSD)?;
     file.add_dimension("num_elem", element_blocks.len())?;
     file.add_dimension("num_el_blk", element_blocks_unique.len())?;

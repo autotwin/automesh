@@ -10,12 +10,13 @@ use super::{
     Vector,
 };
 use conspire::{
-    math::{Tensor, TensorArray, TensorVec},
+    math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire},
     mechanics::Scalar,
 };
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
+    f64::consts::PI,
     fs::File,
     io::{BufWriter, Error as ErrorIO, Write},
     path::Path,
@@ -31,6 +32,7 @@ pub const TRI: usize = 3;
 
 const NUM_NODES_FACE: usize = 1;
 
+type Curvatures = VectorConspire;
 type Lengths = conspire::math::Vector;
 
 /// The triangular finite elements type.
@@ -102,7 +104,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
             .collect()
     }
     fn maximum_skews(&self) -> Metrics {
-        let deg_to_rad = std::f64::consts::PI / 180.0;
+        let deg_to_rad = PI / 180.0;
         let equilateral_rad = 60.0 * deg_to_rad;
         let minimum_angles = self.minimum_angles();
         minimum_angles
@@ -209,6 +211,58 @@ impl TriangularFiniteElements {
                 0.5 * (l0.cross(&l1)).norm()
             })
             .collect()
+    }
+    /// Calculates and returns the Gaussian curvature.
+    pub fn curvature(&self) -> Result<Curvatures, String> {
+        let mut edge = Vector::zero();
+        let mut edge_norm = 0.0;
+        let mut edges_weight = 0.0;
+        let mut element_index_1 = 0;
+        let mut element_index_2 = 0;
+        let mut node_c = 0;
+        let mut node_d = 0;
+        let element_node_connectivity = self.get_element_node_connectivity();
+        let node_element_connectivity = self.get_node_element_connectivity();
+        let node_node_connectivity = self.get_node_node_connectivity();
+        let nodal_coordinates = self.get_nodal_coordinates();
+        if !node_node_connectivity.is_empty() {
+            Ok(self
+                .get_nodal_coordinates()
+                .iter()
+                .zip(node_node_connectivity.iter().enumerate())
+                .map(|(coordinates_a, (node_a, nodes))| {
+                    edges_weight = 0.0;
+                    nodes
+                        .iter()
+                        .map(|&node_b| {
+                            [element_index_1, element_index_2, node_c, node_d] = edge_info(
+                                node_a,
+                                node_b,
+                                element_node_connectivity,
+                                node_element_connectivity,
+                            );
+                            edge = coordinates_a - &nodal_coordinates[node_b];
+                            edge_norm = edge.norm();
+                            edges_weight += edge_norm;
+                            ((&nodal_coordinates[node_c] - &nodal_coordinates[node_a])
+                                .cross(&(&nodal_coordinates[node_b] - &nodal_coordinates[node_c]))
+                                .normalized()
+                                * (&nodal_coordinates[node_d] - &nodal_coordinates[node_b])
+                                    .cross(
+                                        &(&nodal_coordinates[node_a] - &nodal_coordinates[node_d]),
+                                    )
+                                    .normalized())
+                            .acos()
+                                / PI
+                                * edge_norm
+                        })
+                        .sum::<Scalar>()
+                        / edges_weight
+                })
+                .collect())
+        } else {
+            Err("Need to calculate the node-to-node connectivity first".to_string())
+        }
     }
     fn minimum_angles(&self) -> Metrics {
         let nodal_coordinates = self.get_nodal_coordinates();
