@@ -16,6 +16,7 @@ use conspire::{
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
+    f64::consts::PI,
     fs::File,
     io::{BufWriter, Error as ErrorIO, Write},
     path::Path,
@@ -103,7 +104,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
             .collect()
     }
     fn maximum_skews(&self) -> Metrics {
-        let deg_to_rad = std::f64::consts::PI / 180.0;
+        let deg_to_rad = PI / 180.0;
         let equilateral_rad = 60.0 * deg_to_rad;
         let minimum_angles = self.minimum_angles();
         minimum_angles
@@ -214,6 +215,8 @@ impl TriangularFiniteElements {
     /// Calculates and returns the Gaussian curvature.
     pub fn curvature(&self) -> Result<Curvatures, String> {
         let mut edge = Vector::zero();
+        let mut edge_norm = 0.0;
+        let mut edges_weight = 0.0;
         let mut element_index_1 = 0;
         let mut element_index_2 = 0;
         let mut node_c = 0;
@@ -226,12 +229,9 @@ impl TriangularFiniteElements {
             Ok(self
                 .get_nodal_coordinates()
                 .iter()
-                .zip(
-                    node_node_connectivity
-                        .iter()
-                        .enumerate()
-                )
+                .zip(node_node_connectivity.iter().enumerate())
                 .map(|(coordinates_a, (node_a, nodes))| {
+                    edges_weight = 0.0;
                     nodes
                         .iter()
                         .map(|&node_b| {
@@ -245,18 +245,22 @@ impl TriangularFiniteElements {
                             // I think if the 4 vectors consecutively go around in a loop perfectly, do not have to check for up/down consistency?
                             //
                             edge = coordinates_a - &nodal_coordinates[node_b];
+                            edge_norm = edge.norm();
+                            edges_weight += edge_norm;
                             ((&nodal_coordinates[node_c] - &nodal_coordinates[node_a])
                                 .cross(&(&nodal_coordinates[node_b] - &nodal_coordinates[node_c]))
                                 .normalized()
                                 * (&nodal_coordinates[node_d] - &nodal_coordinates[node_b])
-                                    .cross(&(&nodal_coordinates[node_a] - &nodal_coordinates[node_d]))
-                                    .normalized()).acos()
-                                // * edge.norm()
-                                //
-                                // Unsure if better or worse off with scaling by the edge length.
-                                //
+                                    .cross(
+                                        &(&nodal_coordinates[node_a] - &nodal_coordinates[node_d]),
+                                    )
+                                    .normalized())
+                            .acos()
+                                / PI
+                                * edge_norm
                         })
-                        .sum()
+                        .sum::<Scalar>()
+                        / edges_weight
                 })
                 .collect())
         } else {
