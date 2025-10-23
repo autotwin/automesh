@@ -241,9 +241,6 @@ impl TriangularFiniteElements {
                                 element_node_connectivity,
                                 node_element_connectivity,
                             );
-                            //
-                            // I think if the 4 vectors consecutively go around in a loop perfectly, do not have to check for up/down consistency?
-                            //
                             edge = coordinates_a - &nodal_coordinates[node_b];
                             edge_norm = edge.norm();
                             edges_weight += edge_norm;
