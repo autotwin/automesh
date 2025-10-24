@@ -5,8 +5,8 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    super::Octree, Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics,
-    FiniteElements, Metrics, Smoothing, Tessellation, Vector,
+    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
+    Metrics, Smoothing, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
@@ -455,7 +455,7 @@ impl HexahedralFiniteElements {
 }
 
 impl From<Tessellation> for HexahedralFiniteElements {
-    fn from(tessellation: Tessellation) -> Self {
-        Octree::from(tessellation).into()
+    fn from(_tessellation: Tessellation) -> Self {
+        unimplemented!()
     }
 }

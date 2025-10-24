@@ -56,6 +56,10 @@ pub struct MeshArgs {
     #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
     pub remove: Option<Vec<usize>>,
 
+    /// Desired element size on the surface
+    #[arg(long, short = 's', value_name = "VAL")]
+    pub size: Option<f64>,
+
     /// Scaling (> 0.0) in the x-direction, applied before translation
     #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
     pub xscale: f64,
@@ -119,6 +123,7 @@ pub fn mesh<const M: usize, const N: usize, T>(
     nely: Option<usize>,
     nelz: Option<usize>,
     remove: Option<Vec<usize>>,
+    size: Option<f64>,
     xscale: f64,
     yscale: f64,
     zscale: f64,
@@ -140,9 +145,9 @@ where
             smoothing, input, output, defeature, nelx, nely, nelz, remove, scale, translate,
             metrics, quiet,
         ),
-        Some("stl") => {
-            mesh_tessellation::<M, N, T>(smoothing, input, output, scale, translate, metrics, quiet)
-        }
+        Some("stl") => mesh_tessellation::<M, N, T>(
+            smoothing, input, output, size, scale, translate, metrics, quiet,
+        ),
         _ => Err(invalid_input(&input, input_extension)),
     }
 }
@@ -375,6 +380,7 @@ pub fn mesh_tessellation<const M: usize, const N: usize, T>(
     smoothing: Option<MeshSmoothCommands>,
     input: String,
     output: String,
+    size: Option<f64>,
     scale: Scale,
     translate: Translate,
     metrics: Option<String>,
@@ -396,12 +402,7 @@ where
         }
         mesh_print_info(MeshBasis::Voxels, &scale, &translate)
     }
-
-    // This type conversion will have to be more specific because
-    // (1) triangles from tessellation is already defined
-    // (2) need more arguments like the desired element size when specified
-    let mut finite_elements = T::from(tessellation);
-
+    let mut finite_elements = T::from_tessellation(tessellation, size);
     if !quiet {
         let mut blocks = finite_elements.get_element_blocks().clone();
         let elements = blocks.len();
