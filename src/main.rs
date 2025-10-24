@@ -1,5 +1,5 @@
 use automesh::{
-    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, TET, TRI,
+    FiniteElementMethods, HexahedralFiniteElements, Octree, Remove, Scale,
     TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::{Parser, Subcommand};
@@ -366,7 +366,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                mesh::<HEX>(
+                mesh::<_, _, HexahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -387,7 +387,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             MeshSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                mesh::<TET>(
+                mesh::<_, _, TetrahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -408,7 +408,7 @@ fn main() -> Result<(), ErrorWrapper> {
             }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                mesh::<TRI>(
+                mesh::<_, _, TriangularFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,

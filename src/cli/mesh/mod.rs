@@ -1,17 +1,17 @@
 use super::{
     ErrorWrapper,
-    input::read_segmentation,
+    input::{invalid_input, read_segmentation, read_tessellation},
     output::{validate_output, write_finite_elements, write_metrics},
     remesh::{MeshRemeshCommands, apply_remeshing},
     smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
 use automesh::{
     FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, TET, TRI,
-    TetrahedralFiniteElements, Translate, TriangularFiniteElements,
+    Tessellation, TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::Subcommand;
 use conspire::math::TensorVec;
-use std::time::Instant;
+use std::{path::Path, time::Instant};
 
 #[derive(Subcommand)]
 pub enum MeshSubcommand {
@@ -110,7 +110,7 @@ pub enum MeshBasis {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn mesh<const N: usize>(
+pub fn mesh<const M: usize, const N: usize, T>(
     smoothing: Option<MeshSmoothCommands>,
     input: String,
     output: String,
@@ -127,17 +127,58 @@ pub fn mesh<const N: usize>(
     ztranslate: f64,
     metrics: Option<String>,
     quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let mut time = Instant::now();
-    let scale_temporary = Scale::from([xscale, yscale, zscale]);
-    let translate_temporary = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let remove = Remove::from(remove);
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    Tessellation: From<T>,
+{
     let scale = Scale::from([xscale, yscale, zscale]);
     let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
+    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
+    match input_extension {
+        Some("npy") | Some("spn") => mesh_segmentation::<N>(
+            smoothing, input, output, defeature, nelx, nely, nelz, remove, scale, translate,
+            metrics, quiet,
+        ),
+        Some("stl") => {
+            mesh_tessellation::<M, N, T>(smoothing, input, output, scale, translate, metrics, quiet)
+        }
+        _ => Err(invalid_input(&input, input_extension)),
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn mesh_segmentation<const N: usize>(
+    smoothing: Option<MeshSmoothCommands>,
+    input: String,
+    output: String,
+    defeature: Option<usize>,
+    nelx: Option<usize>,
+    nely: Option<usize>,
+    nelz: Option<usize>,
+    remove: Option<Vec<usize>>,
+    scale: Scale,
+    translate: Translate,
+    metrics: Option<String>,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    let mut time = Instant::now();
+    let remove: Remove = Remove::from(remove);
     let mut input_type = read_segmentation(
-        input, nelx, nely, nelz, remove, scale, translate, quiet, true,
+        input,
+        nelx,
+        nely,
+        nelz,
+        remove,
+        scale.clone(),
+        translate.clone(),
+        quiet,
+        true,
     )?;
     validate_output("mesh", &output)?;
+    //
+    // Might be able to generalize below if pass in T and stuff like `mesh_tessellation` does.
+    //
     match N {
         HEX => {
             if let Some(min_num_voxels) = defeature {
@@ -155,7 +196,7 @@ pub fn mesh<const N: usize>(
             if !quiet {
                 time = Instant::now();
                 print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
-                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                mesh_print_info(MeshBasis::Voxels, &scale, &translate)
             }
             let mut finite_elements: HexahedralFiniteElements = input_type.into();
             if !quiet {
@@ -214,7 +255,7 @@ pub fn mesh<const N: usize>(
             if !quiet {
                 time = Instant::now();
                 print!("     \x1b[1;96mMeshing\x1b[0m voxels into tetrahedra");
-                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
+                mesh_print_info(MeshBasis::Voxels, &scale, &translate)
             }
             let mut finite_elements: TetrahedralFiniteElements = input_type.into();
             if !quiet {
@@ -265,7 +306,7 @@ pub fn mesh<const N: usize>(
                         " \x1b[1;96mDefeaturing\x1b[0m clusters of {min_num_voxels} voxels or less",
                     );
                 } else {
-                    mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
+                    mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
                 }
             }
             let mut tree = Octree::from(input_type);
@@ -274,7 +315,7 @@ pub fn mesh<const N: usize>(
                 tree.defeature(min_num_voxels);
                 println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
                 time = Instant::now();
-                mesh_print_info(MeshBasis::Surfaces, &scale_temporary, &translate_temporary)
+                mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
             }
             let mut finite_elements = TriangularFiniteElements::from(tree);
             if !quiet {
@@ -327,6 +368,79 @@ pub fn mesh<const N: usize>(
         _ => panic!(),
     }
     Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn mesh_tessellation<const M: usize, const N: usize, T>(
+    smoothing: Option<MeshSmoothCommands>,
+    input: String,
+    output: String,
+    scale: Scale,
+    translate: Translate,
+    metrics: Option<String>,
+    quiet: bool,
+) -> Result<(), ErrorWrapper>
+where
+    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    Tessellation: From<T>,
+{
+    let mut time = Instant::now();
+    let tessellation = read_tessellation(&input, quiet, true)?;
+    if !quiet {
+        time = Instant::now();
+        match N {
+            HEX => print!("     \x1b[1;96mMeshing\x1b[0m adaptive hexahedra"),
+            TET => print!("     \x1b[1;96mMeshing\x1b[0m adaptive tetrahedra"),
+            TRI => print!("     \x1b[1;96mMeshing\x1b[0m adaptive triangles"),
+            _ => panic!(),
+        }
+        mesh_print_info(MeshBasis::Voxels, &scale, &translate)
+    }
+
+    // This type conversion will have to be more specific because
+    // (1) triangles from tessellation is already defined
+    // (2) need more arguments like the desired element size when specified
+    let mut finite_elements = T::from(tessellation);
+
+    if !quiet {
+        let mut blocks = finite_elements.get_element_blocks().clone();
+        let elements = blocks.len();
+        blocks.sort();
+        blocks.dedup();
+        println!(
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+            time.elapsed(),
+            blocks.len(),
+            elements,
+            finite_elements.get_nodal_coordinates().len()
+        );
+    }
+    if let Some(options) = smoothing {
+        match options {
+            MeshSmoothCommands::Smooth {
+                remeshing: _,
+                iterations,
+                method,
+                hierarchical,
+                pass_band,
+                scale,
+            } => {
+                apply_smoothing_method(
+                    &mut finite_elements,
+                    iterations,
+                    method,
+                    hierarchical,
+                    pass_band,
+                    scale,
+                    quiet,
+                )?;
+            }
+        }
+    }
+    if let Some(file) = metrics {
+        write_metrics(&finite_elements, file, quiet)?
+    }
+    write_finite_elements(output, finite_elements, quiet)
 }
 
 pub fn mesh_print_info(basis: MeshBasis, scale: &Scale, translate: &Translate) {

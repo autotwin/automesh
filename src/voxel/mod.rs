@@ -117,7 +117,7 @@ impl FromIterator<usize> for Nel {
 }
 
 /// The multiplying scale in each direction.
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Scale(Vector);
 
 impl Scale {
@@ -149,7 +149,7 @@ impl From<[f64; NSD]> for Scale {
 }
 
 /// The additive translation in each direction.
-#[derive(PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Translate(Vector);
 
 impl Translate {

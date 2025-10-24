@@ -2,6 +2,7 @@
 use std::time::Instant;
 
 mod hex;
+mod tessellation;
 
 use super::{
     Coordinate, Coordinates, NSD, Vector,
