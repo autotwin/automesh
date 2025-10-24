@@ -176,7 +176,7 @@ enum Commands {
         quiet: bool,
     },
 
-    /// Creates a finite element mesh from a segmentation
+    /// Creates a finite element mesh from a tessellation or segmentation
     Mesh {
         #[command(subcommand)]
         subcommand: MeshSubcommand,
@@ -383,7 +383,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
             MeshSubcommand::Tet(args) => {
@@ -405,7 +404,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
             MeshSubcommand::Tri(args) => {
@@ -427,7 +425,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
         },

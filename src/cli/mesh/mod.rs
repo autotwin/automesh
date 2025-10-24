@@ -15,11 +15,11 @@ use std::time::Instant;
 
 #[derive(Subcommand)]
 pub enum MeshSubcommand {
-    /// Creates an all-hexahedral mesh from a segmentation
+    /// Creates an all-hexahedral mesh from a tessellation or segmentation
     Hex(MeshArgs),
-    /// Creates an all-tetrahedral mesh from a segmentation
+    /// Creates an all-tetrahedral mesh from a tessellation or segmentation
     Tet(MeshArgs),
-    /// Creates all-triangular isosurface(s) from a segmentation
+    /// Creates all-triangular isosurface(s) from a tessellation or segmentation
     Tri(MeshArgs),
 }
 
@@ -28,7 +28,7 @@ pub struct MeshArgs {
     #[command(subcommand)]
     pub smoothing: Option<MeshSmoothCommands>,
 
-    /// Segmentation input file (npy | spn)
+    /// Tessellation (stl) or segmentation (npy | spn) input file
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
@@ -102,10 +102,6 @@ pub struct MeshArgs {
     /// Pass to quiet the terminal output
     #[arg(action, long, short)]
     pub quiet: bool,
-
-    /// Pass to mesh adaptively
-    #[arg(action, long)]
-    pub adapt: bool,
 }
 pub enum MeshBasis {
     Leaves,
@@ -131,7 +127,6 @@ pub fn mesh<const N: usize>(
     ztranslate: f64,
     metrics: Option<String>,
     quiet: bool,
-    adapt: bool,
 ) -> Result<(), ErrorWrapper> {
     let mut time = Instant::now();
     let scale_temporary = Scale::from([xscale, yscale, zscale]);
@@ -159,22 +154,10 @@ pub fn mesh<const N: usize>(
             }
             if !quiet {
                 time = Instant::now();
+                print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
+                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut finite_elements: HexahedralFiniteElements = if adapt {
-                if !quiet {
-                    print!("     \x1b[1;96mMeshing\x1b[0m adaptive hexahedra");
-                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
-                }
-                let mut tree = Octree::from(input_type);
-                tree.balance_and_pair(true);
-                tree.into()
-            } else {
-                if !quiet {
-                    print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
-                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
-                }
-                input_type.into()
-            };
+            let mut finite_elements: HexahedralFiniteElements = input_type.into();
             if !quiet {
                 let mut blocks = finite_elements.get_element_blocks().clone();
                 let elements = blocks.len();
@@ -230,16 +213,10 @@ pub fn mesh<const N: usize>(
             }
             if !quiet {
                 time = Instant::now();
+                print!("     \x1b[1;96mMeshing\x1b[0m voxels into tetrahedra");
+                mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
             }
-            let mut finite_elements: TetrahedralFiniteElements = if adapt {
-                Err("Adaptive tetrahedra not yet implemented".to_string())?
-            } else {
-                if !quiet {
-                    print!("     \x1b[1;96mMeshing\x1b[0m voxels into tetrahedra");
-                    mesh_print_info(MeshBasis::Voxels, &scale_temporary, &translate_temporary)
-                }
-                input_type.into()
-            };
+            let mut finite_elements: TetrahedralFiniteElements = input_type.into();
             if !quiet {
                 let mut blocks = finite_elements.get_element_blocks().clone();
                 let elements = blocks.len();
