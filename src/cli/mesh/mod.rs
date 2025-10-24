@@ -104,7 +104,7 @@ pub struct MeshArgs {
     pub quiet: bool,
 
     /// Pass to mesh adaptively
-    #[arg(action, hide = true, long)]
+    #[arg(action, long)]
     pub adapt: bool,
 }
 pub enum MeshBasis {
