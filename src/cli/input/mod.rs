@@ -149,3 +149,29 @@ pub fn read_segmentation(
     }
     Ok(voxels)
 }
+
+pub fn read_tessellation(
+    file: &str,
+    quiet: bool,
+    title: bool,
+) -> Result<Tessellation, ErrorWrapper> {
+    let time = Instant::now();
+    if !quiet {
+        if title {
+            println!(
+                "\x1b[1m    {} {}\x1b[0m",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            );
+        }
+        print!("     \x1b[1;96mReading\x1b[0m {file}");
+    }
+    let tessellation = Tessellation::try_from(file)?;
+    if !quiet {
+        println!(
+            "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
+            time.elapsed()
+        );
+    }
+    Ok(tessellation)
+}

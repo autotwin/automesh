@@ -1,5 +1,5 @@
 use automesh::{
-    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, TET, TRI,
+    FiniteElementMethods, HexahedralFiniteElements, Octree, Remove, Scale,
     TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::{Parser, Subcommand};
@@ -176,7 +176,7 @@ enum Commands {
         quiet: bool,
     },
 
-    /// Creates a finite element mesh from a segmentation
+    /// Creates a finite element mesh from a tessellation or segmentation
     Mesh {
         #[command(subcommand)]
         subcommand: MeshSubcommand,
@@ -366,7 +366,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                mesh::<HEX>(
+                mesh::<_, _, HexahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -375,6 +375,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.nely,
                     args.nelz,
                     args.remove,
+                    args.size,
                     args.xscale,
                     args.yscale,
                     args.zscale,
@@ -383,12 +384,11 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
             MeshSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                mesh::<TET>(
+                mesh::<_, _, TetrahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -397,6 +397,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.nely,
                     args.nelz,
                     args.remove,
+                    args.size,
                     args.xscale,
                     args.yscale,
                     args.zscale,
@@ -405,12 +406,11 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                mesh::<TRI>(
+                mesh::<_, _, TriangularFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -419,6 +419,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.nely,
                     args.nelz,
                     args.remove,
+                    args.size,
                     args.xscale,
                     args.yscale,
                     args.zscale,
@@ -427,7 +428,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
         },

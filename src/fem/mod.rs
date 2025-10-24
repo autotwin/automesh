@@ -11,7 +11,7 @@ pub use tri::{TRI, TriangularFiniteElements};
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use super::{Coordinate, Coordinates, NSD, Tessellation, Vector};
+use super::{Coordinate, Coordinates, NSD, Octree, Remove, Tessellation, Vector};
 use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
@@ -19,7 +19,7 @@ use conspire::{
         ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron, LinearTetrahedron,
     },
     math::{
-        Tensor, TensorArray, TensorVec,
+        Scalar, Tensor, TensorArray, TensorVec,
         optimize::{EqualityConstraint, GradientDescent, LineSearch},
     },
 };
@@ -47,16 +47,17 @@ pub type Blocks = Vec<u8>;
 /// An element-to-node connectivity.
 pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 
-pub type Metrics = Array1<f64>;
+pub type Metrics = Array1<Scalar>;
 pub type Nodes = Vec<usize>;
 pub type ReorderedConnectivity = Vec<Vec<u32>>;
+pub type Size = Option<Scalar>;
 pub type VecConnectivity = Vec<Vec<usize>>;
 
 /// Possible smoothing methods.
 pub enum Smoothing {
     Energetic,
-    Laplacian(usize, f64),
-    Taubin(usize, f64, f64),
+    Laplacian(usize, Scalar),
+    Taubin(usize, Scalar, Scalar),
 }
 
 /// The finite elements type.
@@ -98,6 +99,8 @@ where
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF>;
     /// Constructs and returns a new finite elements type from an Abaqus input file.
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO>;
+    /// Creates a conformal mesh within a tessellation.
+    fn from_tessellation(tessellation: Tessellation, size: Size) -> Self;
     /// Calculates and returns the discrete Laplacian for the given node-to-node connectivity.
     fn laplacian(&self, node_node_connectivity: &VecConnectivity) -> Coordinates;
     /// Calculates and sets the nodal influencers.
@@ -233,6 +236,29 @@ where
             element_node_connectivity,
             nodal_coordinates,
         ))
+    }
+    fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
+        let mut tree = Octree::from_tessellation(tessellation, size);
+        //
+        // Below is temporary for octree visualization.
+        //
+        tree.prune();
+        let remove = match tree.remove() {
+            Remove::Some(blocks) => Some(blocks.clone()),
+            Remove::None => None,
+        };
+        let scale = tree.scale().clone();
+        let translate = tree.translate().clone();
+        let hexes = tree
+            .octree_into_finite_elements(remove, scale, translate)
+            .unwrap();
+        let (element_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
+        let mut element_node_connectivity = vec![[0; N]; hex_connectivity.len()];
+        element_node_connectivity
+            .iter_mut()
+            .zip(hex_connectivity)
+            .for_each(|(a, b)| a.iter_mut().zip(b).for_each(|(c, d)| *c = d));
+        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
     }
     fn laplacian(&self, node_node_connectivity: &VecConnectivity) -> Coordinates {
         let nodal_coordinates = self.get_nodal_coordinates();

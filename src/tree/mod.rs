@@ -2,13 +2,15 @@
 use std::time::Instant;
 
 mod hex;
+mod tessellation;
 
 use super::{
     Coordinate, Coordinates, NSD, Vector,
     fem::{
-        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, TriangularFiniteElements,
-        hex::HexConnectivity,
+        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, Size,
+        TriangularFiniteElements, hex::HexConnectivity,
     },
+    tessellation::Tessellation,
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
 use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
@@ -19,6 +21,7 @@ use std::{
     iter::repeat_n,
     ops::{Deref, DerefMut},
 };
+use tessellation::{octree_from_bounding_cube, octree_from_tessellation};
 
 pub const PADDING: u8 = 255;
 
@@ -1345,51 +1348,7 @@ impl Octree {
         let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(grid);
         blocks.extend(vec![PADDING; exterior_face_samples.len()]);
         samples.append(&mut exterior_face_samples);
-        let (minimum, mut maximum) = samples.iter().fold(
-            (
-                Coordinate::new([f64::INFINITY; NSD]),
-                Coordinate::new([f64::NEG_INFINITY; NSD]),
-            ),
-            |(mut minimum, mut maximum), coordinate| {
-                minimum
-                    .iter_mut()
-                    .zip(maximum.iter_mut().zip(coordinate.iter()))
-                    .for_each(|(min, (max, &coord))| {
-                        *min = min.min(coord);
-                        *max = max.max(coord);
-                    });
-                (minimum, maximum)
-            },
-        );
-        maximum -= &minimum;
-        let scale = 1.0 / size;
-        let total_length = maximum.clone().into_iter().reduce(f64::max).unwrap();
-        let nel0 = total_length / size;
-        let nel = if nel0 > 0.0 && (nel0.log2().fract() == 0.0) {
-            nel0 as usize
-        } else {
-            2.0_f64.powf(nel0.log2().ceil()) as usize
-        };
-        samples.iter_mut().for_each(|sample| {
-            *sample -= &minimum;
-            *sample *= &scale;
-        });
-        let mut tree = Octree {
-            nel: Nel::from([nel; NSD]),
-            octree: vec![],
-            remove: Remove::Some(vec![PADDING]),
-            scale: Scale::from([1.0 / scale; NSD]),
-            translate: Translate::from(minimum),
-        };
-        tree.push(Cell {
-            block: None,
-            cells: None,
-            faces: [None; NUM_FACES],
-            lngth: nel as u16,
-            min_x: 0,
-            min_y: 0,
-            min_z: 0,
-        });
+        let mut tree = octree_from_bounding_cube(&mut samples, size);
         let mut index = 0;
         while index < tree.len() {
             if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &samples) {
@@ -1400,6 +1359,9 @@ impl Octree {
             index += 1;
         }
         tree
+    }
+    pub fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
+        octree_from_tessellation(tessellation, size)
     }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())
@@ -1594,6 +1556,12 @@ impl Octree {
             time.elapsed()
         );
     }
+    pub fn remove(&self) -> &Remove {
+        &self.remove
+    }
+    pub fn scale(&self) -> &Scale {
+        &self.scale
+    }
     fn subdivide(&mut self, index: usize) {
         assert!(self[index].is_leaf());
         let new_indices = from_fn(|n| self.len() + n);
@@ -1650,6 +1618,9 @@ impl Octree {
                 }
             });
         supercells
+    }
+    pub fn translate(&self) -> &Translate {
+        &self.translate
     }
 }
 
