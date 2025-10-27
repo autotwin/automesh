@@ -94,7 +94,7 @@ impl From<Octree> for TriangularFiniteElements {
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut node_new = 0;
         let nodes_len = (tree[0].get_lngth() + 1) as usize;
-        let mut nodes = vec![vec![vec![None::<usize>; nodes_len]; nodes_len]; nodes_len];
+        let mut nodes = vec![vec![vec![None; nodes_len]; nodes_len]; nodes_len];
         (0..boundaries_cells_faces.len()).for_each(|boundary| {
             boundaries_cells_faces[boundary]
                 .iter()
@@ -154,19 +154,47 @@ impl From<Octree> for TriangularFiniteElements {
         });
         let node_face_connectivity =
             invert_connectivity(&faces_connectivity, nodal_coordinates.len());
-        let non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
-        non_manifold_edges.iter().for_each(|non_manifold_edge_a| {
-            non_manifold_edges.iter().for_each(|non_manifold_edge_b| {
-                if non_manifold_edge_a
-                    .iter()
-                    .filter(|node_a| non_manifold_edge_b.contains(node_a))
-                    .count()
-                    == 1
-                {
-                    panic!("Consecutive non-manifold edges are currently unsupported.")
-                }
+        let mut non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
+        let consecutive_non_manifold_edges: Edges = non_manifold_edges
+            .iter()
+            .filter(|non_manifold_edge_a| {
+                non_manifold_edges.iter().any(|non_manifold_edge_b| {
+                    non_manifold_edge_a
+                        .iter()
+                        .filter(|node_a| non_manifold_edge_b.contains(node_a))
+                        .count()
+                        == 1
+                })
             })
+            .copied()
+            .collect();
+        non_manifold_edges.retain(|non_manifold_edge| {
+            consecutive_non_manifold_edges
+                .binary_search(non_manifold_edge)
+                .is_err()
         });
+        let mut consecutive_non_manifold_nodes: Vec<usize> = consecutive_non_manifold_edges
+            .into_iter()
+            .flatten()
+            .collect();
+        consecutive_non_manifold_nodes.sort();
+        consecutive_non_manifold_nodes.dedup();
+        let mut non_manifold_node_position = 0;
+        consecutive_non_manifold_nodes
+            .into_iter()
+            .for_each(|non_manifold_node| {
+                node_face_connectivity[non_manifold_node]
+                    .iter()
+                    .for_each(|&non_manifold_face| {
+                        non_manifold_node_position = faces_connectivity[non_manifold_face]
+                            .iter()
+                            .position(|node| node == &non_manifold_node)
+                            .expect("Position of node not found");
+                        faces_connectivity[non_manifold_face][non_manifold_node_position] =
+                            nodal_coordinates.len();
+                        nodal_coordinates.push(nodal_coordinates[non_manifold_node].clone());
+                    })
+            });
         non_manifold_edges.iter().for_each(|edge| {
             let non_manifold_faces: Vec<usize> = node_face_connectivity[edge[0]]
                 .iter()
