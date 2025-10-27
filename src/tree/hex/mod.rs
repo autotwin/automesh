@@ -1,4 +1,17 @@
-use super::{Coordinates, Faces, HEX, HexConnectivity, Indices, NodeMap, Octree};
+#[cfg(feature = "profile")]
+use std::time::Instant;
+
+use crate::{
+    Coordinate, Coordinates, Octree,
+    fem::{
+        FiniteElementMethods,
+        hex::{HEX, HexConnectivity, HexahedralFiniteElements},
+    },
+    tree::{Faces, Indices, NodeMap},
+};
+use conspire::math::{TensorArray, TensorVec};
+use ndarray::parallel::prelude::*;
+use std::collections::HashMap;
 
 pub mod edge_template_1;
 mod edge_template_2;
@@ -27,6 +40,76 @@ mod vertex_template_6; // (O, A, AB, b) => (o, A, ab, b)
 mod vertex_template_7; // (O, a, ab, b) => (o, a, ab, b)
 mod vertex_template_8; // (O, A, AB, b) => (o, a, ab, b)
 mod vertex_template_9; // (O, a, ab, b) => (o, a, AB, b)
+
+impl From<Octree> for HexahedralFiniteElements {
+    fn from(tree: Octree) -> Self {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let mut cells_nodes = vec![0; tree.len()];
+        let mut nodal_coordinates = Coordinates::zero(0);
+        let mut node_index = 0;
+        tree.iter()
+            .enumerate()
+            .filter(|(_, cell)| cell.is_leaf())
+            .for_each(|(leaf_index, leaf)| {
+                cells_nodes[leaf_index] = node_index;
+                nodal_coordinates.push(Coordinate::new([
+                    (leaf.get_min_x() + leaf.get_lngth()) as f64 * tree.scale.x()
+                        + tree.translate.x(),
+                    (leaf.get_min_y() + leaf.get_lngth()) as f64 * tree.scale.y()
+                        + tree.translate.y(),
+                    (leaf.get_min_z() + leaf.get_lngth()) as f64 * tree.scale.z()
+                        + tree.translate.z(),
+                ]));
+                node_index += 1;
+            });
+        let mut element_node_connectivity: HexConnectivity = vec![];
+        let mut nodes_map = HashMap::new();
+        edge_template_1::apply(
+            &cells_nodes,
+            &mut nodes_map,
+            &mut node_index,
+            &tree,
+            &mut element_node_connectivity,
+            &mut nodal_coordinates,
+        );
+        edge_template_3::apply(
+            &cells_nodes,
+            &mut nodes_map,
+            &mut node_index,
+            &tree,
+            &mut element_node_connectivity,
+            &mut nodal_coordinates,
+        );
+        face_template_1::apply(
+            &cells_nodes,
+            &mut nodes_map,
+            &mut node_index,
+            &tree,
+            &mut element_node_connectivity,
+            &mut nodal_coordinates,
+        );
+        element_node_connectivity.append(
+            &mut (1..=25)
+                .into_par_iter()
+                .flat_map(|index| {
+                    apply_concurrently(index, &cells_nodes, &nodes_map, &tree, &nodal_coordinates)
+                })
+                .collect(),
+        );
+        let fem = Self::from_data(
+            vec![1; element_node_connectivity.len()],
+            element_node_connectivity,
+            nodal_coordinates,
+        );
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mDualization of octree\x1b[0m {:?} ",
+            time.elapsed()
+        );
+        fem
+    }
+}
 
 pub fn apply_concurrently(
     index: usize,
