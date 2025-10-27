@@ -118,6 +118,7 @@ type NodeMap = HashMap<(usize, usize, usize), usize>;
 type SubSubCellsFace = [usize; NUM_SUBSUBCELLS_FACE];
 
 /// The octree type.
+#[derive(Debug)]
 pub struct Octree {
     nel: Nel,
     octree: Vec<Cell>,

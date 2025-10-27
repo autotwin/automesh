@@ -117,7 +117,7 @@ impl FromIterator<usize> for Nel {
 }
 
 /// The multiplying scale in each direction.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Scale(Vector);
 
 impl Scale {
@@ -149,7 +149,7 @@ impl From<[f64; NSD]> for Scale {
 }
 
 /// The additive translation in each direction.
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Translate(Vector);
 
 impl Translate {
@@ -183,6 +183,7 @@ impl From<[f64; NSD]> for Translate {
 }
 
 /// The voxels IDs to be removed.
+#[derive(Debug)]
 pub enum Remove {
     None,
     Some(Blocks),

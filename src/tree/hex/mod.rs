@@ -9,7 +9,7 @@ use crate::{
     },
     tree::{Faces, Indices, NodeMap},
 };
-use conspire::math::{TensorArray, TensorVec};
+use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::parallel::prelude::*;
 use std::collections::HashMap;
 
@@ -46,6 +46,9 @@ impl From<Octree> for HexahedralFiniteElements {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut cells_nodes = vec![0; tree.len()];
+        //
+        // Consider making `nodal_coordinates` type Vec<[usize; 3]> and converting to Coordinates at the end.
+        //
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut node_index = 0;
         tree.iter()
@@ -54,12 +57,9 @@ impl From<Octree> for HexahedralFiniteElements {
             .for_each(|(leaf_index, leaf)| {
                 cells_nodes[leaf_index] = node_index;
                 nodal_coordinates.push(Coordinate::new([
-                    (leaf.get_min_x() + leaf.get_lngth()) as f64 * tree.scale.x()
-                        + tree.translate.x(),
-                    (leaf.get_min_y() + leaf.get_lngth()) as f64 * tree.scale.y()
-                        + tree.translate.y(),
-                    (leaf.get_min_z() + leaf.get_lngth()) as f64 * tree.scale.z()
-                        + tree.translate.z(),
+                    (leaf.get_min_x() + leaf.get_lngth()).into(),
+                    (leaf.get_min_y() + leaf.get_lngth()).into(),
+                    (leaf.get_min_z() + leaf.get_lngth()).into(),
                 ]));
                 node_index += 1;
             });
@@ -97,6 +97,14 @@ impl From<Octree> for HexahedralFiniteElements {
                 })
                 .collect(),
         );
+        nodal_coordinates.iter_mut().for_each(|coordinates| {
+            coordinates[0] *= tree.scale.x();
+            coordinates[1] *= tree.scale.y();
+            coordinates[2] *= tree.scale.z();
+            coordinates[0] += tree.translate.x();
+            coordinates[1] += tree.translate.y();
+            coordinates[2] += tree.translate.z();
+        });
         let fem = Self::from_data(
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
