@@ -6,6 +6,12 @@ use crate::{
 };
 use conspire::math::{Scalar, Tensor, TensorArray};
 
+impl From<Octree> for Tessellation {
+    fn from(tree: Octree) -> Self {
+        TriangularFiniteElements::from(tree).into()
+    }
+}
+
 pub fn octree_from_tessellation(tessellation: Tessellation, size: Size) -> Octree {
     let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
     let (blocks, _, mut surface_coordinates) = triangular_finite_elements.data();
