@@ -38,7 +38,7 @@ pub fn octree_from_tessellation(tessellation: Tessellation, size: Size) -> Octre
 }
 
 pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: Scalar) -> Octree {
-    let (minimum, mut maximum) = samples.iter().fold(
+    let (minimum, maximum) = samples.iter().fold(
         (
             Coordinate::new([f64::INFINITY; NSD]),
             Coordinate::new([f64::NEG_INFINITY; NSD]),
@@ -54,17 +54,15 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
             (minimum, maximum)
         },
     );
-    maximum -= &minimum;
+    let maximum_length = (maximum.clone() - &minimum)
+        .into_iter()
+        .reduce(f64::max)
+        .unwrap();
     let scale = 1.0 / minimum_cell_size;
-    let total_length = maximum.clone().into_iter().reduce(f64::max).unwrap();
-    let nel0 = total_length / minimum_cell_size;
-    let nel = if nel0 > 0.0 && (nel0.log2().fract() == 0.0) {
-        nel0 as usize
-    } else {
-        2.0_f64.powf(nel0.log2().ceil()) as usize
-    };
+    let nel = 2.0_f64.powf((maximum_length / minimum_cell_size).log2().ceil()) as usize;
+    let translation = minimum + maximum - Coordinate::new([0.5 * (nel as f64) / scale; NSD]);
     samples.iter_mut().for_each(|sample| {
-        *sample -= &minimum;
+        *sample -= &translation;
         *sample *= &scale;
     });
     let mut tree = Octree {
@@ -72,7 +70,7 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
         octree: vec![],
         remove: Remove::Some(vec![PADDING]),
         scale: Scale::from([1.0 / scale; NSD]),
-        translate: Translate::from(minimum),
+        translate: Translate::from(translation),
     };
     tree.push(Cell {
         block: None,
