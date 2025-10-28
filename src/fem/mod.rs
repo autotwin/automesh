@@ -19,7 +19,7 @@ use conspire::{
         ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron, LinearTetrahedron,
     },
     math::{
-        Scalar, Tensor, TensorArray, TensorVec,
+        Scalar, Tensor, TensorArray, TensorRank1List, TensorVec,
         optimize::{EqualityConstraint, GradientDescent, LineSearch},
     },
 };
@@ -40,6 +40,9 @@ use vtkio::{
 
 const ELEMENT_NUMBERING_OFFSET: usize = 1;
 const NODE_NUMBERING_OFFSET: usize = 1;
+
+/// A bounding box described by two opposing corners.
+pub type BoundingBox = TensorRank1List<3, 1, 2>;
 
 /// A vector of finite element block IDs.
 pub type Blocks = Vec<u8>;
@@ -83,6 +86,8 @@ pub trait FiniteElementMethods<const M: usize, const N: usize>
 where
     Self: FiniteElementSpecifics<M> + Sized,
 {
+    /// Calculates and returns the bounding box.
+    fn bounding_box(&self) -> BoundingBox;
     /// Calculates and returns the coordinates of the centroids.
     fn centroids(&self) -> Coordinates;
     /// Returns and moves the data associated with the finite elements.
@@ -111,6 +116,8 @@ where
     fn node_element_connectivity(&mut self) -> Result<(), &str>;
     /// Calculates and sets the node-to-node connectivity.
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
+    /// Remove elements with nodes that are outside a given bounding box.
+    fn remove_outside_bounding_box(&mut self, bounding_box: BoundingBox);
     /// Smooths the nodal coordinates according to the provided smoothing method.
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String>;
     /// Writes the finite elements data to a new Exodus file.
@@ -163,6 +170,25 @@ impl<const M: usize, const N: usize> FiniteElementMethods<M, N> for FiniteElemen
 where
     Self: FiniteElementSpecifics<M> + Sized,
 {
+    fn bounding_box(&self) -> BoundingBox {
+        let (minimum, maximum) = self.get_nodal_coordinates().iter().fold(
+            (
+                Coordinate::new([f64::INFINITY; NSD]),
+                Coordinate::new([f64::NEG_INFINITY; NSD]),
+            ),
+            |(mut minimum, mut maximum), coordinate| {
+                minimum
+                    .iter_mut()
+                    .zip(maximum.iter_mut().zip(coordinate.iter()))
+                    .for_each(|(min, (max, &coord))| {
+                        *min = min.min(coord);
+                        *max = max.max(coord);
+                    });
+                (minimum, maximum)
+            },
+        );
+        BoundingBox::new([minimum.into(), maximum.into()])
+    }
     fn centroids(&self) -> Coordinates {
         let coordinates = self.get_nodal_coordinates();
         let number_of_nodes = N as f64;
@@ -238,10 +264,13 @@ where
         ))
     }
     fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
-        let tree = Octree::from_tessellation(tessellation, size);
+        let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
+        let bounding_box = triangular_finite_elements.bounding_box();
+        let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size);
         match N {
             HEX => {
-                let hexes = HexahedralFiniteElements::from(tree);
+                let mut hexes = HexahedralFiniteElements::from(tree);
+                hexes.remove_outside_bounding_box(bounding_box);
                 let (element_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
                 let mut element_node_connectivity = vec![[0; N]; hex_connectivity.len()];
                 element_node_connectivity
@@ -447,6 +476,59 @@ where
         } else {
             Err("Need to calculate the node-to-element connectivity first")
         }
+    }
+    fn remove_outside_bounding_box(&mut self, bounding_box: BoundingBox) {
+        let [[min_x, min_y, min_z], [max_x, max_y, max_z]] = bounding_box.as_array();
+        let removed_nodes: Vec<usize> = self
+            .get_nodal_coordinates()
+            .iter()
+            .enumerate()
+            .filter(|(_, coordinates)| {
+                coordinates[0] < min_x
+                    || coordinates[0] > max_x
+                    || coordinates[1] < min_y
+                    || coordinates[1] > max_y
+                    || coordinates[2] < min_z
+                    || coordinates[2] > max_z
+            })
+            .map(|(node, _)| node)
+            .collect();
+        let removed_elements: Vec<usize> = self
+            .get_element_node_connectivity()
+            .iter()
+            .enumerate()
+            .filter(|(_, nodes)| {
+                nodes
+                    .iter()
+                    .any(|node| removed_nodes.binary_search(node).is_ok())
+            })
+            .map(|(element, _)| element)
+            .collect();
+        let mut shift = 0;
+        removed_elements.into_iter().for_each(|removed_element| {
+            self.element_blocks.remove(removed_element - shift);
+            self.element_node_connectivity
+                .remove(removed_element - shift);
+            shift += 1;
+        });
+        // self.element_node_connectivity.retain(|nodes| {
+        //     nodes
+        //         .iter()
+        //         .any(|node| removed_nodes.binary_search(node).is_err())
+        // });
+        let mut shift = 0;
+        removed_nodes.into_iter().for_each(|removed_node| {
+            self.element_node_connectivity.iter_mut().for_each(|nodes| {
+                nodes
+                    .iter_mut()
+                    .filter(|node| **node > removed_node - shift)
+                    .for_each(|node| *node -= 1)
+            });
+            self.nodal_coordinates.remove(removed_node - shift);
+            shift += 1;
+        });
+        self.node_element_connectivity = Vec::new();
+        self.node_node_connectivity = Vec::new();
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {

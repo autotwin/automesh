@@ -8,9 +8,9 @@ mod tri;
 use super::{
     Coordinate, Coordinates, NSD, Vector,
     fem::{
-        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, Size, hex::HexConnectivity,
+        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, Size,
+        TriangularFiniteElements, hex::HexConnectivity,
     },
-    tessellation::Tessellation,
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
 use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
@@ -21,7 +21,7 @@ use std::{
     iter::repeat_n,
     ops::{Deref, DerefMut},
 };
-use tessellation::{octree_from_bounding_cube, octree_from_tessellation};
+use tessellation::{octree_from_bounding_cube, octree_from_triangular_finite_elements};
 
 pub const PADDING: u8 = 255;
 
@@ -1282,8 +1282,11 @@ impl Octree {
         }
         tree
     }
-    pub fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
-        octree_from_tessellation(tessellation, size)
+    pub fn from_triangular_finite_elements(
+        triangular_finite_elements: TriangularFiniteElements,
+        size: Size,
+    ) -> Self {
+        octree_from_triangular_finite_elements(triangular_finite_elements, size)
     }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())

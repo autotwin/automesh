@@ -12,8 +12,10 @@ impl From<Octree> for Tessellation {
     }
 }
 
-pub fn octree_from_tessellation(tessellation: Tessellation, size: Size) -> Octree {
-    let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
+pub fn octree_from_triangular_finite_elements(
+    triangular_finite_elements: TriangularFiniteElements,
+    size: Size,
+) -> Octree {
     let (blocks, _, mut surface_coordinates) = triangular_finite_elements.data();
     let block = blocks[0];
     if !blocks.iter().all(|entry| entry == &block) {
