@@ -19,7 +19,7 @@ use conspire::{
         ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron, LinearTetrahedron,
     },
     math::{
-        Scalar, Tensor, TensorArray, TensorVec,
+        Scalar, Tensor, TensorArray, TensorRank1List, TensorVec,
         optimize::{EqualityConstraint, GradientDescent, LineSearch},
     },
 };
@@ -28,6 +28,7 @@ use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
+    mem::transmute,
     path::PathBuf,
 };
 use vtkio::{
@@ -41,12 +42,16 @@ use vtkio::{
 const ELEMENT_NUMBERING_OFFSET: usize = 1;
 const NODE_NUMBERING_OFFSET: usize = 1;
 
+/// A bounding box described by two opposing corners.
+pub type BoundingBox = TensorRank1List<3, 1, 2>;
+
 /// A vector of finite element block IDs.
 pub type Blocks = Vec<u8>;
 
 /// An element-to-node connectivity.
 pub type Connectivity<const N: usize> = Vec<[usize; N]>;
 
+pub type Data<const N: usize> = (Blocks, Connectivity<N>, Coordinates);
 pub type Metrics = Array1<Scalar>;
 pub type Nodes = Vec<usize>;
 pub type ReorderedConnectivity = Vec<Vec<u32>>;
@@ -83,10 +88,12 @@ pub trait FiniteElementMethods<const M: usize, const N: usize>
 where
     Self: FiniteElementSpecifics<M> + Sized,
 {
+    /// Calculates and returns the bounding box.
+    fn bounding_box(&self) -> BoundingBox;
     /// Calculates and returns the coordinates of the centroids.
     fn centroids(&self) -> Coordinates;
     /// Returns and moves the data associated with the finite elements.
-    fn data(self) -> (Blocks, Connectivity<N>, Coordinates);
+    fn data(self) -> Data<N>;
     /// Returns the centroid for each exterior face.
     fn exterior_faces_centroids(&self) -> Coordinates;
     /// Constructs and returns a new finite elements type from data.
@@ -111,6 +118,10 @@ where
     fn node_element_connectivity(&mut self) -> Result<(), &str>;
     /// Calculates and sets the node-to-node connectivity.
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
+    /// Remove nodes and elements that connect to them.
+    fn remove_nodes(self, removed_nodes: Nodes) -> Data<N>;
+    /// Remove elements with nodes that are outside a given bounding box.
+    fn remove_nodes_outside(self, bounding_box: BoundingBox) -> Data<N>;
     /// Smooths the nodal coordinates according to the provided smoothing method.
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String>;
     /// Writes the finite elements data to a new Exodus file.
@@ -163,6 +174,33 @@ impl<const M: usize, const N: usize> FiniteElementMethods<M, N> for FiniteElemen
 where
     Self: FiniteElementSpecifics<M> + Sized,
 {
+    fn bounding_box(&self) -> BoundingBox {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let (minimum, maximum) = self.get_nodal_coordinates().iter().fold(
+            (
+                Coordinate::new([f64::INFINITY; NSD]),
+                Coordinate::new([f64::NEG_INFINITY; NSD]),
+            ),
+            |(mut minimum, mut maximum), coordinate| {
+                minimum
+                    .iter_mut()
+                    .zip(maximum.iter_mut().zip(coordinate.iter()))
+                    .for_each(|(min, (max, &coord))| {
+                        *min = min.min(coord);
+                        *max = max.max(coord);
+                    });
+                (minimum, maximum)
+            },
+        );
+        let bounding_box = BoundingBox::new([minimum.into(), maximum.into()]);
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mBounding box function\x1b[0m {:?}",
+            time.elapsed()
+        );
+        bounding_box
+    }
     fn centroids(&self) -> Coordinates {
         let coordinates = self.get_nodal_coordinates();
         let number_of_nodes = N as f64;
@@ -177,7 +215,7 @@ where
             })
             .collect()
     }
-    fn data(self) -> (Blocks, Connectivity<N>, Coordinates) {
+    fn data(self) -> Data<N> {
         (
             self.element_blocks,
             self.element_node_connectivity,
@@ -238,22 +276,20 @@ where
         ))
     }
     fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
-        let tree = Octree::from_tessellation(tessellation, size);
-        match N {
-            HEX => {
-                let hexes = HexahedralFiniteElements::from(tree);
-                let (element_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
-                let mut element_node_connectivity = vec![[0; N]; hex_connectivity.len()];
-                element_node_connectivity
-                    .iter_mut()
-                    .zip(hex_connectivity)
-                    .for_each(|(a, b)| a.iter_mut().zip(b).for_each(|(c, d)| *c = d));
-                Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
-            }
+        let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
+        let bounding_box = triangular_finite_elements.bounding_box();
+        let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size);
+        let hexes = match N {
+            HEX => HexahedralFiniteElements::from(tree),
             _ => panic!(),
-        }
+        };
+        let (element_blocks, connectivity, nodal_coordinates) =
+            hexes.remove_nodes_outside(bounding_box);
+        let element_node_connectivity =
+            unsafe { transmute::<Connectivity<8>, Connectivity<N>>(connectivity) };
+        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
         //
-        // Below is temporary for octree visualization.
+        // Below is temporary code used for octree visualization.
         //
         // tree.prune();
         // let remove = match tree.remove() {
@@ -447,6 +483,96 @@ where
         } else {
             Err("Need to calculate the node-to-element connectivity first")
         }
+    }
+    fn remove_nodes(self, removed_nodes: Nodes) -> Data<N> {
+        let mut is_removed_node = vec![false; self.nodal_coordinates.len()];
+        removed_nodes
+            .iter()
+            .for_each(|&removed_node| is_removed_node[removed_node] = true);
+        let mut shift = 0;
+        let decrements: Nodes = is_removed_node
+            .iter()
+            .map(|&node_is_removed| {
+                if node_is_removed {
+                    shift += 1;
+                }
+                shift
+            })
+            .collect();
+        let mut is_removed_elements = vec![false; self.nodal_coordinates.len()];
+        self.element_node_connectivity
+            .iter()
+            .enumerate()
+            .filter(|(_, nodes)| {
+                nodes
+                    .iter()
+                    .any(|node| removed_nodes.binary_search(node).is_ok())
+            })
+            .for_each(|(removed_element, _)| is_removed_elements[removed_element] = true);
+        let element_blocks = self
+            .element_blocks
+            .into_iter()
+            .zip(is_removed_elements.iter())
+            .filter_map(|(block, &element_is_removed)| {
+                if element_is_removed {
+                    None
+                } else {
+                    Some(block)
+                }
+            })
+            .collect();
+        let mut element_node_connectivity: Connectivity<N> = self
+            .element_node_connectivity
+            .into_iter()
+            .zip(is_removed_elements)
+            .filter_map(|(coord, element_is_removed)| {
+                if element_is_removed {
+                    None
+                } else {
+                    Some(coord)
+                }
+            })
+            .collect();
+        element_node_connectivity
+            .iter_mut()
+            .for_each(|nodes| nodes.iter_mut().for_each(|node| *node -= decrements[*node]));
+        let nodal_coordinates = self
+            .nodal_coordinates
+            .into_iter()
+            .zip(is_removed_node)
+            .filter_map(
+                |(coord, node_is_removed)| {
+                    if node_is_removed { None } else { Some(coord) }
+                },
+            )
+            .collect();
+        (element_blocks, element_node_connectivity, nodal_coordinates)
+    }
+    fn remove_nodes_outside(self, bounding_box: BoundingBox) -> Data<N> {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let [[min_x, min_y, min_z], [max_x, max_y, max_z]] = bounding_box.as_array();
+        let removed_nodes = self
+            .get_nodal_coordinates()
+            .iter()
+            .enumerate()
+            .filter(|(_, coordinates)| {
+                coordinates[0] < min_x
+                    || coordinates[0] > max_x
+                    || coordinates[1] < min_y
+                    || coordinates[1] > max_y
+                    || coordinates[2] < min_z
+                    || coordinates[2] > max_z
+            })
+            .map(|(node, _)| node)
+            .collect();
+        let data = self.remove_nodes(removed_nodes);
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mRemoved nodes outside\x1b[0m {:?}",
+            time.elapsed()
+        );
+        data
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {
@@ -776,9 +902,7 @@ fn automesh_header() -> String {
     )
 }
 
-fn finite_element_data_from_exo<const N: usize>(
-    file_path: &str,
-) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorNetCDF> {
+fn finite_element_data_from_exo<const N: usize>(file_path: &str) -> Result<Data<N>, ErrorNetCDF> {
     let file = open(file_path)?;
     let mut blocks = vec![];
     let connectivity = file
@@ -828,9 +952,7 @@ fn finite_element_data_from_exo<const N: usize>(
     Ok((blocks, connectivity, coordinates))
 }
 
-fn finite_element_data_from_inp<const N: usize>(
-    file_path: &str,
-) -> Result<(Blocks, Connectivity<N>, Coordinates), ErrorIO> {
+fn finite_element_data_from_inp<const N: usize>(file_path: &str) -> Result<Data<N>, ErrorIO> {
     let inp_file = File::open(file_path)?;
     let mut file = BufReader::new(inp_file);
     let mut buffer = String::new();

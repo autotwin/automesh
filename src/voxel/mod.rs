@@ -690,7 +690,7 @@ fn renumber_nodes(
     number_of_nodes_unfiltered: usize,
 ) -> Coordinates {
     #[cfg(feature = "profile")]
-    let time = std::time::Instant::now();
+    let time = Instant::now();
     let mut mapping = vec![0; number_of_nodes_unfiltered];
     initial_nodal_coordinates
         .iter()

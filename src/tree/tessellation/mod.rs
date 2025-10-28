@@ -6,14 +6,19 @@ use crate::{
 };
 use conspire::math::{Scalar, Tensor, TensorArray};
 
+#[cfg(feature = "profile")]
+use std::time::Instant;
+
 impl From<Octree> for Tessellation {
     fn from(tree: Octree) -> Self {
         TriangularFiniteElements::from(tree).into()
     }
 }
 
-pub fn octree_from_tessellation(tessellation: Tessellation, size: Size) -> Octree {
-    let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
+pub fn octree_from_triangular_finite_elements(
+    triangular_finite_elements: TriangularFiniteElements,
+    size: Size,
+) -> Octree {
     let (blocks, _, mut surface_coordinates) = triangular_finite_elements.data();
     let block = blocks[0];
     if !blocks.iter().all(|entry| entry == &block) {
@@ -21,6 +26,8 @@ pub fn octree_from_tessellation(tessellation: Tessellation, size: Size) -> Octre
     }
     if let Some(size) = size {
         let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let mut index = 0;
         while index < tree.len() {
             if tree[index].is_voxel() || !tree[index].any_coordinates_inside(&surface_coordinates) {
@@ -30,6 +37,11 @@ pub fn octree_from_tessellation(tessellation: Tessellation, size: Size) -> Octre
             }
             index += 1;
         }
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mSubdivision from size\x1b[0m {:?}",
+            time.elapsed()
+        );
         tree.balance_and_pair(true);
         tree
     } else {
@@ -38,6 +50,8 @@ pub fn octree_from_tessellation(tessellation: Tessellation, size: Size) -> Octre
 }
 
 pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: Scalar) -> Octree {
+    #[cfg(feature = "profile")]
+    let time = Instant::now();
     let (minimum, maximum) = samples.iter().fold(
         (
             Coordinate::new([f64::INFINITY; NSD]),
@@ -81,5 +95,10 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
         min_y: 0,
         min_z: 0,
     });
+    #[cfg(feature = "profile")]
+    println!(
+        "             \x1b[1;93mOctree initialization\x1b[0m {:?}",
+        time.elapsed()
+    );
     tree
 }

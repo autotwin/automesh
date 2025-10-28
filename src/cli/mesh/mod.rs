@@ -401,10 +401,17 @@ where
     }
     let mut finite_elements = T::from_tessellation(tessellation, size);
     if !quiet {
+        #[cfg(feature = "profile")]
+        let other_time = Instant::now();
         let mut blocks = finite_elements.get_element_blocks().clone();
         let elements = blocks.len();
         blocks.sort();
         blocks.dedup();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mShow number of blocks\x1b[0m {:?}",
+            other_time.elapsed()
+        );
         println!(
             "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
             time.elapsed(),

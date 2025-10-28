@@ -40,6 +40,8 @@ pub type TriangularFiniteElements = FiniteElements<TRI>;
 
 impl From<Tessellation> for TriangularFiniteElements {
     fn from(tessellation: Tessellation) -> Self {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let data = tessellation.get_data();
         let element_blocks = vec![1; data.faces.len()];
         let nodal_coordinates = data
@@ -52,11 +54,17 @@ impl From<Tessellation> for TriangularFiniteElements {
             .iter()
             .map(|face| [face.vertices[0], face.vertices[1], face.vertices[2]])
             .collect();
-        TriangularFiniteElements::from_data(
+        let triangular_finite_elements = TriangularFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        )
+        );
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mSerializing triangles\x1b[0m {:?}",
+            time.elapsed()
+        );
+        triangular_finite_elements
     }
 }
 
