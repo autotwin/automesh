@@ -46,9 +46,6 @@ impl From<Octree> for HexahedralFiniteElements {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut cells_nodes = vec![0; tree.len()];
-        //
-        // Consider making `nodal_coordinates` type Vec<[usize; 3]> and converting to Coordinates at the end.
-        //
         let mut nodal_coordinates = Coordinates::zero(0);
         let mut node_index = 0;
         tree.iter()
@@ -57,9 +54,9 @@ impl From<Octree> for HexahedralFiniteElements {
             .for_each(|(leaf_index, leaf)| {
                 cells_nodes[leaf_index] = node_index;
                 nodal_coordinates.push(Coordinate::new([
-                    (leaf.get_min_x() + leaf.get_lngth()).into(),
-                    (leaf.get_min_y() + leaf.get_lngth()).into(),
-                    (leaf.get_min_z() + leaf.get_lngth()).into(),
+                    0.5 * (2 * leaf.get_min_x() + leaf.get_lngth()) as f64,
+                    0.5 * (2 * leaf.get_min_y() + leaf.get_lngth()) as f64,
+                    0.5 * (2 * leaf.get_min_z() + leaf.get_lngth()) as f64,
                 ]));
                 node_index += 1;
             });

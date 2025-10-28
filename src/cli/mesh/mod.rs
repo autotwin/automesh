@@ -181,9 +181,6 @@ pub fn mesh_segmentation<const N: usize>(
         true,
     )?;
     validate_output("mesh", &output)?;
-    //
-    // Might be able to generalize below if pass in T and stuff like `mesh_tessellation` does.
-    //
     match N {
         HEX => {
             if let Some(min_num_voxels) = defeature {
