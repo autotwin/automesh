@@ -28,6 +28,7 @@ use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
+    mem::transmute,
     path::PathBuf,
 };
 use vtkio::{
@@ -117,8 +118,10 @@ where
     fn node_element_connectivity(&mut self) -> Result<(), &str>;
     /// Calculates and sets the node-to-node connectivity.
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
-    /// Remove elements with nodes that are outside a given bounding box.
+    /// Remove nodes and elements that connect to them.
     fn remove_nodes(self, removed_nodes: Nodes) -> Data<N>;
+    /// Remove elements with nodes that are outside a given bounding box.
+    fn remove_nodes_outside(self, bounding_box: BoundingBox) -> Data<N>;
     /// Smooths the nodal coordinates according to the provided smoothing method.
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String>;
     /// Writes the finite elements data to a new Exodus file.
@@ -172,6 +175,8 @@ where
     Self: FiniteElementSpecifics<M> + Sized,
 {
     fn bounding_box(&self) -> BoundingBox {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let (minimum, maximum) = self.get_nodal_coordinates().iter().fold(
             (
                 Coordinate::new([f64::INFINITY; NSD]),
@@ -188,7 +193,13 @@ where
                 (minimum, maximum)
             },
         );
-        BoundingBox::new([minimum.into(), maximum.into()])
+        let bounding_box = BoundingBox::new([minimum.into(), maximum.into()]);
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mBounding box function\x1b[0m {:?}",
+            time.elapsed()
+        );
+        bounding_box
     }
     fn centroids(&self) -> Coordinates {
         let coordinates = self.get_nodal_coordinates();
@@ -265,40 +276,20 @@ where
         ))
     }
     fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
-        let triangular_finite_elements = TriangularFiniteElements::from(tessellation); // profile?
-        let [[min_x, min_y, min_z], [max_x, max_y, max_z]] =
-            triangular_finite_elements.bounding_box().as_array(); // profile?
-        let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size); // profile certain parts? and combine balancing/pairing for less printout?
-        match N {
-            HEX => {
-                let hexes = HexahedralFiniteElements::from(tree);
-                let removed_nodes = hexes
-                    .get_nodal_coordinates()
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, coordinates)| {
-                        coordinates[0] < min_x
-                            || coordinates[0] > max_x
-                            || coordinates[1] < min_y
-                            || coordinates[1] > max_y
-                            || coordinates[2] < min_z
-                            || coordinates[2] > max_z
-                    })
-                    .map(|(node, _)| node)
-                    .collect();
-                let (element_blocks, hex_connectivity, nodal_coordinates) =
-                    hexes.remove_nodes(removed_nodes); // profile? with/without above?
-                let mut element_node_connectivity = vec![[0; N]; hex_connectivity.len()];
-                element_node_connectivity
-                    .iter_mut()
-                    .zip(hex_connectivity)
-                    .for_each(|(a, b)| a.iter_mut().zip(b).for_each(|(c, d)| *c = d));
-                Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
-            }
+        let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
+        let bounding_box = triangular_finite_elements.bounding_box();
+        let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size);
+        let hexes = match N {
+            HEX => HexahedralFiniteElements::from(tree),
             _ => panic!(),
-        }
+        };
+        let (element_blocks, connectivity, nodal_coordinates) =
+            hexes.remove_nodes_outside(bounding_box);
+        let element_node_connectivity =
+            unsafe { transmute::<Connectivity<8>, Connectivity<N>>(connectivity) };
+        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
         //
-        // Below is temporary for octree visualization.
+        // Below is temporary code used for octree visualization.
         //
         // tree.prune();
         // let remove = match tree.remove() {
@@ -556,6 +547,32 @@ where
             )
             .collect();
         (element_blocks, element_node_connectivity, nodal_coordinates)
+    }
+    fn remove_nodes_outside(self, bounding_box: BoundingBox) -> Data<N> {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let [[min_x, min_y, min_z], [max_x, max_y, max_z]] = bounding_box.as_array();
+        let removed_nodes = self
+            .get_nodal_coordinates()
+            .iter()
+            .enumerate()
+            .filter(|(_, coordinates)| {
+                coordinates[0] < min_x
+                    || coordinates[0] > max_x
+                    || coordinates[1] < min_y
+                    || coordinates[1] > max_y
+                    || coordinates[2] < min_z
+                    || coordinates[2] > max_z
+            })
+            .map(|(node, _)| node)
+            .collect();
+        let data = self.remove_nodes(removed_nodes);
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mRemoved nodes outside\x1b[0m {:?}",
+            time.elapsed()
+        );
+        data
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {

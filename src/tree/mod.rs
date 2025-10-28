@@ -537,12 +537,19 @@ impl Cell {
 
 impl Octree {
     pub fn balance_and_pair(&mut self, strong: bool) {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let mut balanced = false;
         let mut paired = false;
         while !balanced || !paired {
             balanced = self.balance(strong);
             paired = self.pair();
         }
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mBalancing and pairing\x1b[0m {:?}",
+            time.elapsed()
+        );
     }
     pub fn balance(&mut self, strong: bool) -> bool {
         let mut balanced;
@@ -557,8 +564,8 @@ impl Octree {
             balanced = true;
             index = 0;
             subdivide = false;
-            #[cfg(feature = "profile")]
-            let time = Instant::now();
+            // #[cfg(feature = "profile")]
+            // let time = Instant::now();
             while index < self.len() {
                 if !self[index].is_voxel() && self[index].is_leaf() {
                     'faces: for (face, face_cell) in self[index].get_faces().iter().enumerate() {
@@ -833,12 +840,12 @@ impl Octree {
                 }
                 index += 1;
             }
-            #[cfg(feature = "profile")]
-            println!(
-                "             \x1b[1;93mBalancing iteration {}\x1b[0m {:?} ",
-                iteration,
-                time.elapsed()
-            );
+            // #[cfg(feature = "profile")]
+            // println!(
+            //     "             \x1b[1;93mBalancing iteration {}\x1b[0m {:?} ",
+            //     iteration,
+            //     time.elapsed()
+            // );
             if balanced {
                 break;
             }
@@ -1354,8 +1361,8 @@ impl Octree {
         ))
     }
     pub fn pair(&mut self) -> bool {
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
+        // #[cfg(feature = "profile")]
+        // let time = Instant::now();
         let mut block = 0;
         let mut index = 0;
         let mut paired_already = true;
@@ -1387,11 +1394,11 @@ impl Octree {
             }
             index += 1;
         }
-        #[cfg(feature = "profile")]
-        println!(
-            "           \x1b[1;93m  Pairing hanging nodes\x1b[0m {:?} ",
-            time.elapsed()
-        );
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "           \x1b[1;93m  Pairing hanging nodes\x1b[0m {:?} ",
+        //     time.elapsed()
+        // );
         paired_already
     }
     pub fn parameters(self) -> (Remove, Scale, Translate) {
