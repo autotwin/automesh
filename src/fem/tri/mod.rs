@@ -42,18 +42,14 @@ impl From<Tessellation> for TriangularFiniteElements {
     fn from(tessellation: Tessellation) -> Self {
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let data = tessellation.get_data();
+        let data = tessellation.data();
         let element_blocks = vec![1; data.faces.len()];
         let nodal_coordinates = data
             .vertices
-            .iter()
-            .map(|&vertex| Coordinate::new([vertex[0].into(), vertex[1].into(), vertex[2].into()]))
+            .into_iter()
+            .map(|vertex| Coordinate::new([vertex[0] as f64, vertex[1] as f64, vertex[2] as f64]))
             .collect();
-        let element_node_connectivity = data
-            .faces
-            .iter()
-            .map(|face| [face.vertices[0], face.vertices[1], face.vertices[2]])
-            .collect();
+        let element_node_connectivity = data.faces.into_iter().map(|face| face.vertices).collect();
         let triangular_finite_elements = TriangularFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
