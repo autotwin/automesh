@@ -74,7 +74,8 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
         .unwrap();
     let scale = 1.0 / minimum_cell_size;
     let nel = 2.0_f64.powf((maximum_length / minimum_cell_size).log2().ceil()) as usize;
-    let translation = minimum + maximum - Coordinate::new([0.5 * (nel as f64) / scale; NSD]);
+    let translation =
+        (minimum + maximum) * 0.5 - Coordinate::new([0.5 * (nel as f64) / scale; NSD]);
     samples.iter_mut().for_each(|sample| {
         *sample -= &translation;
         *sample *= &scale;

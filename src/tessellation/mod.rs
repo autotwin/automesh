@@ -73,6 +73,10 @@ impl Tessellation {
     pub fn new(indexed_mesh: IndexedMesh) -> Self {
         Self { data: indexed_mesh }
     }
+    /// Returns and moves the data associated with the tessellation.
+    pub fn data(self) -> IndexedMesh {
+        self.data
+    }
     /// Returns a reference to the internal tessellation data.
     pub fn get_data(&self) -> &IndexedMesh {
         &self.data
