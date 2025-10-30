@@ -280,7 +280,7 @@ where
         let bounding_box = triangular_finite_elements.bounding_box();
         let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size);
         let hexes = match N {
-            HEX => HexahedralFiniteElements::from(tree),
+            HEX => HexahedralFiniteElements::from(&tree),
             _ => panic!(),
         };
         let (element_blocks, connectivity, nodal_coordinates) =

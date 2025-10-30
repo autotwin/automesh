@@ -41,8 +41,8 @@ mod vertex_template_7; // (O, a, ab, b) => (o, a, ab, b)
 mod vertex_template_8; // (O, A, AB, b) => (o, a, ab, b)
 mod vertex_template_9; // (O, a, ab, b) => (o, a, AB, b)
 
-impl From<Octree> for HexahedralFiniteElements {
-    fn from(tree: Octree) -> Self {
+impl From<&Octree> for HexahedralFiniteElements {
+    fn from(tree: &Octree) -> Self {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut cells_nodes = vec![0; tree.len()];
@@ -66,7 +66,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &cells_nodes,
             &mut nodes_map,
             &mut node_index,
-            &tree,
+            tree,
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
@@ -74,7 +74,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &cells_nodes,
             &mut nodes_map,
             &mut node_index,
-            &tree,
+            tree,
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
@@ -82,7 +82,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &cells_nodes,
             &mut nodes_map,
             &mut node_index,
-            &tree,
+            tree,
             &mut element_node_connectivity,
             &mut nodal_coordinates,
         );
@@ -90,7 +90,7 @@ impl From<Octree> for HexahedralFiniteElements {
             &mut (1..=25)
                 .into_par_iter()
                 .flat_map(|index| {
-                    apply_concurrently(index, &cells_nodes, &nodes_map, &tree, &nodal_coordinates)
+                    apply_concurrently(index, &cells_nodes, &nodes_map, tree, &nodal_coordinates)
                 })
                 .collect(),
         );
