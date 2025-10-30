@@ -922,19 +922,11 @@ impl Octree {
                 index += 1;
             }
             #[cfg(feature = "profile")]
-            if iteration == 1 {
-                println!(
-                    "           \x1b[1;93m⤷ Boundaries iteration {}\x1b[0m {:?} ",
-                    iteration,
-                    time.elapsed()
-                );
-            } else {
-                println!(
-                    "             \x1b[1;93mBoundaries iteration {}\x1b[0m {:?} ",
-                    iteration,
-                    time.elapsed()
-                );
-            }
+            println!(
+                "             \x1b[1;93mBoundaries iteration {}\x1b[0m {:?} ",
+                iteration,
+                time.elapsed()
+            );
             if boundaries {
                 break;
             }
@@ -1628,7 +1620,7 @@ impl From<Voxels> for Octree {
         }
         #[cfg(feature = "profile")]
         println!(
-            "           \x1b[1;93m⤷ Octree initialization\x1b[0m {:?} ",
+            "             \x1b[1;93mOctree initialization\x1b[0m {:?} ",
             time.elapsed()
         );
         tree
