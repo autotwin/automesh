@@ -28,7 +28,6 @@ use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
-    mem::transmute,
     path::PathBuf,
 };
 use vtkio::{
@@ -806,16 +805,15 @@ impl<const N: usize> From<Data<N>> for FiniteElements<N> {
     }
 }
 
-impl<const N: usize> From<(Tessellation, Size)> for FiniteElements<N> {
+impl From<(Tessellation, Size)> for HexahedralFiniteElements {
     fn from((tessellation, size): (Tessellation, Size)) -> Self {
         let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
         let bounding_box = triangular_finite_elements.bounding_box();
         let tessellation_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
         let tree = Octree::from((triangular_finite_elements, size));
-        let finite_elements = match N {
-            HEX => HexahedralFiniteElements::from(&tree),
-            _ => panic!(),
-        };
+        let finite_elements = Self::from(&tree);
+        //
+        // round down to home base!
         //
         // return rescaled coordinates after dualization so do not have to re-compute them below? can impl From<&Octree> for (HexahedralFiniteElements, NodalCoordinates)
         // can do From<(TriangularFiniteElements, Scalar)> for Octree for line 281 above also
@@ -840,14 +838,24 @@ impl<const N: usize> From<(Tessellation, Size)> for FiniteElements<N> {
         //
         // delete nodes in the surface boxes too (could be in or out, but also want that buffer anyway)
         //
-        let (element_blocks, connectivity, nodal_coordinates) =
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_elements.remove_nodes_outside(bounding_box);
         //
         // need to profile these together in another function like 'remove_nodes_outside'
         //
-        let element_node_connectivity =
-            unsafe { transmute::<Connectivity<8>, Connectivity<N>>(connectivity) };
         Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
+    }
+}
+
+impl From<(Tessellation, Size)> for TetrahedralFiniteElements {
+    fn from((_tessellation, _size): (Tessellation, Size)) -> Self {
+        unimplemented!()
+    }
+}
+
+impl From<(Tessellation, Size)> for TriangularFiniteElements {
+    fn from((_tessellation, _size): (Tessellation, Size)) -> Self {
+        unimplemented!()
     }
 }
 
