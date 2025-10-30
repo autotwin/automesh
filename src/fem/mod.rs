@@ -826,7 +826,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         // and to also to adjust flood-filling to not use them either,
         // or to use something other than flood-filling, like rays or signed distance function.
         //
-        // Or just iterate, splitting any edge or any triangle that is greater than the minimum cell length!
+        // Or just iterate, splitting any edge in any triangle that is greater than the minimum cell length!
         //
         // Also, don't delete this branch! Lots of other good stuff to merge in.
         //
