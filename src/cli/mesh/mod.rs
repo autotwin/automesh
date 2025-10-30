@@ -384,7 +384,7 @@ pub fn mesh_tessellation<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation> + From<(Tessellation, Size)>,
+    T: FiniteElementMethods<M, N> + From<(Tessellation, Size)>,
     Tessellation: From<T>,
 {
     let mut time = Instant::now();
