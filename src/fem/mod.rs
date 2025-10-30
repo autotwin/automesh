@@ -96,18 +96,10 @@ where
     fn data(self) -> Data<N>;
     /// Returns the centroid for each exterior face.
     fn exterior_faces_centroids(&self) -> Coordinates;
-    /// Constructs and returns a new finite elements type from data.
-    fn from_data(
-        element_blocks: Blocks,
-        element_node_connectivity: Connectivity<N>,
-        nodal_coordinates: Coordinates,
-    ) -> Self;
     /// Constructs and returns a new finite elements type from an Exodus input file.
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF>;
     /// Constructs and returns a new finite elements type from an Abaqus input file.
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO>;
-    /// Creates a conformal mesh within a tessellation.
-    fn from_tessellation(tessellation: Tessellation, size: Size) -> Self;
     /// Calculates and returns the discrete Laplacian for the given node-to-node connectivity.
     fn laplacian(&self, node_node_connectivity: &VecConnectivity) -> Coordinates;
     /// Calculates and sets the nodal influencers.
@@ -235,79 +227,23 @@ where
             })
             .collect()
     }
-    fn from_data(
-        element_blocks: Blocks,
-        element_node_connectivity: Connectivity<N>,
-        nodal_coordinates: Coordinates,
-    ) -> Self {
-        Self {
-            boundary_nodes: vec![],
-            element_blocks,
-            element_node_connectivity,
-            exterior_nodes: vec![],
-            interface_nodes: vec![],
-            interior_nodes: vec![],
-            nodal_coordinates,
-            nodal_influencers: vec![],
-            node_element_connectivity: vec![],
-            node_node_connectivity: vec![],
-            prescribed_nodes: vec![],
-            prescribed_nodes_homogeneous: vec![],
-            prescribed_nodes_inhomogeneous: vec![],
-            prescribed_nodes_inhomogeneous_coordinates: Coordinates::zero(0),
-        }
-    }
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        ))
+        )))
     }
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        ))
-    }
-    fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
-        let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
-        let bounding_box = triangular_finite_elements.bounding_box();
-        let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size);
-        let hexes = match N {
-            HEX => HexahedralFiniteElements::from(&tree),
-            _ => panic!(),
-        };
-        let (element_blocks, connectivity, nodal_coordinates) =
-            hexes.remove_nodes_outside(bounding_box);
-        let element_node_connectivity =
-            unsafe { transmute::<Connectivity<8>, Connectivity<N>>(connectivity) };
-        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
-        //
-        // Below is temporary code used for octree visualization.
-        //
-        // tree.prune();
-        // let remove = match tree.remove() {
-        //     super::Remove::Some(blocks) => Some(blocks.clone()),
-        //     super::Remove::None => None,
-        // };
-        // let scale = tree.scale().clone();
-        // let translate = tree.translate().clone();
-        // let hexes = tree
-        //     .octree_into_finite_elements(remove, scale, translate)
-        //     .unwrap();
-        // let (element_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
-        // let mut element_node_connectivity = vec![[0; N]; hex_connectivity.len()];
-        // element_node_connectivity
-        //     .iter_mut()
-        //     .zip(hex_connectivity)
-        //     .for_each(|(a, b)| a.iter_mut().zip(b).for_each(|(c, d)| *c = d));
-        // Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+        )))
     }
     fn laplacian(&self, node_node_connectivity: &VecConnectivity) -> Coordinates {
         let nodal_coordinates = self.get_nodal_coordinates();
@@ -845,6 +781,72 @@ where
             .chain(self.prescribed_nodes_inhomogeneous.clone())
             .collect();
         Ok(())
+    }
+}
+
+impl<const N: usize> From<Data<N>> for FiniteElements<N> {
+    fn from((element_blocks, element_node_connectivity, nodal_coordinates): Data<N>) -> Self {
+        Self {
+            boundary_nodes: vec![],
+            element_blocks,
+            element_node_connectivity,
+            exterior_nodes: vec![],
+            interface_nodes: vec![],
+            interior_nodes: vec![],
+            nodal_coordinates,
+            nodal_influencers: vec![],
+            node_element_connectivity: vec![],
+            node_node_connectivity: vec![],
+            prescribed_nodes: vec![],
+            prescribed_nodes_homogeneous: vec![],
+            prescribed_nodes_inhomogeneous: vec![],
+            prescribed_nodes_inhomogeneous_coordinates: Coordinates::zero(0),
+        }
+    }
+}
+
+impl<const N: usize> From<(Tessellation, Size)> for FiniteElements<N> {
+    fn from((tessellation, size): (Tessellation, Size)) -> Self {
+        let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
+        let bounding_box = triangular_finite_elements.bounding_box();
+        let tessellation_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
+        let tree = Octree::from((triangular_finite_elements, size));
+        let finite_elements = match N {
+            HEX => HexahedralFiniteElements::from(&tree),
+            _ => panic!(),
+        };
+        //
+        // return rescaled coordinates after dualization so do not have to re-compute them below? can impl From<&Octree> for (HexahedralFiniteElements, NodalCoordinates)
+        // can do From<(TriangularFiniteElements, Scalar)> for Octree for line 281 above also
+        // AND have that return the rescaled coordinates too!
+        //
+        // need to profile these together in another function like 'remove_nodes_outside'
+        //
+        let num = *tree.nel().x() - 1;
+        let scale = tree.scale();
+        let translate = tree.translate();
+        let grid = vec![vec![false; num]; num];
+        // finite_elements.get_nodal_coordinates().iter().for_each(|coordinates| {
+        //     // println!("{}", coordinates);
+        //     println!("{}, {}, {}", (coordinates[0] - translate.x()) / scale.x(), (coordinates[1] - translate.y()) / scale.y(), (coordinates[2] - translate.z()) / scale.z());
+        // });
+        //
+        // how to bound/round coords so know which cell they are in?
+        // rescaled nodal coordinates should be integers or half-integers (2.0, 3.0, 2.5, 3.5, etc.) so if mul by 2 all are integers
+        // does *2 make it too big? is there another way using rounding/etc?
+        //
+        // can you use the bounding box to skip over part of the grid?
+        //
+        // delete nodes in the surface boxes too (could be in or out, but also want that buffer anyway)
+        //
+        let (element_blocks, connectivity, nodal_coordinates) =
+            finite_elements.remove_nodes_outside(bounding_box);
+        //
+        // need to profile these together in another function like 'remove_nodes_outside'
+        //
+        let element_node_connectivity =
+            unsafe { transmute::<Connectivity<8>, Connectivity<N>>(connectivity) };
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
 

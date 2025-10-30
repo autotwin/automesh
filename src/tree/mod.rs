@@ -7,10 +7,7 @@ mod tri;
 
 use super::{
     Coordinate, Coordinates, NSD, Vector,
-    fem::{
-        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, Size,
-        TriangularFiniteElements, hex::HexConnectivity,
-    },
+    fem::{Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, hex::HexConnectivity},
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
 use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
@@ -21,7 +18,7 @@ use std::{
     iter::repeat_n,
     ops::{Deref, DerefMut},
 };
-use tessellation::{octree_from_bounding_cube, octree_from_triangular_finite_elements};
+use tessellation::octree_from_bounding_cube;
 
 pub const PADDING: u8 = 255;
 
@@ -1281,12 +1278,6 @@ impl Octree {
         }
         tree
     }
-    pub fn from_triangular_finite_elements(
-        triangular_finite_elements: TriangularFiniteElements,
-        size: Size,
-    ) -> Self {
-        octree_from_triangular_finite_elements(triangular_finite_elements, size)
-    }
     fn just_leaves(&self, cells: &[usize]) -> bool {
         cells.iter().all(|&subcell| self[subcell].is_leaf())
     }
@@ -1346,11 +1337,11 @@ impl Octree {
                 nodal_coordinates[index + 7] = Coordinate::new([x_min, y_val, z_val]);
                 index += HEX;
             });
-        Ok(HexahedralFiniteElements::from_data(
+        Ok(HexahedralFiniteElements::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        ))
+        )))
     }
     pub fn pair(&mut self) -> bool {
         // #[cfg(feature = "profile")]

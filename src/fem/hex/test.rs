@@ -39,11 +39,11 @@ fn test_finite_elements(
     smoothed_coordinates_gold: Option<Vec<Coordinates>>,
     nodal_influencers_gold: VecConnectivity,
 ) {
-    let mut finite_elements = HexahedralFiniteElements::from_data(
+    let mut finite_elements = HexahedralFiniteElements::from((
         element_blocks.clone(),
         element_node_connectivity.clone(),
         nodal_coordinates.clone_foo(),
-    );
+    ));
     assert_eq!(
         finite_elements.node_node_connectivity(),
         Err("Need to calculate the node-to-element connectivity first")
@@ -88,11 +88,11 @@ fn test_finite_elements(
     if let Some(gold_set) = smoothed_coordinates_gold {
         gold_set.iter().enumerate().for_each(|(index, gold)| {
             let iterations = index + 1;
-            let mut finite_elements = HexahedralFiniteElements::from_data(
+            let mut finite_elements = HexahedralFiniteElements::from((
                 element_blocks.clone(),
                 element_node_connectivity.clone(),
                 nodal_coordinates.clone_foo(),
-            );
+            ));
             finite_elements.node_element_connectivity().unwrap();
             finite_elements.node_node_connectivity().unwrap();
             finite_elements.nodal_hierarchy().unwrap();
@@ -112,11 +112,11 @@ fn test_finite_elements(
                 },
             );
         });
-        let mut finite_elements = HexahedralFiniteElements::from_data(
+        let mut finite_elements = HexahedralFiniteElements::from((
             element_blocks.clone(),
             element_node_connectivity.clone(),
             nodal_coordinates.clone_foo(),
-        );
+        ));
         finite_elements.node_element_connectivity().unwrap();
         finite_elements.node_node_connectivity().unwrap();
         finite_elements.nodal_hierarchy().unwrap();
@@ -1628,11 +1628,11 @@ fn bracket() {
         [1.5, 4.0, 1.0],
         [3.5, 4.0, 1.0],
     ]);
-    let mut finite_elements = HexahedralFiniteElements::from_data(
+    let mut finite_elements = HexahedralFiniteElements::from((
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
-    );
+    ));
     finite_elements.node_element_connectivity().unwrap();
     finite_elements.node_node_connectivity().unwrap();
     finite_elements.nodal_hierarchy().unwrap();
@@ -2957,11 +2957,11 @@ fn valence_3_and_4_noised() {
                     (maximum_skew_gold, (mininum_scaled_jacobian_gold, element_volume_gold)),
                 ),
             )| {
-                let block = HexahedralFiniteElements::from_data(
+                let block = HexahedralFiniteElements::from((
                     blocks.clone(),
                     element_node_connectivity.clone(),
                     nodal_coordinates,
-                );
+                ));
                 assert!((block.maximum_edge_ratios()[0] - maximum_edge_ratio_gold).abs() < EPSILON);
                 assert!((block.maximum_skews()[0] - maximum_skew_gold).abs() < EPSILON);
                 assert!(

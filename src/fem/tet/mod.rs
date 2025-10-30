@@ -101,13 +101,13 @@ impl TetrahedralFiniteElements {
 impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
     fn from(hexes: HexahedralFiniteElements) -> Self {
         let (hex_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
-        let blocks = hex_blocks
+        let element_blocks = hex_blocks
             .into_iter()
             .flat_map(|hex_block| repeat_n(hex_block, NUM_TETS_PER_HEX))
             .collect();
         let element_node_connectivity =
             hex_connectivity.iter().flat_map(Self::hex_to_tet).collect();
-        Self::from_data(blocks, element_node_connectivity, nodal_coordinates)
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
 

@@ -56,22 +56,22 @@ impl HexahedralFiniteElements {
     pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        ))
+        )))
     }
     /// Constructs and returns a new hexahedral finite elements class from an Abaqus file.
     #[staticmethod]
     pub fn from_inp(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        ))
+        )))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
     #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
@@ -83,11 +83,11 @@ impl HexahedralFiniteElements {
         pass_band: f64,
         scale: f64,
     ) -> Result<(), PyIntermediateError> {
-        let mut finite_elements = super::HexahedralFiniteElements::from_data(
+        let mut finite_elements = super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        );
+        ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         if hierarchical {
@@ -138,11 +138,11 @@ impl HexahedralFiniteElements {
     }
     /// Writes the finite elements quality metrics to a new file.
     pub fn write_metrics(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(super::HexahedralFiniteElements::from_data(
+        Ok(super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        )
+        ))
         .write_metrics(file_path)?)
     }
     /// Writes the finite elements data to a new VTK file.
@@ -176,22 +176,22 @@ impl TetrahedralFiniteElements {
     pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        ))
+        )))
     }
     /// Constructs and returns a new tetrahedral finite elements class from an Abaqus file.
     #[staticmethod]
     pub fn from_inp(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        ))
+        )))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
     #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
@@ -203,11 +203,11 @@ impl TetrahedralFiniteElements {
         pass_band: f64,
         scale: f64,
     ) -> Result<(), PyIntermediateError> {
-        let mut finite_elements = super::HexahedralFiniteElements::from_data(
+        let mut finite_elements = super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        );
+        ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         if hierarchical {
@@ -258,11 +258,11 @@ impl TetrahedralFiniteElements {
     }
     /// Writes the finite elements quality metrics to a new file.
     pub fn write_metrics(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(super::HexahedralFiniteElements::from_data(
+        Ok(super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        )
+        ))
         .write_metrics(file_path)?)
     }
     /// Writes the finite elements data to a new VTK file.
@@ -296,22 +296,22 @@ impl TriangularFiniteElements {
     pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        ))
+        )))
     }
     /// Constructs and returns a new hexahedral finite elements class from an Abaqus file.
     #[staticmethod]
     pub fn from_inp(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        ))
+        )))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
     #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
@@ -323,11 +323,11 @@ impl TriangularFiniteElements {
         pass_band: f64,
         scale: f64,
     ) -> Result<(), PyIntermediateError> {
-        let mut finite_elements = super::TriangularFiniteElements::from_data(
+        let mut finite_elements = super::TriangularFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        );
+        ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         if hierarchical {
@@ -378,11 +378,11 @@ impl TriangularFiniteElements {
     }
     /// Writes the finite elements quality metrics to a new file.
     pub fn write_metrics(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(super::TriangularFiniteElements::from_data(
+        Ok(super::TriangularFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        )
+        ))
         .write_metrics(file_path)?)
     }
     /// Writes the finite elements data to a new VTK file.

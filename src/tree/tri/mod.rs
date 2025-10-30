@@ -3,7 +3,7 @@ use std::time::Instant;
 
 use crate::{
     Blocks, Coordinate, Coordinates,
-    fem::{FiniteElementMethods, TriangularFiniteElements},
+    fem::TriangularFiniteElements,
     tree::{Edges, Faces, NUM_FACES, NUM_NODES_FACE, Octree, PADDING, mirror_face},
 };
 use conspire::math::{TensorArray, TensorVec};
@@ -368,7 +368,7 @@ impl From<Octree> for TriangularFiniteElements {
             "             \x1b[1;93mTriangular finite elements\x1b[0m {:?} ",
             time.elapsed()
         );
-        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
 

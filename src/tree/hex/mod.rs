@@ -3,10 +3,7 @@ use std::time::Instant;
 
 use crate::{
     Coordinate, Coordinates, Octree,
-    fem::{
-        FiniteElementMethods,
-        hex::{HEX, HexConnectivity, HexahedralFiniteElements},
-    },
+    fem::hex::{HEX, HexConnectivity, HexahedralFiniteElements},
     tree::{Faces, Indices, NodeMap},
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
@@ -102,11 +99,11 @@ impl From<&Octree> for HexahedralFiniteElements {
             coordinates[1] += tree.translate.y();
             coordinates[2] += tree.translate.z();
         });
-        let fem = Self::from_data(
+        let fem = Self::from((
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
             nodal_coordinates,
-        );
+        ));
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mDualization of octree\x1b[0m {:?} ",

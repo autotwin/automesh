@@ -6,7 +6,7 @@ use super::{
     smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
 use automesh::{
-    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, TET, TRI,
+    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, Size, TET, TRI,
     Tessellation, TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::Subcommand;
@@ -134,7 +134,7 @@ pub fn mesh<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N> + From<Tessellation> + From<(Tessellation, Size)>,
     Tessellation: From<T>,
 {
     let scale = Scale::from([xscale, yscale, zscale]);
@@ -384,7 +384,7 @@ pub fn mesh_tessellation<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N> + From<Tessellation> + From<(Tessellation, Size)>,
     Tessellation: From<T>,
 {
     let mut time = Instant::now();
@@ -399,7 +399,7 @@ where
         }
         mesh_print_info(MeshBasis::Voxels, &scale, &translate)
     }
-    let mut finite_elements = T::from_tessellation(tessellation, size);
+    let mut finite_elements = T::from((tessellation, size));
     if !quiet {
         #[cfg(feature = "profile")]
         let other_time = Instant::now();

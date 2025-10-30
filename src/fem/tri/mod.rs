@@ -50,11 +50,11 @@ impl From<Tessellation> for TriangularFiniteElements {
             .map(|vertex| Coordinate::new([vertex[0] as f64, vertex[1] as f64, vertex[2] as f64]))
             .collect();
         let element_node_connectivity = data.faces.into_iter().map(|face| face.vertices).collect();
-        let triangular_finite_elements = TriangularFiniteElements::from_data(
+        let triangular_finite_elements = TriangularFiniteElements::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        );
+        ));
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mSerializing triangles\x1b[0m {:?}",

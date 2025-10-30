@@ -167,10 +167,13 @@ fn triangular_unit_tests() {
         [1.0, 1.0 + 3.0_f64.sqrt(), 1.0], // tile.stl end
     ]);
 
-    let blocks = element_node_connectivity.iter().map(|_| 1).collect();
+    let element_blocks = element_node_connectivity.iter().map(|_| 1).collect();
 
-    let block =
-        TriangularFiniteElements::from_data(blocks, element_node_connectivity, nodal_coordinates);
+    let block = TriangularFiniteElements::from((
+        element_blocks,
+        element_node_connectivity,
+        nodal_coordinates,
+    ));
 
     block
         .maximum_edge_ratios()

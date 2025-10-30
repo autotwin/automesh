@@ -469,7 +469,7 @@ impl From<Voxels> for HexahedralFiniteElements {
                 voxels.scale,
                 voxels.translate,
             );
-        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
 
