@@ -280,7 +280,7 @@ where
         let bounding_box = triangular_finite_elements.bounding_box();
         let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size);
         let hexes = match N {
-            HEX => HexahedralFiniteElements::from(tree),
+            HEX => HexahedralFiniteElements::from(&tree),
             _ => panic!(),
         };
         let (element_blocks, connectivity, nodal_coordinates) =
@@ -435,7 +435,7 @@ where
         self.node_element_connectivity = node_element_connectivity;
         #[cfg(feature = "profile")]
         println!(
-            "           \x1b[1;93m⤷ Node-to-element connectivity\x1b[0m {:?} ",
+            "             \x1b[1;93mNode-to-element connectivity\x1b[0m {:?} ",
             time.elapsed()
         );
         Ok(())
@@ -1094,7 +1094,7 @@ fn write_finite_elements_to_exodus<const N: usize>(
         })?;
     #[cfg(feature = "profile")]
     println!(
-        "           \x1b[1;93m⤷ Element-to-node connectivity\x1b[0m {:?}",
+        "             \x1b[1;93mElement-to-node connectivity\x1b[0m {:?}",
         time.elapsed()
     );
     #[cfg(feature = "profile")]
@@ -1181,7 +1181,7 @@ fn write_nodal_coordinates_to_inp(
     let result = end_section(file);
     #[cfg(feature = "profile")]
     println!(
-        "           \x1b[1;93m⤷ Nodal coordinates\x1b[0m {:?}",
+        "             \x1b[1;93mNodal coordinates\x1b[0m {:?}",
         time.elapsed()
     );
     result

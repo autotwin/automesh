@@ -605,7 +605,7 @@ fn filter_voxel_data(data: VoxelData, remove: Remove) -> (Indices, Blocks) {
         .unzip();
     #[cfg(feature = "profile")]
     println!(
-        "           \x1b[1;93m⤷ Removed voxels\x1b[0m {:?}",
+        "             \x1b[1;93mRemoved voxels\x1b[0m {:?}",
         time.elapsed()
     );
     (filtered_voxel_data, element_blocks)
