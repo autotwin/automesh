@@ -1,8 +1,8 @@
 use super::{
     Vector,
     fem::{
-        FiniteElementSpecifics, HexahedralFiniteElements, Smoothing,
-        TetrahedralFiniteElements, TriangularFiniteElements,
+        FiniteElementSpecifics, HexahedralFiniteElements, Smoothing, TetrahedralFiniteElements,
+        TriangularFiniteElements,
     },
 };
 use conspire::math::{Tensor, TensorArray};

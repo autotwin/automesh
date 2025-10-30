@@ -11,7 +11,7 @@ pub use tri::{TRI, TriangularFiniteElements};
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use super::{Coordinate, Coordinates, NSD, Octree, Tessellation, Vector};
+use crate::{Coordinate, Coordinates, NSD, Tessellation, Vector, tree::OctreeAndSamples};
 use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
@@ -809,22 +809,23 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
     fn from((tessellation, size): (Tessellation, Size)) -> Self {
         let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
         let bounding_box = triangular_finite_elements.bounding_box();
-        let tessellation_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
-        let tree = Octree::from((triangular_finite_elements, size));
+        let (tree, samples) = OctreeAndSamples::from((triangular_finite_elements, size)).into();
         let finite_elements = Self::from(&tree);
         //
-        // round down to home base!
-        //
         // return rescaled coordinates after dualization so do not have to re-compute them below? can impl From<&Octree> for (HexahedralFiniteElements, NodalCoordinates)
-        // can do From<(TriangularFiniteElements, Scalar)> for Octree for line 281 above also
-        // AND have that return the rescaled coordinates too!
         //
         // need to profile these together in another function like 'remove_nodes_outside'
         //
         let num = *tree.nel().x() - 1;
         let scale = tree.scale();
         let translate = tree.translate();
-        let grid = vec![vec![false; num]; num];
+        let mut grid = vec![vec![vec![false; num]; num]; num];
+        samples.iter().for_each(|coordinates|
+            //
+            // round down to home base!
+            //
+            grid[coordinates[0].floor() as usize][coordinates[1].floor() as usize][coordinates[2].floor() as usize] = true
+        );
         // finite_elements.get_nodal_coordinates().iter().for_each(|coordinates| {
         //     // println!("{}", coordinates);
         //     println!("{}, {}, {}", (coordinates[0] - translate.x()) / scale.x(), (coordinates[1] - translate.y()) / scale.y(), (coordinates[2] - translate.z()) / scale.z());

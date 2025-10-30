@@ -5,6 +5,8 @@ mod hex;
 mod tessellation;
 mod tri;
 
+pub use tessellation::OctreeAndSamples;
+
 use super::{
     Coordinate, Coordinates, NSD, Vector,
     fem::{Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, hex::HexConnectivity},
