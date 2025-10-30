@@ -18,8 +18,8 @@ impl From<Octree> for Tessellation {
 pub struct OctreeAndSamples(Octree, Coordinates);
 
 impl From<OctreeAndSamples> for (Octree, Coordinates) {
-    fn from(foo: OctreeAndSamples) -> Self {
-        (foo.0, foo.1)
+    fn from(octree_and_samples: OctreeAndSamples) -> Self {
+        (octree_and_samples.0, octree_and_samples.1)
     }
 }
 

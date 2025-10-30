@@ -26,6 +26,7 @@ use conspire::{
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
+    collections::HashSet,
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
     path::PathBuf,
@@ -816,41 +817,77 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         //
         // need to profile these together in another function like 'remove_nodes_outside'
         //
+
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let num = *tree.nel().x() - 1;
         let scale = tree.scale();
         let translate = tree.translate();
-        let mut grid = vec![vec![vec![false; num]; num]; num];
+        let mut outside = vec![vec![vec![false; num]; num]; num];
         samples.iter().for_each(|coordinates|
             //
             // round down to home base!
             //
-            grid[coordinates[0].floor() as usize][coordinates[1].floor() as usize][coordinates[2].floor() as usize] = true
+            outside[coordinates[0].floor() as usize][coordinates[1].floor() as usize][coordinates[2].floor() as usize] = true
         );
-        //
-        // Can parallelize below?
-        //
-        grid.iter().for_each(|grid_i|
-            grid_i.iter().for_each(|grid_ij|
-                //
-                // flood fill algorithm to mark all outsides as true
-                // can start at know outside point and search neighbors and add them to a list
-                // but is there a way instead to just do 3D loop one-shot?
-                // like start outside, every time hit a true (the boundary) flip being inside/outside?
-                // doesnt quite work (hit odd number of consecutive surface cells, will calculate to be inside but is outside)
-                // so maybe that is not an option
-                //
-                // can you check cells from the octree instead?
-                // if its home base is outside, can label all voxels within it outside
-                // can use its faces() stuff to look at neighbors
-                //
-                // or use a type of ray-casting on the grid?
-                // sort of similar to the other idea?
-                //
-                // might be better to start inside since already assuming it's one simply-connected volume
-                //
-                print!("{} ", grid_ij.iter().filter(|&&grid_ijk| grid_ijk).count())
-            )
-        );
+        let mut i: u16;
+        let mut j: u16;
+        let mut k: u16;
+        let lim = (num - 1) as u16;
+        let mut index = 0;
+        let mut indices = vec![[0, 0, 0]];
+        let mut visited = HashSet::new();
+        while index < indices.len() {
+            [i, j, k] = indices[index];
+            if i > 0 && !outside[(i - 1) as usize][j as usize][k as usize] && visited.insert([i - 1, j, k]) {
+                outside[(i - 1) as usize][j as usize][k as usize] = true;
+                indices.push([i - 1, j, k]);
+            }
+            if i < lim && !outside[(i + 1) as usize][j as usize][k as usize] && visited.insert([i + 1, j, k]) {
+                outside[(i + 1) as usize][j as usize][k as usize] = true;
+                indices.push([i + 1, j, k]);
+            }
+            if j > 0 && !outside[i as usize][(j - 1) as usize][k as usize] && visited.insert([i, j - 1, k]) {
+                outside[i as usize][(j - 1) as usize][k as usize] = true;
+                indices.push([i, j - 1, k]);
+            }
+            if j < lim && !outside[i as usize][(j + 1) as usize][k as usize] && visited.insert([i, j + 1, k]) {
+                outside[i as usize][(j + 1) as usize][k as usize] = true;
+                indices.push([i, j + 1, k]);
+            }
+            if k > 0 && !outside[i as usize][j as usize][(k - 1) as usize] && visited.insert([i, j, k - 1]) {
+                outside[i as usize][j as usize][(k - 1) as usize] = true;
+                indices.push([i, j, k - 1]);
+            }
+            if k < lim && !outside[i as usize][j as usize][(k + 1) as usize] && visited.insert([i, j, k + 1]) {
+                outside[i as usize][j as usize][(k + 1) as usize] = true;
+                indices.push([i, j, k + 1]);
+            }
+            index += 1
+        }
+
+        // grid.iter().for_each(|grid_i|
+        //     grid_i.iter().for_each(|grid_ij|
+        //         //
+        //         // flood fill algorithm to mark all outsides as true
+        //         // can start at know outside point and search neighbors and add them to a list
+        //         // but is there a way instead to just do 3D loop one-shot?
+        //         // like start outside, every time hit a true (the boundary) flip being inside/outside?
+        //         // doesnt quite work (hit odd number of consecutive surface cells, will calculate to be inside but is outside)
+        //         // so maybe that is not an option
+        //         //
+        //         // can you check cells from the octree instead?
+        //         // if its home base is outside, can label all voxels within it outside
+        //         // can use its faces() stuff to look at neighbors
+        //         //
+        //         // or use a type of ray-casting on the grid?
+        //         // sort of similar to the other idea?
+        //         //
+        //         // might be better to start inside since already assuming it's one simply-connected volume
+        //         //
+        //         print!("{} ", grid_ij.iter().filter(|&&grid_ijk| grid_ijk).count())
+        //     )
+        // );
         // finite_elements.get_nodal_coordinates().iter().for_each(|coordinates| {
         //     // println!("{}", coordinates);
         //     println!("{}, {}, {}", (coordinates[0] - translate.x()) / scale.x(), (coordinates[1] - translate.y()) / scale.y(), (coordinates[2] - translate.z()) / scale.z());
@@ -864,6 +901,12 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         //
         // delete nodes in the surface boxes too (could be in or out, but also want that buffer anyway)
         //
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
+
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_elements.remove_nodes_outside(bounding_box);
         //
