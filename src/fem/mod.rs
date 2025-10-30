@@ -92,8 +92,6 @@ where
     fn bounding_box(&self) -> BoundingBox;
     /// Calculates and returns the coordinates of the centroids.
     fn centroids(&self) -> Coordinates;
-    /// Returns and moves the data associated with the finite elements.
-    fn data(self) -> Data<N>;
     /// Returns the centroid for each exterior face.
     fn exterior_faces_centroids(&self) -> Coordinates;
     /// Constructs and returns a new finite elements type from an Exodus input file.
@@ -206,13 +204,6 @@ where
                     / number_of_nodes
             })
             .collect()
-    }
-    fn data(self) -> Data<N> {
-        (
-            self.element_blocks,
-            self.element_node_connectivity,
-            self.nodal_coordinates,
-        )
     }
     fn exterior_faces_centroids(&self) -> Coordinates {
         let coordinates = self.get_nodal_coordinates();
@@ -781,6 +772,16 @@ where
             .chain(self.prescribed_nodes_inhomogeneous.clone())
             .collect();
         Ok(())
+    }
+}
+
+impl<const N: usize> From<FiniteElements<N>> for Data<N> {
+    fn from(finite_elements: FiniteElements<N>) -> Self {
+        (
+            finite_elements.element_blocks,
+            finite_elements.element_node_connectivity,
+            finite_elements.nodal_coordinates,
+        )
     }
 }
 

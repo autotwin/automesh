@@ -1,7 +1,7 @@
 use super::{
     Vector,
     fem::{
-        FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements, Smoothing,
+        FiniteElementSpecifics, HexahedralFiniteElements, Smoothing,
         TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
@@ -31,7 +31,7 @@ impl From<TetrahedralFiniteElements> for Tessellation {
 
 impl From<TriangularFiniteElements> for Tessellation {
     fn from(finite_elements: TriangularFiniteElements) -> Self {
-        let (_, connectivity, coordinates) = finite_elements.data();
+        let (_, connectivity, coordinates) = finite_elements.into();
         let mut normal = Vector::zero();
         let faces = connectivity
             .into_iter()

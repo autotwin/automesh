@@ -1,6 +1,6 @@
 use crate::{
     Coordinate, Coordinates, NSD, Nel, Remove, Scale, Translate,
-    fem::{FiniteElementMethods, Size, TriangularFiniteElements},
+    fem::{Size, TriangularFiniteElements},
     tessellation::Tessellation,
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
@@ -17,7 +17,7 @@ impl From<Octree> for Tessellation {
 
 impl From<(TriangularFiniteElements, Size)> for Octree {
     fn from((triangular_finite_elements, size): (TriangularFiniteElements, Size)) -> Self {
-        let (blocks, _, mut surface_coordinates) = triangular_finite_elements.data();
+        let (blocks, _, mut surface_coordinates) = triangular_finite_elements.into();
         let block = blocks[0];
         if !blocks.iter().all(|entry| entry == &block) {
             panic!()

@@ -1,5 +1,3 @@
-use crate::FiniteElementMethods;
-
 use super::{
     Connectivity, Coordinates, FiniteElementSpecifics, FiniteElements, HEX,
     HexahedralFiniteElements, Metrics, Smoothing, Tessellation,
@@ -100,7 +98,7 @@ impl TetrahedralFiniteElements {
 
 impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
     fn from(hexes: HexahedralFiniteElements) -> Self {
-        let (hex_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
+        let (hex_blocks, hex_connectivity, nodal_coordinates) = hexes.into();
         let element_blocks = hex_blocks
             .into_iter()
             .flat_map(|hex_block| repeat_n(hex_block, NUM_TETS_PER_HEX))
