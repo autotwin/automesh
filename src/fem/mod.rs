@@ -826,6 +826,31 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             //
             grid[coordinates[0].floor() as usize][coordinates[1].floor() as usize][coordinates[2].floor() as usize] = true
         );
+        //
+        // Can parallelize below?
+        //
+        grid.iter().for_each(|grid_i|
+            grid_i.iter().for_each(|grid_ij|
+                //
+                // flood fill algorithm to mark all outsides as true
+                // can start at know outside point and search neighbors and add them to a list
+                // but is there a way instead to just do 3D loop one-shot?
+                // like start outside, every time hit a true (the boundary) flip being inside/outside?
+                // doesnt quite work (hit odd number of consecutive surface cells, will calculate to be inside but is outside)
+                // so maybe that is not an option
+                //
+                // can you check cells from the octree instead?
+                // if its home base is outside, can label all voxels within it outside
+                // can use its faces() stuff to look at neighbors
+                //
+                // or use a type of ray-casting on the grid?
+                // sort of similar to the other idea?
+                //
+                // might be better to start inside since already assuming it's one simply-connected volume
+                //
+                print!("{} ", grid_ij.iter().filter(|&&grid_ijk| grid_ijk).count())
+            )
+        );
         // finite_elements.get_nodal_coordinates().iter().for_each(|coordinates| {
         //     // println!("{}", coordinates);
         //     println!("{}, {}, {}", (coordinates[0] - translate.x()) / scale.x(), (coordinates[1] - translate.y()) / scale.y(), (coordinates[2] - translate.z()) / scale.z());
