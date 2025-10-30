@@ -170,8 +170,14 @@ impl Default for Translate {
     }
 }
 
-impl From<Coordinate> for Translate {
-    fn from(translate: Coordinate) -> Self {
+impl From<Translate> for Vector {
+    fn from(translate: Translate) -> Self {
+        translate.0
+    }
+}
+
+impl From<Vector> for Translate {
+    fn from(translate: Vector) -> Self {
         Self(translate)
     }
 }

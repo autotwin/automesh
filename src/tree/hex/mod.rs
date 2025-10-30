@@ -4,7 +4,7 @@ use std::time::Instant;
 use crate::{
     Coordinate, Coordinates, Octree,
     fem::hex::{HEX, HexConnectivity, HexahedralFiniteElements},
-    tree::{Faces, Indices, NodeMap},
+    tree::{Faces, Indices, NodeMap}
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::parallel::prelude::*;
@@ -38,19 +38,27 @@ mod vertex_template_7; // (O, a, ab, b) => (o, a, ab, b)
 mod vertex_template_8; // (O, A, AB, b) => (o, a, ab, b)
 mod vertex_template_9; // (O, a, ab, b) => (o, a, AB, b)
 
-impl From<&Octree> for HexahedralFiniteElements {
+pub struct HexesAndCoords(HexahedralFiniteElements, Coordinates);
+
+impl From<HexesAndCoords> for (HexahedralFiniteElements, Coordinates) {
+    fn from(hexes_and_samples: HexesAndCoords) -> Self {
+        (hexes_and_samples.0, hexes_and_samples.1)
+    }
+}
+
+impl From<&Octree> for HexesAndCoords {
     fn from(tree: &Octree) -> Self {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut cells_nodes = vec![0; tree.len()];
-        let mut nodal_coordinates = Coordinates::zero(0);
+        let mut coordinates = Coordinates::zero(0);
         let mut node_index = 0;
         tree.iter()
             .enumerate()
             .filter(|(_, cell)| cell.is_leaf())
             .for_each(|(leaf_index, leaf)| {
                 cells_nodes[leaf_index] = node_index;
-                nodal_coordinates.push(Coordinate::new([
+                coordinates.push(Coordinate::new([
                     0.5 * (2 * leaf.get_min_x() + leaf.get_lngth()) as f64,
                     0.5 * (2 * leaf.get_min_y() + leaf.get_lngth()) as f64,
                     0.5 * (2 * leaf.get_min_z() + leaf.get_lngth()) as f64,
@@ -65,7 +73,7 @@ impl From<&Octree> for HexahedralFiniteElements {
             &mut node_index,
             tree,
             &mut element_node_connectivity,
-            &mut nodal_coordinates,
+            &mut coordinates,
         );
         edge_template_3::apply(
             &cells_nodes,
@@ -73,7 +81,7 @@ impl From<&Octree> for HexahedralFiniteElements {
             &mut node_index,
             tree,
             &mut element_node_connectivity,
-            &mut nodal_coordinates,
+            &mut coordinates,
         );
         face_template_1::apply(
             &cells_nodes,
@@ -81,25 +89,24 @@ impl From<&Octree> for HexahedralFiniteElements {
             &mut node_index,
             tree,
             &mut element_node_connectivity,
-            &mut nodal_coordinates,
+            &mut coordinates,
         );
         element_node_connectivity.append(
             &mut (1..=25)
                 .into_par_iter()
                 .flat_map(|index| {
-                    apply_concurrently(index, &cells_nodes, &nodes_map, tree, &nodal_coordinates)
+                    apply_concurrently(index, &cells_nodes, &nodes_map, tree, &coordinates)
                 })
                 .collect(),
         );
-        nodal_coordinates.iter_mut().for_each(|coordinates| {
-            coordinates[0] *= tree.scale.x();
-            coordinates[1] *= tree.scale.y();
-            coordinates[2] *= tree.scale.z();
-            coordinates[0] += tree.translate.x();
-            coordinates[1] += tree.translate.y();
-            coordinates[2] += tree.translate.z();
-        });
-        let fem = Self::from((
+        let nodal_coordinates = coordinates.iter().map(|coordinate|
+            Coordinate::new([
+                coordinate[0] * tree.scale.x() + tree.translate.x(),
+                coordinate[1] * tree.scale.y() + tree.translate.y(),
+                coordinate[2] * tree.scale.z() + tree.translate.z(),
+            ])
+        ).collect();
+        let finite_elements = HexahedralFiniteElements::from((
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,
             nodal_coordinates,
@@ -109,7 +116,7 @@ impl From<&Octree> for HexahedralFiniteElements {
             "             \x1b[1;93mDualization of octree\x1b[0m {:?} ",
             time.elapsed()
         );
-        fem
+        Self(finite_elements, coordinates)
     }
 }
 

@@ -11,7 +11,7 @@ pub use tri::{TRI, TriangularFiniteElements};
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use crate::{Coordinate, Coordinates, NSD, Tessellation, Vector, tree::OctreeAndSamples};
+use crate::{Coordinate, Coordinates, NSD, Tessellation, Vector, tree::{HexesAndCoords, OctreeAndSamples}};
 use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
@@ -811,107 +811,87 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
         let bounding_box = triangular_finite_elements.bounding_box();
         let (tree, samples) = OctreeAndSamples::from((triangular_finite_elements, size)).into();
-        let finite_elements = Self::from(&tree);
+        let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         //
-        // return rescaled coordinates after dualization so do not have to re-compute them below? can impl From<&Octree> for (HexahedralFiniteElements, NodalCoordinates)
+        // Need to rethink this, and the use of tessellation coordinates to find and refine against surface.
+        // All kinds of STLs coming in, like flat faces represented by huge triangles.
+        // Makes the Size option not work as it stands, but curvature/SDF should still be fine.
+        // Totally wrecks flood-filling since will have holes unless tris < cells.
         //
-        // need to profile these together in another function like 'remove_nodes_outside'
+        // One solution is to always do isotropic remeshing, but with a twist.
+        // Would want to target a certain triangle size so that can guarantee tris < cells.
+        // And then would iterate until close and stdev is low or something.
         //
-
+        // Other solution is to re-work choosing a surface size without using the samples,
+        // and to also to adjust flood-filling to not use them either,
+        // or to use something other than flood-filling, like rays or signed distance function.
+        //
+        // Also, don't delete this branch! Lots of other good stuff to merge in.
+        //
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let num = *tree.nel().x() - 1;
-        let scale = tree.scale();
-        let translate = tree.translate();
-        let mut outside = vec![vec![vec![false; num]; num]; num];
-        samples.iter().for_each(|coordinates|
-            //
-            // round down to home base!
-            //
-            outside[coordinates[0].floor() as usize][coordinates[1].floor() as usize][coordinates[2].floor() as usize] = true
-        );
-        let mut i: u16;
-        let mut j: u16;
-        let mut k: u16;
-        let lim = (num - 1) as u16;
-        let mut index = 0;
-        let mut indices = vec![[0, 0, 0]];
+        let mut i = 0;
+        let mut j = 0;
+        let mut k = 0;
+        let nel = *tree.nel().x();
+        let num = nel - 1;
+        // let mut outside = vec![vec![vec![false; num]; num]; num];
+        let mut outside = vec![vec![vec![false; nel]; nel]; nel];
         let mut visited = HashSet::new();
-        while index < indices.len() {
-            [i, j, k] = indices[index];
-            if i > 0 && !outside[(i - 1) as usize][j as usize][k as usize] && visited.insert([i - 1, j, k]) {
-                outside[(i - 1) as usize][j as usize][k as usize] = true;
-                indices.push([i - 1, j, k]);
+        samples.iter().for_each(|sample| {
+            i = sample[0].floor() as u16;
+            j = sample[1].floor() as u16;
+            k = sample[2].floor() as u16;
+            outside[i as usize][j as usize][k as usize] = true;
+            visited.insert([i, j, k]);
+        });
+        // let lim = (num - 1) as u16;
+        // let mut index = 0;
+        // let mut indices = vec![[0, 0, 0]];
+        // while index < indices.len() {
+        //     [i, j, k] = indices[index];
+        //     if i > 0 && !outside[(i - 1) as usize][j as usize][k as usize] && visited.insert([i - 1, j, k]) {
+        //         outside[(i - 1) as usize][j as usize][k as usize] = true;
+        //         indices.push([i - 1, j, k]);
+        //     }
+        //     if i < lim && !outside[(i + 1) as usize][j as usize][k as usize] && visited.insert([i + 1, j, k]) {
+        //         outside[(i + 1) as usize][j as usize][k as usize] = true;
+        //         indices.push([i + 1, j, k]);
+        //     }
+        //     if j > 0 && !outside[i as usize][(j - 1) as usize][k as usize] && visited.insert([i, j - 1, k]) {
+        //         outside[i as usize][(j - 1) as usize][k as usize] = true;
+        //         indices.push([i, j - 1, k]);
+        //     }
+        //     if j < lim && !outside[i as usize][(j + 1) as usize][k as usize] && visited.insert([i, j + 1, k]) {
+        //         outside[i as usize][(j + 1) as usize][k as usize] = true;
+        //         indices.push([i, j + 1, k]);
+        //     }
+        //     if k > 0 && !outside[i as usize][j as usize][(k - 1) as usize] && visited.insert([i, j, k - 1]) {
+        //         outside[i as usize][j as usize][(k - 1) as usize] = true;
+        //         indices.push([i, j, k - 1]);
+        //     }
+        //     if k < lim && !outside[i as usize][j as usize][(k + 1) as usize] && visited.insert([i, j, k + 1]) {
+        //         outside[i as usize][j as usize][(k + 1) as usize] = true;
+        //         indices.push([i, j, k + 1]);
+        //     }
+        //     index += 1
+        // }
+        let removed_nodes = coordinates.iter().enumerate().filter_map(|(node, coordinate)|
+            if outside[coordinate[0].floor() as usize][coordinate[1].floor() as usize][coordinate[2].floor() as usize] {
+                Some(node)
+            } else {
+                None
             }
-            if i < lim && !outside[(i + 1) as usize][j as usize][k as usize] && visited.insert([i + 1, j, k]) {
-                outside[(i + 1) as usize][j as usize][k as usize] = true;
-                indices.push([i + 1, j, k]);
-            }
-            if j > 0 && !outside[i as usize][(j - 1) as usize][k as usize] && visited.insert([i, j - 1, k]) {
-                outside[i as usize][(j - 1) as usize][k as usize] = true;
-                indices.push([i, j - 1, k]);
-            }
-            if j < lim && !outside[i as usize][(j + 1) as usize][k as usize] && visited.insert([i, j + 1, k]) {
-                outside[i as usize][(j + 1) as usize][k as usize] = true;
-                indices.push([i, j + 1, k]);
-            }
-            if k > 0 && !outside[i as usize][j as usize][(k - 1) as usize] && visited.insert([i, j, k - 1]) {
-                outside[i as usize][j as usize][(k - 1) as usize] = true;
-                indices.push([i, j, k - 1]);
-            }
-            if k < lim && !outside[i as usize][j as usize][(k + 1) as usize] && visited.insert([i, j, k + 1]) {
-                outside[i as usize][j as usize][(k + 1) as usize] = true;
-                indices.push([i, j, k + 1]);
-            }
-            index += 1
-        }
-
-        // grid.iter().for_each(|grid_i|
-        //     grid_i.iter().for_each(|grid_ij|
-        //         //
-        //         // flood fill algorithm to mark all outsides as true
-        //         // can start at know outside point and search neighbors and add them to a list
-        //         // but is there a way instead to just do 3D loop one-shot?
-        //         // like start outside, every time hit a true (the boundary) flip being inside/outside?
-        //         // doesnt quite work (hit odd number of consecutive surface cells, will calculate to be inside but is outside)
-        //         // so maybe that is not an option
-        //         //
-        //         // can you check cells from the octree instead?
-        //         // if its home base is outside, can label all voxels within it outside
-        //         // can use its faces() stuff to look at neighbors
-        //         //
-        //         // or use a type of ray-casting on the grid?
-        //         // sort of similar to the other idea?
-        //         //
-        //         // might be better to start inside since already assuming it's one simply-connected volume
-        //         //
-        //         print!("{} ", grid_ij.iter().filter(|&&grid_ijk| grid_ijk).count())
-        //     )
-        // );
-        // finite_elements.get_nodal_coordinates().iter().for_each(|coordinates| {
-        //     // println!("{}", coordinates);
-        //     println!("{}, {}, {}", (coordinates[0] - translate.x()) / scale.x(), (coordinates[1] - translate.y()) / scale.y(), (coordinates[2] - translate.z()) / scale.z());
-        // });
-        //
-        // how to bound/round coords so know which cell they are in?
-        // rescaled nodal coordinates should be integers or half-integers (2.0, 3.0, 2.5, 3.5, etc.) so if mul by 2 all are integers
-        // does *2 make it too big? is there another way using rounding/etc?
-        //
-        // can you use the bounding box to skip over part of the grid?
-        //
-        // delete nodes in the surface boxes too (could be in or out, but also want that buffer anyway)
-        //
+        ).collect();
+        // let removed_nodes = vec![];
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
             time.elapsed()
         );
-
-        let (element_blocks, element_node_connectivity, nodal_coordinates) =
-            finite_elements.remove_nodes_outside(bounding_box);
-        //
-        // need to profile these together in another function like 'remove_nodes_outside'
-        //
+        let (element_blocks, element_node_connectivity, nodal_coordinates) = finite_elements.remove_nodes(removed_nodes);
+        // let (element_blocks, element_node_connectivity, nodal_coordinates) =
+        //     finite_elements.remove_nodes_outside(bounding_box);
         Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }

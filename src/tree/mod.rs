@@ -5,6 +5,7 @@ mod hex;
 mod tessellation;
 mod tri;
 
+pub use hex::HexesAndCoords;
 pub use tessellation::OctreeAndSamples;
 
 use super::{
