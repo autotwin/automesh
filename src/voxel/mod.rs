@@ -189,16 +189,11 @@ impl From<[f64; NSD]> for Translate {
 }
 
 /// The voxels IDs to be removed.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Remove {
+    #[default]
     None,
     Some(Blocks),
-}
-
-impl Default for Remove {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl From<Remove> for Vec<u8> {
