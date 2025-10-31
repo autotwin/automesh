@@ -1,4 +1,4 @@
-use automesh::{FiniteElementMethods, TET, TetrahedralFiniteElements, Voxels};
+use automesh::{TET, TetrahedralFiniteElements, Voxels};
 use conspire::{
     constitutive::{
         Constitutive,
@@ -36,7 +36,7 @@ fn segmentation() -> [[[u8; 6]; 6]; 6] {
 
 macro_rules! affine_test {
     ($fem: ident, $corner: expr) => {
-        let (_, connectivity, coordinates) = $fem.data();
+        let (_, connectivity, coordinates) = $fem.into();
         let block = ElementBlock::<LinearTetrahedron<NeoHookean<_>>, TET>::new(
             PARAMETERS,
             connectivity,

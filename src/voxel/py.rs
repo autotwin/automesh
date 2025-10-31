@@ -35,11 +35,11 @@ impl Voxels {
                 self.scale.into(),
                 self.translate.into(),
             );
-        Ok(HexahedralFiniteElements::from((
+        Ok(HexahedralFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Converts the voxels type into hexahedral finite elements.
     #[pyo3(signature = (remove=[].to_vec(), scale=[1.0, 1.0, 1.0], translate=[0.0, 0.0, 0.0]))]
@@ -56,11 +56,11 @@ impl Voxels {
                 scale.into(),
                 translate.into(),
             );
-        Ok(HexahedralFiniteElements::from((
+        Ok(HexahedralFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Converts the voxels type into tetrahedral finite elements.
     #[pyo3(signature = (remove=[].to_vec(), scale=[1.0, 1.0, 1.0], translate=[0.0, 0.0, 0.0]))]
@@ -77,11 +77,11 @@ impl Voxels {
                 scale.into(),
                 translate.into(),
             );
-        Ok(TetrahedralFiniteElements::from((
+        Ok(TetrahedralFiniteElements::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Defeatures clusters with less than a minimum number of voxels.
     pub fn defeature(&mut self, min_num_voxels: usize) {

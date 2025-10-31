@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
-    Metrics, Smoothing, Tessellation, Vector,
+    Metrics, Size, Smoothing, Tessellation, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
@@ -341,7 +341,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
             })
             .collect()
     }
-    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing) {
+    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
     }
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {

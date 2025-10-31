@@ -56,22 +56,22 @@ impl HexahedralFiniteElements {
     pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from((
+        Ok(Self::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Constructs and returns a new hexahedral finite elements class from an Abaqus file.
     #[staticmethod]
     pub fn from_inp(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from((
+        Ok(Self::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
     #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
@@ -176,22 +176,22 @@ impl TetrahedralFiniteElements {
     pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from((
+        Ok(Self::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Constructs and returns a new tetrahedral finite elements class from an Abaqus file.
     #[staticmethod]
     pub fn from_inp(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from((
+        Ok(Self::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
     #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
@@ -296,22 +296,22 @@ impl TriangularFiniteElements {
     pub fn from_exo(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from((
+        Ok(Self::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Constructs and returns a new hexahedral finite elements class from an Abaqus file.
     #[staticmethod]
     pub fn from_inp(file_path: &str) -> Result<Self, PyIntermediateError> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from((
+        Ok(Self::from_data(
             element_blocks,
             element_node_connectivity,
             nodal_coordinates.as_foo(),
-        )))
+        ))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
     #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]

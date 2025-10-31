@@ -1,8 +1,8 @@
 use super::{
     Vector,
     fem::{
-        FiniteElementSpecifics, HexahedralFiniteElements, Smoothing, TetrahedralFiniteElements,
-        TriangularFiniteElements,
+        FiniteElementSpecifics, HexahedralFiniteElements, Size, Smoothing,
+        TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
 use conspire::math::{Tensor, TensorArray};
@@ -82,9 +82,9 @@ impl Tessellation {
         &self.data
     }
     /// Isotropic remeshing of the tessellation.
-    pub fn remesh(self, iterations: usize, smoothing_method: &Smoothing) -> Self {
+    pub fn remesh(self, iterations: usize, smoothing_method: &Smoothing, size: Size) -> Self {
         let mut finite_elements = TriangularFiniteElements::from(self);
-        finite_elements.remesh(iterations, smoothing_method);
+        finite_elements.remesh(iterations, smoothing_method, size);
         finite_elements.into()
     }
     /// Writes the tessellation data to a new STL file.

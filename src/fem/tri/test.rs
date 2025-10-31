@@ -3,9 +3,7 @@
 //     calculate_maximum_edge_ratios, calculate_maximum_skews, calculate_minimum_scaled_jacobians,
 //     metrics_headers, Coordinates,
 // };
-use super::{
-    super::Coordinates, FiniteElementMethods, FiniteElementSpecifics, TriangularFiniteElements,
-};
+use super::{super::Coordinates, FiniteElementSpecifics, TriangularFiniteElements};
 use conspire::math::TensorVec;
 
 const EPSILON: f64 = 1.0e-14;

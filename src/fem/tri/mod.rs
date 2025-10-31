@@ -6,8 +6,8 @@ use std::time::Instant;
 
 use super::{
     super::tree::Edges, Connectivity, Coordinate, Coordinates, FiniteElementMethods,
-    FiniteElementSpecifics, FiniteElements, Metrics, Smoothing, Tessellation, VecConnectivity,
-    Vector,
+    FiniteElementSpecifics, FiniteElements, Metrics, Size, Smoothing, Tessellation,
+    VecConnectivity, Vector,
 };
 use conspire::{
     math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire},
@@ -122,8 +122,8 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
             .map(|angle| angle.sin() / J_EQUILATERAL)
             .collect()
     }
-    fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing) {
-        remesh(self, iterations, smoothing_method)
+    fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing, size: Size) {
+        remesh(self, iterations, smoothing_method, size)
     }
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
         let areas = self.areas();
@@ -294,9 +294,61 @@ impl TriangularFiniteElements {
             })
             .collect()
     }
+    /// Iteratively refine until all edges are smaller than a size.
+    pub fn refine(&mut self, size: Scalar) {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let mut edges: Edges = self
+            .get_element_node_connectivity()
+            .iter()
+            .flat_map(|&[node_0, node_1, node_2]| {
+                [[node_0, node_1], [node_1, node_2], [node_2, node_0]].into_iter()
+            })
+            .collect();
+        edges.iter_mut().for_each(|edge| edge.sort());
+        edges.sort();
+        edges.dedup();
+        let nodal_coordinates = self.get_nodal_coordinates();
+        let mut lengths = Lengths::zero(edges.len());
+        edges
+            .iter()
+            .zip(lengths.iter_mut())
+            .for_each(|(&[node_a, node_b], length)| {
+                *length = (&nodal_coordinates[node_a] - &nodal_coordinates[node_b]).norm()
+            });
+        self.boundary_nodes = vec![];
+        self.exterior_nodes = vec![];
+        self.interface_nodes = vec![];
+        self.interior_nodes = vec![];
+        loop {
+            if lengths.iter().any(|length| length > &size) {
+                split_edges(self, &mut edges, &mut lengths, size / FOUR_THIRDS)
+                //
+                // Would be nice to bake this into remeshing with two options based on input args:
+                // (1) just go for some number of iterations like typically do
+                // (2) iterate until all edge below size
+                //     - would still do edge collapse (get all edges close to size, just no larger than size)
+                //
+            } else {
+                break;
+            }
+        }
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mSplitting large edges\x1b[0m {:?}",
+            time.elapsed()
+        );
+    }
 }
 
-fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_method: &Smoothing) {
+fn remesh(
+    fem: &mut TriangularFiniteElements,
+    iterations: usize,
+    smoothing_method: &Smoothing,
+    size: Size,
+) {
+    #[cfg(feature = "profile")]
+    let time = Instant::now();
     let mut edges: Edges = fem
         .get_element_node_connectivity()
         .iter()
@@ -309,6 +361,13 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_metho
     edges.dedup();
     let mut average_length = 0.0;
     let mut lengths = Lengths::zero(edges.len());
+    // edges
+    //     .iter()
+    //     .zip(lengths.iter_mut())
+    //     .for_each(|(&[node_a, node_b], length)| {
+    //         *length =
+    //             (&fem.get_nodal_coordinates()[node_a] - &fem.get_nodal_coordinates()[node_b]).norm()
+    //     });
     fem.boundary_nodes = vec![];
     fem.exterior_nodes = vec![];
     fem.interface_nodes = vec![];
@@ -322,13 +381,22 @@ fn remesh(fem: &mut TriangularFiniteElements, iterations: usize, smoothing_metho
                     - &fem.get_nodal_coordinates()[node_b])
                     .norm()
             });
-        average_length = lengths.iter().sum::<Scalar>() / (lengths.len() as Scalar);
+        average_length = if let Some(size) = size {
+            size / FOUR_THIRDS
+        } else {
+            lengths.iter().sum::<Scalar>() / (lengths.len() as Scalar)
+        };
         split_edges(fem, &mut edges, &mut lengths, average_length);
         // collapse_edges(fem, &mut edges, &lengths, average_length);
         flip_edges(fem, &mut edges);
         fem.nodal_influencers();
         fem.smooth(smoothing_method).unwrap();
     });
+    #[cfg(feature = "profile")]
+    println!(
+        "             \x1b[1;93mIsotropic remesh tris\x1b[0m {:?}",
+        time.elapsed()
+    );
 }
 
 fn split_edges(
@@ -346,7 +414,9 @@ fn split_edges(
     let mut node_e = 0;
     let mut spot_a = 0;
     let mut spot_b = 0;
-    let mut new_edge = [0; 2];
+    let mut edge_eb = [0; 2];
+    let mut edge_ec = [0; 2];
+    let mut edge_ed = [0; 2];
     let mut new_edges = vec![];
     let mut new_lengths = Lengths::zero(0);
     let element_blocks = &mut fem.element_blocks;
@@ -365,6 +435,10 @@ fn split_edges(
                 element_node_connectivity,
                 node_element_connectivity,
             );
+            element_blocks.extend(vec![
+                element_blocks[element_index_1],
+                element_blocks[element_index_2],
+            ]);
             nodal_coordinates
                 .push((nodal_coordinates[*node_a].clone() + &nodal_coordinates[*node_b]) / 2.0);
             node_e = nodal_coordinates.len() - 1;
@@ -407,10 +481,6 @@ fn split_edges(
                 element_index_3,
                 element_index_4,
             ]);
-            element_blocks.extend(vec![
-                element_blocks[element_index_1],
-                element_blocks[element_index_2],
-            ]);
             node_node_connectivity[*node_a].retain(|node| node != node_b);
             node_node_connectivity[*node_a].push(node_e);
             node_node_connectivity[*node_a].sort();
@@ -423,12 +493,20 @@ fn split_edges(
             node_node_connectivity[node_d].sort();
             node_node_connectivity.push(vec![*node_a, *node_b, node_c, node_d]);
             node_node_connectivity[node_e].sort();
-            new_edge = [node_e, *node_b];
-            new_edge.sort();
-            new_edges.push(new_edge);
+            edge_eb = [node_e, *node_b];
+            edge_eb.sort();
+            new_edges.push(edge_eb);
             *node_b = node_e;
+            edge_ec = [node_e, node_c];
+            edge_ec.sort();
+            new_edges.push(edge_ec);
+            edge_ed = [node_e, node_d];
+            edge_ed.sort();
+            new_edges.push(edge_ed);
             *length *= 0.5;
             new_lengths.push(*length);
+            new_lengths.push((&nodal_coordinates[node_e] - &nodal_coordinates[node_c]).norm());
+            new_lengths.push((&nodal_coordinates[node_e] - &nodal_coordinates[node_d]).norm());
         });
     edges.append(&mut new_edges);
     lengths.append(&mut new_lengths);

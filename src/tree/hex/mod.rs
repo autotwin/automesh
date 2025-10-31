@@ -4,7 +4,7 @@ use std::time::Instant;
 use crate::{
     Coordinate, Coordinates, Octree,
     fem::hex::{HEX, HexConnectivity, HexahedralFiniteElements},
-    tree::{Faces, Indices, NodeMap}
+    tree::{Faces, Indices, NodeMap},
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::parallel::prelude::*;
@@ -99,13 +99,16 @@ impl From<&Octree> for HexesAndCoords {
                 })
                 .collect(),
         );
-        let nodal_coordinates = coordinates.iter().map(|coordinate|
-            Coordinate::new([
-                coordinate[0] * tree.scale.x() + tree.translate.x(),
-                coordinate[1] * tree.scale.y() + tree.translate.y(),
-                coordinate[2] * tree.scale.z() + tree.translate.z(),
-            ])
-        ).collect();
+        let nodal_coordinates = coordinates
+            .iter()
+            .map(|coordinate| {
+                Coordinate::new([
+                    coordinate[0] * tree.scale.x() + tree.translate.x(),
+                    coordinate[1] * tree.scale.y() + tree.translate.y(),
+                    coordinate[2] * tree.scale.z() + tree.translate.z(),
+                ])
+            })
+            .collect();
         let finite_elements = HexahedralFiniteElements::from((
             vec![1; element_node_connectivity.len()],
             element_node_connectivity,

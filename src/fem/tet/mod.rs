@@ -1,6 +1,6 @@
 use super::{
     Connectivity, Coordinates, FiniteElementSpecifics, FiniteElements, HEX,
-    HexahedralFiniteElements, Metrics, Smoothing, Tessellation,
+    HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation,
 };
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
@@ -45,7 +45,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn minimum_scaled_jacobians(&self) -> Metrics {
         todo!()
     }
-    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing) {
+    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
     }
     fn write_metrics(&self, _file_path: &str) -> Result<(), ErrorIO> {
