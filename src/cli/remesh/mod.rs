@@ -62,6 +62,7 @@ where
             TAUBIN_DEFAULT_BAND,
             TAUBIN_DEFAULT_SCALE,
         ),
+        None,
     );
     if !quiet {
         let mut blocks = finite_elements.get_element_blocks().clone();

@@ -1,7 +1,7 @@
 use super::{
     Vector,
     fem::{
-        FiniteElementMethods, FiniteElementSpecifics, HexahedralFiniteElements, Smoothing,
+        FiniteElementSpecifics, HexahedralFiniteElements, Size, Smoothing,
         TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
@@ -31,7 +31,7 @@ impl From<TetrahedralFiniteElements> for Tessellation {
 
 impl From<TriangularFiniteElements> for Tessellation {
     fn from(finite_elements: TriangularFiniteElements) -> Self {
-        let (_, connectivity, coordinates) = finite_elements.data();
+        let (_, connectivity, coordinates) = finite_elements.into();
         let mut normal = Vector::zero();
         let faces = connectivity
             .into_iter()
@@ -82,9 +82,9 @@ impl Tessellation {
         &self.data
     }
     /// Isotropic remeshing of the tessellation.
-    pub fn remesh(self, iterations: usize, smoothing_method: &Smoothing) -> Self {
+    pub fn remesh(self, iterations: usize, smoothing_method: &Smoothing, size: Size) -> Self {
         let mut finite_elements = TriangularFiniteElements::from(self);
-        finite_elements.remesh(iterations, smoothing_method);
+        finite_elements.remesh(iterations, smoothing_method, size);
         finite_elements.into()
     }
     /// Writes the tessellation data to a new STL file.

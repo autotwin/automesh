@@ -170,8 +170,14 @@ impl Default for Translate {
     }
 }
 
-impl From<Coordinate> for Translate {
-    fn from(translate: Coordinate) -> Self {
+impl From<Translate> for Vector {
+    fn from(translate: Translate) -> Self {
+        translate.0
+    }
+}
+
+impl From<Vector> for Translate {
+    fn from(translate: Vector) -> Self {
         Self(translate)
     }
 }
@@ -183,16 +189,11 @@ impl From<[f64; NSD]> for Translate {
 }
 
 /// The voxels IDs to be removed.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Remove {
+    #[default]
     None,
     Some(Blocks),
-}
-
-impl Default for Remove {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl From<Remove> for Vec<u8> {
@@ -469,7 +470,7 @@ impl From<Voxels> for HexahedralFiniteElements {
                 voxels.scale,
                 voxels.translate,
             );
-        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
 

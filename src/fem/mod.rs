@@ -11,7 +11,10 @@ pub use tri::{TRI, TriangularFiniteElements};
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
-use super::{Coordinate, Coordinates, NSD, Octree, Tessellation, Vector};
+use crate::{
+    Coordinate, Coordinates, NSD, Tessellation, Vector,
+    tree::{HexesAndCoords, OctreeAndSamples},
+};
 use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
@@ -26,9 +29,9 @@ use conspire::{
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
+    collections::HashSet,
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
-    mem::transmute,
     path::PathBuf,
 };
 use vtkio::{
@@ -63,6 +66,7 @@ pub enum Smoothing {
     Energetic,
     Laplacian(usize, Scalar),
     Taubin(usize, Scalar, Scalar),
+    None,
 }
 
 /// The finite elements type.
@@ -92,22 +96,12 @@ where
     fn bounding_box(&self) -> BoundingBox;
     /// Calculates and returns the coordinates of the centroids.
     fn centroids(&self) -> Coordinates;
-    /// Returns and moves the data associated with the finite elements.
-    fn data(self) -> Data<N>;
     /// Returns the centroid for each exterior face.
     fn exterior_faces_centroids(&self) -> Coordinates;
-    /// Constructs and returns a new finite elements type from data.
-    fn from_data(
-        element_blocks: Blocks,
-        element_node_connectivity: Connectivity<N>,
-        nodal_coordinates: Coordinates,
-    ) -> Self;
     /// Constructs and returns a new finite elements type from an Exodus input file.
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF>;
     /// Constructs and returns a new finite elements type from an Abaqus input file.
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO>;
-    /// Creates a conformal mesh within a tessellation.
-    fn from_tessellation(tessellation: Tessellation, size: Size) -> Self;
     /// Calculates and returns the discrete Laplacian for the given node-to-node connectivity.
     fn laplacian(&self, node_node_connectivity: &VecConnectivity) -> Coordinates;
     /// Calculates and sets the nodal influencers.
@@ -215,13 +209,6 @@ where
             })
             .collect()
     }
-    fn data(self) -> Data<N> {
-        (
-            self.element_blocks,
-            self.element_node_connectivity,
-            self.nodal_coordinates,
-        )
-    }
     fn exterior_faces_centroids(&self) -> Coordinates {
         let coordinates = self.get_nodal_coordinates();
         let number_of_nodes = M as f64;
@@ -235,79 +222,23 @@ where
             })
             .collect()
     }
-    fn from_data(
-        element_blocks: Blocks,
-        element_node_connectivity: Connectivity<N>,
-        nodal_coordinates: Coordinates,
-    ) -> Self {
-        Self {
-            boundary_nodes: vec![],
-            element_blocks,
-            element_node_connectivity,
-            exterior_nodes: vec![],
-            interface_nodes: vec![],
-            interior_nodes: vec![],
-            nodal_coordinates,
-            nodal_influencers: vec![],
-            node_element_connectivity: vec![],
-            node_node_connectivity: vec![],
-            prescribed_nodes: vec![],
-            prescribed_nodes_homogeneous: vec![],
-            prescribed_nodes_inhomogeneous: vec![],
-            prescribed_nodes_inhomogeneous_coordinates: Coordinates::zero(0),
-        }
-    }
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_exo(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        ))
+        )))
     }
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_element_data_from_inp(file_path)?;
-        Ok(Self::from_data(
+        Ok(Self::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        ))
-    }
-    fn from_tessellation(tessellation: Tessellation, size: Size) -> Self {
-        let triangular_finite_elements = TriangularFiniteElements::from(tessellation);
-        let bounding_box = triangular_finite_elements.bounding_box();
-        let tree = Octree::from_triangular_finite_elements(triangular_finite_elements, size);
-        let hexes = match N {
-            HEX => HexahedralFiniteElements::from(&tree),
-            _ => panic!(),
-        };
-        let (element_blocks, connectivity, nodal_coordinates) =
-            hexes.remove_nodes_outside(bounding_box);
-        let element_node_connectivity =
-            unsafe { transmute::<Connectivity<8>, Connectivity<N>>(connectivity) };
-        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
-        //
-        // Below is temporary code used for octree visualization.
-        //
-        // tree.prune();
-        // let remove = match tree.remove() {
-        //     super::Remove::Some(blocks) => Some(blocks.clone()),
-        //     super::Remove::None => None,
-        // };
-        // let scale = tree.scale().clone();
-        // let translate = tree.translate().clone();
-        // let hexes = tree
-        //     .octree_into_finite_elements(remove, scale, translate)
-        //     .unwrap();
-        // let (element_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
-        // let mut element_node_connectivity = vec![[0; N]; hex_connectivity.len()];
-        // element_node_connectivity
-        //     .iter_mut()
-        //     .zip(hex_connectivity)
-        //     .for_each(|(a, b)| a.iter_mut().zip(b).for_each(|(c, d)| *c = d));
-        // Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+        )))
     }
     fn laplacian(&self, node_node_connectivity: &VecConnectivity) -> Coordinates {
         let nodal_coordinates = self.get_nodal_coordinates();
@@ -435,7 +366,7 @@ where
         self.node_element_connectivity = node_element_connectivity;
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mNode-to-element connectivity\x1b[0m {:?} ",
+            "             \x1b[1;93mNode-element connectivity\x1b[0m {:?} ",
             time.elapsed()
         );
         Ok(())
@@ -476,7 +407,7 @@ where
             self.node_node_connectivity = node_node_connectivity;
             #[cfg(feature = "profile")]
             println!(
-                "             \x1b[1;93mNode-to-node connectivity\x1b[0m {:?} ",
+                "             \x1b[1;93mNode-node connectivity\x1b[0m {:?} ",
                 time.elapsed()
             );
             Ok(())
@@ -485,6 +416,8 @@ where
         }
     }
     fn remove_nodes(self, removed_nodes: Nodes) -> Data<N> {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let mut is_removed_node = vec![false; self.nodal_coordinates.len()];
         removed_nodes
             .iter()
@@ -546,11 +479,16 @@ where
                 },
             )
             .collect();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mRemoving marked nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
         (element_blocks, element_node_connectivity, nodal_coordinates)
     }
     fn remove_nodes_outside(self, bounding_box: BoundingBox) -> Data<N> {
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
+        // #[cfg(feature = "profile")]
+        // let time = Instant::now();
         let [[min_x, min_y, min_z], [max_x, max_y, max_z]] = bounding_box.as_array();
         let removed_nodes = self
             .get_nodal_coordinates()
@@ -566,13 +504,14 @@ where
             })
             .map(|(node, _)| node)
             .collect();
-        let data = self.remove_nodes(removed_nodes);
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mRemoved nodes outside\x1b[0m {:?}",
-            time.elapsed()
-        );
-        data
+        self.remove_nodes(removed_nodes)
+        // let data = self.remove_nodes(removed_nodes);
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "             \x1b[1;93mRemoved nodes outside\x1b[0m {:?}",
+        //     time.elapsed()
+        // );
+        // data
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {
@@ -662,6 +601,7 @@ where
                         }
                     }
                 }
+                Smoothing::None => return Ok(()),
             }
             let prescribed_nodes_inhomogeneous = self.get_prescribed_nodes_inhomogeneous().clone();
             let prescribed_nodes_inhomogeneous_coordinates: Coordinates = self
@@ -848,6 +788,150 @@ where
     }
 }
 
+impl<const N: usize> From<FiniteElements<N>> for Data<N> {
+    fn from(finite_elements: FiniteElements<N>) -> Self {
+        (
+            finite_elements.element_blocks,
+            finite_elements.element_node_connectivity,
+            finite_elements.nodal_coordinates,
+        )
+    }
+}
+
+impl<const N: usize> From<Data<N>> for FiniteElements<N> {
+    fn from((element_blocks, element_node_connectivity, nodal_coordinates): Data<N>) -> Self {
+        Self {
+            boundary_nodes: vec![],
+            element_blocks,
+            element_node_connectivity,
+            exterior_nodes: vec![],
+            interface_nodes: vec![],
+            interior_nodes: vec![],
+            nodal_coordinates,
+            nodal_influencers: vec![],
+            node_element_connectivity: vec![],
+            node_node_connectivity: vec![],
+            prescribed_nodes: vec![],
+            prescribed_nodes_homogeneous: vec![],
+            prescribed_nodes_inhomogeneous: vec![],
+            prescribed_nodes_inhomogeneous_coordinates: Coordinates::zero(0),
+        }
+    }
+}
+
+impl From<(Tessellation, Size)> for HexahedralFiniteElements {
+    fn from((tessellation, size): (Tessellation, Size)) -> Self {
+        let mut triangular_finite_elements = TriangularFiniteElements::from(tessellation);
+        triangular_finite_elements
+            .node_element_connectivity()
+            .unwrap();
+        triangular_finite_elements.node_node_connectivity().unwrap();
+        triangular_finite_elements.refine(size.unwrap()); // Might be nice to use full remeshing to get rid of small triangles eventually.
+        // let bounding_box = triangular_finite_elements.bounding_box();
+        let (tree, samples) = OctreeAndSamples::from((triangular_finite_elements, size)).into();
+        let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let mut i = 0;
+        let mut j = 0;
+        let mut k = 0;
+        let nel = *tree.nel().x();
+        let mut outside = vec![vec![vec![false; nel]; nel]; nel];
+        let mut visited = HashSet::new();
+        samples.iter().for_each(|sample| {
+            i = sample[0].floor() as u16;
+            j = sample[1].floor() as u16;
+            k = sample[2].floor() as u16;
+            outside[i as usize][j as usize][k as usize] = true;
+            visited.insert([i, j, k]);
+        });
+        let mut index = 0;
+        let mut indices = vec![[0, 0, 0]];
+        let lim = (nel - 2) as u16;
+        while index < indices.len() {
+            [i, j, k] = indices[index];
+            if i > 0
+                && !outside[(i - 1) as usize][j as usize][k as usize]
+                && visited.insert([i - 1, j, k])
+            {
+                outside[(i - 1) as usize][j as usize][k as usize] = true;
+                indices.push([i - 1, j, k]);
+            }
+            if i < lim
+                && !outside[(i + 1) as usize][j as usize][k as usize]
+                && visited.insert([i + 1, j, k])
+            {
+                outside[(i + 1) as usize][j as usize][k as usize] = true;
+                indices.push([i + 1, j, k]);
+            }
+            if j > 0
+                && !outside[i as usize][(j - 1) as usize][k as usize]
+                && visited.insert([i, j - 1, k])
+            {
+                outside[i as usize][(j - 1) as usize][k as usize] = true;
+                indices.push([i, j - 1, k]);
+            }
+            if j < lim
+                && !outside[i as usize][(j + 1) as usize][k as usize]
+                && visited.insert([i, j + 1, k])
+            {
+                outside[i as usize][(j + 1) as usize][k as usize] = true;
+                indices.push([i, j + 1, k]);
+            }
+            if k > 0
+                && !outside[i as usize][j as usize][(k - 1) as usize]
+                && visited.insert([i, j, k - 1])
+            {
+                outside[i as usize][j as usize][(k - 1) as usize] = true;
+                indices.push([i, j, k - 1]);
+            }
+            if k < lim
+                && !outside[i as usize][j as usize][(k + 1) as usize]
+                && visited.insert([i, j, k + 1])
+            {
+                outside[i as usize][j as usize][(k + 1) as usize] = true;
+                indices.push([i, j, k + 1]);
+            }
+            index += 1
+        }
+        let removed_nodes = coordinates
+            .iter()
+            .enumerate()
+            .filter_map(|(node, coordinate)| {
+                if outside[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
+                    [coordinate[2].floor() as usize]
+                {
+                    Some(node)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
+        let (element_blocks, element_node_connectivity, nodal_coordinates) =
+            finite_elements.remove_nodes(removed_nodes);
+        // let (element_blocks, element_node_connectivity, nodal_coordinates) =
+        //     finite_elements.remove_nodes_outside(bounding_box);
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
+    }
+}
+
+impl From<(Tessellation, Size)> for TetrahedralFiniteElements {
+    fn from((_tessellation, _size): (Tessellation, Size)) -> Self {
+        unimplemented!()
+    }
+}
+
+impl From<(Tessellation, Size)> for TriangularFiniteElements {
+    fn from((_tessellation, _size): (Tessellation, Size)) -> Self {
+        unimplemented!()
+    }
+}
+
 /// Methods specific to each finite element type.
 pub trait FiniteElementSpecifics<const M: usize> {
     /// Returns the nodes connected to the given node within an element.
@@ -867,7 +951,7 @@ pub trait FiniteElementSpecifics<const M: usize> {
     /// Calculates the minimum scaled Jacobians.
     fn minimum_scaled_jacobians(&self) -> Metrics;
     /// Isotropic remeshing of the finite elements.
-    fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing);
+    fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing, size: Size);
     /// Writes the finite elements quality metrics to a new file.
     fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO>;
 }

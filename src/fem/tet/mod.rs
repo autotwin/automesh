@@ -1,8 +1,6 @@
-use crate::FiniteElementMethods;
-
 use super::{
     Connectivity, Coordinates, FiniteElementSpecifics, FiniteElements, HEX,
-    HexahedralFiniteElements, Metrics, Smoothing, Tessellation,
+    HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation,
 };
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
@@ -47,7 +45,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn minimum_scaled_jacobians(&self) -> Metrics {
         todo!()
     }
-    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing) {
+    fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
     }
     fn write_metrics(&self, _file_path: &str) -> Result<(), ErrorIO> {
@@ -100,14 +98,14 @@ impl TetrahedralFiniteElements {
 
 impl From<HexahedralFiniteElements> for TetrahedralFiniteElements {
     fn from(hexes: HexahedralFiniteElements) -> Self {
-        let (hex_blocks, hex_connectivity, nodal_coordinates) = hexes.data();
-        let blocks = hex_blocks
+        let (hex_blocks, hex_connectivity, nodal_coordinates) = hexes.into();
+        let element_blocks = hex_blocks
             .into_iter()
             .flat_map(|hex_block| repeat_n(hex_block, NUM_TETS_PER_HEX))
             .collect();
         let element_node_connectivity =
             hex_connectivity.iter().flat_map(Self::hex_to_tet).collect();
-        Self::from_data(blocks, element_node_connectivity, nodal_coordinates)
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
 

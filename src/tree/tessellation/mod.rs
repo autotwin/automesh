@@ -1,6 +1,6 @@
 use crate::{
     Coordinate, Coordinates, NSD, Nel, Remove, Scale, Translate,
-    fem::{FiniteElementMethods, Size, TriangularFiniteElements},
+    fem::{Size, TriangularFiniteElements},
     tessellation::Tessellation,
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
@@ -15,37 +15,81 @@ impl From<Octree> for Tessellation {
     }
 }
 
-pub fn octree_from_triangular_finite_elements(
-    triangular_finite_elements: TriangularFiniteElements,
-    size: Size,
-) -> Octree {
-    let (blocks, _, mut surface_coordinates) = triangular_finite_elements.data();
-    let block = blocks[0];
-    if !blocks.iter().all(|entry| entry == &block) {
-        panic!()
+pub struct OctreeAndSamples(Octree, Coordinates);
+
+impl From<OctreeAndSamples> for (Octree, Coordinates) {
+    fn from(octree_and_samples: OctreeAndSamples) -> Self {
+        (octree_and_samples.0, octree_and_samples.1)
     }
-    if let Some(size) = size {
-        let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let mut index = 0;
-        while index < tree.len() {
-            if tree[index].is_voxel() || !tree[index].any_coordinates_inside(&surface_coordinates) {
-                tree[index].block = Some(block)
-            } else {
-                tree.subdivide(index)
-            }
-            index += 1;
+}
+
+impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
+    fn from((triangular_finite_elements, size): (TriangularFiniteElements, Size)) -> Self {
+        let (blocks, _, mut surface_coordinates) = triangular_finite_elements.into();
+        let block = blocks[0];
+        if !blocks.iter().all(|entry| entry == &block) {
+            panic!()
         }
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mSubdivision from size\x1b[0m {:?}",
-            time.elapsed()
-        );
-        tree.balance_and_pair(true);
-        tree
-    } else {
-        todo!()
+        if let Some(size) = size {
+            let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
+            #[cfg(feature = "profile")]
+            let time = Instant::now();
+            let mut index = 0;
+            while index < tree.len() {
+                if tree[index].is_voxel()
+                    || !tree[index].any_coordinates_inside(&surface_coordinates)
+                {
+                    tree[index].block = Some(block)
+                } else {
+                    tree.subdivide(index)
+                }
+                index += 1;
+            }
+            #[cfg(feature = "profile")]
+            println!(
+                "             \x1b[1;93mSubdivision from size\x1b[0m {:?}",
+                time.elapsed()
+            );
+            tree.balance_and_pair(true);
+            OctreeAndSamples(tree, surface_coordinates)
+        } else {
+            todo!()
+        }
+    }
+}
+
+impl From<(TriangularFiniteElements, Size)> for Octree {
+    fn from((triangular_finite_elements, size): (TriangularFiniteElements, Size)) -> Self {
+        let (blocks, _, mut surface_coordinates) = triangular_finite_elements.into();
+        let block = blocks[0];
+        if !blocks.iter().all(|entry| entry == &block) {
+            panic!()
+        }
+        if let Some(size) = size {
+            let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
+            #[cfg(feature = "profile")]
+            let time = Instant::now();
+            let mut index = 0;
+            while index < tree.len() {
+                if tree[index].is_voxel()
+                    || !tree[index].any_coordinates_inside(&surface_coordinates)
+                {
+                    tree[index].block = Some(block)
+                } else {
+                    tree.subdivide(index)
+                }
+                index += 1;
+            }
+            #[cfg(feature = "profile")]
+            println!(
+                "             \x1b[1;93mSubdivision from size\x1b[0m {:?}",
+                time.elapsed()
+            );
+            tree.balance_and_pair(true);
+            tree
+        } else {
+            todo!()
+        }
     }
 }
 
