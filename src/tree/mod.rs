@@ -156,20 +156,20 @@ pub struct Cell {
 }
 
 impl Cell {
-    pub fn any_coordinates_inside(&self, coordinates: &Coordinates) -> bool {
-        let x_min = *self.get_min_x() as f64;
-        let y_min = *self.get_min_y() as f64;
-        let z_min = *self.get_min_z() as f64;
-        let x_max = self.get_max_x() as f64;
-        let y_max = self.get_max_y() as f64;
-        let z_max = self.get_max_z() as f64;
-        coordinates.iter().any(|coordinate| {
-            coordinate[0] >= x_min
-                && coordinate[0] < x_max
-                && coordinate[1] >= y_min
-                && coordinate[1] < y_max
-                && coordinate[2] >= z_min
-                && coordinate[2] < z_max
+    pub fn any_samples_inside(&self, samples: &[[u16; NSD]]) -> bool {
+        let x_min = *self.get_min_x();
+        let y_min = *self.get_min_y();
+        let z_min = *self.get_min_z();
+        let x_max = self.get_max_x();
+        let y_max = self.get_max_y();
+        let z_max = self.get_max_z();
+        samples.iter().any(|sample| {
+            sample[0] >= x_min
+                && sample[0] < x_max
+                && sample[1] >= y_min
+                && sample[1] < y_max
+                && sample[2] >= z_min
+                && sample[2] < z_max
         })
     }
     pub const fn get_block(&self) -> u8 {
