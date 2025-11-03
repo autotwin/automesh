@@ -365,7 +365,7 @@ where
         self.node_element_connectivity = node_element_connectivity;
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mNode-element connectivity\x1b[0m {:?} ",
+            "             \x1b[1;93mInverted connectivity\x1b[0m {:?} ",
             time.elapsed()
         );
         Ok(())
@@ -406,7 +406,7 @@ where
             self.node_node_connectivity = node_node_connectivity;
             #[cfg(feature = "profile")]
             println!(
-                "             \x1b[1;93mNode-node connectivity\x1b[0m {:?} ",
+                "             \x1b[1;93mNode-node connections\x1b[0m {:?} ",
                 time.elapsed()
             );
             Ok(())
