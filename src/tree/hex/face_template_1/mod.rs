@@ -2,7 +2,7 @@ use super::super::{
     Coordinate, Coordinates, HexConnectivity, NUM_OCTANTS, NUM_SUBCELLS_FACE, NodeMap, Octree,
     SubSubCellsFace, subcells_on_own_face,
 };
-use crate::Vector;
+use crate::{NSD, Vector};
 use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
 
 const SCALE_1: f64 = 0.5;
@@ -88,18 +88,18 @@ fn template(
         .iter()
         .for_each(|&foo_i| nodal_coordinates.push(&nodal_coordinates[foo_i] + scale_1.clone()));
     let mut coordinates = Coordinate::zero();
-    let mut indices = (0, 0, 0);
+    let mut indices = [0; NSD];
     let mut exterior_nodes = [0; 8];
     adjacent_exterior_nodes
         .iter()
         .zip(exterior_nodes.iter_mut())
         .for_each(|(&adjacent_exterior_node_i, exterior_node_i)| {
             coordinates = &nodal_coordinates[adjacent_exterior_node_i] + scale_2.clone();
-            indices = (
+            indices = [
                 (2.0 * coordinates[0]) as usize,
                 (2.0 * coordinates[1]) as usize,
                 (2.0 * coordinates[2]) as usize,
-            );
+            ];
             if let Some(node_id) = nodes_map.get(&indices) {
                 *exterior_node_i = *node_id;
             } else {
