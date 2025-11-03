@@ -832,19 +832,16 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let mut i = 0;
-        let mut j = 0;
-        let mut k = 0;
         let nel = *tree.nel().x();
         let mut outside = vec![vec![vec![false; nel]; nel]; nel];
         let mut visited = HashSet::new();
-        samples.iter().for_each(|sample| {
-            i = sample[0].floor() as u16;
-            j = sample[1].floor() as u16;
-            k = sample[2].floor() as u16;
+        samples.into_iter().for_each(|[i, j, k]| {
             outside[i as usize][j as usize][k as usize] = true;
             visited.insert([i, j, k]);
         });
+        let mut i;
+        let mut j;
+        let mut k;
         let mut index = 0;
         let mut indices = vec![[0, 0, 0]];
         let lim = (nel - 2) as u16;

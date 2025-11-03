@@ -9,15 +9,17 @@ use conspire::math::{Scalar, Tensor, TensorArray};
 #[cfg(feature = "profile")]
 use std::time::Instant;
 
+pub type Samples = Vec<[u16; NSD]>;
+
 impl From<Octree> for Tessellation {
     fn from(tree: Octree) -> Self {
         TriangularFiniteElements::from(tree).into()
     }
 }
 
-pub struct OctreeAndSamples(Octree, Coordinates);
+pub struct OctreeAndSamples(Octree, Samples);
 
-impl From<OctreeAndSamples> for (Octree, Coordinates) {
+impl From<OctreeAndSamples> for (Octree, Samples) {
     fn from(octree_and_samples: OctreeAndSamples) -> Self {
         (octree_and_samples.0, octree_and_samples.1)
     }
@@ -34,11 +36,19 @@ impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
             let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
             #[cfg(feature = "profile")]
             let time = Instant::now();
+            let samples: Samples = surface_coordinates
+                .into_iter()
+                .map(|coordinates| {
+                    [
+                        coordinates[0].floor() as u16,
+                        coordinates[1].floor() as u16,
+                        coordinates[2].floor() as u16,
+                    ]
+                })
+                .collect();
             let mut index = 0;
             while index < tree.len() {
-                if tree[index].is_voxel()
-                    || !tree[index].any_coordinates_inside(&surface_coordinates)
-                {
+                if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
                     tree[index].block = Some(block)
                 } else {
                     tree.subdivide(index)
@@ -51,7 +61,7 @@ impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
                 time.elapsed()
             );
             tree.balance_and_pair(true);
-            OctreeAndSamples(tree, surface_coordinates)
+            OctreeAndSamples(tree, samples)
         } else {
             todo!()
         }
