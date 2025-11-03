@@ -113,8 +113,6 @@ where
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
     /// Remove nodes and elements that connect to them.
     fn remove_nodes(self, removed_nodes: Nodes) -> Data<N>;
-    /// Remove elements with nodes that are outside a given bounding box.
-    fn remove_nodes_outside(self, bounding_box: BoundingBox) -> Data<N>;
     /// Smooths the nodal coordinates according to the provided smoothing method.
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String>;
     /// Writes the finite elements data to a new Exodus file.
@@ -485,33 +483,6 @@ where
         );
         (element_blocks, element_node_connectivity, nodal_coordinates)
     }
-    fn remove_nodes_outside(self, bounding_box: BoundingBox) -> Data<N> {
-        // #[cfg(feature = "profile")]
-        // let time = Instant::now();
-        let [[min_x, min_y, min_z], [max_x, max_y, max_z]] = bounding_box.as_array();
-        let removed_nodes = self
-            .get_nodal_coordinates()
-            .iter()
-            .enumerate()
-            .filter(|(_, coordinates)| {
-                coordinates[0] < min_x
-                    || coordinates[0] > max_x
-                    || coordinates[1] < min_y
-                    || coordinates[1] > max_y
-                    || coordinates[2] < min_z
-                    || coordinates[2] > max_z
-            })
-            .map(|(node, _)| node)
-            .collect();
-        self.remove_nodes(removed_nodes)
-        // let data = self.remove_nodes(removed_nodes);
-        // #[cfg(feature = "profile")]
-        // println!(
-        //     "             \x1b[1;93mRemoved nodes outside\x1b[0m {:?}",
-        //     time.elapsed()
-        // );
-        // data
-    }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {
             let smoothing_iterations;
@@ -826,7 +797,6 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .unwrap();
         triangular_finite_elements.node_node_connectivity().unwrap();
         triangular_finite_elements.refine(size.unwrap()); // Might be nice to use full remeshing to get rid of small triangles eventually.
-        // let bounding_box = triangular_finite_elements.bounding_box();
         let (tree, mut samples) = octree_from_surface(triangular_finite_elements, size);
         let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
@@ -885,8 +855,6 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         );
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             finite_elements.remove_nodes(removed_nodes);
-        // let (element_blocks, element_node_connectivity, nodal_coordinates) =
-        //     finite_elements.remove_nodes_outside(bounding_box);
         Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
