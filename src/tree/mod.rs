@@ -114,7 +114,7 @@ pub type Edge = [usize; 2];
 pub type Edges = Vec<Edge>;
 type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
-type NodeMap = HashMap<(usize, usize, usize), usize>;
+type NodeMap = HashMap<[usize; NSD], usize>;
 type SubSubCellsFace = [usize; NUM_SUBSUBCELLS_FACE];
 
 /// The octree type.
