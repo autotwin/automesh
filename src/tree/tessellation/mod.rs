@@ -16,61 +16,56 @@ impl From<Octree> for Tessellation {
     }
 }
 
-pub struct Foo(Octree, Vec<Vec<Vec<bool>>>, HashSet<[u16; NSD]>);
+type OctreeAndStuff = (Octree, Vec<Vec<Vec<bool>>>, HashSet<[u16; NSD]>);
 
-impl From<Foo> for (Octree, Vec<Vec<Vec<bool>>>, HashSet<[u16; NSD]>) {
-    fn from(foo: Foo) -> Self {
-        (foo.0, foo.1, foo.2)
+pub fn octree_from_surface(
+    triangular_finite_elements: TriangularFiniteElements,
+    size: Size,
+) -> OctreeAndStuff {
+    let (blocks, _, mut surface_coordinates) = triangular_finite_elements.into();
+    let block = blocks[0];
+    if !blocks.iter().all(|entry| entry == &block) {
+        panic!()
     }
-}
-
-impl From<(TriangularFiniteElements, Size)> for Foo {
-    fn from((triangular_finite_elements, size): (TriangularFiniteElements, Size)) -> Self {
-        let (blocks, _, mut surface_coordinates) = triangular_finite_elements.into();
-        let block = blocks[0];
-        if !blocks.iter().all(|entry| entry == &block) {
-            panic!()
-        }
-        if let Some(size) = size {
-            let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
-            #[cfg(feature = "profile")]
-            let time = Instant::now();
-            let rounded: Vec<[_; NSD]> = surface_coordinates
-                .into_iter()
-                .map(|coordinates| {
-                    [
-                        coordinates[0].floor() as u16,
-                        coordinates[1].floor() as u16,
-                        coordinates[2].floor() as u16,
-                    ]
-                })
-                .collect();
-            let (nel_x, nel_y, nel_z) = tree.nel().into();
-            let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
-            let mut visited = HashSet::new();
-            rounded.into_iter().for_each(|[i, j, k]| {
-                samples[i as usize][j as usize][k as usize] = true;
-                visited.insert([i, j, k]);
-            });
-            let mut index = 0;
-            while index < tree.len() {
-                if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
-                    tree[index].block = Some(block)
-                } else {
-                    tree.subdivide(index)
-                }
-                index += 1;
+    if let Some(size) = size {
+        let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let rounded: Vec<[_; NSD]> = surface_coordinates
+            .into_iter()
+            .map(|coordinates| {
+                [
+                    coordinates[0].floor() as u16,
+                    coordinates[1].floor() as u16,
+                    coordinates[2].floor() as u16,
+                ]
+            })
+            .collect();
+        let (nel_x, nel_y, nel_z) = tree.nel().into();
+        let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+        let mut visited = HashSet::new();
+        rounded.into_iter().for_each(|[i, j, k]| {
+            samples[i as usize][j as usize][k as usize] = true;
+            visited.insert([i, j, k]);
+        });
+        let mut index = 0;
+        while index < tree.len() {
+            if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
+                tree[index].block = Some(block)
+            } else {
+                tree.subdivide(index)
             }
-            #[cfg(feature = "profile")]
-            println!(
-                "             \x1b[1;93mSubdivision from size\x1b[0m {:?}",
-                time.elapsed()
-            );
-            tree.balance_and_pair(true);
-            Foo(tree, samples, visited)
-        } else {
-            todo!()
+            index += 1;
         }
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mSubdivision from size\x1b[0m {:?}",
+            time.elapsed()
+        );
+        tree.balance_and_pair(true);
+        (tree, samples, visited)
+    } else {
+        todo!()
     }
 }
 

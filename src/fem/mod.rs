@@ -13,7 +13,7 @@ use std::time::Instant;
 
 use crate::{
     Coordinate, Coordinates, NSD, Tessellation, Vector,
-    tree::{Foo, HexesAndCoords},
+    tree::{HexesAndCoords, octree_from_surface},
 };
 use chrono::Utc;
 use conspire::{
@@ -827,7 +827,8 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         triangular_finite_elements.node_node_connectivity().unwrap();
         triangular_finite_elements.refine(size.unwrap()); // Might be nice to use full remeshing to get rid of small triangles eventually.
         // let bounding_box = triangular_finite_elements.bounding_box();
-        let (tree, mut outside, mut visited) = Foo::from((triangular_finite_elements, size)).into();
+        let (tree, mut outside, mut visited) =
+            octree_from_surface(triangular_finite_elements, size);
         let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
