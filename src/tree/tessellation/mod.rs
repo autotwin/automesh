@@ -5,6 +5,7 @@ use crate::{
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
 use conspire::math::{Scalar, Tensor, TensorArray};
+// use std::collections::HashSet;
 
 #[cfg(feature = "profile")]
 use std::time::Instant;
@@ -46,9 +47,18 @@ impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
                     ]
                 })
                 .collect();
+            let (nel_x, nel_y, nel_z) = tree.nel().into();
+            let mut map = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+            // let mut outside = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+            // let mut visited = HashSet::new();
+            samples.iter().for_each(|&[i, j, k]| {
+                map[i as usize][j as usize][k as usize] = true;
+                // outside[i as usize][j as usize][k as usize] = true;
+                // visited.insert([i, j, k]);
+            });
             let mut index = 0;
             while index < tree.len() {
-                if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
+                if tree[index].is_voxel() || !tree[index].any_samples_inside(&map) {
                     tree[index].block = Some(block)
                 } else {
                     tree.subdivide(index)

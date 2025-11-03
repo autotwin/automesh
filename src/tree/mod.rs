@@ -156,21 +156,14 @@ pub struct Cell {
 }
 
 impl Cell {
-    pub fn any_samples_inside(&self, samples: &[[u16; NSD]]) -> bool {
-        let x_min = *self.get_min_x();
-        let y_min = *self.get_min_y();
-        let z_min = *self.get_min_z();
-        let x_max = self.get_max_x();
-        let y_max = self.get_max_y();
-        let z_max = self.get_max_z();
-        samples.iter().any(|sample| {
-            sample[0] >= x_min
-                && sample[0] < x_max
-                && sample[1] >= y_min
-                && sample[1] < y_max
-                && sample[2] >= z_min
-                && sample[2] < z_max
-        })
+    pub fn any_samples_inside(&self, samples_map: &[Vec<Vec<bool>>]) -> bool {
+        let min_x = self.min_x as usize;
+        let min_y = self.min_y as usize;
+        let min_z = self.min_z as usize;
+        let max_x = (self.min_x + self.lngth) as usize;
+        let max_y = (self.min_y + self.lngth) as usize;
+        let max_z = (self.min_z + self.lngth) as usize;
+        (min_x..max_x).any(|i| (min_y..max_y).any(|j| (min_z..max_z).any(|k| samples_map[i][j][k])))
     }
     pub const fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
