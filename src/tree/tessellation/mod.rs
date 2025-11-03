@@ -5,7 +5,6 @@ use crate::{
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
 use conspire::math::{Scalar, Tensor, TensorArray};
-use std::collections::HashSet;
 
 #[cfg(feature = "profile")]
 use std::time::Instant;
@@ -16,7 +15,7 @@ impl From<Octree> for Tessellation {
     }
 }
 
-type OctreeAndStuff = (Octree, Vec<Vec<Vec<bool>>>, HashSet<[u16; NSD]>);
+type OctreeAndStuff = (Octree, Vec<Vec<Vec<bool>>>);
 
 pub fn octree_from_surface(
     triangular_finite_elements: TriangularFiniteElements,
@@ -35,19 +34,17 @@ pub fn octree_from_surface(
             .into_iter()
             .map(|coordinates| {
                 [
-                    coordinates[0].floor() as u16,
-                    coordinates[1].floor() as u16,
-                    coordinates[2].floor() as u16,
+                    coordinates[0].floor() as usize,
+                    coordinates[1].floor() as usize,
+                    coordinates[2].floor() as usize,
                 ]
             })
             .collect();
         let (nel_x, nel_y, nel_z) = tree.nel().into();
         let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
-        let mut visited = HashSet::new();
-        rounded.into_iter().for_each(|[i, j, k]| {
-            samples[i as usize][j as usize][k as usize] = true;
-            visited.insert([i, j, k]);
-        });
+        rounded
+            .into_iter()
+            .for_each(|[i, j, k]| samples[i][j][k] = true);
         let mut index = 0;
         while index < tree.len() {
             if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
@@ -63,7 +60,7 @@ pub fn octree_from_surface(
             time.elapsed()
         );
         tree.balance_and_pair(true);
-        (tree, samples, visited)
+        (tree, samples)
     } else {
         todo!()
     }

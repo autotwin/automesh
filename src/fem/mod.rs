@@ -827,8 +827,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         triangular_finite_elements.node_node_connectivity().unwrap();
         triangular_finite_elements.refine(size.unwrap()); // Might be nice to use full remeshing to get rid of small triangles eventually.
         // let bounding_box = triangular_finite_elements.bounding_box();
-        let (tree, mut outside, mut visited) =
-            octree_from_surface(triangular_finite_elements, size);
+        let (tree, mut samples) = octree_from_surface(triangular_finite_elements, size);
         let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
@@ -840,46 +839,28 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         let lim = (tree.nel().x() - 2) as u16;
         while index < indices.len() {
             [i, j, k] = indices[index];
-            if i > 0
-                && !outside[(i - 1) as usize][j as usize][k as usize]
-                && visited.insert([i - 1, j, k])
-            {
-                outside[(i - 1) as usize][j as usize][k as usize] = true;
+            if i > 0 && !samples[(i - 1) as usize][j as usize][k as usize] {
+                samples[(i - 1) as usize][j as usize][k as usize] = true;
                 indices.push([i - 1, j, k]);
             }
-            if i < lim
-                && !outside[(i + 1) as usize][j as usize][k as usize]
-                && visited.insert([i + 1, j, k])
-            {
-                outside[(i + 1) as usize][j as usize][k as usize] = true;
+            if i < lim && !samples[(i + 1) as usize][j as usize][k as usize] {
+                samples[(i + 1) as usize][j as usize][k as usize] = true;
                 indices.push([i + 1, j, k]);
             }
-            if j > 0
-                && !outside[i as usize][(j - 1) as usize][k as usize]
-                && visited.insert([i, j - 1, k])
-            {
-                outside[i as usize][(j - 1) as usize][k as usize] = true;
+            if j > 0 && !samples[i as usize][(j - 1) as usize][k as usize] {
+                samples[i as usize][(j - 1) as usize][k as usize] = true;
                 indices.push([i, j - 1, k]);
             }
-            if j < lim
-                && !outside[i as usize][(j + 1) as usize][k as usize]
-                && visited.insert([i, j + 1, k])
-            {
-                outside[i as usize][(j + 1) as usize][k as usize] = true;
+            if j < lim && !samples[i as usize][(j + 1) as usize][k as usize] {
+                samples[i as usize][(j + 1) as usize][k as usize] = true;
                 indices.push([i, j + 1, k]);
             }
-            if k > 0
-                && !outside[i as usize][j as usize][(k - 1) as usize]
-                && visited.insert([i, j, k - 1])
-            {
-                outside[i as usize][j as usize][(k - 1) as usize] = true;
+            if k > 0 && !samples[i as usize][j as usize][(k - 1) as usize] {
+                samples[i as usize][j as usize][(k - 1) as usize] = true;
                 indices.push([i, j, k - 1]);
             }
-            if k < lim
-                && !outside[i as usize][j as usize][(k + 1) as usize]
-                && visited.insert([i, j, k + 1])
-            {
-                outside[i as usize][j as usize][(k + 1) as usize] = true;
+            if k < lim && !samples[i as usize][j as usize][(k + 1) as usize] {
+                samples[i as usize][j as usize][(k + 1) as usize] = true;
                 indices.push([i, j, k + 1]);
             }
             index += 1
@@ -888,7 +869,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .iter()
             .enumerate()
             .filter_map(|(node, coordinate)| {
-                if outside[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
+                if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
                     [coordinate[2].floor() as usize]
                 {
                     Some(node)
