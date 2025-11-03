@@ -5,12 +5,10 @@ use crate::{
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
 use conspire::math::{Scalar, Tensor, TensorArray};
-// use std::collections::HashSet;
+use std::collections::HashSet;
 
 #[cfg(feature = "profile")]
 use std::time::Instant;
-
-pub type Samples = Vec<[u16; NSD]>;
 
 impl From<Octree> for Tessellation {
     fn from(tree: Octree) -> Self {
@@ -18,15 +16,15 @@ impl From<Octree> for Tessellation {
     }
 }
 
-pub struct OctreeAndSamples(Octree, Samples);
+pub struct Foo(Octree, Vec<Vec<Vec<bool>>>, HashSet<[u16; NSD]>);
 
-impl From<OctreeAndSamples> for (Octree, Samples) {
-    fn from(octree_and_samples: OctreeAndSamples) -> Self {
-        (octree_and_samples.0, octree_and_samples.1)
+impl From<Foo> for (Octree, Vec<Vec<Vec<bool>>>, HashSet<[u16; NSD]>) {
+    fn from(foo: Foo) -> Self {
+        (foo.0, foo.1, foo.2)
     }
 }
 
-impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
+impl From<(TriangularFiniteElements, Size)> for Foo {
     fn from((triangular_finite_elements, size): (TriangularFiniteElements, Size)) -> Self {
         let (blocks, _, mut surface_coordinates) = triangular_finite_elements.into();
         let block = blocks[0];
@@ -37,7 +35,7 @@ impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
             let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
             #[cfg(feature = "profile")]
             let time = Instant::now();
-            let samples: Samples = surface_coordinates
+            let rounded: Vec<[_; NSD]> = surface_coordinates
                 .into_iter()
                 .map(|coordinates| {
                     [
@@ -48,17 +46,15 @@ impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
                 })
                 .collect();
             let (nel_x, nel_y, nel_z) = tree.nel().into();
-            let mut map = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
-            // let mut outside = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
-            // let mut visited = HashSet::new();
-            samples.iter().for_each(|&[i, j, k]| {
-                map[i as usize][j as usize][k as usize] = true;
-                // outside[i as usize][j as usize][k as usize] = true;
-                // visited.insert([i, j, k]);
+            let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+            let mut visited = HashSet::new();
+            rounded.into_iter().for_each(|[i, j, k]| {
+                samples[i as usize][j as usize][k as usize] = true;
+                visited.insert([i, j, k]);
             });
             let mut index = 0;
             while index < tree.len() {
-                if tree[index].is_voxel() || !tree[index].any_samples_inside(&map) {
+                if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
                     tree[index].block = Some(block)
                 } else {
                     tree.subdivide(index)
@@ -71,7 +67,7 @@ impl From<(TriangularFiniteElements, Size)> for OctreeAndSamples {
                 time.elapsed()
             );
             tree.balance_and_pair(true);
-            OctreeAndSamples(tree, samples)
+            Foo(tree, samples, visited)
         } else {
             todo!()
         }

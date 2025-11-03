@@ -13,7 +13,7 @@ use std::time::Instant;
 
 use crate::{
     Coordinate, Coordinates, NSD, Tessellation, Vector,
-    tree::{HexesAndCoords, OctreeAndSamples},
+    tree::{Foo, HexesAndCoords},
 };
 use chrono::Utc;
 use conspire::{
@@ -29,7 +29,6 @@ use conspire::{
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
-    collections::HashSet,
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
     path::PathBuf,
@@ -828,23 +827,16 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         triangular_finite_elements.node_node_connectivity().unwrap();
         triangular_finite_elements.refine(size.unwrap()); // Might be nice to use full remeshing to get rid of small triangles eventually.
         // let bounding_box = triangular_finite_elements.bounding_box();
-        let (tree, samples) = OctreeAndSamples::from((triangular_finite_elements, size)).into();
+        let (tree, mut outside, mut visited) = Foo::from((triangular_finite_elements, size)).into();
         let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let nel = *tree.nel().x();
-        let mut outside = vec![vec![vec![false; nel]; nel]; nel];
-        let mut visited = HashSet::new();
-        samples.into_iter().for_each(|[i, j, k]| {
-            outside[i as usize][j as usize][k as usize] = true;
-            visited.insert([i, j, k]);
-        });
         let mut i;
         let mut j;
         let mut k;
         let mut index = 0;
         let mut indices = vec![[0, 0, 0]];
-        let lim = (nel - 2) as u16;
+        let lim = (tree.nel().x() - 2) as u16;
         while index < indices.len() {
             [i, j, k] = indices[index];
             if i > 0
