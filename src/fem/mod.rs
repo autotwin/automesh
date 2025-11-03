@@ -796,7 +796,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .node_element_connectivity()
             .unwrap();
         triangular_finite_elements.node_node_connectivity().unwrap();
-        triangular_finite_elements.refine(size.unwrap()); // Might be nice to use full remeshing to get rid of small triangles eventually.
+        triangular_finite_elements.refine(size.unwrap());
         let (tree, mut samples) = octree_from_surface(triangular_finite_elements, size);
         let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
