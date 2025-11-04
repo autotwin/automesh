@@ -1,9 +1,7 @@
 [project]
 authors = [
-  {email = "chovey@sandia.gov"},
-  {name = "Chad B. Hovey"},
-  {email = "mrbuche@sandia.gov"},
-  {name = "Michael R. Buche"},
+  {name = "Chad B. Hovey", email = "chovey@sandia.gov"},
+  {name = "Michael R. Buche", email = "mrbuche@sandia.gov"},
 ]
 classifiers = [
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
