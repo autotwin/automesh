@@ -19,7 +19,7 @@ crate-type = ["cdylib", "rlib"]
 clap = { version = "=4.5.51", features = ["derive"] }
 chrono = "=0.4.42"
 conspire = { version = "=0.5.11", features = ["fem"] }
-ndarray = { version = "=0.16.1", features = ["rayon"] }
+ndarray = { version = "=0.17.1", features = ["rayon"] }
 ndarray-npy = "=0.9.1"
 netcdf = { version = "=0.11.1", features = ["ndarray", "static"] }
 pyo3 = { version = "=0.27.1", features = ["extension-module"], optional = true }
