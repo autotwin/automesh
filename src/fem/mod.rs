@@ -768,6 +768,17 @@ impl<const N: usize> From<FiniteElements<N>> for Data<N> {
     }
 }
 
+impl<const N: usize> From<FiniteElements<N>> for (Blocks, Connectivity<N>, Coordinates, VecConnectivity) {
+    fn from(finite_elements: FiniteElements<N>) -> Self {
+        (
+            finite_elements.element_blocks,
+            finite_elements.element_node_connectivity,
+            finite_elements.nodal_coordinates,
+            finite_elements.node_element_connectivity,
+        )
+    }
+}
+
 impl<const N: usize> From<Data<N>> for FiniteElements<N> {
     fn from((element_blocks, element_node_connectivity, nodal_coordinates): Data<N>) -> Self {
         Self {
@@ -796,27 +807,15 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .node_element_connectivity()
             .unwrap();
         triangular_finite_elements.node_node_connectivity().unwrap();
+        // remeshing would still be good for cases where desired element size is much smaller than tris
+        // will speed things up in a few places, especially binning triangles to check distances to at the end
+        // do not want to "distort" the input STL though, so may argue that smaller elements sizes do the same thing anyway?
         triangular_finite_elements.refine(size.unwrap());
-        let (tree, mut samples, bins) = octree_from_surface(triangular_finite_elements, size);
-        println!("{:?}", bins.get(&[35, 74, 63]));
-        let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
-        // #[cfg(feature = "profile")]
-        // let time = Instant::now();
-        // let foo = std::collections::HashMap::New();
-        // samples.iter().enumerate().for_each(|(i, samples_i)|
-        //     samples_i.iter().enumerate().for_each(|(j, samples_ij)|
-        //         samples_ij.iter().enumerate().for_each(|(k, sample_ijk)|
-        //             if sample_ijk {
-        //                 foo[i, j, k] = 
-        //             }
-        //         )
-        //     )
-        // )
-        // #[cfg(feature = "profile")]
-        // println!(
-        //     "             \x1b[1;93mFOOOOOOOOOOOOOOOOOOOO\x1b[0m {:?}",
-        //     time.elapsed()
-        // );
+
+        triangular_finite_elements.write_exo("bunny_foo.exo");
+
+        let (tree, mut samples, triangle_node_connectivity, node_triangle_connectivity, bins) = octree_from_surface(triangular_finite_elements, size);
+        let (hexahedral_finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut i;
@@ -854,12 +853,10 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             index += 1
         }
         let removed_nodes = coordinates
-            .iter()
+            .into_iter()
             .enumerate()
             .filter_map(|(node, coordinate)| {
-                if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
-                    [coordinate[2].floor() as usize]
-                {
+                if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize][coordinate[2].floor() as usize] {
                     Some(node)
                 } else {
                     None
@@ -872,8 +869,75 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             time.elapsed()
         );
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
-            finite_elements.remove_nodes(removed_nodes);
-        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
+            hexahedral_finite_elements.remove_nodes(removed_nodes);
+
+        let mut finite_elements =
+            Self::from((element_blocks, element_node_connectivity, nodal_coordinates));
+
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let rounded_coordinates: Vec<_> = finite_elements.get_nodal_coordinates()
+            .iter()
+            .map(|coordinate| {
+                [
+                    ((coordinate[0] - tree.translate().x()) / tree.scale().x()).floor() as i16,
+                    ((coordinate[1] - tree.translate().y()) / tree.scale().y()).floor() as i16,
+                    ((coordinate[2] - tree.translate().z()) / tree.scale().z()).floor() as i16,
+                ]
+            })
+            .collect();
+        //
+        // .exterior_faces() calculation within .exterior_nodes() is a bottleneck, try to improve it somehow; parallel?
+        //
+        let mut i = 0;
+        let mut j = 0;
+        let mut k = 0;
+        let offsets: Vec<_> = (-1..=1)
+            .flat_map(|i| (-1..=1).flat_map(move |j| (-1..=1).map(move |k| [i, j, k])))
+            .collect();
+        let mut foo = Vec::<usize>::new();
+        let mut bar = Vec::<usize>::new();
+        finite_elements.exterior_nodes().into_iter().for_each(|exterior_node| {
+            [i, j, k] = rounded_coordinates[exterior_node];
+            foo = offsets.iter().filter_map(|[i0, j0, k0]|
+                bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+            ).flatten().copied().collect();
+            // could increase stencil only when encounter an oopsie only for the oopsies?
+            // like here if any none, go to offsets 2 for none entries, then if that any none, offsets 3 for none entries, ...
+            //
+            // seems like stencil of 2 is all you need, but
+            // still try to do as many as you can at stencil 1 because checking less triangles for minimum distance is key
+            //
+            // what if STL tris are a lot smaller than desired element size? this is where remeshing would come in handy, left note above
+            //
+            // there is even a lot of triangles at stencil 1! is there a way to eliminate some before calculating distance?
+            // I guess if all 3 nodes of a tri(a) are further away than any 1 node of any other tri(b), can ignore tri(a)
+            //
+            // Can also try making this parallel, should be parallelizable in the most part i think.
+            if foo.is_empty() {
+                // println!("exterior_node {exterior_node} oopsie")
+            } else {
+                foo.sort();
+                foo.dedup();
+                println!("exterior_node {exterior_node} near nodes {:?}", foo.iter().map(|e| e + 1).collect::<Vec::<usize>>());
+                bar = foo.iter().map(|&node|
+                    &node_triangle_connectivity[node]
+                ).flatten().copied().collect();
+                bar.sort();
+                bar.dedup();
+                println!("\t and triangles {:?}", bar.iter().map(|e| e + 1).collect::<Vec::<usize>>());
+            }
+        });
+
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mPiling exterior nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
+        println!("{:?}", bins.get(&[35, 74, 63]));
+        // need to get coordinates of exterior nodes and round them to index bins
+
+        finite_elements
     }
 }
 
@@ -897,6 +961,13 @@ pub trait FiniteElementSpecifics<const M: usize> {
     fn exterior_faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each exterior face.
     fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates;
+    /// Returns the exterior nodes.
+    fn exterior_nodes(&self) -> Nodes {
+        let mut nodes: Nodes = self.exterior_faces().into_iter().flatten().collect();
+        nodes.sort();
+        nodes.dedup();
+        nodes
+    }
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each element.
