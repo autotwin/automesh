@@ -5,6 +5,7 @@ use crate::{
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
 use conspire::math::{Scalar, Tensor, TensorArray};
+use std::collections::HashMap;
 
 #[cfg(feature = "profile")]
 use std::time::Instant;
@@ -15,7 +16,7 @@ impl From<Octree> for Tessellation {
     }
 }
 
-type OctreeAndStuff = (Octree, Vec<Vec<Vec<bool>>>);
+type OctreeAndStuff = (Octree, Vec<Vec<Vec<bool>>>, HashMap::<[usize; NSD], Vec<usize>>);
 
 pub fn octree_from_surface(
     triangular_finite_elements: TriangularFiniteElements,
@@ -42,9 +43,14 @@ pub fn octree_from_surface(
             .collect();
         let (nel_x, nel_y, nel_z) = tree.nel().into();
         let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+        let mut bins = HashMap::<_, Vec<_>>::new();
         rounded
             .into_iter()
-            .for_each(|[i, j, k]| samples[i][j][k] = true);
+            .enumerate()
+            .for_each(|(node, [i, j, k])| {
+                samples[i][j][k] = true;
+                bins.entry([i, j, k]).or_default().push(node);
+        });
         let mut index = 0;
         while index < tree.len() {
             if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
@@ -60,7 +66,7 @@ pub fn octree_from_surface(
             time.elapsed()
         );
         tree.balance_and_pair(true);
-        (tree, samples)
+        (tree, samples, bins)
     } else {
         todo!()
     }

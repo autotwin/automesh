@@ -797,8 +797,26 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .unwrap();
         triangular_finite_elements.node_node_connectivity().unwrap();
         triangular_finite_elements.refine(size.unwrap());
-        let (tree, mut samples) = octree_from_surface(triangular_finite_elements, size);
+        let (tree, mut samples, bins) = octree_from_surface(triangular_finite_elements, size);
+        println!("{:?}", bins.get(&[35, 74, 63]));
         let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
+        // #[cfg(feature = "profile")]
+        // let time = Instant::now();
+        // let foo = std::collections::HashMap::New();
+        // samples.iter().enumerate().for_each(|(i, samples_i)|
+        //     samples_i.iter().enumerate().for_each(|(j, samples_ij)|
+        //         samples_ij.iter().enumerate().for_each(|(k, sample_ijk)|
+        //             if sample_ijk {
+        //                 foo[i, j, k] = 
+        //             }
+        //         )
+        //     )
+        // )
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "             \x1b[1;93mFOOOOOOOOOOOOOOOOOOOO\x1b[0m {:?}",
+        //     time.elapsed()
+        // );
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut i;

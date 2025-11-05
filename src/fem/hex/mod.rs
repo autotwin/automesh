@@ -74,7 +74,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         faces.iter().for_each(|&face| {
             canonical_face = face;
             canonical_face.sort_unstable();
-            *face_counts.entry(canonical_face).or_insert(0) += 1;
+            *face_counts.entry(canonical_face).or_default() += 1;
         });
         faces
             .into_iter()
