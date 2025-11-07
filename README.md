@@ -28,6 +28,7 @@ Automatic mesh generation.
   volume={10},
   number={115},
   pages={8768},
-  year={2025}
+  year={2025},
+  doi={10.21105/joss.08768}
 }
 ```
