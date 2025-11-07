@@ -15,3 +15,19 @@ Automatic mesh generation.
 * [Getting Started](https://autotwin.github.io/automesh/getting_started.html)
 * [Citation](https://github.com/autotwin/automesh/blob/main/CITATION.cff)
 * [License](https://github.com/autotwin/automesh/blob/main/LICENSE)
+
+## Reference
+
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.08768/status.svg)](https://doi.org/10.21105/joss.08768)
+
+```bib
+@article{hovey2025automesh,
+  title={automesh: Automatic mesh generation in Rust},
+  author={Hovey, Chad B and Buche, Michael R},
+  journal={Journal of Open Source Software},
+  volume={10},
+  number={115},
+  pages={8768},
+  year={2025}
+}
+```
