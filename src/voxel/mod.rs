@@ -117,7 +117,7 @@ impl FromIterator<usize> for Nel {
 }
 
 /// The multiplying scale in each direction.
-#[derive(PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Scale(Vector);
 
 impl Scale {
@@ -149,7 +149,7 @@ impl From<[f64; NSD]> for Scale {
 }
 
 /// The additive translation in each direction.
-#[derive(PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Translate(Vector);
 
 impl Translate {
@@ -170,8 +170,14 @@ impl Default for Translate {
     }
 }
 
-impl From<Coordinate> for Translate {
-    fn from(translate: Coordinate) -> Self {
+impl From<Translate> for Vector {
+    fn from(translate: Translate) -> Self {
+        translate.0
+    }
+}
+
+impl From<Vector> for Translate {
+    fn from(translate: Vector) -> Self {
         Self(translate)
     }
 }
@@ -183,15 +189,11 @@ impl From<[f64; NSD]> for Translate {
 }
 
 /// The voxels IDs to be removed.
+#[derive(Debug, Default)]
 pub enum Remove {
+    #[default]
     None,
     Some(Blocks),
-}
-
-impl Default for Remove {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 impl From<Remove> for Vec<u8> {
@@ -370,12 +372,13 @@ impl Voxels {
     /// Constructs and returns a segmentation from a finite element mesh.
     pub fn from_finite_elements<const M: usize, const N: usize, T>(
         finite_elements: T,
-        levels: usize,
+        grid: usize,
+        size: f64,
     ) -> Self
     where
         T: FiniteElementMethods<M, N>,
     {
-        Octree::from_finite_elements(finite_elements, levels).into()
+        Octree::from_finite_elements(finite_elements, grid, size).into()
     }
     /// Constructs and returns a new voxels type from an NPY file.
     pub fn from_npy(
@@ -467,7 +470,7 @@ impl From<Voxels> for HexahedralFiniteElements {
                 voxels.scale,
                 voxels.translate,
             );
-        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
     }
 }
 
@@ -603,7 +606,7 @@ fn filter_voxel_data(data: VoxelData, remove: Remove) -> (Indices, Blocks) {
         .unzip();
     #[cfg(feature = "profile")]
     println!(
-        "           \x1b[1;93m⤷ Removed voxels\x1b[0m {:?}",
+        "             \x1b[1;93mRemoved voxels\x1b[0m {:?}",
         time.elapsed()
     );
     (filtered_voxel_data, element_blocks)
@@ -688,7 +691,7 @@ fn renumber_nodes(
     number_of_nodes_unfiltered: usize,
 ) -> Coordinates {
     #[cfg(feature = "profile")]
-    let time = std::time::Instant::now();
+    let time = Instant::now();
     let mut mapping = vec![0; number_of_nodes_unfiltered];
     initial_nodal_coordinates
         .iter()

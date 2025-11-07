@@ -250,7 +250,7 @@ def main():
         # computation
         output_npy: Path = Path(output_dir).expanduser().joinpath(ex.file_stem + ".npy")
 
-        # visualizatio
+        # visualization
         SHOW: Final[bool] = True  # Post-processing visuals, show on screen
         SAVE: Final[bool] = True  # Save the .png file
         output_png_short = ex.file_stem + ".png"

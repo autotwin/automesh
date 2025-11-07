@@ -1,5 +1,5 @@
 use automesh::{
-    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, TET, TRI,
+    FiniteElementMethods, HexahedralFiniteElements, Octree, Remove, Scale,
     TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::{Parser, Subcommand};
@@ -21,6 +21,7 @@ use cli::{
     segment::{SegmentSubcommand, segment},
     smooth::{SmoothSubcommand, smooth},
 };
+use std::env::consts::{ARCH, OS};
 
 macro_rules! about {
     () => {
@@ -33,13 +34,20 @@ macro_rules! about {
     @@@@  @@@@@@@@@@@@    \x1b[1;4m{}: Automatic mesh generation\x1b[0m
       @@    @@    @@      {}
       @@    @@    @@      {}
-    @@@@@@@@@@@@  @@@
+    @@@@@@@@@@@@  @@@     {}
     @@@@@@@@@@@  @@@@
     @@@@@@@@@@ @@@@@ @
      @@@@@@@@@@@@@@@@",
             env!("CARGO_PKG_NAME"),
+            format!(
+                "v{} build {} {} {}",
+                env!("CARGO_PKG_VERSION"),
+                std::env::var("GIT_COMMIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION").to_string()),
+                OS,
+                ARCH,
+            ),
             env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[0],
-            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[1]
+            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[1],
         )
     };
 }
@@ -168,7 +176,7 @@ enum Commands {
         quiet: bool,
     },
 
-    /// Creates a finite element mesh from a segmentation
+    /// Creates a finite element mesh from a tessellation or segmentation
     Mesh {
         #[command(subcommand)]
         subcommand: MeshSubcommand,
@@ -358,7 +366,7 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                mesh::<HEX>(
+                mesh::<_, _, HexahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -367,6 +375,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.nely,
                     args.nelz,
                     args.remove,
+                    args.size,
                     args.xscale,
                     args.yscale,
                     args.zscale,
@@ -375,12 +384,11 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
             MeshSubcommand::Tet(args) => {
                 is_quiet = args.quiet;
-                mesh::<TET>(
+                mesh::<_, _, TetrahedralFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -389,6 +397,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.nely,
                     args.nelz,
                     args.remove,
+                    args.size,
                     args.xscale,
                     args.yscale,
                     args.zscale,
@@ -397,12 +406,11 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                mesh::<TRI>(
+                mesh::<_, _, TriangularFiniteElements>(
                     args.smoothing,
                     args.input,
                     args.output,
@@ -411,6 +419,7 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.nely,
                     args.nelz,
                     args.remove,
+                    args.size,
                     args.xscale,
                     args.yscale,
                     args.zscale,
@@ -419,7 +428,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.ztranslate,
                     args.metrics,
                     args.quiet,
-                    args.adapt,
                 )
             }
         },
@@ -499,7 +507,8 @@ fn main() -> Result<(), ErrorWrapper> {
                 segment::<_, _, HexahedralFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
-                    args.levels,
+                    args.grid,
+                    args.size,
                     args.remove,
                     args.quiet,
                 )
@@ -509,7 +518,8 @@ fn main() -> Result<(), ErrorWrapper> {
                 segment::<_, _, TetrahedralFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
-                    args.levels,
+                    args.grid,
+                    args.size,
                     args.remove,
                     args.quiet,
                 )
@@ -519,7 +529,8 @@ fn main() -> Result<(), ErrorWrapper> {
                 segment::<_, _, TriangularFiniteElements, _, _, HexahedralFiniteElements>(
                     args.input,
                     args.output,
-                    args.levels,
+                    args.grid,
+                    args.size,
                     args.remove,
                     args.quiet,
                 )

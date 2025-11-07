@@ -1,17 +1,15 @@
 [project]
 authors = [
-  {email = "chovey@sandia.gov"},
-  {name = "Chad B. Hovey"},
-  {email = "mrbuche@sandia.gov"},
-  {name = "Michael R. Buche"},
+  {name = "Chad B. Hovey", email = "chovey@sandia.gov"},
+  {name = "Michael R. Buche", email = "mrbuche@sandia.gov"},
 ]
 classifiers = [
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
-  "Topic :: Scientific/Engineering",
   "Programming Language :: Python",
   "Programming Language :: Rust",
+  "Topic :: Scientific/Engineering",
 ]
 description = "automesh"
 dependencies = [
@@ -20,6 +18,7 @@ dependencies = [
 dynamic = ["version"]
 name = "automesh"
 requires-python = ">=3.10,<3.14"
+readme = "README.md"
 
 [project.optional-dependencies]
 dev = [
@@ -47,7 +46,7 @@ testpaths = [
 [build-system]
 build-backend = "maturin"
 requires = [
-  "maturin==1.9.4"
+  "maturin==1.9.6"
 ]
 
 [tool.maturin]

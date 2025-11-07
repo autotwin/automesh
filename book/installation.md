@@ -13,6 +13,8 @@ All interfaces are independent from each other:
 
 For macOS and Linux, use a terminal.  For Windows, use a Command Prompt (CMD) or PowerShell.
 
+Some macOS users have encountered a build error with the `netcdf-src` crate.  See [Troubleshooting](#troubleshooting) for a solution to this error.
+
 ## Step 1: Install Prerequisites
 
 * The command line interface and Rust interface depend on [Rust](https://www.rust-lang.org/) and [Cargo](https://doc.rust-lang.org/cargo/).
@@ -24,32 +26,7 @@ For macOS and Linux, use a terminal.  For Windows, use a Command Prompt (CMD) or
 
 ### Rust Prerequisites
 
-Install Rust and Cargo for your operating system:
-
-#### macOS and Linux
-
-1. Open a terminal.  Install Rust using [`rustup`](https://www.rust-lang.org/tools/install):
-
-```sh
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-2. Follow the on-screen instructions to complete the installation.
-3. Add Cargo's `bin` directory to your `PATH`:
-
-```sh
-source $HOME/.cargo/env
-```
-
-#### Windows
-
-1. Download `rustup-init.exe` from run the [Rust installer](https://www.rust-lang.org/tools/install).
-2. Follow the installation instructions in the command prompt.
-    * Use the default settings (`standard installation`) to add `cargo`, `rustc`, `rustup` to your `PATH`.
-    * The Cargo home directory is, e.g., `C:\Users\<User>\.cargo`, which can be modified with the `CARGO_HOME` environment variable.
-    * You may need to restart your command prompt or system.
-    * Ensure that Cargo's `bin` directory is in your `PATH`.
-3. Additional Windows installation details are available in [The rustup book](https://rust-lang.github.io/rustup/installation/windows.html).
+It is recommended to install Rust using [Rustup](https://rust-lang.org/learn/get-started/), which is an installer and version management tool.
 
 ### Python Prerequisites
 
@@ -187,4 +164,63 @@ python
 
 # Get help on the module
 >>> help(automesh)
+```
+
+## Troubleshooting
+
+### `ZLIB` target not found
+
+Some users have encountered an error when trying to build the `netcdf` crate, e.g.,
+
+```bash
+...
+error: failed to run custom build command for `netcdf-src v0.4.3`
+...
+The link interface of target "hdf5-static" contains:
+
+  ZLIB::ZLIB
+
+but the target was not found.  Possible reasons include:
+
+  * There is a typo in the target name.
+  * A find_package call is missing for an IMPORTED target.
+  * An ALIAS target is missing.
+...
+```
+
+HDF5 is looking for `ZLIB::ZLIB` as a CMake target, but it's not being found
+even though `ZLIB` is present.
+
+A solution is to use a dynamically-linked `netcdf` from Homebrew instead of
+trying to build it statically.  This should avoid the CMake `ZLIB::ZLIB` target
+issue entirely.
+
+Update the `Cargo.toml` for `automesh` to avoid static linking:
+
+```toml
+...
+# netcdf = { version = "=0.11.1", features = ["ndarray", "static"] }
+netcdf = { version = "=0.11.1", features = ["ndarray"] }
+...
+```
+
+Then,
+
+```bash
+# Make sure netcdf is installed via Homebrew
+brew install netcdf
+
+# Set the environment variable to use system netcdf
+export NETCDF_DIR=/opt/homebrew
+
+# Clean and build
+cargo clean
+cargo build
+```
+
+If you still encounter errors about `netcdf` not being found, also try:
+
+```bash
+export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig
+export DYLD_LIBRARY_PATH=/opt/homebrew/lib
 ```

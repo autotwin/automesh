@@ -152,41 +152,41 @@ fn template(
                 [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]]]
                 - face_direction(face_m) * lngth;
             let node_1 = *nodes_map
-                .get(&(
+                .get(&[
                     (2.0 * coordinates_1[0]) as usize,
                     (2.0 * coordinates_1[1]) as usize,
                     (2.0 * coordinates_1[2]) as usize,
-                ))
+                ])
                 .expect("nonexistent entry");
             let coordinates_2 = &nodal_coordinates
                 [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]]]
                 - face_direction(face_m) * lngth;
             let node_2 = *nodes_map
-                .get(&(
+                .get(&[
                     (2.0 * coordinates_2[0]) as usize,
                     (2.0 * coordinates_2[1]) as usize,
                     (2.0 * coordinates_2[2]) as usize,
-                ))
+                ])
                 .expect("nonexistent entry");
             let coordinates_3 = &nodal_coordinates
                 [cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]]]
                 + face_direction(face_n) * lngth;
             let node_3 = *nodes_map
-                .get(&(
+                .get(&[
                     (2.0 * coordinates_3[0]) as usize,
                     (2.0 * coordinates_3[1]) as usize,
                     (2.0 * coordinates_3[2]) as usize,
-                ))
+                ])
                 .expect("nonexistent entry");
             let coordinates_4 = &nodal_coordinates
                 [cells_nodes[subcell_b_face_m_subcells[subcell_face_m_q]]]
                 + face_direction(face_n) * lngth;
             let node_4 = *nodes_map
-                .get(&(
+                .get(&[
                     (2.0 * coordinates_4[0]) as usize,
                     (2.0 * coordinates_4[1]) as usize,
                     (2.0 * coordinates_4[2]) as usize,
-                ))
+                ])
                 .expect("nonexistent entry");
             element_node_connectivity.push([
                 cells_nodes[subcell_a_face_m_subcells[subcell_face_m_p]],

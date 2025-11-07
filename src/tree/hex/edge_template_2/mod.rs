@@ -52,41 +52,41 @@ pub fn apply(
                                         [cells_nodes[face_subsubcells[face_subsubcell_a]]]
                                         - face_direction(face_index) * lngth;
                                     let node_1 = *nodes_map
-                                        .get(&(
+                                        .get(&[
                                             (2.0 * coordinates_1[0]) as usize,
                                             (2.0 * coordinates_1[1]) as usize,
                                             (2.0 * coordinates_1[2]) as usize,
-                                        ))
+                                        ])
                                         .expect("nonexistent entry");
                                     let coordinates_2 = &nodal_coordinates
                                         [cells_nodes[face_subsubcells[face_subsubcell_b]]]
                                         - face_direction(face_index) * lngth;
                                     let node_2 = *nodes_map
-                                        .get(&(
+                                        .get(&[
                                             (2.0 * coordinates_2[0]) as usize,
                                             (2.0 * coordinates_2[1]) as usize,
                                             (2.0 * coordinates_2[2]) as usize,
-                                        ))
+                                        ])
                                         .expect("nonexistent entry");
                                     let coordinates_3 = &nodal_coordinates[cells_nodes
                                         [adjacent_face_subsubcells[adjacent_face_subsubcell_a]]]
                                         - face_direction(face_index) * lngth;
                                     let node_3 = *nodes_map
-                                        .get(&(
+                                        .get(&[
                                             (2.0 * coordinates_3[0]) as usize,
                                             (2.0 * coordinates_3[1]) as usize,
                                             (2.0 * coordinates_3[2]) as usize,
-                                        ))
+                                        ])
                                         .expect("nonexistent entry");
                                     let coordinates_4 = &nodal_coordinates[cells_nodes
                                         [adjacent_face_subsubcells[adjacent_face_subsubcell_b]]]
                                         - face_direction(face_index) * lngth;
                                     let node_4 = *nodes_map
-                                        .get(&(
+                                        .get(&[
                                             (2.0 * coordinates_4[0]) as usize,
                                             (2.0 * coordinates_4[1]) as usize,
                                             (2.0 * coordinates_4[2]) as usize,
-                                        ))
+                                        ])
                                         .expect("nonexistent entry");
                                     element_node_connectivity.push([
                                         cells_nodes[cell_subcells[cell_subcell_a]],

@@ -2,13 +2,15 @@
 use std::time::Instant;
 
 mod hex;
+mod tessellation;
+mod tri;
+
+pub use hex::HexesAndCoords;
+pub use tessellation::octree_from_surface;
 
 use super::{
     Coordinate, Coordinates, NSD, Vector,
-    fem::{
-        Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, TriangularFiniteElements,
-        hex::HexConnectivity,
-    },
+    fem::{Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, hex::HexConnectivity},
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
 use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
@@ -16,8 +18,10 @@ use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
     collections::HashMap,
+    iter::repeat_n,
     ops::{Deref, DerefMut},
 };
+use tessellation::octree_from_bounding_cube;
 
 pub const PADDING: u8 = 255;
 
@@ -110,10 +114,11 @@ pub type Edge = [usize; 2];
 pub type Edges = Vec<Edge>;
 type Faces = [Option<usize>; NUM_FACES];
 type Indices = [usize; NUM_OCTANTS];
-type NodeMap = HashMap<(usize, usize, usize), usize>;
+type NodeMap = HashMap<[usize; NSD], usize>;
 type SubSubCellsFace = [usize; NUM_SUBSUBCELLS_FACE];
 
 /// The octree type.
+#[derive(Debug)]
 pub struct Octree {
     nel: Nel,
     octree: Vec<Cell>,
@@ -151,21 +156,14 @@ pub struct Cell {
 }
 
 impl Cell {
-    pub fn any_coordinates_inside(&self, coordinates: &Coordinates) -> bool {
-        let x_min = *self.get_min_x() as f64;
-        let y_min = *self.get_min_y() as f64;
-        let z_min = *self.get_min_z() as f64;
-        let x_max = self.get_max_x() as f64;
-        let y_max = self.get_max_y() as f64;
-        let z_max = self.get_max_z() as f64;
-        coordinates.iter().any(|coordinate| {
-            coordinate[0] >= x_min
-                && coordinate[0] < x_max
-                && coordinate[1] >= y_min
-                && coordinate[1] < y_max
-                && coordinate[2] >= z_min
-                && coordinate[2] < z_max
-        })
+    pub fn any_samples_inside(&self, samples: &[Vec<Vec<bool>>]) -> bool {
+        let min_x = self.min_x as usize;
+        let min_y = self.min_y as usize;
+        let min_z = self.min_z as usize;
+        let max_x = (self.min_x + self.lngth) as usize;
+        let max_y = (self.min_y + self.lngth) as usize;
+        let max_z = (self.min_z + self.lngth) as usize;
+        (min_x..max_x).any(|i| (min_y..max_y).any(|j| (min_z..max_z).any(|k| samples[i][j][k])))
     }
     pub const fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
@@ -530,93 +528,21 @@ impl Cell {
     }
 }
 
-impl From<Voxels> for Octree {
-    fn from(voxels: Voxels) -> Octree {
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let (data_voxels, remove, scale, translate) = voxels.data();
-        let mut nel_i = 0;
-        let nel_padded = data_voxels
-            .shape()
-            .iter()
-            .map(|nel_0| {
-                nel_i = *nel_0;
-                while (nel_i & (nel_i - 1)) != 0 {
-                    nel_i += 1
-                }
-                nel_i
-            })
-            .max()
-            .unwrap();
-        let nel = Nel::from([nel_padded; NSD]);
-        let mut data = VoxelData::from(nel);
-        data.iter_mut().for_each(|entry| *entry = PADDING);
-        if data_voxels.iter().any(|entry| entry == &PADDING) {
-            panic!("Segmentation cannot use 255 as an ID with octree padding.")
-        }
-        data.axis_iter_mut(Axis(2))
-            .zip(data_voxels.axis_iter(Axis(2)))
-            .for_each(|(mut data_i, data_voxels_i)| {
-                data_i
-                    .axis_iter_mut(Axis(1))
-                    .zip(data_voxels_i.axis_iter(Axis(1)))
-                    .for_each(|(mut data_ij, data_voxels_ij)| {
-                        data_ij
-                            .iter_mut()
-                            .zip(data_voxels_ij.iter())
-                            .for_each(|(data_ijk, data_voxels_ijk)| *data_ijk = *data_voxels_ijk)
-                    })
-            });
-        let nel_min = nel.iter().min().unwrap();
-        let lngth = *nel_min as u16;
-        let mut tree = Octree {
-            nel,
-            octree: vec![],
-            remove,
-            scale,
-            translate,
-        };
-        (0..(nel.x() / nel_min)).for_each(|i| {
-            (0..(nel.y() / nel_min)).for_each(|j| {
-                (0..(nel.z() / nel_min)).for_each(|k| {
-                    tree.push(Cell {
-                        block: None,
-                        cells: None,
-                        faces: [None; NUM_FACES],
-                        lngth,
-                        min_x: lngth * i as u16,
-                        min_y: lngth * j as u16,
-                        min_z: lngth * k as u16,
-                    })
-                })
-            })
-        });
-        let mut index = 0;
-        while index < tree.len() {
-            if let Some(block) = tree[index].homogeneous(&data) {
-                tree[index].block = Some(block)
-            } else {
-                tree.subdivide(index)
-            }
-            index += 1;
-        }
-        #[cfg(feature = "profile")]
-        println!(
-            "           \x1b[1;93m⤷ Octree initialization\x1b[0m {:?} ",
-            time.elapsed()
-        );
-        tree
-    }
-}
-
 impl Octree {
     pub fn balance_and_pair(&mut self, strong: bool) {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let mut balanced = false;
         let mut paired = false;
         while !balanced || !paired {
             balanced = self.balance(strong);
             paired = self.pair();
         }
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mBalancing and pairing\x1b[0m {:?}",
+            time.elapsed()
+        );
     }
     pub fn balance(&mut self, strong: bool) -> bool {
         let mut balanced;
@@ -631,8 +557,8 @@ impl Octree {
             balanced = true;
             index = 0;
             subdivide = false;
-            #[cfg(feature = "profile")]
-            let time = Instant::now();
+            // #[cfg(feature = "profile")]
+            // let time = Instant::now();
             while index < self.len() {
                 if !self[index].is_voxel() && self[index].is_leaf() {
                     'faces: for (face, face_cell) in self[index].get_faces().iter().enumerate() {
@@ -907,12 +833,12 @@ impl Octree {
                 }
                 index += 1;
             }
-            #[cfg(feature = "profile")]
-            println!(
-                "             \x1b[1;93mBalancing iteration {}\x1b[0m {:?} ",
-                iteration,
-                time.elapsed()
-            );
+            // #[cfg(feature = "profile")]
+            // println!(
+            //     "             \x1b[1;93mBalancing iteration {}\x1b[0m {:?} ",
+            //     iteration,
+            //     time.elapsed()
+            // );
             if balanced {
                 break;
             }
@@ -989,19 +915,11 @@ impl Octree {
                 index += 1;
             }
             #[cfg(feature = "profile")]
-            if iteration == 1 {
-                println!(
-                    "           \x1b[1;93m⤷ Boundaries iteration {}\x1b[0m {:?} ",
-                    iteration,
-                    time.elapsed()
-                );
-            } else {
-                println!(
-                    "             \x1b[1;93mBoundaries iteration {}\x1b[0m {:?} ",
-                    iteration,
-                    time.elapsed()
-                );
-            }
+            println!(
+                "             \x1b[1;93mBoundaries iteration {}\x1b[0m {:?} ",
+                iteration,
+                time.elapsed()
+            );
             if boundaries {
                 break;
             }
@@ -1329,63 +1247,25 @@ impl Octree {
     }
     pub fn from_finite_elements<const M: usize, const N: usize, T>(
         finite_elements: T,
-        levels: usize,
+        grid: usize,
+        size: f64,
     ) -> Self
     where
         T: FiniteElementMethods<M, N>,
     {
-        let mut blocks = finite_elements.get_element_blocks().clone();
-        let mut centroids = finite_elements.centroids();
-        let (minimum, mut maximum) = centroids.iter().fold(
-            (
-                Coordinate::new([f64::INFINITY; NSD]),
-                Coordinate::new([f64::NEG_INFINITY; NSD]),
-            ),
-            |(mut minimum, mut maximum), coordinate| {
-                minimum
-                    .iter_mut()
-                    .zip(maximum.iter_mut().zip(coordinate.iter()))
-                    .for_each(|(min, (max, &coord))| {
-                        *min = min.min(coord);
-                        *max = max.max(coord);
-                    });
-                (minimum, maximum)
-            },
-        );
-        maximum -= &minimum;
-        let nel = 2.0_f64.powi(levels as i32);
-        let length = maximum.clone().into_iter().reduce(f64::max).unwrap().ceil();
-        let scale = (nel - 1.0) / length;
-        centroids.iter_mut().for_each(|centroid| {
-            *centroid -= &minimum;
-            *centroid *= &scale;
-        });
-        let mut exterior_face_centroids = finite_elements.exterior_faces_centroids();
-        exterior_face_centroids.iter_mut().for_each(|centroid| {
-            *centroid -= &minimum;
-            *centroid *= &scale;
-        });
-        blocks.extend(vec![PADDING; exterior_face_centroids.len()]);
-        centroids.append(&mut exterior_face_centroids);
-        let mut tree = Octree {
-            nel: Nel::from([nel as usize; NSD]),
-            octree: vec![],
-            remove: Remove::Some(vec![PADDING]),
-            scale: Scale::from([1.0 / scale; NSD]),
-            translate: Translate::from(minimum),
-        };
-        tree.push(Cell {
-            block: None,
-            cells: None,
-            faces: [None; NUM_FACES],
-            lngth: nel as u16,
-            min_x: 0,
-            min_y: 0,
-            min_z: 0,
-        });
+        let mut blocks: Blocks = finite_elements
+            .get_element_blocks()
+            .iter()
+            .flat_map(|&block| repeat_n(block, grid.pow(3)))
+            .collect();
+        let mut samples = finite_elements.interior_points(grid);
+        let mut exterior_face_samples = finite_elements.exterior_faces_interior_points(grid);
+        blocks.extend(vec![PADDING; exterior_face_samples.len()]);
+        samples.append(&mut exterior_face_samples);
+        let mut tree = octree_from_bounding_cube(&mut samples, size);
         let mut index = 0;
         while index < tree.len() {
-            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &centroids) {
+            if let Some(block) = tree[index].homogeneous_coordinates(&blocks, &samples) {
                 tree[index].block = Some(block);
             } else {
                 tree.subdivide(index)
@@ -1453,15 +1333,15 @@ impl Octree {
                 nodal_coordinates[index + 7] = Coordinate::new([x_min, y_val, z_val]);
                 index += HEX;
             });
-        Ok(HexahedralFiniteElements::from_data(
+        Ok(HexahedralFiniteElements::from((
             element_blocks,
             element_node_connectivity,
             nodal_coordinates,
-        ))
+        )))
     }
     pub fn pair(&mut self) -> bool {
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
+        // #[cfg(feature = "profile")]
+        // let time = Instant::now();
         let mut block = 0;
         let mut index = 0;
         let mut paired_already = true;
@@ -1493,11 +1373,11 @@ impl Octree {
             }
             index += 1;
         }
-        #[cfg(feature = "profile")]
-        println!(
-            "           \x1b[1;93m  Pairing hanging nodes\x1b[0m {:?} ",
-            time.elapsed()
-        );
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "           \x1b[1;93m  Pairing hanging nodes\x1b[0m {:?} ",
+        //     time.elapsed()
+        // );
         paired_already
     }
     pub fn parameters(self) -> (Remove, Scale, Translate) {
@@ -1587,6 +1467,12 @@ impl Octree {
             time.elapsed()
         );
     }
+    pub fn remove(&self) -> &Remove {
+        &self.remove
+    }
+    pub fn scale(&self) -> &Scale {
+        &self.scale
+    }
     fn subdivide(&mut self, index: usize) {
         assert!(self[index].is_leaf());
         let new_indices = from_fn(|n| self.len() + n);
@@ -1644,466 +1530,86 @@ impl Octree {
             });
         supercells
     }
-}
-
-impl From<Octree> for TriangularFiniteElements {
-    fn from(mut tree: Octree) -> Self {
-        let mut removed_data: Blocks = (&tree.remove).into();
-        removed_data.push(PADDING);
-        tree.boundaries();
-        let clusters = tree.clusters(Some(&removed_data), None);
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let blocks = clusters
-            .iter()
-            .map(|cluster: &Vec<usize>| tree[cluster[0]].get_block())
-            .collect::<Blocks>();
-        let default_face_info = [None; NUM_FACES];
-        let mut faces_info = default_face_info;
-        let boundaries_cells_faces = blocks
-            .iter()
-            .zip(clusters.iter())
-            .map(|(&block, cluster)| {
-                cluster
-                    .iter()
-                    .filter(|&&cell| tree[cell].is_voxel())
-                    .filter_map(|&cell| {
-                        faces_info = default_face_info;
-                        faces_info
-                            .iter_mut()
-                            .enumerate()
-                            .zip(tree[cell].get_faces().iter())
-                            .for_each(|((face_index, face_info), &face)| {
-                                if let Some(face_cell) = face {
-                                    if tree[face_cell].get_block() != block {
-                                        *face_info = Some(face_cell)
-                                    }
-                                } else if tree[cell]
-                                    .is_face_on_octree_boundary(&face_index, tree.nel())
-                                {
-                                    *face_info = Some(usize::MAX)
-                                }
-                            });
-                        if faces_info.iter().all(|face_info| face_info.is_none()) {
-                            None
-                        } else {
-                            Some((cell, faces_info))
-                        }
-                    })
-                    .collect()
-            })
-            .collect::<Vec<Vec<(usize, Faces)>>>();
-        let mut max_cell_id = 0;
-        let mut boundaries_face_from_cell = boundaries_cells_faces
-            .iter()
-            .map(|boundary_cells_faces| {
-                (max_cell_id, _) = *boundary_cells_faces
-                    .iter()
-                    .max_by(|(cell_a, _), (cell_b, _)| cell_a.cmp(cell_b))
-                    .unwrap();
-                vec![[false; NUM_FACES]; max_cell_id + 1]
-            })
-            .collect::<Vec<Vec<[bool; NUM_FACES]>>>();
-        max_cell_id = 0;
-        boundaries_cells_faces
-            .iter()
-            .for_each(|boundary_cells_faces| {
-                boundary_cells_faces.iter().for_each(|(cell, _)| {
-                    if cell > &max_cell_id {
-                        max_cell_id = *cell
-                    }
-                })
-            });
-        let mut boundary_from_cell = vec![None; max_cell_id + 1];
-        boundaries_cells_faces
-            .iter()
-            .enumerate()
-            .for_each(|(boundary, boundary_cells_faces)| {
-                boundary_cells_faces
-                    .iter()
-                    .for_each(|(cell, _)| boundary_from_cell[*cell] = Some(boundary))
-            });
-        let mut cell_face_index = 0;
-        let mut cell_faces = vec![vec![]; max_cell_id + 1];
-        let mut face_blocks: Vec<u8> = vec![];
-        let mut face_cells: Vec<usize> = vec![];
-        let mut face_connectivity = [0; NUM_NODES_FACE];
-        let mut faces_connectivity = vec![];
-        let mut nodal_coordinates = Coordinates::zero(0);
-        let mut node_new = 1;
-        let nodes_len = (tree[0].get_lngth() + 1) as usize;
-        let mut nodes = vec![vec![vec![None::<usize>; nodes_len]; nodes_len]; nodes_len];
-        (0..boundaries_cells_faces.len()).for_each(|boundary| {
-            boundaries_cells_faces[boundary]
-                .iter()
-                .for_each(|(cell, faces)| {
-                    faces.iter().enumerate().for_each(|(face_index, face)| {
-                        if let Some(face_cell) = face
-                            && !boundaries_face_from_cell[boundary][*cell][face_index]
-                        {
-                            boundaries_face_from_cell[boundary][*cell][face_index] = true;
-                            #[allow(clippy::collapsible_if)]
-                            if face_cell != &usize::MAX {
-                                if removed_data
-                                    .binary_search(&tree[*face_cell].get_block())
-                                    .is_err()
-                                {
-                                    if let Some(opposing_boundary) = boundary_from_cell[*face_cell]
-                                    {
-                                        boundaries_face_from_cell[opposing_boundary][*face_cell]
-                                            [mirror_face(face_index)] = true;
-                                    }
-                                }
-                            }
-                            tree[*cell]
-                                .get_nodal_indices_face(&face_index)
-                                .iter()
-                                .zip(face_connectivity.iter_mut())
-                                .for_each(|(nodal_indices, face_node)| {
-                                    if let Some(node) = nodes[nodal_indices[0] as usize]
-                                        [nodal_indices[1] as usize]
-                                        [nodal_indices[2] as usize]
-                                    {
-                                        *face_node = node
-                                    } else {
-                                        nodal_coordinates.push(Coordinate::new([
-                                            nodal_indices[0] as f64 * tree.scale.x()
-                                                + tree.translate.x(),
-                                            nodal_indices[1] as f64 * tree.scale.y()
-                                                + tree.translate.y(),
-                                            nodal_indices[2] as f64 * tree.scale.z()
-                                                + tree.translate.z(),
-                                        ]));
-                                        *face_node = node_new;
-                                        nodes[nodal_indices[0] as usize]
-                                            [nodal_indices[1] as usize]
-                                            [nodal_indices[2] as usize] = Some(node_new);
-                                        node_new += 1;
-                                    }
-                                });
-                            cell_faces[*cell].push(cell_face_index);
-                            cell_face_index += 1;
-                            face_blocks.push(boundary as u8 + 1);
-                            face_cells.push(*cell);
-                            faces_connectivity.push(face_connectivity)
-                        }
-                    })
-                })
-        });
-        let node_face_connectivity =
-            invert_connectivity(&faces_connectivity, nodal_coordinates.len());
-        let non_manifold_edges = non_manifold(&faces_connectivity, &node_face_connectivity);
-        non_manifold_edges.iter().for_each(|non_manifold_edge_a| {
-            non_manifold_edges.iter().for_each(|non_manifold_edge_b| {
-                if non_manifold_edge_a
-                    .iter()
-                    .filter(|node_a| non_manifold_edge_b.contains(node_a))
-                    .count()
-                    == 1
-                {
-                    panic!("Consecutive non-manifold edges are currently unsupported.")
-                }
-            })
-        });
-        non_manifold_edges.iter().for_each(|edge| {
-            let non_manifold_faces: Vec<usize> = node_face_connectivity[edge[0]]
-                .iter()
-                .filter(|face_a| node_face_connectivity[edge[1]].contains(face_a))
-                .copied()
-                .collect();
-            let mut non_manifold_cells_vec: Vec<usize> = non_manifold_faces
-                .iter()
-                .map(|&non_manifold_face| face_cells[non_manifold_face])
-                .collect();
-            non_manifold_cells_vec.sort();
-            non_manifold_cells_vec.dedup();
-            let non_manifold_cells: [usize; 2] = non_manifold_cells_vec
-                .try_into()
-                .expect("There should be two non-manifold cells.");
-            let non_manifold_cells_non_manifold_faces: [[usize; 2]; 2] = non_manifold_cells
-                .iter()
-                .map(|&non_manifold_cell| {
-                    cell_faces[non_manifold_cell]
-                        .iter()
-                        .filter(|cell_face| non_manifold_faces.contains(cell_face))
-                        .copied()
-                        .collect::<Vec<usize>>()
-                        .try_into()
-                        .expect("There should be two non-manifold faces per non-manifold cell.")
-                })
-                .collect::<Vec<[usize; 2]>>()
-                .try_into()
-                .expect("There should be two non-manifold cells.");
-
-            let non_manifold_cells_other_faces: Vec<Vec<usize>> = non_manifold_cells
-                .iter()
-                .map(|&non_manifold_cell| {
-                    cell_faces[non_manifold_cell]
-                        .iter()
-                        .filter(|cell_face| !non_manifold_faces.contains(cell_face))
-                        .copied()
-                        .collect()
-                })
-                .collect();
-            let non_manifold_cells_bowtie_faces: Vec<Vec<usize>> =
-                non_manifold_cells_non_manifold_faces
-                    .iter()
-                    .zip(non_manifold_cells_other_faces.iter())
-                    .map(|(non_manifold_faces, other_faces)| {
-                        other_faces
-                            .iter()
-                            .filter(|&&other_face| {
-                                faces_connectivity[other_face].iter().any(|node| {
-                                    non_manifold_faces.iter().all(|&non_manifold_face| {
-                                        faces_connectivity[non_manifold_face].contains(node)
-                                    })
-                                })
-                            })
-                            .copied()
-                            .collect()
-                    })
-                    .collect();
-            let cells_num_bowtie_faces: [usize; 2] = non_manifold_cells_bowtie_faces
-                .iter()
-                .map(|non_manifold_cell_bowtie_faces| non_manifold_cell_bowtie_faces.len())
-                .collect::<Vec<usize>>()
-                .try_into()
-                .expect("There should be two non-manifold cells.");
-            let cell_index = match cells_num_bowtie_faces {
-                [0, 0] => unimplemented!("Change below [0] once implemented."),
-                [1, 0] | [1, 1] => 0,
-                [0, 1] => 1,
-                [2, 2] => unimplemented!("Change below [0] once implemented."),
-                _ => panic!(),
-            };
-            let node = edge
-                .iter()
-                .find(|node| {
-                    faces_connectivity[non_manifold_cells_bowtie_faces[cell_index][0]]
-                        .contains(node)
-                })
-                .unwrap();
-            let faces: [usize; 3] = node_face_connectivity[*node]
-                .iter()
-                .filter(|face| cell_faces[non_manifold_cells[cell_index]].contains(face))
-                .copied()
-                .collect::<Vec<usize>>()
-                .try_into()
-                .expect("Should be 3 faces.");
-            nodal_coordinates.push(nodal_coordinates[*node].clone());
-            let node_new = nodal_coordinates.len();
-            let mut position = 0;
-            faces.iter().for_each(|&face| {
-                position = faces_connectivity[face]
-                    .iter()
-                    .position(|face_node| face_node == node)
-                    .unwrap();
-                faces_connectivity[face][position] = node_new
-            });
-        });
-        let node_face_connectivity =
-            invert_connectivity(&faces_connectivity, nodal_coordinates.len());
-        let mut faces = [[0; 3]; 2];
-        let mut faces_temp;
-        for node_index in 0..nodal_coordinates.len() {
-            if node_face_connectivity[node_index].len() == 6 {
-                faces[0][0] = node_face_connectivity[node_index][0];
-                if let Ok(trial_faces) = <[usize; 2]>::try_from(
-                    node_face_connectivity[node_index]
-                        .iter()
-                        .skip(1)
-                        .filter(|&&face| {
-                            faces_connectivity[faces[0][0]]
-                                .iter()
-                                .filter(|node| faces_connectivity[face].contains(node))
-                                .count()
-                                == 2
-                        })
-                        .copied()
-                        .collect::<Vec<usize>>(),
-                ) {
-                    faces[0][1] = trial_faces[0];
-                    faces[0][2] = trial_faces[1];
-                    faces_temp = node_face_connectivity[node_index].clone();
-                    faces_temp.retain(|face| !faces[0].contains(face));
-                    if let Ok(trial_faces_2) = <[usize; 3]>::try_from(faces_temp.clone()) {
-                        faces[1] = trial_faces_2;
-                        if faces[0].iter().all(|&face_a| {
-                            faces[1].iter().all(|&face_b| {
-                                faces_connectivity[face_a]
-                                    .iter()
-                                    .filter(|node_a| faces_connectivity[face_b].contains(node_a))
-                                    .count()
-                                    == 1
-                            })
-                        }) {
-                            nodal_coordinates.push(nodal_coordinates[node_index].clone());
-                            let node = node_index;
-                            let node_new = nodal_coordinates.len();
-                            let mut position = 0;
-                            faces[0].iter().for_each(|&face| {
-                                position = faces_connectivity[face]
-                                    .iter()
-                                    .position(|face_node| face_node == &node)
-                                    .unwrap();
-                                faces_connectivity[face][position] = node_new
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        let mut element_blocks = vec![0; 2 * face_blocks.len()];
-        let mut element_node_connectivity = vec![[0; 3]; 2 * faces_connectivity.len()];
-        let mut face = 0;
-        let mut triangle = 0;
-        faces_connectivity.iter().for_each(|face_connectivity| {
-            element_blocks[triangle] = face_blocks[face];
-            element_blocks[triangle + 1] = face_blocks[face];
-            element_node_connectivity[triangle] = [
-                face_connectivity[0],
-                face_connectivity[1],
-                face_connectivity[3],
-            ];
-            element_node_connectivity[triangle + 1] = [
-                face_connectivity[1],
-                face_connectivity[2],
-                face_connectivity[3],
-            ];
-            face += 1;
-            triangle += 2;
-        });
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mTriangular finite elements\x1b[0m {:?} ",
-            time.elapsed()
-        );
-        Self::from_data(element_blocks, element_node_connectivity, nodal_coordinates)
+    pub fn translate(&self) -> &Translate {
+        &self.translate
     }
 }
 
-fn invert_connectivity(faces_connectivity: &[[usize; 4]], num_nodes: usize) -> Vec<Vec<usize>> {
-    let mut node_face_connectivity = vec![vec![]; num_nodes];
-    faces_connectivity
-        .iter()
-        .enumerate()
-        .for_each(|(face, connectivity)| {
-            connectivity
-                .iter()
-                .for_each(|&node| node_face_connectivity[node].push(face))
-        });
-    node_face_connectivity
-}
-
-fn edges(faces_connectivity: &[[usize; 4]]) -> Edges {
-    let mut edges: Edges = faces_connectivity
-        .iter()
-        .flat_map(|&[node_0, node_1, node_2, node_3]| {
-            [
-                [node_0, node_1],
-                [node_1, node_2],
-                [node_2, node_3],
-                [node_3, node_0],
-            ]
-            .into_iter()
-        })
-        .collect();
-    edges.iter_mut().for_each(|edge| edge.sort());
-    edges.sort();
-    edges.dedup();
-    edges
-}
-
-fn non_manifold(faces_connectivity: &[[usize; 4]], node_face_connectivity: &[Vec<usize>]) -> Edges {
-    edges(faces_connectivity)
-        .iter()
-        .flat_map(|&edge| {
-            if node_face_connectivity[edge[0]]
-                .iter()
-                .filter(|face_a| node_face_connectivity[edge[1]].contains(face_a))
-                .count()
-                == 4
-            {
-                Some(edge)
-            } else {
-                None
-            }
-        })
-        .collect()
-}
-
-impl From<Octree> for HexahedralFiniteElements {
-    fn from(tree: Octree) -> Self {
+impl From<Voxels> for Octree {
+    fn from(voxels: Voxels) -> Octree {
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let mut cells_nodes = vec![0; tree.len()];
-        let mut nodal_coordinates = Coordinates::zero(0);
-        let mut node_index = 0;
-        tree.iter()
-            .enumerate()
-            .filter(|(_, cell)| cell.is_leaf())
-            .for_each(|(leaf_index, leaf)| {
-                cells_nodes[leaf_index] = node_index;
-                nodal_coordinates.push(Coordinate::new([
-                    (leaf.get_min_x() + leaf.get_lngth()) as f64 * tree.scale.x()
-                        + tree.translate.x(),
-                    (leaf.get_min_y() + leaf.get_lngth()) as f64 * tree.scale.y()
-                        + tree.translate.y(),
-                    (leaf.get_min_z() + leaf.get_lngth()) as f64 * tree.scale.z()
-                        + tree.translate.z(),
-                ]));
-                node_index += 1;
+        let (data_voxels, remove, scale, translate) = voxels.data();
+        let mut nel_i = 0;
+        let nel_padded = data_voxels
+            .shape()
+            .iter()
+            .map(|nel_0| {
+                nel_i = *nel_0;
+                while (nel_i & (nel_i - 1)) != 0 {
+                    nel_i += 1
+                }
+                nel_i
+            })
+            .max()
+            .unwrap();
+        let nel = Nel::from([nel_padded; NSD]);
+        let mut data = VoxelData::from(nel);
+        data.iter_mut().for_each(|entry| *entry = PADDING);
+        if data_voxels.iter().any(|entry| entry == &PADDING) {
+            panic!("Segmentation cannot use 255 as an ID with octree padding.")
+        }
+        data.axis_iter_mut(Axis(2))
+            .zip(data_voxels.axis_iter(Axis(2)))
+            .for_each(|(mut data_i, data_voxels_i)| {
+                data_i
+                    .axis_iter_mut(Axis(1))
+                    .zip(data_voxels_i.axis_iter(Axis(1)))
+                    .for_each(|(mut data_ij, data_voxels_ij)| {
+                        data_ij
+                            .iter_mut()
+                            .zip(data_voxels_ij.iter())
+                            .for_each(|(data_ijk, data_voxels_ijk)| *data_ijk = *data_voxels_ijk)
+                    })
             });
-        let mut element_node_connectivity: HexConnectivity = vec![];
-        let mut nodes_map = HashMap::new();
-        hex::edge_template_1::apply(
-            &cells_nodes,
-            &mut nodes_map,
-            &mut node_index,
-            &tree,
-            &mut element_node_connectivity,
-            &mut nodal_coordinates,
-        );
-        hex::edge_template_3::apply(
-            &cells_nodes,
-            &mut nodes_map,
-            &mut node_index,
-            &tree,
-            &mut element_node_connectivity,
-            &mut nodal_coordinates,
-        );
-        hex::face_template_1::apply(
-            &cells_nodes,
-            &mut nodes_map,
-            &mut node_index,
-            &tree,
-            &mut element_node_connectivity,
-            &mut nodal_coordinates,
-        );
-        element_node_connectivity.append(
-            &mut (1..=25)
-                .into_par_iter()
-                .flat_map(|index| {
-                    hex::apply_concurrently(
-                        index,
-                        &cells_nodes,
-                        &nodes_map,
-                        &tree,
-                        &nodal_coordinates,
-                    )
+        let nel_min = nel.iter().min().unwrap();
+        let lngth = *nel_min as u16;
+        let mut tree = Octree {
+            nel,
+            octree: vec![],
+            remove,
+            scale,
+            translate,
+        };
+        (0..(nel.x() / nel_min)).for_each(|i| {
+            (0..(nel.y() / nel_min)).for_each(|j| {
+                (0..(nel.z() / nel_min)).for_each(|k| {
+                    tree.push(Cell {
+                        block: None,
+                        cells: None,
+                        faces: [None; NUM_FACES],
+                        lngth,
+                        min_x: lngth * i as u16,
+                        min_y: lngth * j as u16,
+                        min_z: lngth * k as u16,
+                    })
                 })
-                .collect(),
-        );
-        let fem = Self::from_data(
-            vec![1; element_node_connectivity.len()],
-            element_node_connectivity,
-            nodal_coordinates,
-        );
+            })
+        });
+        let mut index = 0;
+        while index < tree.len() {
+            if let Some(block) = tree[index].homogeneous(&data) {
+                tree[index].block = Some(block)
+            } else {
+                tree.subdivide(index)
+            }
+            index += 1;
+        }
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mDualization of octree\x1b[0m {:?} ",
+            "             \x1b[1;93mOctree initialization\x1b[0m {:?} ",
             time.elapsed()
         );
-        fem
+        tree
     }
 }

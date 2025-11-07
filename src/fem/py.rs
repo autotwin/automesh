@@ -83,11 +83,11 @@ impl HexahedralFiniteElements {
         pass_band: f64,
         scale: f64,
     ) -> Result<(), PyIntermediateError> {
-        let mut finite_elements = super::HexahedralFiniteElements::from_data(
+        let mut finite_elements = super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        );
+        ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         if hierarchical {
@@ -138,11 +138,11 @@ impl HexahedralFiniteElements {
     }
     /// Writes the finite elements quality metrics to a new file.
     pub fn write_metrics(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(super::HexahedralFiniteElements::from_data(
+        Ok(super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        )
+        ))
         .write_metrics(file_path)?)
     }
     /// Writes the finite elements data to a new VTK file.
@@ -203,11 +203,11 @@ impl TetrahedralFiniteElements {
         pass_band: f64,
         scale: f64,
     ) -> Result<(), PyIntermediateError> {
-        let mut finite_elements = super::HexahedralFiniteElements::from_data(
+        let mut finite_elements = super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        );
+        ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         if hierarchical {
@@ -258,11 +258,11 @@ impl TetrahedralFiniteElements {
     }
     /// Writes the finite elements quality metrics to a new file.
     pub fn write_metrics(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(super::HexahedralFiniteElements::from_data(
+        Ok(super::HexahedralFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        )
+        ))
         .write_metrics(file_path)?)
     }
     /// Writes the finite elements data to a new VTK file.
@@ -323,11 +323,11 @@ impl TriangularFiniteElements {
         pass_band: f64,
         scale: f64,
     ) -> Result<(), PyIntermediateError> {
-        let mut finite_elements = super::TriangularFiniteElements::from_data(
+        let mut finite_elements = super::TriangularFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        );
+        ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         if hierarchical {
@@ -378,11 +378,11 @@ impl TriangularFiniteElements {
     }
     /// Writes the finite elements quality metrics to a new file.
     pub fn write_metrics(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(super::TriangularFiniteElements::from_data(
+        Ok(super::TriangularFiniteElements::from((
             self.element_blocks.clone(),
             self.element_node_connectivity.clone(),
             self.nodal_coordinates.as_foo(),
-        )
+        ))
         .write_metrics(file_path)?)
     }
     /// Writes the finite elements data to a new VTK file.

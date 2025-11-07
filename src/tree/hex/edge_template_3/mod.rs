@@ -213,11 +213,11 @@ fn template(
                 assert!(
                     nodes_map
                         .insert(
-                            (
+                            [
                                 (2.0 * nodal_coordinates[*node_index + k][0]) as usize,
                                 (2.0 * nodal_coordinates[*node_index + k][1]) as usize,
                                 (2.0 * nodal_coordinates[*node_index + k][2]) as usize,
-                            ),
+                            ],
                             *node_index + k,
                         )
                         .is_none(),

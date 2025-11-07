@@ -62,7 +62,7 @@ jobs:
       - name: Check
         run: twine check dist/*
       - name: Dist
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: dist
           path: dist
@@ -94,7 +94,7 @@ jobs:
     - name: Check
       run: twine check target/wheels/*
     - name: Upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: ${{ matrix.os }}-${{ matrix.python-version }}-dist
         path: target/wheels
@@ -103,7 +103,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Download
-      uses: actions/download-artifact@v5
+      uses: actions/download-artifact@v6
     - name: Python
       uses: actions/setup-python@v6
       with:

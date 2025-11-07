@@ -9,7 +9,7 @@
 - [Examples](examples/README.md)
   - [Unit Tests](examples/unit_tests/README.md)
   - [Spheres](examples/spheres/README.md)
-- [Defeaturing](analysis/defeature/README.md)
+- [Defeaturing](defeature/README.md)
 - [Smoothing](smoothing/README.md)
   - [Laplace](smoothing/laplace.md)
   - [Hierarchical Laplace](smoothing/laplace_hierarchical.md)
@@ -38,6 +38,7 @@
     - [Conforming Mesh Cubit](analysis/sphere_with_shells/conforming.md)
     - [Smoothed Mesh `automesh`](analysis/sphere_with_shells/smoothed.md)
     - [Comparisons](analysis/sphere_with_shells/comparisons.md)
+  - [Conforming v Segmented Meshes](analysis/conforming_v_segmented/README.md)
 
 # Appendices
 
