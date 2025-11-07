@@ -170,7 +170,7 @@ requirements, particularly in terms of segmentation input, all-hex meshing, and
 comprehensive input/output format support.  We found specific limitations as
 follows:
 
-* cinolib supports all-hex meshing, but it does not support NumPy, SPN, ExodusII, and ABAQUS file types [@livesu2019cinolib].
+* cinolib supports all-hex meshing, but it does not support NumPy, SPN, ExodusII, and ABAQUS file types [@livesu2019cinolib].  Additionally, for meshing cases that rely on integer linear programming [@pitzalis2021generalized], cinolib depends on Gurobi, which is closed-source, commercial software [@gurobi].
 
 <!-- * deal.II does not support NumPy, SPN, and ABAQUS file types [@dealII]. -->
 <!-- deal.II is a library to support FEA ; it is not a mesher.  It relies on external mesh generators (such as GMSH, Netgen, or TetGen) -->
