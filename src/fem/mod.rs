@@ -911,9 +911,6 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             //
             // what if STL tris are a lot smaller than desired element size? this is where remeshing would come in handy, left note above
             //
-            // there is even a lot of triangles at stencil 1! is there a way to eliminate some before calculating distance?
-            // I guess if all 3 nodes of a tri(a) are further away than any 1 node of any other tri(b), can ignore tri(a)
-            //
             // Can also try making this parallel, should be parallelizable in the most part i think.
             //
             // If keep exterior node-to-new node map, can use Exodus scheme to automatically creates the hexes!
