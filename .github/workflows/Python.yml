@@ -86,9 +86,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Dependencies
       run: pip install build maturin twine
-    - name: Hack
-      if: matrix.os == 'macos-latest'
-      run: brew uninstall --ignore-dependencies xz
     - name: Wheel
       run: maturin build --release --features python
     - name: Check
