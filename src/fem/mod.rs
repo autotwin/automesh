@@ -814,7 +814,9 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
 
         triangular_finite_elements.write_exo("bunny_foo.exo");
 
-        let (tree, mut samples, triangle_node_connectivity, node_triangle_connectivity, bins) = octree_from_surface(triangular_finite_elements, size);
+        let surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
+
+        let (tree, mut samples, surface_element_node_connectivity, surface_node_element_connectivity, bins) = octree_from_surface(triangular_finite_elements, size);
         let (hexahedral_finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
@@ -896,7 +898,6 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .flat_map(|i| (-1..=1).flat_map(move |j| (-1..=1).map(move |k| [i, j, k])))
             .collect();
         let mut foo = Vec::<usize>::new();
-        let mut bar = Vec::<usize>::new();
         finite_elements.exterior_nodes().into_iter().for_each(|exterior_node| {
             [i, j, k] = rounded_coordinates[exterior_node];
             foo = offsets.iter().filter_map(|[i0, j0, k0]|
@@ -914,29 +915,32 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             // I guess if all 3 nodes of a tri(a) are further away than any 1 node of any other tri(b), can ignore tri(a)
             //
             // Can also try making this parallel, should be parallelizable in the most part i think.
+            //
+            // If keep exterior node-to-new node map, can use Exodus scheme to automatically creates the hexes!
+            //
             if foo.is_empty() {
                 // println!("exterior_node {exterior_node} oopsie")
             } else {
                 foo.sort();
                 foo.dedup();
-                println!("exterior_node {exterior_node} near nodes {:?}", foo.iter().map(|e| e + 1).collect::<Vec::<usize>>());
-                bar = foo.iter().map(|&node|
-                    &node_triangle_connectivity[node]
-                ).flatten().copied().collect();
-                bar.sort();
-                bar.dedup();
-                println!("\t and triangles {:?}", bar.iter().map(|e| e + 1).collect::<Vec::<usize>>());
+                let (closest_node, minimum_distance) = foo.iter().fold((usize::MAX, f64::MAX), |(closest_node, minimum_distance), &surface_node| {
+                    let distance = (&surface_nodal_coordinates[surface_node] - &finite_elements.get_nodal_coordinates()[exterior_node]).norm();
+                    if distance < minimum_distance {
+                        (surface_node, distance)
+                    } else {
+                        (closest_node, minimum_distance)
+                    }
+                });
+                println!("\t node {closest_node} is closest to exterior_node {exterior_node} at {minimum_distance}");
+                println!("\t so then triangles {:?}", surface_node_element_connectivity[closest_node].iter().map(|e| e + 1).collect::<Vec::<usize>>());
             }
         });
 
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mPiling exterior nodes\x1b[0m {:?}",
+            "             \x1b[1;93mWork in progress here\x1b[0m {:?}",
             time.elapsed()
         );
-        println!("{:?}", bins.get(&[35, 74, 63]));
-        // need to get coordinates of exterior nodes and round them to index bins
-
         finite_elements
     }
 }
