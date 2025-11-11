@@ -1,6 +1,6 @@
 use crate::{
     Coordinate, Coordinates, NSD, Nel, Remove, Scale, Translate,
-    fem::{Size, TriangularFiniteElements, Connectivity, TRI, VecConnectivity},
+    fem::{Connectivity, Size, TRI, TriangularFiniteElements, VecConnectivity},
     tessellation::Tessellation,
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
@@ -28,7 +28,8 @@ pub fn octree_from_surface(
     triangular_finite_elements: TriangularFiniteElements,
     size: Size,
 ) -> OctreeAndStuff {
-    let (blocks, connectivity, mut surface_coordinates, inverse_connectivity) = triangular_finite_elements.into();
+    let (blocks, connectivity, mut surface_coordinates, inverse_connectivity) =
+        triangular_finite_elements.into();
     let block = blocks[0];
     if !blocks.iter().all(|entry| entry == &block) {
         panic!()

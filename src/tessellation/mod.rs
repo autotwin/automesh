@@ -5,7 +5,7 @@ use super::{
         TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
-use conspire::math::{Tensor, TensorArray};
+use conspire::math::TensorArray;
 use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Error as ErrorIO};
@@ -36,9 +36,7 @@ impl From<TriangularFiniteElements> for Tessellation {
         let faces = connectivity
             .into_iter()
             .map(|connectivity| {
-                normal = (&coordinates[connectivity[1]] - &coordinates[connectivity[0]])
-                    .cross(&(&coordinates[connectivity[2]] - &coordinates[connectivity[0]]))
-                    .normalized();
+                normal = TriangularFiniteElements::normal(&coordinates, connectivity);
                 IndexedTriangle {
                     normal: Normal::new([normal[0] as f32, normal[1] as f32, normal[2] as f32]),
                     vertices: connectivity,

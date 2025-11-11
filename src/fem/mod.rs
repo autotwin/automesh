@@ -768,7 +768,9 @@ impl<const N: usize> From<FiniteElements<N>> for Data<N> {
     }
 }
 
-impl<const N: usize> From<FiniteElements<N>> for (Blocks, Connectivity<N>, Coordinates, VecConnectivity) {
+impl<const N: usize> From<FiniteElements<N>>
+    for (Blocks, Connectivity<N>, Coordinates, VecConnectivity)
+{
     fn from(finite_elements: FiniteElements<N>) -> Self {
         (
             finite_elements.element_blocks,
@@ -814,9 +816,23 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
 
         triangular_finite_elements.write_exo("bunny_foo.exo");
 
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
         let surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
+        let surface_normals = triangular_finite_elements.normals();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mTriangle computations\x1b[0m {:?}",
+            time.elapsed()
+        );
 
-        let (tree, mut samples, surface_element_node_connectivity, surface_node_element_connectivity, bins) = octree_from_surface(triangular_finite_elements, size);
+        let (
+            tree,
+            mut samples,
+            surface_element_node_connectivity,
+            surface_node_element_connectivity,
+            bins,
+        ) = octree_from_surface(triangular_finite_elements, size);
         let (hexahedral_finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
@@ -858,7 +874,9 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .into_iter()
             .enumerate()
             .filter_map(|(node, coordinate)| {
-                if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize][coordinate[2].floor() as usize] {
+                if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
+                    [coordinate[2].floor() as usize]
+                {
                     Some(node)
                 } else {
                     None
@@ -878,7 +896,8 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
 
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let rounded_coordinates: Vec<_> = finite_elements.get_nodal_coordinates()
+        let rounded_coordinates: Vec<_> = finite_elements
+            .get_nodal_coordinates()
             .iter()
             .map(|coordinate| {
                 [
@@ -891,47 +910,136 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         //
         // .exterior_faces() calculation within .exterior_nodes() is a bottleneck, try to improve it somehow; parallel?
         //
-        let mut i = 0;
-        let mut j = 0;
-        let mut k = 0;
-        let offsets: Vec<_> = (-1..=1)
-            .flat_map(|i| (-1..=1).flat_map(move |j| (-1..=1).map(move |k| [i, j, k])))
+        // let mut i = 0;
+        // let mut j = 0;
+        // let mut k = 0;
+        let offsets: Vec<_> = (-2..=2)
+            .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
             .collect();
-        let mut foo = Vec::<usize>::new();
-        finite_elements.exterior_nodes().into_iter().for_each(|exterior_node| {
-            [i, j, k] = rounded_coordinates[exterior_node];
-            foo = offsets.iter().filter_map(|[i0, j0, k0]|
-                bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
-            ).flatten().copied().collect();
-            // could increase stencil only when encounter an oopsie only for the oopsies?
-            // like here if any none, go to offsets 2 for none entries, then if that any none, offsets 3 for none entries, ...
-            //
-            // seems like stencil of 2 is all you need, but
-            // still try to do as many as you can at stencil 1 because checking less triangles for minimum distance is key
-            //
-            // what if STL tris are a lot smaller than desired element size? this is where remeshing would come in handy, left note above
-            //
-            // Can also try making this parallel, should be parallelizable in the most part i think.
-            //
-            // If keep exterior node-to-new node map, can use Exodus scheme to automatically creates the hexes!
-            //
-            if foo.is_empty() {
-                // println!("exterior_node {exterior_node} oopsie")
-            } else {
-                foo.sort();
-                foo.dedup();
-                let (closest_node, minimum_distance) = foo.iter().fold((usize::MAX, f64::MAX), |(closest_node, minimum_distance), &surface_node| {
-                    let distance = (&surface_nodal_coordinates[surface_node] - &finite_elements.get_nodal_coordinates()[exterior_node]).norm();
-                    if distance < minimum_distance {
-                        (surface_node, distance)
+        // let offsets: Vec<_> = (-1..=1)
+        //     .flat_map(|i| (-1..=1).flat_map(move |j| (-1..=1).map(move |k| [i, j, k])))
+        //     .collect();
+        // let mut foo = Vec::<usize>::new();
+        let exterior_faces = finite_elements.exterior_faces(); // is done in exterior_nodes() too, impl "exterior_faces_and_nodes()" to return both
+        let exterior_nodes = finite_elements.exterior_nodes();
+        // let mut prescribed_nodes = vec![]; // temporary for smoothing
+        let mut mappy = vec![None; exterior_nodes.iter().max().unwrap() + 1]; // can change/move this after one guarantee foo.is_some() and always make a node
+        let mut mappy_index = rounded_coordinates.len(); // can change/move this after one guarantee foo.is_some() and always make a node
+        let mut new_points: Coordinates = exterior_nodes
+            .iter()
+            .filter_map(|&exterior_node| {
+                let [i, j, k] = rounded_coordinates[exterior_node];
+                let mut foo: Nodes = offsets
+                    .iter()
+                    .filter_map(|[i0, j0, k0]| {
+                        bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+                    })
+                    .flatten()
+                    .copied()
+                    .collect();
+                // could increase stencil only when encounter an oopsie only for the oopsies?
+                // like here if any none, go to offsets 2 for none entries, then if that any none, offsets 3 for none entries, ...
+                //
+                // seems like stencil of 2 is all you need, but
+                // still try to do as many as you can at stencil 1 because checking less triangles for minimum distance is key
+                // DOES NOT SEEM TO MATTER ANYMORE WITH FILTER TRIANGLES TO MINIMUM NODE
+                //
+                // what if STL tris are a lot smaller than desired element size? this is where remeshing would come in handy, left note above
+                //
+                // Can also try making this parallel, should be parallelizable in the most part i think.
+                // Does not help much. Why? Shared access to bins/etc.? Need chunks?
+                //
+                // If keep exterior node-to-new node map, can use Exodus scheme to automatically creates the hexes!
+                //
+                if foo.is_empty() {
+                    // println!("exterior_node {exterior_node} oopsie")
+                    mappy[exterior_node] = None;
+                    None
+                } else {
+                    // prescribed_nodes.push(mappy_index); // temporary for smoothing
+                    mappy[exterior_node] = Some(mappy_index); // can change/move this after one guarantee foo.is_some() and always make a node
+                    mappy_index += 1; // can change/move this after one guarantee foo.is_some() and always make a node
+                    foo.sort();
+                    foo.dedup();
+                    let exterior_node_coordinates =
+                        &finite_elements.get_nodal_coordinates()[exterior_node];
+                    let (closest_node, _) = foo.iter().fold(
+                        (usize::MAX, f64::MAX),
+                        |(closest_node, minimum_distance_squared), &surface_node| {
+                            let distance_squared = (&surface_nodal_coordinates[surface_node]
+                                - exterior_node_coordinates)
+                                .norm_squared();
+                            if distance_squared < minimum_distance_squared {
+                                (surface_node, distance_squared)
+                            } else {
+                                (closest_node, minimum_distance_squared)
+                            }
+                        },
+                    );
+                    // println!("\t node {} is closest to exterior_node {}", closest_node + 1, exterior_node + 1);
+                    // println!("\t so then triangles {:?}", surface_node_element_connectivity[closest_node].iter().map(|e| e + 1).collect::<Vec::<usize>>());
+                    let (closest_point, _) =
+                        surface_node_element_connectivity[closest_node].iter().fold(
+                            (Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                            |(closest_point, minimum_distance_squared), &triangle| {
+                                let point = TriangularFiniteElements::closest_point(
+                                    exterior_node_coordinates,
+                                    &surface_nodal_coordinates,
+                                    surface_element_node_connectivity[triangle],
+                                );
+                                let distance_squared =
+                                    (exterior_node_coordinates - &point).norm_squared();
+                                if distance_squared < minimum_distance_squared {
+                                    (point, distance_squared)
+                                } else {
+                                    (closest_point, minimum_distance_squared)
+                                }
+                            },
+                        );
+                    // println!("\t exterior_node {} is closest to surface at point {closest_point}", exterior_node + 1);
+                    // println!("create node location {} {} {}", closest_point[0], closest_point[1], closest_point[2]);
+                    Some(closest_point)
+                }
+            })
+            .collect();
+        // finite_elements.nodal_coordinates.extend(new_points);
+        finite_elements.nodal_coordinates.append(&mut new_points);
+
+        let new_hexes: Connectivity<HEX> = exterior_faces
+            .into_iter()
+            .filter_map(|[node_0, node_1, node_2, node_3]| {
+                if let Some(node_4) = mappy[node_0] {
+                    if let Some(node_5) = mappy[node_1] {
+                        if let Some(node_6) = mappy[node_2] {
+                            if let Some(node_7) = mappy[node_3] {
+                                Some([
+                                    node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7,
+                                ])
+                            } else {
+                                None
+                            }
+                        } else {
+                            None
+                        }
                     } else {
-                        (closest_node, minimum_distance)
+                        None
                     }
-                });
-                println!("\t node {closest_node} is closest to exterior_node {exterior_node} at {minimum_distance}");
-                println!("\t so then triangles {:?}", surface_node_element_connectivity[closest_node].iter().map(|e| e + 1).collect::<Vec::<usize>>());
-            }
-        });
+                } else {
+                    None
+                }
+            })
+            .collect();
+        finite_elements
+            .element_blocks
+            .extend(vec![finite_elements.element_blocks[0]; new_hexes.len()]);
+        finite_elements.element_node_connectivity.extend(new_hexes);
+
+        // finite_elements.prescribed_nodes = prescribed_nodes;
+        // finite_elements.node_element_connectivity().unwrap();
+        // finite_elements.node_node_connectivity().unwrap();
+        // // finite_elements.nodal_hierarchy();
+        // finite_elements.nodal_influencers();
+        // finite_elements.smooth(&Smoothing::Taubin(200, 0.1, 0.6307));
 
         #[cfg(feature = "profile")]
         println!(
