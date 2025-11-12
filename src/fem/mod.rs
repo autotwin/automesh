@@ -995,7 +995,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         finite_elements.element_node_connectivity.extend(new_hexes);
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mWork in progress here\x1b[0m {:?}",
+            "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
             time.elapsed()
         );
         finite_elements
