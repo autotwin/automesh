@@ -129,6 +129,35 @@ Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
 * File `E` is an off axis triangle with **approximate** (30, 60, 90) degree inner angles, with coordinates at `(0.0, 1.0, 3.0)`, `(2.0, 0.0, 2.0)`, and `(1.0, sqrt(3.0) + 1.0, 1.0)`, saved to `tests/input/off_axis.stl`.
 * `e` is the element number in the mesh.
 
+## Local Numbering Scheme
+
+### Nodes
+
+The local numbering scheme for nodes of a triangular element:
+
+```sh
+        2
+       / \
+      /   \
+     /     \
+    /       \
+   0---------1
+```
+
+node | connected nodes
+:---: | :---:
+0 | 1, 2
+1 | 0, 2
+2 | 0, 1
+
+### Faces
+
+The local numbering scheme for faces of a triangular element:
+
+face | nodes
+:---: | :---:
+0 | 0, 1, 2
+
 ## Source
 
 ### `metrics_triangle.py`
