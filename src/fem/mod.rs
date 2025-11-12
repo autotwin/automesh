@@ -906,11 +906,9 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
             .collect();
         //
-        // .exterior_faces() calculation within .exterior_nodes() is a bottleneck, try to improve it somehow; parallel?
-        // also .exterior_faces() is done in exterior_nodes() too, impl "exterior_faces_and_nodes()" to return both
+        // .exterior_faces() calculation is a bottleneck, try to improve it somehow; parallel?
         //
-        let exterior_faces = finite_elements.exterior_faces();
-        let exterior_nodes = finite_elements.exterior_nodes();
+        let (exterior_faces, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
         //
         // Can also try making this parallel, should be parallelizable in the most part i think.
         // Does not help much. Why? Shared access to bins/etc.? Need chunks?
@@ -1024,12 +1022,13 @@ pub trait FiniteElementSpecifics<const M: usize> {
     fn exterior_faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each exterior face.
     fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates;
-    /// Returns the exterior nodes.
-    fn exterior_nodes(&self) -> Nodes {
-        let mut nodes: Nodes = self.exterior_faces().into_iter().flatten().collect();
+    /// Returns the exterior faces and nodes.
+    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes) {
+        let faces = self.exterior_faces();
+        let mut nodes: Nodes = faces.iter().flatten().copied().collect();
         nodes.sort();
         nodes.dedup();
-        nodes
+        (faces, nodes)
     }
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
