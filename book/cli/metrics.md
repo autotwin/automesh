@@ -167,7 +167,7 @@ automesh metrics tri --help
 * Minium scaled Jacobian ${\rm SJ}_{\min}$
 * Maximum skew
 * Element area
-* Minimum angle
+* Minimum angle $\theta_{\min}$
 
 A brief description of each metric follows.
 
@@ -209,9 +209,12 @@ $$
 
 * Measures the area of the element.
 
-### Minimum Angle
+### Minimum Angle $\theta_{\min}$
 
 * The smallest the three angles of a triangle.
+* Ideal value: $60^{\circ}$ (for an equilateral triangle).
+* The $\theta_{\min}$ should be maximized (kept as close to $60^{\circ}$ as possible) and above a minimum threshold (e.g., $15^{\circ}$ to $30^{\circ}$).
+* Acute angles (close to $0^{\circ}$) cause high errors and numerical instability.
 
 ## Triangular Unit Tests
 
