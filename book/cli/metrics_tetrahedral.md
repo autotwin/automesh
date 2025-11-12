@@ -1,6 +1,20 @@
 # Tetrahedral Metrics
 
-Work in progress.
+**Work in progress.**
+
+```sh
+automesh metrics tet --help
+<!-- cmdrun automesh metrics tet --help -->
+```
+
+`automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
+
+* Maximum edge ratios ${\rm ER}_{\max}$
+* Minium scaled Jacobians ${\rm SJ}_{\min}$
+* Maximum skews
+* Element volume
+
+A brief description of each metric follows.
 
 ## References
 

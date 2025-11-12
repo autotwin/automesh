@@ -147,6 +147,64 @@ The element coordinates follow:
     8,      1.809017e0,      0.587785e0,      1.000000e0
 ```
 
+## Local Nubering Scheme
+
+### Nodes
+
+The local numbering scheme for nodes of a hexadedral element:
+
+```sh
+      7---------6
+     /|        /|
+    / |       / |
+   4---------5  |
+   |  3------|--2
+   | /       | /
+   |/        |/
+   0---------1
+```
+
+node | connected nodes
+:---: | :---:
+0 | 1, 3, 4
+1 | 0, 2, 5
+2 | 1, 3, 6
+3 | 0, 2, 7
+4 | 0, 5, 7
+5 | 1, 4, 6
+6 | 2, 5, 7
+7 | 3, 4, 6
+
+### Faces
+
+The local numbering scheme for faces of a hexadedral element:
+
+```sh
+             7---------6
+             |         |
+             |    5    |
+             |         |
+   7---------4---------5---------6---------7
+   |         |         |         |         |
+   |    3    |    0    |    1    |    2    |
+   |         |         |         |         |
+   3---------0---------1---------2---------3
+             |         |
+             |    4    |
+             |         |
+             3---------2
+```
+
+face | nodes
+:---: | :---:
+0 | 0, 1, 5, 4
+1 | 1, 2, 6, 5
+2 | 2, 3, 7, 6
+3 | 3, 0, 4, 7
+4 | 3, 2, 1, 0
+5 | 4, 5, 6, 7
+
+
 ## References
 
 [^Knupp_2006]: Knupp PM, Ernst CD, Thompson DC, Stimpson CJ, Pebay PP. The verdict geometric quality library. SAND2007-1751. Sandia National Laboratories (SNL), Albuquerque, NM, and Livermore, CA (United States); 2006 Mar 1. [link](https://www.osti.gov/servlets/purl/901967)
