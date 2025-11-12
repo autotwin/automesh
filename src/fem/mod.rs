@@ -809,20 +809,8 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .node_element_connectivity()
             .unwrap();
         triangular_finite_elements.node_node_connectivity().unwrap();
-        // remeshing would still be good for cases where desired element size is much smaller than tris
-        // will speed things up in a few places, especially binning triangles to check distances to at the end
-        // do not want to "distort" the input STL though, so may argue that smaller elements sizes do the same thing anyway?
         triangular_finite_elements.refine(size.unwrap());
-        // triangular_finite_elements.write_exo("bunny_foo.exo");
-        // #[cfg(feature = "profile")]
-        // let time = Instant::now();
         let surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
-        // let surface_normals = triangular_finite_elements.normals();
-        // #[cfg(feature = "profile")]
-        // println!(
-        //     "             \x1b[1;93mTriangle computations\x1b[0m {:?}",
-        //     time.elapsed()
-        // );
         let (
             tree,
             mut samples,
@@ -905,14 +893,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         let voxel_grid: Vec<_> = (-2..=2)
             .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
             .collect();
-        //
-        // .exterior_faces() calculation is a bottleneck, try to improve it somehow; parallel?
-        //
         let (exterior_faces, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
-        //
-        // Can also try making this parallel, should be parallelizable in the most part i think.
-        // Does not help much. Why? Shared access to bins/etc.? Need chunks?
-        //
         let mut new_points = exterior_nodes
             .iter()
             .map(|&exterior_node| {
