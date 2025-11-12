@@ -9,12 +9,16 @@ automesh metrics tet --help
 
 `automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
 
-* Maximum edge ratios ${\rm ER}_{\max}$
-* Minium scaled Jacobians ${\rm SJ}_{\min}$
-* Maximum skews
+* Maximum edge ratio ${\rm ER}_{\max}$
+* Minimum scaled Jacobian ${\rm SJ}_{\min}$
+* Maximum skew
 * Element volume
 
 A brief description of each metric follows.
+
+## Unit Tests
+
+
 
 ## References
 

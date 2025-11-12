@@ -147,7 +147,7 @@ The element coordinates follow:
     8,      1.809017e0,      0.587785e0,      1.000000e0
 ```
 
-## Local Nubering Scheme
+## Local Numbering Scheme
 
 ### Nodes
 
