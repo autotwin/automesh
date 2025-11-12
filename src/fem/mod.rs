@@ -887,10 +887,8 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         );
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
             hexahedral_finite_elements.remove_nodes(removed_nodes);
-
         let mut finite_elements =
             Self::from((element_blocks, element_node_connectivity, nodal_coordinates));
-
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let rounded_coordinates: Vec<_> = finite_elements
