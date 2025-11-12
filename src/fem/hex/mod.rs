@@ -44,7 +44,8 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         }
     }
     fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
-        let faces: Connectivity<NUM_NODES_FACE> = self
+        let mut face_counts = HashMap::new();
+        let face_to_original: Vec<_> = self
             .get_element_node_connectivity()
             .iter()
             .flat_map(
@@ -68,20 +69,21 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                     ]
                 },
             )
+            .map(|face| {
+                let mut canonical = face;
+                canonical.sort_unstable();
+                *face_counts.entry(canonical).or_default() += 1;
+                (canonical, face)
+            })
             .collect();
-        let mut canonical_face = [0; NUM_NODES_FACE];
-        let mut face_counts = HashMap::new();
-        faces.iter().for_each(|&face| {
-            canonical_face = face;
-            canonical_face.sort_unstable();
-            *face_counts.entry(canonical_face).or_insert(0) += 1;
-        });
-        faces
+        face_to_original
             .into_iter()
-            .filter(|face| {
-                canonical_face = *face;
-                canonical_face.sort_unstable();
-                face_counts.get(&canonical_face) == Some(&1)
+            .filter_map(|(canonical, original)| {
+                if face_counts.get(&canonical) == Some(&1) {
+                    Some(original)
+                } else {
+                    None
+                }
             })
             .collect()
     }

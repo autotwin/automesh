@@ -768,6 +768,19 @@ impl<const N: usize> From<FiniteElements<N>> for Data<N> {
     }
 }
 
+impl<const N: usize> From<FiniteElements<N>>
+    for (Blocks, Connectivity<N>, Coordinates, VecConnectivity)
+{
+    fn from(finite_elements: FiniteElements<N>) -> Self {
+        (
+            finite_elements.element_blocks,
+            finite_elements.element_node_connectivity,
+            finite_elements.nodal_coordinates,
+            finite_elements.node_element_connectivity,
+        )
+    }
+}
+
 impl<const N: usize> From<Data<N>> for FiniteElements<N> {
     fn from((element_blocks, element_node_connectivity, nodal_coordinates): Data<N>) -> Self {
         Self {
@@ -797,8 +810,15 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .unwrap();
         triangular_finite_elements.node_node_connectivity().unwrap();
         triangular_finite_elements.refine(size.unwrap());
-        let (tree, mut samples) = octree_from_surface(triangular_finite_elements, size);
-        let (finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
+        let surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
+        let (
+            tree,
+            mut samples,
+            surface_element_node_connectivity,
+            surface_node_element_connectivity,
+            bins,
+        ) = octree_from_surface(triangular_finite_elements, size);
+        let (hexahedral_finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut i;
@@ -836,7 +856,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             index += 1
         }
         let removed_nodes = coordinates
-            .iter()
+            .into_iter()
             .enumerate()
             .filter_map(|(node, coordinate)| {
                 if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
@@ -854,8 +874,112 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             time.elapsed()
         );
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
-            finite_elements.remove_nodes(removed_nodes);
-        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
+            hexahedral_finite_elements.remove_nodes(removed_nodes);
+        let mut finite_elements =
+            Self::from((element_blocks, element_node_connectivity, nodal_coordinates));
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let rounded_coordinates: Vec<_> = finite_elements
+            .get_nodal_coordinates()
+            .iter()
+            .map(|coordinate| {
+                [
+                    ((coordinate[0] - tree.translate().x()) / tree.scale().x()).floor() as i16,
+                    ((coordinate[1] - tree.translate().y()) / tree.scale().y()).floor() as i16,
+                    ((coordinate[2] - tree.translate().z()) / tree.scale().z()).floor() as i16,
+                ]
+            })
+            .collect();
+        let voxel_grid: Vec<_> = (-2..=2)
+            .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
+            .collect();
+        let (exterior_faces, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
+        let mut new_points = exterior_nodes
+            .iter()
+            .map(|&exterior_node| {
+                let [i, j, k] = rounded_coordinates[exterior_node];
+                let mut nearby_surface_nodes: Nodes = voxel_grid
+                    .iter()
+                    .filter_map(|[i0, j0, k0]| {
+                        bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+                    })
+                    .flatten()
+                    .copied()
+                    .collect();
+                assert!(!nearby_surface_nodes.is_empty());
+                nearby_surface_nodes.sort();
+                nearby_surface_nodes.dedup();
+                let exterior_node_coordinates =
+                    &finite_elements.get_nodal_coordinates()[exterior_node];
+                let (closest_node, _) = nearby_surface_nodes.iter().fold(
+                    (usize::MAX, f64::MAX),
+                    |(closest_node, minimum_distance_squared), &surface_node| {
+                        let distance_squared = (&surface_nodal_coordinates[surface_node]
+                            - exterior_node_coordinates)
+                            .norm_squared();
+                        if distance_squared < minimum_distance_squared {
+                            (surface_node, distance_squared)
+                        } else {
+                            (closest_node, minimum_distance_squared)
+                        }
+                    },
+                );
+                let (closest_point, _) =
+                    surface_node_element_connectivity[closest_node].iter().fold(
+                        (Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                        |(closest_point, minimum_distance_squared), &triangle| {
+                            let point = TriangularFiniteElements::closest_point(
+                                exterior_node_coordinates,
+                                &surface_nodal_coordinates,
+                                surface_element_node_connectivity[triangle],
+                            );
+                            let distance_squared =
+                                (exterior_node_coordinates - &point).norm_squared();
+                            if distance_squared < minimum_distance_squared {
+                                (point, distance_squared)
+                            } else {
+                                (closest_point, minimum_distance_squared)
+                            }
+                        },
+                    );
+                closest_point
+            })
+            .collect();
+        let numbering_offset = rounded_coordinates.len();
+        let mut surface_nodes_map = vec![0; exterior_nodes.iter().max().unwrap() + 1];
+        exterior_nodes
+            .iter()
+            .enumerate()
+            .for_each(|(surface_node, &exterior_node)| {
+                surface_nodes_map[exterior_node] = surface_node + numbering_offset
+            });
+        // finite_elements.nodal_coordinates.extend(new_points);
+        finite_elements.nodal_coordinates.append(&mut new_points);
+        let new_hexes: Connectivity<HEX> = exterior_faces
+            .into_iter()
+            .map(|[node_0, node_1, node_2, node_3]| {
+                [
+                    node_0,
+                    node_1,
+                    node_2,
+                    node_3,
+                    surface_nodes_map[node_0],
+                    surface_nodes_map[node_1],
+                    surface_nodes_map[node_2],
+                    surface_nodes_map[node_3],
+                ]
+            })
+            .collect();
+        finite_elements
+            .element_blocks
+            .extend(vec![finite_elements.element_blocks[0]; new_hexes.len()]);
+        finite_elements.element_node_connectivity.extend(new_hexes);
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
+            time.elapsed()
+        );
+        finite_elements
     }
 }
 
@@ -879,6 +1003,14 @@ pub trait FiniteElementSpecifics<const M: usize> {
     fn exterior_faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each exterior face.
     fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates;
+    /// Returns the exterior faces and nodes.
+    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes) {
+        let faces = self.exterior_faces();
+        let mut nodes: Nodes = faces.iter().flatten().copied().collect();
+        nodes.sort();
+        nodes.dedup();
+        (faces, nodes)
+    }
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each element.

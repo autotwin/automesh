@@ -38,4 +38,7 @@ pub type Coordinate = TensorRank1<NSD, 1>;
 pub type Coordinates = TensorRank1Vec<NSD, 1>;
 
 /// A three-dimensional vector.
-pub type Vector = Coordinate;
+pub type Vector = TensorRank1<NSD, 1>;
+
+/// A vector of three-dimensional vectors.
+pub type Vectors = TensorRank1Vec<NSD, 1>;

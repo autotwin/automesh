@@ -5,9 +5,9 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    super::tree::Edges, Connectivity, Coordinate, Coordinates, FiniteElementMethods,
-    FiniteElementSpecifics, FiniteElements, Metrics, Size, Smoothing, Tessellation,
-    VecConnectivity, Vector,
+    super::{Vectors, tree::Edges},
+    Connectivity, Coordinate, Coordinates, FiniteElementMethods, FiniteElementSpecifics,
+    FiniteElements, Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::{
     math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire},
@@ -216,6 +216,51 @@ impl TriangularFiniteElements {
             })
             .collect()
     }
+    /// Computes and returns the closest point in the triangle to another point.
+    pub fn closest_point(
+        point: &Coordinate,
+        coordinates: &Coordinates,
+        [node_0, node_1, node_2]: [usize; TRI],
+    ) -> Coordinate {
+        let coordinates_0 = &coordinates[node_0];
+        let coordinates_1 = &coordinates[node_1];
+        let coordinates_2 = &coordinates[node_2];
+        let v_01 = coordinates_1 - coordinates_0;
+        let v_02 = coordinates_2 - coordinates_0;
+        let v_0p = point - coordinates_0;
+        let d1 = &v_01 * &v_0p;
+        let d2 = &v_02 * v_0p;
+        if d1 <= 0.0 && d2 <= 0.0 {
+            return coordinates_0.clone();
+        }
+        let v_1p = point - coordinates_1;
+        let d3 = &v_01 * &v_1p;
+        let d4 = &v_02 * v_1p;
+        if d3 >= 0.0 && d4 <= d3 {
+            return coordinates_1.clone();
+        }
+        let v_2p = point - coordinates_2;
+        let d5 = &v_01 * &v_2p;
+        let d6 = &v_02 * v_2p;
+        if d6 >= 0.0 && d5 <= d6 {
+            return coordinates_2.clone();
+        }
+        let vc = d1 * d4 - d3 * d2;
+        if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
+            return coordinates_0 + v_01 * (d1 / (d1 - d3));
+        }
+        let vb = d5 * d2 - d1 * d6;
+        if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
+            return coordinates_0 + v_02 * (d2 / (d2 - d6));
+        }
+        let va = d3 * d6 - d5 * d4;
+        if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
+            return coordinates_1
+                + (coordinates_2 - coordinates_1) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
+        }
+        let denom = va + vb + vc;
+        coordinates_0 + v_01 * (vb / denom) + v_02 * (vc / denom)
+    }
     /// Calculates and returns the Gaussian curvature.
     pub fn curvature(&self) -> Result<Curvatures, String> {
         let mut edge = Vector::zero();
@@ -292,6 +337,20 @@ impl TriangularFiniteElements {
                 .reduce(f64::min)
                 .unwrap()
             })
+            .collect()
+    }
+    /// Computes and returns the normal vector for a triangle.
+    pub fn normal(coordinates: &Coordinates, [node_0, node_1, node_2]: [usize; TRI]) -> Vector {
+        (&coordinates[node_1] - &coordinates[node_0])
+            .cross(&(&coordinates[node_2] - &coordinates[node_0]))
+            .normalized()
+    }
+    /// Computes and returns the normal vectors for all triangles.
+    pub fn normals(&self) -> Vectors {
+        let coordinates = self.get_nodal_coordinates();
+        self.get_element_node_connectivity()
+            .iter()
+            .map(|&connectivity| Self::normal(coordinates, connectivity))
             .collect()
     }
     /// Iteratively refine until all edges are smaller than a size.

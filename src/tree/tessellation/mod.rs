@@ -1,10 +1,11 @@
 use crate::{
     Coordinate, Coordinates, NSD, Nel, Remove, Scale, Translate,
-    fem::{Size, TriangularFiniteElements},
+    fem::{Connectivity, Size, TRI, TriangularFiniteElements, VecConnectivity},
     tessellation::Tessellation,
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
 use conspire::math::{Scalar, Tensor, TensorArray};
+use std::collections::HashMap;
 
 #[cfg(feature = "profile")]
 use std::time::Instant;
@@ -15,13 +16,20 @@ impl From<Octree> for Tessellation {
     }
 }
 
-type OctreeAndStuff = (Octree, Vec<Vec<Vec<bool>>>);
+type OctreeAndStuff = (
+    Octree,
+    Vec<Vec<Vec<bool>>>,
+    Connectivity<TRI>,
+    VecConnectivity,
+    HashMap<[usize; NSD], Vec<usize>>,
+);
 
 pub fn octree_from_surface(
     triangular_finite_elements: TriangularFiniteElements,
     size: Size,
 ) -> OctreeAndStuff {
-    let (blocks, _, mut surface_coordinates) = triangular_finite_elements.into();
+    let (blocks, connectivity, mut surface_coordinates, inverse_connectivity) =
+        triangular_finite_elements.into();
     let block = blocks[0];
     if !blocks.iter().all(|entry| entry == &block) {
         panic!()
@@ -42,9 +50,14 @@ pub fn octree_from_surface(
             .collect();
         let (nel_x, nel_y, nel_z) = tree.nel().into();
         let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+        let mut bins = HashMap::<_, Vec<_>>::new();
         rounded
             .into_iter()
-            .for_each(|[i, j, k]| samples[i][j][k] = true);
+            .enumerate()
+            .for_each(|(node, [i, j, k])| {
+                samples[i][j][k] = true;
+                bins.entry([i, j, k]).or_default().push(node);
+            });
         let mut index = 0;
         while index < tree.len() {
             if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
@@ -60,7 +73,7 @@ pub fn octree_from_surface(
             time.elapsed()
         );
         tree.balance_and_pair(true);
-        (tree, samples)
+        (tree, samples, connectivity, inverse_connectivity, bins)
     } else {
         todo!()
     }
