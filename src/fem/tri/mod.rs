@@ -259,7 +259,7 @@ impl TriangularFiniteElements {
                 + (coordinates_2 - coordinates_1) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
         }
         let denom = va + vb + vc;
-        return coordinates_0 + v_01 * (vb / denom) + v_02 * (vc / denom);
+        coordinates_0 + v_01 * (vb / denom) + v_02 * (vc / denom)
     }
     /// Calculates and returns the Gaussian curvature.
     pub fn curvature(&self) -> Result<Curvatures, String> {
