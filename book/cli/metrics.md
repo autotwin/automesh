@@ -10,6 +10,7 @@ automesh metrics --help
 ```sh
 automesh metrics hex --help
 <!-- cmdrun automesh metrics hex --help -->
+```
 
 `automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
 
@@ -158,6 +159,7 @@ The element coordinates follow:
 ```sh
 automesh metrics tri --help
 <!-- cmdrun automesh metrics tri --help -->
+```
 
 `automesh` implements the following triangular element quality metrics:
 
