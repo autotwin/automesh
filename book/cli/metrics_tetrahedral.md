@@ -33,6 +33,7 @@ The local numbering scheme for nodes of a tetrahedral element:
     0---|---2  (horizontal line is L2)
      \  |  /
   L0  \ | / L1
+       \|/
         1 
 
         (vertical line is L4)

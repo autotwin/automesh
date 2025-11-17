@@ -1,5 +1,7 @@
+use crate::FiniteElementMethods;
+
 use super::{super::{Coordinates, Connectivity}, TetrahedralFiniteElements};
-use conspire::math::TensorVec;
+use conspire::math::{Tensor, TensorVec};
 
 const EPSILON: f64 = 1.0e-14;
 
@@ -20,7 +22,48 @@ fn tetrahedral_unit_tests() {
         element_node_connectivity,
         nodal_coordinates,
     ));
-    let volumes = fem.volumes();
+
     // Known volume V = 1/6 (approx)= 0.1666667
+    let volumes = fem.volumes();
     assert!((volumes[0] - 1.0 / 6.0).abs() < EPSILON);
+
+    // Test edge lengths and maximum edge ratio
+    let connectivity = &fem.get_element_node_connectivity()[0]; // Get the connectivity for the first (and only) element
+    let (e0, e1, e2, e3, e4, e5) = fem.edge_vectors(connectivity);
+
+    let found_edge_lengths = [
+        e0.norm(), // n1 - n0
+        e1.norm(), // n2 - n1
+        e2.norm(), // n0 - n2
+        e3.norm(), // n3 - n0
+        e4.norm(), // n3 - n1
+        e5.norm(), // n3 - n2
+    ];
+
+    // Gold standard known lengths
+    let known_edge_lengths = [
+        1.0, // n1 - n0
+        (1.25_f64).sqrt(), // n2 - n1
+        (1.25_f64).sqrt(), // n0 - n2
+        (1.50_f64).sqrt(), // n3 - n0
+        (1.50_f64).sqrt(), // n3 - n1
+        (1.25_f64).sqrt(), // n3 - n2
+    ];
+
+    // Iterator-based element-by-element comparison
+    found_edge_lengths
+        .iter()
+        .zip(known_edge_lengths.iter())
+        .enumerate()
+        .for_each(|(i, (&found, &known))| {
+            let diff = (found - known).abs();
+            assert!(
+                diff < EPSILON,
+                "Edge length mismatch at index {}. Known: {}, Found: {}.  Difference: {}",
+                i,
+                known,
+                found,
+                diff
+            );
+        });
 }

@@ -8,7 +8,7 @@ use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, 
     HEX, HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector, 
 };
-// use conspire::math::Tensor;
+use conspire::math::Tensor;
 // use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::parallel::prelude::*;
 use std::{io::Error as ErrorIO, iter::repeat_n};
@@ -48,7 +48,24 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
         todo!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
-        todo!()
+        self.get_element_node_connectivity()
+            .par_iter()
+            .map(|connectivity| {
+                let (e0, e1, e2, e3, e4, e5) = self.edge_vectors(connectivity);
+                let lengths = [
+                    e0.norm(),
+                    e1.norm(),
+                    e2.norm(),
+                    e3.norm(),
+                    e4.norm(),
+                    e5.norm(),
+                ];
+                let min_length = lengths.iter().fold(f64::INFINITY, |a, &b| a.min(b));
+                let max_length = lengths.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+                max_length / min_length
+            })
+            .collect::<Vec<f64>>()
+            .into()
     }
     fn maximum_skews(&self) -> Metrics {
         todo!()
