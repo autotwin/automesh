@@ -154,14 +154,14 @@ The element coordinates follow:
 The local numbering scheme for nodes of a hexadedral element:
 
 ```sh
-      7---------6
-     /|        /|
-    / |       / |
-   4---------5  |
-   |  3------|--2
-   | /       | /
-   |/        |/
-   0---------1
+       7---------6
+      /|        /|
+     / |       / |
+    4---------5  |
+    |  3------|--2
+    | /       | /
+    |/        |/
+    0---------1
 ```
 
 node | connected nodes
@@ -177,22 +177,22 @@ node | connected nodes
 
 ### Faces
 
-The local numbering scheme for faces of a hexadedral element:
+From the exterior of the element, view the (0, 1, 5, 4) face and unwarp the remaining faces; the six face normals now point out of the page.  The local numbering scheme for faces of a hexadedral element:
 
 ```sh
-             7---------6
-             |         |
-             |    5    |
-             |         |
-   7---------4---------5---------6---------7
-   |         |         |         |         |
-   |    3    |    0    |    1    |    2    |
-   |         |         |         |         |
-   3---------0---------1---------2---------3
-             |         |
-             |    4    |
-             |         |
-             3---------2
+              7---------6
+              |         |
+              |    5    |
+              |         |
+    7---------4---------5---------6---------7
+    |         |         |         |         |
+    |    3    |    0    |    1    |    2    |
+    |         |         |         |         |
+    3---------0---------1---------2---------3
+              |         |
+              |    4    |
+              |         |
+              3---------2
 ```
 
 face | nodes
