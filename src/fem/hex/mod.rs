@@ -21,6 +21,7 @@ use std::{
 /// The number of nodes in a hexahedral finite element.
 pub const HEX: usize = 8;
 
+/// The number of nodes per face of a hexahedral finite element.
 const NUM_NODES_FACE: usize = 4;
 
 /// The element-to-node connectivity for hexahedral finite elements.
