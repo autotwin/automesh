@@ -1,8 +1,3 @@
-// use super::{
-//     super::tri::{calculate_element_areas_tri, calculate_minimum_angles_tri, TRI},
-//     calculate_maximum_edge_ratios, calculate_maximum_skews, calculate_minimum_scaled_jacobians,
-//     metrics_headers, Coordinates,
-// };
 use super::{super::Coordinates, FiniteElementSpecifics, TriangularFiniteElements};
 use conspire::math::TensorVec;
 
@@ -12,7 +7,7 @@ const RAD_TO_DEG: f64 = 1.0 / DEG_TO_RAD;
 
 #[test]
 fn triangular_unit_tests() {
-    // Reference: https://autotwin.github.io/automesh/cli/metrics.html#triangular-unit-tests
+    // https://autotwin.github.io/automesh/cli/metrics_triangular.html#unit-tests
     // The first twelve triangles come from
     // tests/input/single_valence_04_noise2.inp.
     // We use

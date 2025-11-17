@@ -1,17 +1,28 @@
+#[cfg(test)]
+pub mod test;
+
+#[cfg(feature = "profile")]
+use std::time::Instant;
+
 use super::{
-    Connectivity, Coordinates, FiniteElementSpecifics, FiniteElements, HEX,
-    HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation,
+    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, 
+    HEX, HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector, 
 };
+// use conspire::math::Tensor;
+// use conspire::math::{Tensor, TensorArray, TensorVec};
+use ndarray::parallel::prelude::*;
 use std::{io::Error as ErrorIO, iter::repeat_n};
 
 /// The number of nodes in a tetrahedral finite element.
 pub const TET: usize = 4;
 
+/// The number of nodes per face of a tetrahedral finite element.
 const NUM_NODES_FACE: usize = 3;
 
 /// The tetrahedral finite elements type.
 pub type TetrahedralFiniteElements = FiniteElements<TET>;
 
+/// The number of tetrahedral elements created from a single hexahedral element.
 pub const NUM_TETS_PER_HEX: usize = 6;
 
 impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
@@ -54,6 +65,61 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
 }
 
 impl TetrahedralFiniteElements {
+    fn edge_vectors(&self, connectivity: &[usize; TET]) -> (Vector, Vector, Vector, Vector, Vector, Vector) {
+        let nodal_coordinates = self.get_nodal_coordinates();
+        // Base edges (in a cycle 0 -> 1 -> 2 -> 0])
+        let e0 = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[connectivity[0]];
+        let e1 = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[connectivity[1]];
+        let e2 = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[connectivity[2]];
+        
+        // Edges connecting the apex (node 3)
+        let e3 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[0]];
+        let e4 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[1]];
+        let e5 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[2]];
+        
+        // Return all six edge vectors
+        (e0, e1, e2, e3, e4, e5)
+    }
+    // fn volumes(&self) -> Metrics {
+    //     let nodal_coordinates = &self.nodal_coordinates;
+    //     self.element_node_connectivity
+    //         .iter()
+    //         .map(|&[n0, n1, n2, n3]| {
+    //             let v0 = &nodal_coordinates[n0];
+    //             let v1 = &nodal_coordinates[n1];
+    //             let v2 = &nodal_coordinates[n2];
+    //             let v3 = &nodal_coordinates[n3];
+    //             ((v0 - v2).cross(&(v1 - v0)) * (v3 - v0)).abs() / 6.0
+    //         })
+    //         .collect()
+    
+    // Parallel version of the volumes function.
+    fn volumes(&self) -> Metrics {
+        let nodal_coordinates = &self.nodal_coordinates;
+
+        // Create a parallel implementation of volumes that is better because:
+        // 1. `part_iter()`, from the rayon crate, replaces `iter()` and will
+        // create a parallel iterator that will automatically spread the work
+        // of the .map() operation across available CPU codes.
+        // 2. `.collect::<Vec<f64>>().into()` is needed because par_iter()
+        // collects into a standard Vec.  we first collect the results into a
+        // Vec<f64> and then use .into() to convert it to the Metrics type
+        // (ndarray::Array1<f64>), which is an inexpensive operation.
+
+        self.element_node_connectivity
+            .par_iter()
+            .map(|&[n0, n1, n2, n3]| {
+                let v0 = &nodal_coordinates[n0];
+                let v1 = &nodal_coordinates[n1];
+                let v2 = &nodal_coordinates[n2];
+                let v3 = &nodal_coordinates[n3];
+                // ((v0 - v2).cross(&(v1 - v0)) * (v3 - v0)).abs() / 6.0
+                ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)).abs() / 6.0
+            })
+            .collect::<Vec<f64>>()
+            .into()
+    }
+
     pub fn hex_to_tet(connectivity: &[usize; HEX]) -> [[usize; TET]; NUM_TETS_PER_HEX] {
         [
             [
