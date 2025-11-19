@@ -22,8 +22,10 @@ jobs:
           toolchain: stable
       - name: Ansifilter
         run: sudo apt-get install -y ansifilter
-      - name: Install
-        run: cargo install mdbook mdbook-cmdrun mdbook-katex
+      - name: mdBook
+        run: cargo install mdbook --version 0.4.52
+      - name: Dependencies
+        run: cargo install mdbook-cmdrun mdbook-katex
       - name: Python
         uses: actions/setup-python@v6
         with:
