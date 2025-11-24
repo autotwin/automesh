@@ -22,7 +22,51 @@ We are interested in comparing the two methods, and quantifying what error the s
 
 For the *spheres with shells* example above, we were able to readily create two *de novo* meshes.  There are instances, however, where a traditional, conforming finite element mesh exists, but a segmented version of the same geometry does not exist.
 
-To create a segmented version of a conforming mesh, we created the [`segment`](../../cli/segment.md) command.  Following is an example using the segment functionality.
+To create a segmented version of a conforming mesh, we created the [`segment`](../../cli/segment.md) command.  Following are a examples using the segment functionality.
+
+## Recovering the Segmented Sphere
+
+We use the [`conf_0.5cm.g`] file as our start point.  see [Mesh Creation and Visualization](../sphere_with_shells/conforming.md#mesh-creation-and-visualization) section for a download link.  Our objective it to recover the segmented version of the model, shown above, using the `segment` command.
+
+```sh
+# Clone the .g to .exo
+cp conf_0.5cm.g conf_0.5cm.exo
+
+# Use automesh to convert the .exo to a .npy
+# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm.npy -g 1 -s 0.5 -r 0
+# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm.npy -g 2 -s 0.5 -r 255
+# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm.npy -g 3 -s 0.5 -r 255
+# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_orig.exo -g 2 -s 0.5 -r 255
+automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_orig.exo -g 2 -s 0.5
+
+# why no .inp output? available
+automesh convert mesh hex -i conf_0.5cm_vox_orig.exo conf_0.5_vox_orig.inp
+```
+
+```sh
+# Investigate the `.npy` using Python
+# 
+# ```python
+# import numpy as np
+# arr = np.load("conf_0.5cm.npy")
+# values, counts = np.unique(arr, return_counts=True)
+# 
+# values
+#   array([  1,   2,   3, 255], dtype=uint8)
+# 
+# counts
+# #  array([ 31840,  11760,  10968, 207576])
+# #  array([ 31960,  11760,  10968, 207576])
+#   array([ 33072,  11648,  12800, 207576])
+# print(counts)
+# ```
+# 
+# Create a segmented mesh from the `.npy` file
+# 
+# ```sh
+# automesh mesh hex -i conf_0.5cm.npy -o conf_0.5cm_vox.exo -r 255
+# ```
+```
 
 ## RMU Brain Model
 
