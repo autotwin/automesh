@@ -83,7 +83,9 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
 
 impl TetrahedralFiniteElements {
     fn edge_vectors(&self, connectivity: &[usize; TET]) -> (Vector, Vector, Vector, Vector, Vector, Vector) {
-        let nodal_coordinates = self.get_nodal_coordinates();
+        // TODO: Ask Michael about the differences here.
+        // let nodal_coordinates = self.get_nodal_coordinates();
+        let nodal_coordinates = &self.nodal_coordinates;
         // Base edges (in a cycle 0 -> 1 -> 2 -> 0])
         let e0 = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[connectivity[0]];
         let e1 = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[connectivity[1]];
@@ -97,22 +99,13 @@ impl TetrahedralFiniteElements {
         // Return all six edge vectors
         (e0, e1, e2, e3, e4, e5)
     }
-    // fn volumes(&self) -> Metrics {
-    //     let nodal_coordinates = &self.nodal_coordinates;
-    //     self.element_node_connectivity
-    //         .iter()
-    //         .map(|&[n0, n1, n2, n3]| {
-    //             let v0 = &nodal_coordinates[n0];
-    //             let v1 = &nodal_coordinates[n1];
-    //             let v2 = &nodal_coordinates[n2];
-    //             let v3 = &nodal_coordinates[n3];
-    //             ((v0 - v2).cross(&(v1 - v0)) * (v3 - v0)).abs() / 6.0
-    //         })
-    //         .collect()
-    
+
     // Parallel version of the volumes function.
     fn volumes(&self) -> Metrics {
-        let nodal_coordinates = &self.nodal_coordinates;
+        // TODO: Ask Michael about the differences here.
+        let nodal_coordinates = self.get_nodal_coordinates();
+        // Use an efficient borrow instead of a copy (?)
+        // let nodal_coordinates = &self.nodal_coordinates;
 
         // Create a parallel implementation of volumes that is better because:
         // 1. `part_iter()`, from the rayon crate, replaces `iter()` and will
@@ -123,14 +116,27 @@ impl TetrahedralFiniteElements {
         // Vec<f64> and then use .into() to convert it to the Metrics type
         // (ndarray::Array1<f64>), which is an inexpensive operation.
 
+        // self.element_node_connectivity
+        //     .par_iter()
+        //     .map(|&[n0, n1, n2, n3]| {
+        //         let v0 = &nodal_coordinates[connectivity[n0]];
+        //         let v1 = &nodal_coordinates[connectivity[n1]];
+        //         let v2 = &nodal_coordinates[connectivity[n2]];
+        //         let v3 = &nodal_coordinates[connectivity[n3]];
+        //         // ((v0 - v2).cross(&(v1 - v0)) * (v3 - v0)).abs() / 6.0
+        //         ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)).abs() / 6.0
+        //     })
+        //     .collect::<Vec<f64>>()
+        //     .into()
+
+        // Why not self.get_element_node_connectivity() ?
         self.element_node_connectivity
             .par_iter()
-            .map(|&[n0, n1, n2, n3]| {
-                let v0 = &nodal_coordinates[n0];
-                let v1 = &nodal_coordinates[n1];
-                let v2 = &nodal_coordinates[n2];
-                let v3 = &nodal_coordinates[n3];
-                // ((v0 - v2).cross(&(v1 - v0)) * (v3 - v0)).abs() / 6.0
+            .map(|connectivity| {
+                let v0 = &nodal_coordinates[connectivity[0]];
+                let v1 = &nodal_coordinates[connectivity[1]];
+                let v2 = &nodal_coordinates[connectivity[2]];
+                let v3 = &nodal_coordinates[connectivity[3]];
                 ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)).abs() / 6.0
             })
             .collect::<Vec<f64>>()
