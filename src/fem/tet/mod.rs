@@ -64,23 +64,37 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
         todo!()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let nodal_coordinates = self.get_nodal_coordinates();
         self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
-                let J = element_volume
+                // The element Jacobian j is 6.0 times the signed element volume
+                let j = self.signed_element_volume(connectivity) * 6.0;
+
+                // Get all six edge lengths
                 let edge_vectors = self.edge_vectors(connectivity);
-                let lengths = edge_vectors.iter().map(|v| v.norm()).collect();
-                let lambda_0 = lengths[0] * lengths[2] * lengths[3];
-                let lambda_1 = lengths[0] * lengths[1] * lengths[4];
-                let lambda_2 = lengths[1] * lentths[2] * lengths[5];
-                let lambda_3 = lengths[3] * lengths[4] * lengths[5];
+                let els: Vec<f64> = edge_vectors.iter().map(|v| v.norm()).collect();
+
+                // Compute the four nodal Jacobians
+                let lambda_0 = els[0] * els[2] * els[3];
+                let lambda_1 = els[0] * els[1] * els[4];
+                let lambda_2 = els[1] * els[2] * els[5];
+                let lambda_3 = els[3] * els[4] * els[5];
+
+                // Find the maximum of the nodal Jacobians (including the element Jacobian)
+                let lambda_max = [j, lambda_0, lambda_1, lambda_2, lambda_3]
+                    .into_iter()
+                    .reduce(f64::max)
+                    .unwrap_or(f64::INFINITY); // use unwrap_or for safety
+
+                // Calculate the final quality metric
+                if lambda_max == 0.0 {
+                    0.0 // Avoid division by zero for collapsed elements
+                } else {
+                    j * 2.0_f64.sqrt() / lambda_max
+                }
             })
             .collect::<Vec<f64>>()
-            .into_iter()
-            .reduce(f64::max)
-            .unwrap()
-        
+            .into()
     }
     fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
@@ -109,25 +123,24 @@ impl TetrahedralFiniteElements {
         vec![e0, e1, e2, e3, e4, e5]
     }
 
-    // Helper function to calculate the volume of a single tetrahedron.
-    // This is a private helper, used by the public `volumes` method.
-    fn volume(&self, connectivity: &[usize; TET]) -> f64 {
+    // Helper function to calculate the signed volume of a single tetrahedron.
+    fn signed_element_volume(&self, connectivity: &[usize; TET]) -> f64 {
         let nodal_coordinates = self.get_nodal_coordinates();
         let v0 = &nodal_coordinates[connectivity[0]];
         let v1 = &nodal_coordinates[connectivity[1]];
         let v2 = &nodal_coordinates[connectivity[2]];
         let v3 = &nodal_coordinates[connectivity[3]];
-        ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)).abs() / 6.0
+        ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)) / 6.0
     }
 
     // Calculates the volumes for all tetrahedral elements in the mesh.
     // This is the public method that iterates over all elements.
     pub fn volumes(&self) -> Metrics {
         self.element_node_connectivity
-            .par_iter()
+            .iter()
             .map(|connectivity| {
-                // Calls the private 'volume' helper for each element.
-                self.volume(connectivity)
+                // Calls the private helper for each element.
+                self.signed_element_volume(connectivity)
             })
             .collect::<Vec<f64>>()
             .into()
