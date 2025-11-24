@@ -116,7 +116,7 @@ fn signed_element_volume_negative() {
 }
 
 #[test]
-fn test_signed_element_volume_zero() {
+fn signed_element_volume_zero() {
     // A degenerate tetrahedron where all points are co-planar.
     // Its volume should be zero.
     let nodal_coordinates = Coordinates::new(&[
@@ -138,4 +138,28 @@ fn test_signed_element_volume_zero() {
     let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
 
     assert!((known - found).abs() < EPSILON, "Expected zero volume but found {}", found);
+}
+
+#[test]
+fn random_tetrahedron() {
+    let nodal_coordinates = Coordinates::new(&[
+        [0.5, 0.5, 0.5],    // Node 0
+        [1.8, 0.2, 1.1],    // Node 1
+        [0.1, 1.5, 0.3],    // Node 2
+        [1.3, 1.9, 2.0],    // Node 3
+    ]);
+    let element_node_connectivity: Connectivity<4> = vec![[0, 1, 2, 3]];
+    let element_blocks: Vec<u8> = vec![1];
+    let fem = TetrahedralFiniteElements::from((
+        element_blocks,
+        element_node_connectivity,
+        nodal_coordinates,
+    ));
+
+    // Known volume is 1/6 for this tetrahedron
+    let known = 0.22766666666666668;
+
+    let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
+
+    assert!((known - found).abs() < EPSILON, "Expected positive volume {} but found {}", known, found);
 }
