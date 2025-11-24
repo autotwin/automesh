@@ -65,7 +65,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
         self.get_element_node_connectivity()
-            .iter()
+            .par_iter()
             .map(|connectivity| {
                 // The element Jacobian j is 6.0 times the signed element volume
                 let j = self.signed_element_volume(connectivity) * 6.0;
@@ -137,7 +137,7 @@ impl TetrahedralFiniteElements {
     // This is the public method that iterates over all elements.
     pub fn volumes(&self) -> Metrics {
         self.element_node_connectivity
-            .iter()
+            .par_iter()
             .map(|connectivity| {
                 // Calls the private helper for each element.
                 self.signed_element_volume(connectivity)
