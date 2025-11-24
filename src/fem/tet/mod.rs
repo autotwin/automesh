@@ -51,15 +51,8 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
         self.get_element_node_connectivity()
             .par_iter()
             .map(|connectivity| {
-                let (e0, e1, e2, e3, e4, e5) = self.edge_vectors(connectivity);
-                let lengths = [
-                    e0.norm(),
-                    e1.norm(),
-                    e2.norm(),
-                    e3.norm(),
-                    e4.norm(),
-                    e5.norm(),
-                ];
+                let edge_vectors = self.edge_vectors(connectivity);
+                let lengths: Vec<f64> = edge_vectors.iter().map(|v| v.norm()).collect();
                 let min_length = lengths.iter().fold(f64::INFINITY, |a, &b| a.min(b));
                 let max_length = lengths.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
                 max_length / min_length
@@ -71,7 +64,26 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
         todo!()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        todo!()
+        let nodal_coordinates = self.get_nodal_coordinates();
+        self.get_element_node_connectivity()
+            .iter()
+            .map(|connectivity| {
+                // Let e0h = hat(e0), etc.
+                let (e0h, e1h, e2h, e3h, e4h, e5h) = self.edge_vectors(connectivity)
+                    .iter()
+                    .map(|ei| ei.norm())
+                    .collect();
+                connectivity
+                    .iter()
+                    .enumerate()
+                    .map(|(index, &node)| {
+                        match index {
+                            0 => {
+                                l1
+                            }
+                        }
+                    })
+            })
     }
     fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
@@ -82,7 +94,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
 }
 
 impl TetrahedralFiniteElements {
-    fn edge_vectors(&self, connectivity: &[usize; TET]) -> (Vector, Vector, Vector, Vector, Vector, Vector) {
+    fn edge_vectors(&self, connectivity: &[usize; TET]) -> Vec<Vector> {
         // TODO: Ask Michael about the differences here.
         // let nodal_coordinates = self.get_nodal_coordinates();
         let nodal_coordinates = &self.nodal_coordinates;
@@ -97,7 +109,7 @@ impl TetrahedralFiniteElements {
         let e5 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[2]];
         
         // Return all six edge vectors
-        (e0, e1, e2, e3, e4, e5)
+        vec![e0, e1, e2, e3, e4, e5]
     }
 
     // Parallel version of the volumes function.
