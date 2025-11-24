@@ -29,16 +29,11 @@ fn tetrahedral_unit_tests() {
 
     // Test edge lengths and maximum edge ratio
     let connectivity = &fem.get_element_node_connectivity()[0]; // Get the connectivity for the first (and only) element
-    let (e0, e1, e2, e3, e4, e5) = fem.edge_vectors(connectivity);
 
-    let found_edge_lengths = [
-        e0.norm(), // n1 - n0
-        e1.norm(), // n2 - n1
-        e2.norm(), // n0 - n2
-        e3.norm(), // n3 - n0
-        e4.norm(), // n3 - n1
-        e5.norm(), // n3 - n2
-    ];
+    let found_edge_lengths: Vec<f64> = fem.edge_vectors(connectivity)
+        .iter()
+        .map(|v| v.norm())
+        .collect::<Vec<f64>>();
 
     // Gold standard known lengths
     let known_edge_lengths = [
@@ -66,4 +61,29 @@ fn tetrahedral_unit_tests() {
                 diff
             );
         });
+}
+
+#[test]
+fn signed_element_volume_positive() {
+    // A standard right-handed tetrahedron.  It volume should be positive.
+    let nodal_coordinates = Coordinates::new(&[
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0],
+    ]);
+    let element_node_connectivity: Connectivity<4> = vec![[0, 1, 2, 3]];
+    let element_blocks: Vec<u8> = vec![1];
+    let fem = TetrahedralFiniteElements::from((
+        element_blocks,
+        element_node_connectivity,
+        nodal_coordinates,
+    ));
+
+    // Known volume is 1/6 for this tetrahedron
+    let known = 1.0 / 6.0;
+
+    let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
+
+    assert!((known - found).abs() < EPSILON, "Expected positive volume {} but found {}", known, found);
 }
