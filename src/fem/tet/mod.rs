@@ -68,22 +68,19 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
         self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
-                // Let e0h = hat(e0), etc.
-                let (e0h, e1h, e2h, e3h, e4h, e5h) = self.edge_vectors(connectivity)
-                    .iter()
-                    .map(|ei| ei.norm())
-                    .collect();
-                connectivity
-                    .iter()
-                    .enumerate()
-                    .map(|(index, &node)| {
-                        match index {
-                            0 => {
-                                l1
-                            }
-                        }
-                    })
+                let J = element_volume
+                let edge_vectors = self.edge_vectors(connectivity);
+                let lengths = edge_vectors.iter().map(|v| v.norm()).collect();
+                let lambda_0 = lengths[0] * lengths[2] * lengths[3];
+                let lambda_1 = lengths[0] * lengths[1] * lengths[4];
+                let lambda_2 = lengths[1] * lentths[2] * lengths[5];
+                let lambda_3 = lengths[3] * lengths[4] * lengths[5];
             })
+            .collect::<Vec<f64>>()
+            .into_iter()
+            .reduce(f64::max)
+            .unwrap()
+        
     }
     fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
@@ -112,44 +109,25 @@ impl TetrahedralFiniteElements {
         vec![e0, e1, e2, e3, e4, e5]
     }
 
-    // Parallel version of the volumes function.
-    fn volumes(&self) -> Metrics {
-        // TODO: Ask Michael about the differences here.
+    // Helper function to calculate the volume of a single tetrahedron.
+    // This is a private helper, used by the public `volumes` method.
+    fn volume(&self, connectivity: &[usize; TET]) -> f64 {
         let nodal_coordinates = self.get_nodal_coordinates();
-        // Use an efficient borrow instead of a copy (?)
-        // let nodal_coordinates = &self.nodal_coordinates;
+        let v0 = &nodal_coordinates[connectivity[0]];
+        let v1 = &nodal_coordinates[connectivity[1]];
+        let v2 = &nodal_coordinates[connectivity[2]];
+        let v3 = &nodal_coordinates[connectivity[3]];
+        ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)).abs() / 6.0
+    }
 
-        // Create a parallel implementation of volumes that is better because:
-        // 1. `part_iter()`, from the rayon crate, replaces `iter()` and will
-        // create a parallel iterator that will automatically spread the work
-        // of the .map() operation across available CPU codes.
-        // 2. `.collect::<Vec<f64>>().into()` is needed because par_iter()
-        // collects into a standard Vec.  we first collect the results into a
-        // Vec<f64> and then use .into() to convert it to the Metrics type
-        // (ndarray::Array1<f64>), which is an inexpensive operation.
-
-        // self.element_node_connectivity
-        //     .par_iter()
-        //     .map(|&[n0, n1, n2, n3]| {
-        //         let v0 = &nodal_coordinates[connectivity[n0]];
-        //         let v1 = &nodal_coordinates[connectivity[n1]];
-        //         let v2 = &nodal_coordinates[connectivity[n2]];
-        //         let v3 = &nodal_coordinates[connectivity[n3]];
-        //         // ((v0 - v2).cross(&(v1 - v0)) * (v3 - v0)).abs() / 6.0
-        //         ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)).abs() / 6.0
-        //     })
-        //     .collect::<Vec<f64>>()
-        //     .into()
-
-        // Why not self.get_element_node_connectivity() ?
+    // Calculates the volumes for all tetrahedral elements in the mesh.
+    // This is the public method that iterates over all elements.
+    pub fn volumes(&self) -> Metrics {
         self.element_node_connectivity
             .par_iter()
             .map(|connectivity| {
-                let v0 = &nodal_coordinates[connectivity[0]];
-                let v1 = &nodal_coordinates[connectivity[1]];
-                let v2 = &nodal_coordinates[connectivity[2]];
-                let v3 = &nodal_coordinates[connectivity[3]];
-                ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)).abs() / 6.0
+                // Calls the private 'volume' helper for each element.
+                self.volume(connectivity)
             })
             .collect::<Vec<f64>>()
             .into()
