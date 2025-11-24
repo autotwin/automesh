@@ -8,7 +8,7 @@ automesh metrics hex --help
 `automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
 
 * Maximum edge ratio ${\rm ER}_{\max}$
-* Minium scaled Jacobian ${\rm SJ}_{\min}$
+* Minimum scaled Jacobian ${\rm SJ}_{\min}$
 * Maximum skew
 * Element volume
 
