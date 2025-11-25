@@ -1,6 +1,7 @@
-use crate::{FiniteElementMethods, FiniteElementSpecifics};
-
-use super::{super::{Coordinates, Connectivity}, TET, TetrahedralFiniteElements};
+use super::{
+    super::{Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics},
+    TET, TetrahedralFiniteElements,
+};
 use conspire::math::{Tensor, TensorVec};
 
 const EPSILON: f64 = 1.0e-14;
