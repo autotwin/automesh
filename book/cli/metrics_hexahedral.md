@@ -5,7 +5,7 @@ automesh metrics hex --help
 <!-- cmdrun automesh metrics hex --help -->
 ```
 
-`automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
+`automesh` implements the following **hexahedral** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
 * Minimum scaled Jacobian ${\rm SJ}_{\min}$
@@ -31,7 +31,7 @@ Figure. Illustration of minimum scaled Jacobian[^Hovey_2023] with acceptable ran
 
 ## Maximum Skew
 
-* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
+* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube or regular tetrahedron; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
 * Knupp *et al.*[^Knupp_2006] (page 97) indicate an acceptable range of `[0.0, 0.5]`.
 
 ## Element Volume

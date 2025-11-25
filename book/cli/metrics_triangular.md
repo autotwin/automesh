@@ -5,7 +5,7 @@ automesh metrics tri --help
 <!-- cmdrun automesh metrics tri --help -->
 ```
 
-`automesh` implements the following triangular element quality metrics:
+`automesh` implements the following **triangular** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
 * Minium scaled Jacobian ${\rm SJ}_{\min}$
@@ -38,7 +38,7 @@ $$
 
 ## Maximum Skew
 
-* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
+* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube or a regular tetrahedron; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
 * Knupp *et al.*[^Knupp_2006] does not give a definition of skew for triangles, so we provide our definition below.
 For a triangle where $\theta_{\min}$ is the smallest angle of the triangle,
 

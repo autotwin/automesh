@@ -1,13 +1,11 @@
 # Tetrahedral Metrics
 
-**Work in progress.**
-
 ```sh
 automesh metrics tet --help
 <!-- cmdrun automesh metrics tet --help -->
 ```
 
-`automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
+`automesh` implements the following **tetrahedral** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
 * Minimum scaled Jacobian ${\rm SJ}_{\min}$
@@ -16,8 +14,61 @@ automesh metrics tet --help
 
 A brief description of each metric follows.
 
+## Maximum Edge Ratio
+
+* ${\rm ER}_{\max}$ measures the ratio of the longest edge to the shortest edge in a mesh element.
+* A ratio of 1.0 indicates perfect element quality, whereas a very large ratio indicates bad element quality.
+* Knupp *et al.*[^Knupp_2006] (page 63) indicate an acceptable range of `[1.0, 3.0]`.
+
+## Minimum Scaled Jacobian
+
+* ${\rm SJ}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes (and the Jacobian itself[^Knupp_2006] page 71), normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
+* Knupp *et al.*[^Knupp_2006] (page 75) indicate an acceptable range of `[0.5, sqrt(2)/2]` $\approx$ `[0.5, 0.707]`.
+* A scaled Jacobian close to `0` indicates that the tetrahedra is poorly shaped (e.g., very thin or degenerate), which can lead to numerical instability.
+* A scaled Jacobian of `1` indicates that the tetrahedra is equilateral, which is the ideal shape for numerical methods.
+
+## Maximum Skew
+
+* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube or a regular tetrahedron; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
+* Knupp *et al.*[^Knupp_2006] does not give a definition of skew for tetrahedra, so we provide our definition below.
+For any triangle composing the four faces of a tetrahedron, where $\theta_{\min}$ is the smallest angle of the triangle,
+
+$$
+{\rm skew_{\max}} = \frac{60^{\circ} - \theta_{\min}}{60^{\circ}}
+$$
+
+* The maximum skew of a tetrahedron is the maximum skew of all of the four triangular faces (see [Triangular Metrics, Maximum Skew](./metrics_triangular.md#maximum-skew)).
+* For an equilateral (regular) tetrahedron, $\theta_{\min} = 60^{\circ}$ and ${\rm skew_{\max}} = 0$.
+* In the limit as $\theta_{\min} \rightarrow 0^{\circ}$ ${\rm skew_{\max}} \rightarrow 1$.
+
+## Element Volume
+
+* Measures the volume of the element (see Knupp *et al.*[^Knupp_2006], page 61).
+
 ## Unit Tests
 
+We verify the following element qualities:
+
+name  |  `e`  | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | volume
+:---: | :---: | :---: | :---: | :---: | :---:
+
+simple   |   1   | 1.225 [] | 0.843 [] | 0.197 [] | 0.167 []
+
+right-handed   |   2   | 1.414 [] | 0.707 [] | 0.250 [] | 0.167 []
+
+left-handed   |   3   | 1.414 [] | -0.707 [] | 0.250 [] | -0.167 []
+
+degenerate |   4   | 1.414 [] | 0.000 [] | 0.250 [] | 0.000 []
+
+random |   5   | 2.086 [] | 0.208292 [] | 0.619 [] | 0.228 []
+
+regular |   6   | 1.000 [] | -1.000 [] | 0.000 [] | -2.667 []
+
+Figure: Tetrahedral metrics.
+Leading values are from `automesh`.
+Values in [brackets] are from an independent Python calculation, (see [`metrics_tetrahedral.py`](#metrics_tetrahedralpy)) and agree with `automesh` in double precision with a tolerance of less than `2.22e-15`.
+Except for edge ratio, all values were also verified with Cubit.
+Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
 
 ## Local Numbering Scheme
 
@@ -77,6 +128,14 @@ face | nodes
 1 | 0, 2, 3
 2 | 0, 1, 3
 3 | 0, 1, 2
+
+## Source
+
+### `metrics_tetrahedral.py`
+
+```python
+<!-- cmdrun cat metrics_tetrahedral.py -->
+```
 
 ## References
 

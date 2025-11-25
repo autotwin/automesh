@@ -7,7 +7,7 @@ use conspire::math::{Tensor, TensorVec};
 const EPSILON: f64 = 1.0e-14;
 
 #[test]
-fn tetrahedral_unit_tests() {
+fn simple_tetrahedral() {
     // https://autotwin.github.io/automesh/cli/metrics_tetrahedral.html
 
     let nodal_coordinates = Coordinates::new(&[
@@ -62,6 +62,24 @@ fn tetrahedral_unit_tests() {
                 diff
             );
         });
+
+    let known_edge_ratio_max = 1.224744871391589;
+    let found_edge_ratio_max = fem.maximum_edge_ratios()[0];
+    assert!((known_edge_ratio_max - found_edge_ratio_max).abs() < EPSILON);
+
+    let known_scaled_jacobian_min = 0.8432740427115679;
+    let found_scaled_jacobian_min = fem.minimum_scaled_jacobians()[0];
+    assert!((known_scaled_jacobian_min - found_scaled_jacobian_min).abs() < EPSILON);
+
+    let known_skew_max = 0.19683858159631012;
+    let found_skew_max = fem.maximum_skews()[0];
+    assert!((known_skew_max - found_skew_max).abs() < EPSILON);
+
+    let known_volume = 0.16666666666666666;
+    let found_volume = fem.volumes()[0];
+    // println!("known: {}", known_volume);
+    // println!("found: {}", found_volume);
+    assert!((known_volume - found_volume).abs() < EPSILON);
 }
 
 #[test]
