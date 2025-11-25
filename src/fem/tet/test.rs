@@ -5,6 +5,9 @@ use conspire::math::{Tensor, TensorVec};
 
 const EPSILON: f64 = 1.0e-14;
 
+/// The number of nodes in a tetrahedral finite element.
+pub const TET: usize = 4;
+
 #[test]
 fn tetrahedral_unit_tests() {
     // https://autotwin.github.io/automesh/cli/metrics_tetrahedral.html
@@ -15,7 +18,7 @@ fn tetrahedral_unit_tests() {
         [0.5, 1.0, 0.0],
         [0.5, 0.5, 1.0],
     ]);
-    let element_node_connectivity: Connectivity<4> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
     let element_blocks: Vec<u8> = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -72,7 +75,7 @@ fn signed_element_volume_positive() {
         [0.0, 1.0, 0.0], // Node 2
         [0.0, 0.0, 1.0], // Node 3
     ]);
-    let element_node_connectivity: Connectivity<4> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
     let element_blocks: Vec<u8> = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -100,7 +103,7 @@ fn signed_element_volume_negative() {
         [0.0, 0.0, 1.0], // Node 3
     ]);
     // Swapped connectivity [0, 2, 1, 3] vs standard [0, 1, 2, 3]
-    let element_node_connectivity: Connectivity<4> = vec![[0, 2, 1, 3]];
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 2, 1, 3]];
     let element_blocks: Vec<u8> = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -125,7 +128,7 @@ fn signed_element_volume_zero() {
         [0.0, 1.0, 0.0], // Node 2
         [1.0, 1.0, 0.0], // Node 3 (co-planar with 0, 1, 2)
     ]);
-    let element_node_connectivity: Connectivity<4> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
     let element_blocks: Vec<u8> = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -148,7 +151,7 @@ fn random_tetrahedron() {
         [0.1, 1.5, 0.3], // Node 2
         [1.3, 1.9, 2.0], // Node 3
     ]);
-    let element_node_connectivity: Connectivity<4> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
     let element_blocks: Vec<u8> = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
