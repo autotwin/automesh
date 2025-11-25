@@ -227,7 +227,7 @@ fn minimum_scaled_jacobians_degenerate_tetrahedron() {
 }
 
 #[test]
-fn test_maximum_skews_regular_tetrahedron() {
+fn maximum_skews_regular_tetrahedron() {
     // A regular tetrahedron has 4 equilateral triangle faces.
     // The minimum angle for each face is 60 degrees.
     // The skew for each face is (60 - 60) / 60 = 0.
