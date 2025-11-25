@@ -11,7 +11,12 @@ use super::{
 use conspire::math::Tensor;
 // use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::parallel::prelude::*;
-use std::{io::Error as ErrorIO, iter::repeat_n};
+use std::{
+    f64::consts::PI,
+    io::Error as ErrorIO, iter::repeat_n}
+;
+
+const TOLERANCE: f64 = 1e-9;
 
 /// The number of nodes in a tetrahedral finite element.
 pub const TET: usize = 4;
@@ -61,7 +66,27 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
             .into()
     }
     fn maximum_skews(&self) -> Metrics {
-        todo!()
+        self.get_element_node_connectivity()
+            .par_iter()
+            .map(|connectivity| {
+                let n0 = connectivity[0];
+                let n1 = connectivity[1];
+                let n2 = connectivity[2];
+                let n3 = connectivity[3];
+
+            // A tetrahedron has four faces, so calculate the skew for each and
+            // then take the maximum
+            let skews = [
+                self.face_maximum_skew(n0, n1, n2),
+                self.face_maximum_skew(n0, n1, n3),
+                self.face_maximum_skew(n0, n2, n3),
+                self.face_maximum_skew(n1, n2, n3),
+            ];
+
+            skews.into_iter().reduce(f64::max).unwrap_or(1.0) // 1.0 is max skew
+            })
+            .collect::<Vec<f64>>()
+            .into()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
         self.get_element_node_connectivity()
@@ -144,6 +169,46 @@ impl TetrahedralFiniteElements {
             })
             .collect::<Vec<f64>>()
             .into()
+    }
+
+    /// Calculates the minimum angle of a triangular face defined by three node indices.
+    fn face_minimum_angle(&self, n0_idx: usize, n1_idx: usize, n2_idx: usize) -> f64 {
+        let nodal_coordinates = self.get_nodal_coordinates();
+        let v0 = &nodal_coordinates[n0_idx];
+        let v1 = &nodal_coordinates[n1_idx];
+        let v2 = &nodal_coordinates[n2_idx];
+
+        let mut l0 = v2 - v1;
+        let mut l1 = v0 - v2;
+        let mut l2 = v1 - v0;
+
+        l0.normalize();
+        l1.normalize();
+        l2.normalize();
+
+        let flip = -1.0;
+        [
+            ((&l0 * flip) * &l1).acos(),
+            ((&l1 * flip) * &l2).acos(),
+            ((&l2 * flip) * &l0).acos(),
+        ]
+        .into_iter()
+        .reduce(f64::min)
+        .unwrap_or(0.0)
+
+    }
+
+    /// Calculates the maximum skew for a single triangular face.
+    fn face_maximum_skew(&self, n0_idx: usize, n1_idx: usize, n2_idx: usize) -> f64 {
+        let deg_to_rad = PI / 180.0;
+        let equilateral_rad = 60.0 * deg_to_rad;
+        let minimum_angle = self.face_minimum_angle(n0_idx, n1_idx, n2_idx);
+
+        if (equilateral_rad - minimum_angle).abs() < TOLERANCE {
+            0.0
+        } else {
+            (equilateral_rad - minimum_angle) / equilateral_rad
+        }
     }
 
     pub fn hex_to_tet(connectivity: &[usize; HEX]) -> [[usize; TET]; NUM_TETS_PER_HEX] {

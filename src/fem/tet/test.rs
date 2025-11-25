@@ -225,3 +225,36 @@ fn minimum_scaled_jacobians_degenerate_tetrahedron() {
         found
     );
 }
+
+#[test]
+fn test_maximum_skews_regular_tetrahedron() {
+    // A regular tetrahedron has 4 equilateral triangle faces.
+    // The minimum angle for each face is 60 degrees.
+    // The skew for each face is (60 - 60) / 60 = 0.
+    // Therefore, the maximum skew for the element is 0.
+    let nodal_coordinates = Coordinates::new(&[
+        [1.0, 1.0, 1.0],
+        [1.0, -1.0, -1.0],
+        [-1.0, 1.0, -1.0],
+        [-1.0, -1.0, 1.0],
+    ]);
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_blocks: Vec<u8> = vec![1];
+    let fem = TetrahedralFiniteElements::from((
+        element_blocks,
+        element_node_connectivity,
+        nodal_coordinates,
+    ));
+
+    let expected = 0.0;
+    let found_metrics = fem.maximum_skews();
+    assert_eq!(found_metrics.len(), 1);
+    let found = found_metrics[0];
+
+    assert!(
+        (expected - found).abs() < EPSILON,
+        "Expected maximum skew {} but found {}",
+        expected,
+        found
+    );
+}
