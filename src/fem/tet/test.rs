@@ -1,12 +1,9 @@
-use crate::FiniteElementMethods;
+use crate::{FiniteElementMethods, FiniteElementSpecifics};
 
-use super::{super::{Coordinates, Connectivity}, TetrahedralFiniteElements};
+use super::{super::{Coordinates, Connectivity}, TET, TetrahedralFiniteElements};
 use conspire::math::{Tensor, TensorVec};
 
 const EPSILON: f64 = 1.0e-14;
-
-/// The number of nodes in a tetrahedral finite element.
-pub const TET: usize = 4;
 
 #[test]
 fn tetrahedral_unit_tests() {
@@ -165,4 +162,65 @@ fn random_tetrahedron() {
     let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
 
     assert!((known - found).abs() < EPSILON, "Expected positive volume {} but found {}", known, found);
+}
+
+#[test]
+fn minimum_scaled_jacobians_unit_tetrahedron() {
+    let nodal_coordinates = Coordinates::new(&[
+        [0.0, 0.0, 0.0], // Node 0
+        [1.0, 0.0, 0.0], // Node 1
+        [0.0, 1.0, 0.0], // Node 2
+        [0.0, 0.0, 1.0], // Node 3
+    ]);
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_blocks: Vec<u8> = vec![1];
+    let fem = TetrahedralFiniteElements::from((
+        element_blocks,
+        element_node_connectivity,
+        nodal_coordinates,
+    ));
+
+    // Expected value re-calculated: sqrt(2) / 2
+    let expected = 2.0_f64.sqrt() / 2.0;
+
+    let found_metrics = fem.minimum_scaled_jacobians();
+    assert_eq!(found_metrics.len(), 1);
+    let found = found_metrics[0];
+
+    assert!(
+        (expected - found).abs() < EPSILON,
+        "Expected minimum scaled Jacobian {} but found {}",
+        expected,
+        found
+    );
+}
+
+#[test]
+fn minimum_scaled_jacobians_degenerate_tetrahedron() {
+    // A degenerate tetrahedron (co-planar points) should have a minimum scaled Jacobian of 0.0
+    let nodal_coordinates = Coordinates::new(&[
+        [0.0, 0.0, 0.0], // Node 0
+        [1.0, 0.0, 0.0], // Node 1
+        [0.0, 1.0, 0.0], // Node 2
+        [0.5, 0.5, 0.0], // Node 3 (co-planar with 0, 1, 2)
+    ]);
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_blocks: Vec<u8> = vec![1];
+    let fem = TetrahedralFiniteElements::from((
+        element_blocks,
+        element_node_connectivity,
+        nodal_coordinates,
+    ));
+
+    let expected = 0.0;
+    let found_metrics = fem.minimum_scaled_jacobians();
+    assert_eq!(found_metrics.len(), 1);
+    let found = found_metrics[0];
+
+    assert!(
+        (expected - found).abs() < EPSILON,
+        "Expected minimum scaled Jacobian {} but found {}",
+        expected,
+        found
+    );
 }
