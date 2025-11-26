@@ -49,26 +49,31 @@ $$
 
 We verify the following element qualities:
 
-name  |  `e`  | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | volume
-:---: | :---: | :---: | :---: | :---: | :---:
+tetrahedron | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | volume
+:---: | :---: | :---: | :---: | :---:
+simple   | 1.225 | 0.843 [0.843] | 0.197 | 0.167 [0.167]
 
-simple   |   1   | 1.225 [] | 0.843 [] | 0.197 [] | 0.167 []
+right-handed   | 1.414 [] | 0.707 [] | 0.250 [] | 0.167 []
 
-right-handed   |   2   | 1.414 [] | 0.707 [] | 0.250 [] | 0.167 []
+left-handed   | 1.414 [] | -0.707 [] | 0.250 [] | -0.167 []
 
-left-handed   |   3   | 1.414 [] | -0.707 [] | 0.250 [] | -0.167 []
+degenerate | 3.33 [] | 0.000 [] | 0.637 [] | 0.000 []
 
-degenerate |   4   | 1.414 [] | 0.000 [] | 0.250 [] | 0.000 []
+random | 2.086 [] | 0.208292 [] | 0.619 [] | 0.228 []
 
-random |   5   | 2.086 [] | 0.208292 [] | 0.619 [] | 0.228 []
+regular | 1.000 [] | 1.000 [] | 0.000 [] | 2.667 []
 
-regular |   6   | 1.000 [] | -1.000 [] | 0.000 [] | -2.667 []
+Figure: Tetrahedral metrics.  Leading values are from `automesh`.  All values agree with an independent Python calculation, (see [`metrics_tetrahedral.py`](#metrics_tetrahedralpy)) in double precision with a tolerance of less than `1.00e-14`.  Values in [brackets], minimum scaled Jacobian and volume, also agree with Cubit.  Cubit does not compute edge ratio and skew for tetrahedral elements.  Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
 
-Figure: Tetrahedral metrics.
-Leading values are from `automesh`.
-Values in [brackets] are from an independent Python calculation, (see [`metrics_tetrahedral.py`](#metrics_tetrahedralpy)) and agree with `automesh` in double precision with a tolerance of less than `2.22e-15`.
-Except for edge ratio, all values were also verified with Cubit.
-Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
+[simple_tetrahedron](./simple_tetrahedron.png) | [right-handed_tetrahedron](./right-handed_tetrahedron.png) | [left-handed_tetrahedron](./left-handed_tetrahedron.png)
+:---: | :---: | :---:
+[![simple_tetrahedron](./simple_tetrahedron.png)](./simple_tetrahedron.png) | [![right-handed_tetrahedron](./right-handed_tetrahedron.png)](./right-handed_tetrahedron.png) | [![left-handed_tetrahedron](./left-handed_tetrahedron.png)](./left-handed_tetrahedron.png)
+
+[degenerate_tetrahedron](./degenerate_tetrahedron.png) | [random_tetrahedron](./random_tetrahedron.png) | [regular_tetrahedron](./regular_tetrahedron.png)
+:---: | :---: | :---:
+[![degenerate_tetrahedron](./degenerate_tetrahedron.png)](./degenerate_tetrahedron.png) | [![random_tetrahedron](./random_tetrahedron.png)](./random_tetrahedron.png) | [![regular_tetrahedron](./regular_tetrahedron.png)](./regular_tetrahedron.png)
+
+Figure: Python visualization of the tetrahedron test cases, created with [`metrics_tetrahedral.py`](./metrics_tetrahedral.py).
 
 ## Local Numbering Scheme
 

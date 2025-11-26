@@ -116,7 +116,11 @@ def maximum_skew(nodes):
 
 
 def visualize_tetrahedron(
-    nodes, title="Tetrahedron", show_edges=True, show_labels=True
+    nodes,
+    title="Tetrahedron",
+    show_edges=True,
+    show_labels=True,
+    save_figure=False,
 ):
     """
     Visualize a tetrahedron given its four node coordinates.
@@ -131,6 +135,8 @@ def visualize_tetrahedron(
         Whether to show edges
     show_labels : bool
         Whether to show node labels
+    save_figure : bool
+        Whether to save the figure as a PNG file
     """
     nodes = np.array(nodes)
 
@@ -224,13 +230,20 @@ def visualize_tetrahedron(
     ax.set_ylim(mid_y - max_range, mid_y + max_range)
     ax.set_zlim(mid_z - max_range, mid_z + max_range)
 
-    ax.view_init(elev=63, azim=-110, roll=0)
+    # ax.view_init(elev=63, azim=-110, roll=0)
+    ax.view_init(elev=18, azim=-57, roll=0)
     ax.set_aspect("equal")
     plt.tight_layout()
+
+    if save_figure:
+        filename = title.replace(" ", "_").lower() + ".png"
+        plt.savefig(filename, dpi=300)
+        print(f"Saved figure to {filename}")
+
     return fig, ax
 
 
-# Example 1: Unit test tetrahedron from Rust code
+# Example 1: Simple tetrahedron
 NAME = "Simple Tetrahedron"
 print(f"Example 1: {NAME}")
 nodes_1 = np.array(
@@ -241,10 +254,10 @@ nodes_1 = np.array(
         [0.5, 0.5, 1.0],
     ]
 )
-visualize_tetrahedron(nodes_1, NAME)
+visualize_tetrahedron(nodes_1, NAME, save_figure=True)
 
 # Example 2: Positive signed volume (right-handed)
-NAME = "Right-Handed Tetrahedron (positive volume)"
+NAME = "Right-Handed Tetrahedron"
 print(f"\nExample 2: {NAME}")
 nodes_2 = np.array(
     [
@@ -254,10 +267,10 @@ nodes_2 = np.array(
         [0.0, 0.0, 1.0],
     ]
 )
-visualize_tetrahedron(nodes_2, NAME)
+visualize_tetrahedron(nodes_2, NAME, save_figure=True)
 
 # Example 3: Negative signed volume (left-handed / inverted)
-NAME = "Left-Handed Tetrahedron (negative volume)"
+NAME = "Left-Handed Tetrahedron"
 print(f"\nExample 3: {NAME}")
 nodes_3 = np.array(
     [
@@ -269,20 +282,20 @@ nodes_3 = np.array(
 )
 # Connectivity is [0, 2, 1, 3] - swapped nodes 1 and 2
 nodes_3_inverted = nodes_3[[0, 2, 1, 3]]
-visualize_tetrahedron(nodes_3_inverted, NAME)
+visualize_tetrahedron(nodes_3_inverted, NAME, save_figure=True)
 
 # Example 4: Degenerate tetrahedron (zero volume)
-NAME = "Degenerate Tetrahedron (co-planar points, zero volume)"
+NAME = "Degenerate Tetrahedron"
 print(f"\nExample 4: {NAME}")
 nodes_4 = np.array(
     [
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
         [0.0, 1.0, 0.0],
-        [1.0, 1.0, 0.0],  # Co-planar with other nodes
+        [0.3, 0.3, 0.0],  # Co-planar with other nodes
     ]
 )
-visualize_tetrahedron(nodes_4, NAME)
+visualize_tetrahedron(nodes_4, NAME, save_figure=True)
 
 # Example 5: Random tetrahedron
 NAME = "Random Tetrahedron"
@@ -295,19 +308,23 @@ nodes_5 = np.array(
         [1.3, 1.9, 2.0],
     ]
 )
-visualize_tetrahedron(nodes_5, NAME)
+visualize_tetrahedron(nodes_5, NAME, save_figure=True)
 
-# Example 6: Regular tetrahedron (for maximum skew test)
-NAME = "Regular Tetrahedron (zero skew)"
+# Example 6: Regular tetrahedron (for maximum skew test, has zero skew)
+NAME = "Regular Tetrahedron"
 print(f"\nExample 6: {NAME}")
 nodes_6 = np.array(
     [
-        [1.0, 1.0, 1.0],
-        [1.0, -1.0, -1.0],
-        [-1.0, 1.0, -1.0],
-        [-1.0, -1.0, 1.0],
+        # [-1.0, -1.0, 1.0],
+        # [1.0, -1.0, -1.0],
+        # [-1.0, 1.0, -1.0],
+        # [1.0, 1.0, 1.0],
+        [0.0, 0.0, 2.0],
+        [2.0, 0.0, 0.0],
+        [0.0, 2.0, 0.0],
+        [2.0, 2.0, 2.0],
     ]
 )
-visualize_tetrahedron(nodes_6, NAME)
+visualize_tetrahedron(nodes_6, NAME, save_figure=True)
 
 plt.show()

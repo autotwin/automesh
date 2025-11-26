@@ -57,11 +57,7 @@ valence | singleton | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}
 ...         | ...                                   | ...                   | ...                   | ...                   | ...
 10          | ![](img/single_valence_10.png)        | 1.000000e0 (1.000)    | 5.877851e-1 (0.588)   | 8.090171e-1 (0.809)   |  5.877850e-1 (0.588)
 
-Figure: Maximum edge ratio, minimum scaled Jacobian, maximum skew, and volume.
-Leading values are from `automesh`.
-Values in parenthesis are results from [HexaLab](https://www.hexalab.net).[^Hexalab_2023]
-Items with ** indicate where `automesh` and Cubit agree, but HexaLab disagrees.
-  Cubit uses the term *Aspect Ratio* for Edge Ratio.
+Figure: Hexahedral metrics.  Leading values are from `automesh`.  Values in parenthesis are results from [HexaLab](https://www.hexalab.net).[^Hexalab_2023] Items with ** indicate where `automesh` and Cubit agree, but HexaLab disagrees.  Cubit uses the term *Aspect Ratio* for Edge Ratio for hexahedral elements.  All values were also verified with Cubit.
 
 The connectivity for all elements:
 

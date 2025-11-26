@@ -118,7 +118,7 @@ file  |  `e`  | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | a
 
 Figure: Triangle metrics.
 Leading values are from `automesh`.
-Values in [brackets] are from an independent Python calculation, (see [`metrics_triangle.py`](#metrics_trianglepy)) and agree with `automesh` in double precision with a tolerance of less than `2.22e-15`.
+Values in [brackets] are from an independent Python calculation, (see [`metrics_triangular.py`](#metrics_triangularpy)) and agree with `automesh` in double precision with a tolerance of less than `2.22e-15`.
 Except for edge ratio, all values were also verified with Cubit.
 Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
 
@@ -160,10 +160,10 @@ face | nodes
 
 ## Source
 
-### `metrics_triangle.py`
+### `metrics_triangular.py`
 
 ```python
-<!-- cmdrun cat metrics_triangle.py -->
+<!-- cmdrun cat metrics_triangular.py -->
 ```
 
 ## References
