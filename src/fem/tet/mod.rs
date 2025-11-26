@@ -5,16 +5,13 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, 
-    HEX, HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector, 
+    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, HEX,
+    HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
 use conspire::math::Tensor;
 // use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::parallel::prelude::*;
-use std::{
-    f64::consts::PI,
-    io::Error as ErrorIO, iter::repeat_n}
-;
+use std::{f64::consts::PI, io::Error as ErrorIO, iter::repeat_n};
 
 const TOLERANCE: f64 = 1e-9;
 
@@ -74,16 +71,16 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 let n2 = connectivity[2];
                 let n3 = connectivity[3];
 
-            // A tetrahedron has four faces, so calculate the skew for each and
-            // then take the maximum
-            let skews = [
-                self.face_maximum_skew(n0, n1, n2),
-                self.face_maximum_skew(n0, n1, n3),
-                self.face_maximum_skew(n0, n2, n3),
-                self.face_maximum_skew(n1, n2, n3),
-            ];
+                // A tetrahedron has four faces, so calculate the skew for each and
+                // then take the maximum
+                let skews = [
+                    self.face_maximum_skew(n0, n1, n2),
+                    self.face_maximum_skew(n0, n1, n3),
+                    self.face_maximum_skew(n0, n2, n3),
+                    self.face_maximum_skew(n1, n2, n3),
+                ];
 
-            skews.into_iter().reduce(f64::max).unwrap_or(1.0) // 1.0 is max skew
+                skews.into_iter().reduce(f64::max).unwrap_or(1.0) // 1.0 is max skew
             })
             .collect::<Vec<f64>>()
             .into()
@@ -138,12 +135,12 @@ impl TetrahedralFiniteElements {
         let e0 = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[connectivity[0]];
         let e1 = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[connectivity[1]];
         let e2 = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[connectivity[2]];
-        
+
         // Edges connecting the apex (node 3)
         let e3 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[0]];
         let e4 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[1]];
         let e5 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[2]];
-        
+
         // Return all six edge vectors
         vec![e0, e1, e2, e3, e4, e5]
     }
@@ -195,7 +192,6 @@ impl TetrahedralFiniteElements {
         .into_iter()
         .reduce(f64::min)
         .unwrap_or(0.0)
-
     }
 
     /// Calculates the maximum skew for a single triangular face.

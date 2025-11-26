@@ -31,14 +31,15 @@ fn simple_tetrahedral() {
     // Test edge lengths and maximum edge ratio
     let connectivity = &fem.get_element_node_connectivity()[0]; // Get the connectivity for the first (and only) element
 
-    let found_edge_lengths: Vec<f64> = fem.edge_vectors(connectivity)
+    let found_edge_lengths: Vec<f64> = fem
+        .edge_vectors(connectivity)
         .iter()
         .map(|v| v.norm())
         .collect::<Vec<f64>>();
 
     // Gold standard known lengths
     let known_edge_lengths = [
-        1.0, // n1 - n0
+        1.0,               // n1 - n0
         (1.25_f64).sqrt(), // n2 - n1
         (1.25_f64).sqrt(), // n0 - n2
         (1.50_f64).sqrt(), // n3 - n0
@@ -104,7 +105,12 @@ fn signed_element_volume_positive() {
 
     let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
 
-    assert!((known - found).abs() < EPSILON, "Expected positive volume {} but found {}", known, found);
+    assert!(
+        (known - found).abs() < EPSILON,
+        "Expected positive volume {} but found {}",
+        known,
+        found
+    );
 }
 
 #[test]
@@ -131,7 +137,12 @@ fn signed_element_volume_negative() {
     let known = -1.0 / 6.0;
     let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
 
-    assert!((known - found).abs() < EPSILON, "Expected negative volume {} but found {}", known, found);
+    assert!(
+        (known - found).abs() < EPSILON,
+        "Expected negative volume {} but found {}",
+        known,
+        found
+    );
 }
 
 #[test]
@@ -156,7 +167,11 @@ fn signed_element_volume_zero() {
     let known = 0.0;
     let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
 
-    assert!((known - found).abs() < EPSILON, "Expected zero volume but found {}", found);
+    assert!(
+        (known - found).abs() < EPSILON,
+        "Expected zero volume but found {}",
+        found
+    );
 }
 
 #[test]
@@ -180,7 +195,12 @@ fn random_tetrahedron() {
 
     let found = fem.signed_element_volume(&fem.get_element_node_connectivity()[0]);
 
-    assert!((known - found).abs() < EPSILON, "Expected positive volume {} but found {}", known, found);
+    assert!(
+        (known - found).abs() < EPSILON,
+        "Expected positive volume {} but found {}",
+        known,
+        found
+    );
 }
 
 #[test]
