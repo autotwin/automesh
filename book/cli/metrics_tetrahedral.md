@@ -52,16 +52,11 @@ We verify the following element qualities:
 tetrahedron | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | volume
 :---: | :---: | :---: | :---: | :---:
 simple   | 1.225 | 0.843 [0.843] | 0.197 | 0.167 [0.167]
-
-right-handed   | 1.414 [] | 0.707 [] | 0.250 [] | 0.167 []
-
-left-handed   | 1.414 [] | -0.707 [] | 0.250 [] | -0.167 []
-
-degenerate | 3.33 [] | 0.000 [] | 0.637 [] | 0.000 []
-
-random | 2.086 [] | 0.208292 [] | 0.619 [] | 0.228 []
-
-regular | 1.000 [] | 1.000 [] | 0.000 [] | 2.667 []
+right-handed   | 1.414 | 0.707 [0.707] | 0.250 | 0.167 [0.167]
+left-handed   | 1.414 | -0.707 [-0.707] | 0.250 | -0.167 [-0.167]
+degenerate | 3.33 | 0.000 [0.000] | 0.637 | 0.000 [0.000]
+random | 2.086 | 0.208 [0.208] | 0.619 | 0.228 [0.228]
+regular | 1.000 | 1.000 [1.000] | 0.000 | 2.667 [2.667]
 
 Figure: Tetrahedral metrics.  Leading values are from `automesh`.  All values agree with an independent Python calculation, (see [`metrics_tetrahedral.py`](#metrics_tetrahedralpy)) in double precision with a tolerance of less than `1.00e-14`.  Values in [brackets], minimum scaled Jacobian and volume, also agree with Cubit.  Cubit does not compute edge ratio and skew for tetrahedral elements.  Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
 
