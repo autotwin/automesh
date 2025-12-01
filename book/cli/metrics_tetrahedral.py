@@ -1,14 +1,23 @@
-"""Visualize various tetrahedra to test metrics calculations."""
+"""Visualize various tetrahedra and calculate quality metrics."""
 
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from typing import List, Tuple
 
-# from mpl_toolkits.mplot3d import Axes3D
 
+def calculate_edge_vectors(nodes: np.ndarray) -> List[np.ndarray]:
+    """Calculate the six edge vectors of a tetrahedron.
 
-def calculate_edge_vectors(nodes):
-    """Calculate the six edge vectors of a tetrahedron."""
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+
+    Returns:
+        List[np.ndarray]: A list containing six 1D numpy arrays, each
+                          representing an edge vector.
+    """
     # Base edges (in a cycle 0 -> 1 -> 2 -> 0)
     e0 = nodes[1] - nodes[0]  # n1 - n0
     e1 = nodes[2] - nodes[1]  # n2 - n1
@@ -22,25 +31,54 @@ def calculate_edge_vectors(nodes):
     return [e0, e1, e2, e3, e4, e5]
 
 
-def signed_element_volume(nodes):
-    """Calculate the signed volume of a tetrahedron."""
+def signed_element_volume(nodes: np.ndarray) -> float:
+    """Calculate the signed volume of a tetrahedron.
+
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+
+    Returns:
+        float: The signed volume of the tetrahedron.
+    """
     v0, v1, v2, v3 = nodes
     return np.dot(np.cross(v1 - v0, v2 - v0), v3 - v0) / 6.0
 
 
-def maximum_edge_ratio(nodes):
-    """Calculate the maximum edge ratio (max_length / min_length)."""
+def maximum_edge_ratio(nodes: np.ndarray) -> float:
+    """Calculate the maximum edge ratio (max_length / min_length) of a tetrahedron.
+
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+
+    Returns:
+        float: The maximum edge ratio. Returns `float('inf')` if the minimum
+               edge length is zero.
+    """
     edge_vectors = calculate_edge_vectors(nodes)
     lengths = [np.linalg.norm(v) for v in edge_vectors]
     min_length = min(lengths)
     max_length = max(lengths)
     if min_length == 0:
         return float("inf")
-    return max_length / min_length
+    return float(max_length / min_length)
 
 
-def minimum_scaled_jacobian(nodes):
-    """Calculate the minimum scaled Jacobian quality metric."""
+def minimum_scaled_jacobian(nodes: np.ndarray) -> float:
+    """Calculate the minimum scaled Jacobian quality metric for a tetrahedron.
+
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+
+    Returns:
+        float: The minimum scaled Jacobian value. Returns 0.0 if the maximum
+               nodal Jacobian is zero.
+    """
     # The element Jacobian j is 6.0 times the signed element volume
     j = signed_element_volume(nodes) * 6.0
 
@@ -64,8 +102,22 @@ def minimum_scaled_jacobian(nodes):
         return j * np.sqrt(2.0) / lambda_max
 
 
-def face_minimum_angle(nodes, n0_idx, n1_idx, n2_idx):
-    """Calculate the minimum angle of a triangular face."""
+def face_minimum_angle(
+    nodes: np.ndarray, n0_idx: int, n1_idx: int, n2_idx: int
+) -> float:
+    """Calculate the minimum angle of a triangular face.
+
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+        n0_idx (int): Index of the first node of the face.
+        n1_idx (int): Index of the second node of the face.
+        n2_idx (int): Index of the third node of the face.
+
+    Returns:
+        float: The minimum angle (in radians) of the triangular face.
+    """
     v0 = nodes[n0_idx]
     v1 = nodes[n1_idx]
     v2 = nodes[n2_idx]
@@ -89,20 +141,43 @@ def face_minimum_angle(nodes, n0_idx, n1_idx, n2_idx):
     return min(angles)
 
 
-def face_maximum_skew(nodes, n0_idx, n1_idx, n2_idx):
-    """Calculate the maximum skew for a single triangular face."""
-    TOLERANCE = 1e-9
+def face_maximum_skew(
+    nodes: np.ndarray, n0_idx: int, n1_idx: int, n2_idx: int
+) -> float:
+    """Calculate the maximum skew for a single triangular face of a tetrahedron.
+
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+        n0_idx (int): Index of the first node of the face.
+        n1_idx (int): Index of the second node of the face.
+        n2_idx (int): Index of the third node of the face.
+
+    Returns:
+        float: The maximum skew value for the triangular face.
+    """
+    tolerance = 1e-9
     equilateral_rad = np.pi / 3.0  # 60 degrees in radians
     minimum_angle = face_minimum_angle(nodes, n0_idx, n1_idx, n2_idx)
 
-    if abs(equilateral_rad - minimum_angle) < TOLERANCE:
+    if abs(equilateral_rad - minimum_angle) < tolerance:
         return 0.0
     else:
         return (equilateral_rad - minimum_angle) / equilateral_rad
 
 
-def maximum_skew(nodes):
-    """Calculate the maximum skew across all four faces of the tetrahedron."""
+def maximum_skew(nodes: np.ndarray) -> float:
+    """Calculate the maximum skew across all four faces of the tetrahedron.
+
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+
+    Returns:
+        float: The maximum skew value among all faces of the tetrahedron.
+    """
     # A tetrahedron has four faces, so calculate the skew for each and
     # then take the maximum
     skews = [
@@ -116,27 +191,28 @@ def maximum_skew(nodes):
 
 
 def visualize_tetrahedron(
-    nodes,
-    title="Tetrahedron",
-    show_edges=True,
-    show_labels=True,
-    save_figure=False,
-):
-    """
-    Visualize a tetrahedron given its four node coordinates.
+    nodes: np.ndarray,
+    title: str = "Tetrahedron",
+    show_edges: bool = True,
+    show_labels: bool = True,
+    save_figure: bool = False,
+) -> Tuple[plt.Figure, plt.Axes]:
+    """Visualize a tetrahedron given its four node coordinates and display quality metrics.
 
-    Parameters:
-    -----------
-    nodes : array-like, shape (4, 3)
-        The coordinates of the four nodes of the tetrahedron
-    title : str
-        Title for the plot
-    show_edges : bool
-        Whether to show edges
-    show_labels : bool
-        Whether to show node labels
-    save_figure : bool
-        Whether to save the figure as a PNG file
+    Args:
+        nodes (np.ndarray): A 2D numpy array of shape (4, 3)
+                            representing the coordinates of the four nodes
+                            of the tetrahedron.
+        title (str, optional): Title for the plot. Defaults to "Tetrahedron".
+        show_edges (bool, optional): Whether to display the edges of the tetrahedron.
+                                     Defaults to True.
+        show_labels (bool, optional): Whether to display labels for the nodes.
+                                      Defaults to True.
+        save_figure (bool, optional): Whether to save the figure as a PNG file.
+                                      Defaults to False.
+
+    Returns:
+        Tuple[plt.Figure, plt.Axes]: A tuple containing the matplotlib Figure and Axes objects.
     """
     nodes = np.array(nodes)
 
@@ -315,10 +391,6 @@ NAME = "Regular Tetrahedron"
 print(f"\nExample 6: {NAME}")
 nodes_6 = np.array(
     [
-        # [-1.0, -1.0, 1.0],
-        # [1.0, -1.0, -1.0],
-        # [-1.0, 1.0, -1.0],
-        # [1.0, 1.0, 1.0],
         [0.0, 0.0, 2.0],
         [2.0, 0.0, 0.0],
         [0.0, 2.0, 0.0],
