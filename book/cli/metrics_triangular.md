@@ -8,7 +8,7 @@ automesh metrics tri --help
 `automesh` implements the following **triangular** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
-* Minium scaled Jacobian ${\rm SJ}_{\min}$
+* Minimum scaled Jacobian ${\rm SJ}_{\min}$
 * Maximum skew
 * Element area
 * Minimum angle $\theta_{\min}$

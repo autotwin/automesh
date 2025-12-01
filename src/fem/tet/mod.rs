@@ -9,9 +9,15 @@ use super::{
     HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
 use conspire::math::Tensor;
-// use conspire::math::{Tensor, TensorArray, TensorVec};
-use ndarray::parallel::prelude::*;
-use std::{f64::consts::PI, io::Error as ErrorIO, iter::repeat_n};
+use ndarray::{Array2, s};
+use ndarray_npy::WriteNpyExt;
+use std::{
+    f64::consts::PI,
+    fs::File,
+    io::{BufWriter, Error as ErrorIO, Write},
+    iter::repeat_n,
+    path::Path,
+};
 
 const TOLERANCE: f64 = 1e-9;
 
@@ -51,7 +57,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     }
     fn maximum_edge_ratios(&self) -> Metrics {
         self.get_element_node_connectivity()
-            .par_iter()
+            .iter()
             .map(|connectivity| {
                 let edge_vectors = self.edge_vectors(connectivity);
                 let lengths: Vec<f64> = edge_vectors.iter().map(|v| v.norm()).collect();
@@ -64,7 +70,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     }
     fn maximum_skews(&self) -> Metrics {
         self.get_element_node_connectivity()
-            .par_iter()
+            .iter()
             .map(|connectivity| {
                 let n0 = connectivity[0];
                 let n1 = connectivity[1];
@@ -87,7 +93,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
         self.get_element_node_connectivity()
-            .par_iter()
+            .iter()
             .map(|connectivity| {
                 // The element Jacobian j is 6.0 times the signed element volume
                 let j = self.signed_element_volume(connectivity) * 6.0;
@@ -121,8 +127,80 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
     }
-    fn write_metrics(&self, _file_path: &str) -> Result<(), ErrorIO> {
-        todo!()
+    fn write_metrics(&self, file_path: &str) -> Result<(), ErrorIO> {
+        let maximum_edge_ratios = self.maximum_edge_ratios();
+        let minimum_scaled_jacobians = self.minimum_scaled_jacobians();
+        let maximum_skews = self.maximum_skews();
+        let volumes = self.volumes();
+
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+
+        let mut file = BufWriter::new(File::create(file_path)?);
+        let input_extension = Path::new(&file_path)
+            .extension()
+            .and_then(|ext| ext.to_str());
+
+        match input_extension {
+            Some("csv") => {
+                let header_string =
+                    "maximum edge ratio,minimum scaled jacobian,maximum skew,element volume\n"
+                        .to_string();
+                file.write_all(header_string.as_bytes())?;
+                maximum_edge_ratios
+                    .iter()
+                    .zip(
+                        minimum_scaled_jacobians
+                            .iter()
+                            .zip(maximum_skews.iter().zip(volumes.iter())),
+                    )
+                    .try_for_each(
+                        |(
+                            maximum_edge_ratio,
+                            (minimum_scaled_jacobian, (maximum_skew, volume)),
+                        )| {
+                            file.write_all(
+                                format!(
+                                    "{maximum_edge_ratio:>10.6e},{minimum_scaled_jacobian:>10.6e},{maximum_skew:>10.6e},{volume:>10.6e}\n",
+                                )
+                                .as_bytes(),
+                            )
+                        },
+                    )?;
+                file.flush()?
+            }
+            Some("npy") => {
+                let n_columns = 4; // total number of tetrahedral metrics
+                let idx_ratios = 0; // maximum edge ratios
+                let idx_jacobians = 1; // minimum scaled jacobians
+                let idx_skews = 2; // maximum skews
+                let idx_volumes = 3; // areas
+                let mut metrics_set =
+                    Array2::<f64>::from_elem((minimum_scaled_jacobians.len(), n_columns), 0.0);
+                metrics_set
+                    .slice_mut(s![.., idx_ratios])
+                    .assign(&maximum_edge_ratios);
+                metrics_set
+                    .slice_mut(s![.., idx_jacobians])
+                    .assign(&minimum_scaled_jacobians);
+                metrics_set
+                    .slice_mut(s![.., idx_skews])
+                    .assign(&maximum_skews);
+                metrics_set.slice_mut(s![.., idx_volumes]).assign(&volumes);
+                metrics_set.write_npy(file).unwrap();
+            }
+            _ => panic!(
+                "Unsupported file extension for metrics output: {:?}.  Please use 'csv' or 'npy'.",
+                input_extension
+            ),
+        }
+
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mWriting tetrahedral metrics to file\x1b[0m {:?}",
+            time.elapsed()
+        );
+        Ok(())
     }
 }
 
@@ -159,7 +237,7 @@ impl TetrahedralFiniteElements {
     // This is the public method that iterates over all elements.
     pub fn volumes(&self) -> Metrics {
         self.element_node_connectivity
-            .par_iter()
+            .iter()
             .map(|connectivity| {
                 // Calls the private helper for each element.
                 self.signed_element_volume(connectivity)
