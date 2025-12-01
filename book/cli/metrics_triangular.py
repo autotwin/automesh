@@ -76,9 +76,9 @@ def angle(a: np.ndarray, b: np.ndarray) -> float:
     cos_theta = dot_product / (norm_a * norm_b)
 
     angle_radians = np.arccos(cos_theta)
-    angle_degees = np.degrees(angle_radians)
+    angle_degrees = np.degrees(angle_radians)
 
-    return angle_degees
+    return angle_degrees
 
 
 for element in element_node_connectivity:
