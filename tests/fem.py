@@ -1,5 +1,13 @@
+"""Test suite for hexahedra mesh generation and file I/O operations.
+
+This module contains unit tests for the automesh library, specifically testing
+the conversion of voxel data to hexahedral finite element meshes and various
+export formats including ABAQUS (.inp), Exodus (.exo), MEDIT (.mesh), and VTK.
+"""
+
 from automesh import Voxels
 
+# Module-level test configuration
 remove = [0]
 scale = [1, 1, 1]
 translate = [0, 0, 0]
@@ -7,11 +15,25 @@ voxels = Voxels.from_npy("tests/input/letter_f_3d.npy", remove, scale, translate
 
 
 def line_by_line_equlity(gold_file: str, test_file: str) -> bool:
-    """Opens and compares two ABAQUS files, gold and test, line by line.
-    Ignores the specific automesh version that created the .inp file.
-    Ignores the date and time stamp.
+    """Compare two ABAQUS input files line by line, ignoring version and timestamp.
+
+    Opens and compares two ABAQUS files (gold standard and test output) line by
+    line. The comparison ignores the specific automesh version number and the
+    date/time stamp in the file headers, as these vary between runs.
+
+    Args:
+        gold_file: Path to the gold standard reference file.
+        test_file: Path to the test output file to be validated.
+
+    Returns:
+        True if files are equivalent (ignoring version and timestamp), False if
+        an error occurred during comparison.
+
+    Raises:
+        AssertionError: If files differ in structure or content (excluding
+            version and timestamp lines).
+        FileNotFoundError: If either input file cannot be found.
     """
-    # with open("tests/input/letter_f_3d.inp") as gold, open(inp) as file:
     with open(gold_file) as gold, open(test_file) as file:
         # 1st line
         assert gold.readline() == file.readline()  # autotwin.automesh
@@ -31,16 +53,35 @@ def line_by_line_equlity(gold_file: str, test_file: str) -> bool:
 
 
 def test_smooth_laplace():
+    """Test Laplacian smoothing algorithm on hexahedral mesh.
+
+    Converts voxel data to a hexahedral finite element mesh and applies
+    Laplacian smoothing to improve mesh quality by averaging node positions.
+    """
     fem = voxels.as_hexahedra()
     fem.smooth(method="Laplace")
 
 
 def test_smooth_taubin():
+    """Test Taubin smoothing algorithm on hexahedral mesh.
+
+    Converts voxel data to a hexahedral finite element mesh and applies
+    Taubin smoothing, which reduces mesh shrinkage compared to pure
+    Laplacian smoothing.
+    """
     fem = voxels.as_hexahedra()
     fem.smooth(method="Taubin")
 
 
 def test_write_inp():
+    """Test writing hexahedral mesh to ABAQUS input file format.
+
+    Converts voxel data to hexahedral mesh and exports to ABAQUS .inp format.
+    Validates output by comparing against a gold standard reference file.
+
+    Raises:
+        AssertionError: If generated file differs from gold standard.
+    """
     fem = voxels.as_hexahedra()
     inp = "target/letter_f_3d.inp"
     fem.write_inp(inp)
@@ -49,11 +90,24 @@ def test_write_inp():
 
 
 def test_write_exo():
+    """Test writing hexahedral mesh to Exodus II file format.
+
+    Converts voxel data to hexahedral mesh and exports to Exodus .exo format.
+    """
     fem = voxels.as_hexahedra()
     fem.write_exo("target/letter_f_3d.exo")
 
 
 def test_write_inp_sparse():
+    """Test writing sparse voxel data to ABAQUS input file format.
+
+    Loads sparse voxel representation from .spn file, converts to hexahedral
+    mesh, and validates ABAQUS .inp output against gold standard. Tests
+    handling of sparse data structures where most voxels are empty.
+
+    Raises:
+        AssertionError: If generated file differs from gold standard.
+    """
     voxels = Voxels.from_spn(
         "tests/input/sparse.spn", [5, 5, 5], remove, scale, translate
     )  # local redefinition for this test
@@ -65,15 +119,30 @@ def test_write_inp_sparse():
 
 
 def test_write_mesh():
+    """Test writing hexahedral mesh to MEDIT mesh file format.
+
+    Converts voxel data to hexahedral mesh and exports to MEDIT .mesh format,
+    a common format for mesh visualization and analysis tools.
+    """
     fem = voxels.as_hexahedra()
     fem.write_mesh("target/letter_f_3d.mesh")
 
 
 def test_write_metrics():
+    """Test writing mesh quality metrics to CSV file.
+
+    Converts voxel data to hexahedral mesh and exports element quality metrics
+    to CSV format for analysis and validation of mesh quality.
+    """
     fem = voxels.as_hexahedra()
     fem.write_metrics("target/letter_f_3d.csv")
 
 
 def test_write_vtk():
+    """Test writing hexahedral mesh to VTK legacy file format.
+
+    Converts voxel data to hexahedral mesh and exports to VTK format for
+    visualization in tools like ParaView and VisIt.
+    """
     fem = voxels.as_hexahedra()
     fem.write_vtk("target/letter_f_3d.vtk")
