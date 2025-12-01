@@ -3,8 +3,14 @@ use super::{
     TET, TetrahedralFiniteElements,
 };
 use conspire::math::{Tensor, TensorVec};
+use ndarray::Array2;
+use ndarray_npy::ReadNpyExt;
+use std::fs::File; // For File::open
+use std::fs::remove_file; // For remove_file function
+use std::io::Read;
 
 const EPSILON: f64 = 1.0e-14;
+const EPSILON_6: f64 = 1.0e-6;
 
 #[test]
 fn simple_tetrahedral() {
@@ -295,4 +301,75 @@ fn maximum_skews_regular_tetrahedron() {
         expected,
         found
     );
+}
+
+#[test]
+fn write_metrics() {
+    // Setup: Create the same as `simple_tetrahedral` test.
+    let nodal_coordinates = Coordinates::new(&[
+        [0.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [0.5, 1.0, 0.0],
+        [0.5, 0.5, 1.0],
+    ]);
+    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_blocks: Vec<u8> = vec![1];
+    let fem = TetrahedralFiniteElements::from((
+        element_blocks,
+        element_node_connectivity,
+        nodal_coordinates,
+    ));
+
+    // Known values are taken from the `simple_tetrahedral` test.
+    let known_edge_ratio_max = 1.224744871391589;
+    let known_scaled_jacobian_min = 0.8432740427115679;
+    let known_skew_max = 0.19683858159631012;
+    let known_volume = 1.0 / 6.0;
+
+    // Test CSV output
+    let csv_path = "test_write_tet_metrics.csv";
+    fem.write_metrics(csv_path).unwrap();
+
+    // Read and verify CSV content.
+    let mut csv_file = File::open(csv_path).unwrap();
+    let mut csv_contents = String::new();
+    csv_file.read_to_string(&mut csv_contents).unwrap();
+
+    let mut lines = csv_contents.lines();
+    // Verify header.
+    assert_eq!(
+        lines.next().unwrap(),
+        "maximum edge ratio,minimum scaled jacobian,maximum skew,element volume"
+    );
+
+    // Verify data.
+    let data_line = lines.next().unwrap();
+    let values: Vec<f64> = data_line
+        .split(',')
+        .map(|s| s.trim().parse::<f64>().unwrap())
+        .collect();
+
+    assert_eq!(values.len(), 4);
+    assert!((values[0] - known_edge_ratio_max).abs() < EPSILON_6);
+    assert!((values[1] - known_scaled_jacobian_min).abs() < EPSILON_6);
+    assert!((values[2] - known_skew_max).abs() < EPSILON_6);
+    assert!((values[3] - known_volume).abs() < EPSILON_6);
+
+    // Test NPY output
+    let npy_path = "test_write_tet_metrics.npy";
+    fem.write_metrics(npy_path).unwrap();
+
+    // Read and verify NPY content.
+    let npy_file = File::open(npy_path).unwrap();
+    let arr: Array2<f64> = Array2::read_npy(npy_file).unwrap();
+
+    assert_eq!(arr.shape(), &[1, 4]);
+    assert!((arr[[0, 0]] - known_edge_ratio_max).abs() < EPSILON);
+    assert!((arr[[0, 1]] - known_scaled_jacobian_min).abs() < EPSILON);
+    assert!((arr[[0, 2]] - known_skew_max).abs() < EPSILON);
+    assert!((arr[[0, 3]] - known_volume).abs() < EPSILON);
+
+    // Teardown: Clean up the created files.
+    remove_file(csv_path).unwrap();
+    remove_file(npy_path).unwrap();
 }
