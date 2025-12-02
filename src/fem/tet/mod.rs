@@ -286,44 +286,25 @@ impl TetrahedralFiniteElements {
         }
     }
 
-    pub fn hex_to_tet(connectivity: &[usize; HEX]) -> [[usize; TET]; NUM_TETS_PER_HEX] {
+    pub fn hex_to_tet(
+        &[
+            node_0,
+            node_1,
+            node_2,
+            node_3,
+            node_4,
+            node_5,
+            node_6,
+            node_7,
+        ]: &[usize; HEX],
+    ) -> [[usize; TET]; NUM_TETS_PER_HEX] {
         [
-            [
-                connectivity[0],
-                connectivity[1],
-                connectivity[3],
-                connectivity[4],
-            ],
-            [
-                connectivity[4],
-                connectivity[5],
-                connectivity[1],
-                connectivity[7],
-            ],
-            [
-                connectivity[7],
-                connectivity[4],
-                connectivity[3],
-                connectivity[1],
-            ],
-            [
-                connectivity[1],
-                connectivity[5],
-                connectivity[2],
-                connectivity[7],
-            ],
-            [
-                connectivity[5],
-                connectivity[6],
-                connectivity[2],
-                connectivity[7],
-            ],
-            [
-                connectivity[7],
-                connectivity[3],
-                connectivity[2],
-                connectivity[1],
-            ],
+            [node_0, node_1, node_3, node_4],
+            [node_4, node_5, node_1, node_7],
+            [node_7, node_4, node_3, node_1],
+            [node_1, node_5, node_2, node_7],
+            [node_5, node_6, node_2, node_7],
+            [node_7, node_3, node_2, node_1],
         ]
     }
 }
