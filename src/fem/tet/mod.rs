@@ -76,12 +76,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn maximum_skews(&self) -> Metrics {
         self.get_element_node_connectivity()
             .iter()
-            .map(|connectivity| {
-                let n0 = connectivity[0];
-                let n1 = connectivity[1];
-                let n2 = connectivity[2];
-                let n3 = connectivity[3];
-
+            .map(|&[n0, n1, n2, n3]| {
                 // A tetrahedron has four faces, so calculate the skew for each and
                 // then take the maximum
                 let skews = [
@@ -90,7 +85,6 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                     self.face_maximum_skew(n0, n2, n3),
                     self.face_maximum_skew(n1, n2, n3),
                 ];
-
                 skews.into_iter().reduce(f64::max).unwrap_or(1.0) // 1.0 is max skew
             })
             .collect::<Vec<f64>>()
