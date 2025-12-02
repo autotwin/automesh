@@ -59,10 +59,15 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
         self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
-                let edge_vectors = self.edge_vectors(connectivity);
-                let lengths: Vec<f64> = edge_vectors.iter().map(|v| v.norm()).collect();
-                let min_length = lengths.iter().fold(f64::INFINITY, |a, &b| a.min(b));
-                let max_length = lengths.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
+                let (min_length, max_length) = self.edge_vectors(connectivity).into_iter().fold(
+                    (f64::INFINITY, f64::NEG_INFINITY),
+                    |(mut minimum, mut maximum), edge_vector| {
+                        let length = edge_vector.norm();
+                        minimum = minimum.min(length);
+                        maximum = maximum.max(length);
+                        (minimum, maximum)
+                    },
+                );
                 max_length / min_length
             })
             .collect::<Vec<f64>>()
