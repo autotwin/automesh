@@ -101,8 +101,11 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 let j = self.signed_element_volume(connectivity) * 6.0;
 
                 // Get all six edge lengths
-                let edge_vectors = self.edge_vectors(connectivity);
-                let els: Vec<f64> = edge_vectors.iter().map(|v| v.norm()).collect();
+                let els: Vec<f64> = self
+                    .edge_vectors(connectivity)
+                    .into_iter()
+                    .map(|v| v.norm())
+                    .collect();
 
                 // Compute the four nodal Jacobians
                 let lambda_0 = els[0] * els[2] * els[3];
