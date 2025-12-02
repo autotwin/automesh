@@ -263,11 +263,10 @@ impl TetrahedralFiniteElements {
         let l1 = (v0 - v2).normalized();
         let l2 = (v1 - v0).normalized();
 
-        let flip = -1.0;
         [
-            ((&l0 * flip) * &l1).acos(),
-            ((&l1 * flip) * &l2).acos(),
-            ((&l2 * flip) * &l0).acos(),
+            (-(&l0 * &l1)).acos(),
+            (-(&l1 * &l2)).acos(),
+            (-(&l2 * &l0)).acos(),
         ]
         .into_iter()
         .reduce(f64::min)
