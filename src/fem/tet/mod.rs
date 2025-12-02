@@ -8,7 +8,7 @@ use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, HEX,
     HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
-use conspire::math::Tensor;
+use conspire::math::{Tensor, TensorRank1};
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
@@ -101,17 +101,18 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 let jac = self.signed_element_volume(connectivity) * 6.0;
 
                 // Get all six edge lengths
-                let els: Vec<f64> = self
+                let [len_0, len_1, len_2, len_3, len_4, len_5]: [_; NUM_EDGES] = self
                     .edge_vectors(connectivity)
                     .into_iter()
                     .map(|v| v.norm())
-                    .collect();
+                    .collect::<TensorRank1<_, 1>>()
+                    .into();
 
                 // Compute the four nodal Jacobians
-                let lambda_0 = els[0] * els[2] * els[3];
-                let lambda_1 = els[0] * els[1] * els[4];
-                let lambda_2 = els[1] * els[2] * els[5];
-                let lambda_3 = els[3] * els[4] * els[5];
+                let lambda_0 = len_0 * len_2 * len_3;
+                let lambda_1 = len_0 * len_1 * len_4;
+                let lambda_2 = len_1 * len_2 * len_5;
+                let lambda_3 = len_3 * len_4 * len_5;
 
                 // Find the maximum of the nodal Jacobians (including the element Jacobian)
                 let lambda_max = [jac, lambda_0, lambda_1, lambda_2, lambda_3]
