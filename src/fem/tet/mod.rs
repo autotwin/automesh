@@ -70,8 +70,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 );
                 max_length / min_length
             })
-            .collect::<Vec<f64>>()
-            .into()
+            .collect()
     }
     fn maximum_skews(&self) -> Metrics {
         self.get_element_node_connectivity()
@@ -87,8 +86,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 ];
                 skews.into_iter().reduce(f64::max).unwrap_or(1.0) // 1.0 is max skew
             })
-            .collect::<Vec<f64>>()
-            .into()
+            .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
         self.get_element_node_connectivity()
@@ -120,8 +118,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                     j * 2.0_f64.sqrt() / lambda_max
                 }
             })
-            .collect::<Vec<f64>>()
-            .into()
+            .collect()
     }
     fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
         todo!()
@@ -241,8 +238,7 @@ impl TetrahedralFiniteElements {
                 // Calls the private helper for each element.
                 self.signed_element_volume(connectivity)
             })
-            .collect::<Vec<f64>>()
-            .into()
+            .collect()
     }
 
     /// Calculates the minimum angle of a triangular face defined by three node indices.
