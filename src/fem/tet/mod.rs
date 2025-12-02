@@ -231,13 +231,13 @@ impl TetrahedralFiniteElements {
     }
 
     // Helper function to calculate the signed volume of a single tetrahedron.
-    fn signed_element_volume(&self, connectivity: &[usize; TET]) -> f64 {
+    fn signed_element_volume(&self, &[node_0, node_1, node_2, node_3]: &[usize; TET]) -> f64 {
         let nodal_coordinates = self.get_nodal_coordinates();
-        let v0 = &nodal_coordinates[connectivity[0]];
-        let v1 = &nodal_coordinates[connectivity[1]];
-        let v2 = &nodal_coordinates[connectivity[2]];
-        let v3 = &nodal_coordinates[connectivity[3]];
-        ((v1 - v0).cross(&(v2 - v0)) * &(v3 - v0)) / 6.0
+        let v0 = &nodal_coordinates[node_0];
+        let v1 = &nodal_coordinates[node_1];
+        let v2 = &nodal_coordinates[node_2];
+        let v3 = &nodal_coordinates[node_3];
+        ((v1 - v0).cross(&(v2 - v0)) * (v3 - v0)) / 6.0
     }
 
     // Calculates the volumes for all tetrahedral elements in the mesh.
