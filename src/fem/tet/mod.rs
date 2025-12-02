@@ -204,9 +204,8 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
 
 impl TetrahedralFiniteElements {
     fn edge_vectors(&self, &[node_0, node_1, node_2, node_3]: &[usize; TET]) -> Vec<Vector> {
-        // TODO: Ask Michael about the differences here.
-        // let nodal_coordinates = self.get_nodal_coordinates();
-        let nodal_coordinates = &self.nodal_coordinates;
+        let nodal_coordinates = self.get_nodal_coordinates();
+
         // Base edges (in a cycle 0 -> 1 -> 2 -> 0])
         let e0 = &nodal_coordinates[node_1] - &nodal_coordinates[node_0];
         let e1 = &nodal_coordinates[node_2] - &nodal_coordinates[node_1];
