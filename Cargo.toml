@@ -22,7 +22,7 @@ conspire = { version = "=0.5.11", features = ["fem"] }
 ndarray = { version = "=0.16.1", features = ["rayon"] }
 ndarray-npy = "=0.9.1"
 netcdf = { version = "=0.11.1", features = ["ndarray", "static"] }
-pyo3 = { version = "=0.27.1", features = ["extension-module"], optional = true }
+pyo3 = { version = "=0.27.2", features = ["extension-module"], optional = true }
 stl_io = "=0.10.0"
 vtkio = "=0.6.3"
 
