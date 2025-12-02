@@ -111,7 +111,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 let lambda_max = [j, lambda_0, lambda_1, lambda_2, lambda_3]
                     .into_iter()
                     .reduce(f64::max)
-                    .unwrap_or(f64::INFINITY); // use unwrap_or for safety
+                    .unwrap();
 
                 // Calculate the final quality metric
                 if lambda_max == 0.0 {
