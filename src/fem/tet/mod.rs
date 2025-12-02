@@ -203,19 +203,19 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
 }
 
 impl TetrahedralFiniteElements {
-    fn edge_vectors(&self, connectivity: &[usize; TET]) -> Vec<Vector> {
+    fn edge_vectors(&self, &[node_0, node_1, node_2, node_3]: &[usize; TET]) -> Vec<Vector> {
         // TODO: Ask Michael about the differences here.
         // let nodal_coordinates = self.get_nodal_coordinates();
         let nodal_coordinates = &self.nodal_coordinates;
         // Base edges (in a cycle 0 -> 1 -> 2 -> 0])
-        let e0 = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[connectivity[0]];
-        let e1 = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[connectivity[1]];
-        let e2 = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[connectivity[2]];
+        let e0 = &nodal_coordinates[node_1] - &nodal_coordinates[node_0];
+        let e1 = &nodal_coordinates[node_2] - &nodal_coordinates[node_1];
+        let e2 = &nodal_coordinates[node_0] - &nodal_coordinates[node_2];
 
         // Edges connecting the apex (node 3)
-        let e3 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[0]];
-        let e4 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[1]];
-        let e5 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[2]];
+        let e3 = &nodal_coordinates[node_3] - &nodal_coordinates[node_0];
+        let e4 = &nodal_coordinates[node_3] - &nodal_coordinates[node_1];
+        let e5 = &nodal_coordinates[node_3] - &nodal_coordinates[node_2];
 
         // Return all six edge vectors
         vec![e0, e1, e2, e3, e4, e5]
