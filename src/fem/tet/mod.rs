@@ -24,6 +24,9 @@ const TOLERANCE: f64 = 1e-9;
 /// The number of nodes in a tetrahedral finite element.
 pub const TET: usize = 4;
 
+/// The number of edges in a tetrahedral finite element.
+const NUM_EDGES: usize = 6;
+
 /// The number of nodes per face of a tetrahedral finite element.
 const NUM_NODES_FACE: usize = 3;
 
@@ -32,9 +35,6 @@ pub type TetrahedralFiniteElements = FiniteElements<TET>;
 
 /// The number of tetrahedral elements created from a single hexahedral element.
 pub const NUM_TETS_PER_HEX: usize = 6;
-
-/// The number of edges in a tetrahedral finite element.
-pub const NUM_EDGES_PER_TET: usize = 6;
 
 impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
@@ -209,7 +209,7 @@ impl TetrahedralFiniteElements {
     fn edge_vectors(
         &self,
         &[node_0, node_1, node_2, node_3]: &[usize; TET],
-    ) -> [Vector; NUM_EDGES_PER_TET] {
+    ) -> [Vector; NUM_EDGES] {
         let nodal_coordinates = self.get_nodal_coordinates();
 
         // Base edges (in a cycle 0 -> 1 -> 2 -> 0])
