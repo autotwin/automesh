@@ -78,13 +78,15 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
             .map(|&[n0, n1, n2, n3]| {
                 // A tetrahedron has four faces, so calculate the skew for each and
                 // then take the maximum
-                let skews = [
+                [
                     self.face_maximum_skew(n0, n1, n2),
                     self.face_maximum_skew(n0, n1, n3),
                     self.face_maximum_skew(n0, n2, n3),
                     self.face_maximum_skew(n1, n2, n3),
-                ];
-                skews.into_iter().reduce(f64::max).unwrap_or(1.0) // 1.0 is max skew
+                ]
+                .into_iter()
+                .reduce(f64::max)
+                .unwrap_or(1.0) // 1.0 is max skew
             })
             .collect()
     }
