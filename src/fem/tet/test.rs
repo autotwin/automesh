@@ -39,7 +39,7 @@ fn simple_tetrahedral() {
 
     let found_edge_lengths: Vec<f64> = fem
         .edge_vectors(connectivity)
-        .iter()
+        .into_iter()
         .map(|v| v.norm())
         .collect();
 
@@ -55,10 +55,10 @@ fn simple_tetrahedral() {
 
     // Iterator-based element-by-element comparison
     found_edge_lengths
-        .iter()
-        .zip(known_edge_lengths.iter())
+        .into_iter()
+        .zip(known_edge_lengths)
         .enumerate()
-        .for_each(|(i, (&found, &known))| {
+        .for_each(|(i, (found, known))| {
             let diff = (found - known).abs();
             assert!(
                 diff < EPSILON,
