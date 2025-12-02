@@ -181,7 +181,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 let idx_skews = 2; // maximum skews
                 let idx_volumes = 3; // areas
                 let mut metrics_set =
-                    Array2::<f64>::from_elem((minimum_scaled_jacobians.len(), n_columns), 0.0);
+                    Array2::from_elem((minimum_scaled_jacobians.len(), n_columns), 0.0);
                 metrics_set
                     .slice_mut(s![.., idx_ratios])
                     .assign(&maximum_edge_ratios);
