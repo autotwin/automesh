@@ -1,6 +1,6 @@
 use super::{
-    super::{Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics},
-    TET, TetrahedralFiniteElements,
+    super::{Coordinates, FiniteElementMethods, FiniteElementSpecifics},
+    TetrahedralFiniteElements,
 };
 use conspire::math::{Tensor, TensorVec};
 use ndarray::Array2;
@@ -22,7 +22,7 @@ fn simple_tetrahedral() {
         [0.5, 1.0, 0.0],
         [0.5, 0.5, 1.0],
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -98,7 +98,7 @@ fn signed_element_volume_positive() {
         [0.0, 1.0, 0.0], // Node 2
         [0.0, 0.0, 1.0], // Node 3
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -131,7 +131,7 @@ fn signed_element_volume_negative() {
         [0.0, 0.0, 1.0], // Node 3
     ]);
     // Swapped connectivity [0, 2, 1, 3] vs standard [0, 1, 2, 3]
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 2, 1, 3]];
+    let element_node_connectivity = vec![[0, 2, 1, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -161,7 +161,7 @@ fn signed_element_volume_zero() {
         [0.0, 1.0, 0.0], // Node 2
         [1.0, 1.0, 0.0], // Node 3 (co-planar with 0, 1, 2)
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -188,7 +188,7 @@ fn random_tetrahedron() {
         [0.1, 1.5, 0.3], // Node 2
         [1.3, 1.9, 2.0], // Node 3
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -217,7 +217,7 @@ fn minimum_scaled_jacobians_unit_tetrahedron() {
         [0.0, 1.0, 0.0], // Node 2
         [0.0, 0.0, 1.0], // Node 3
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -249,7 +249,7 @@ fn minimum_scaled_jacobians_degenerate_tetrahedron() {
         [0.0, 1.0, 0.0], // Node 2
         [0.5, 0.5, 0.0], // Node 3 (co-planar with 0, 1, 2)
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -282,7 +282,7 @@ fn maximum_skews_regular_tetrahedron() {
         [-1.0, 1.0, -1.0],
         [-1.0, -1.0, 1.0],
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
@@ -312,7 +312,7 @@ fn write_metrics() {
         [0.5, 1.0, 0.0],
         [0.5, 0.5, 1.0],
     ]);
-    let element_node_connectivity: Connectivity<TET> = vec![[0, 1, 2, 3]];
+    let element_node_connectivity = vec![[0, 1, 2, 3]];
     let element_blocks = vec![1];
     let fem = TetrahedralFiniteElements::from((
         element_blocks,
