@@ -259,13 +259,9 @@ impl TetrahedralFiniteElements {
         let v1 = &nodal_coordinates[n1_idx];
         let v2 = &nodal_coordinates[n2_idx];
 
-        let mut l0 = v2 - v1;
-        let mut l1 = v0 - v2;
-        let mut l2 = v1 - v0;
-
-        l0.normalize();
-        l1.normalize();
-        l2.normalize();
+        let l0 = (v2 - v1).normalized();
+        let l1 = (v0 - v2).normalized();
+        let l2 = (v1 - v0).normalized();
 
         let flip = -1.0;
         [
