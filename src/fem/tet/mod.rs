@@ -98,7 +98,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
             .iter()
             .map(|connectivity| {
                 // The element Jacobian j is 6.0 times the signed element volume
-                let j = self.signed_element_volume(connectivity) * 6.0;
+                let jac = self.signed_element_volume(connectivity) * 6.0;
 
                 // Get all six edge lengths
                 let els: Vec<f64> = self
@@ -114,7 +114,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 let lambda_3 = els[3] * els[4] * els[5];
 
                 // Find the maximum of the nodal Jacobians (including the element Jacobian)
-                let lambda_max = [j, lambda_0, lambda_1, lambda_2, lambda_3]
+                let lambda_max = [jac, lambda_0, lambda_1, lambda_2, lambda_3]
                     .into_iter()
                     .reduce(f64::max)
                     .unwrap();
@@ -123,7 +123,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 if lambda_max == 0.0 {
                     0.0 // Avoid division by zero for collapsed elements
                 } else {
-                    j * 2.0_f64.sqrt() / lambda_max
+                    jac * 2.0_f64.sqrt() / lambda_max
                 }
             })
             .collect()
