@@ -86,7 +86,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
                 ]
                 .into_iter()
                 .reduce(f64::max)
-                .unwrap_or(1.0) // 1.0 is max skew
+                .unwrap()
             })
             .collect()
     }
