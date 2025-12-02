@@ -33,6 +33,9 @@ pub type TetrahedralFiniteElements = FiniteElements<TET>;
 /// The number of tetrahedral elements created from a single hexahedral element.
 pub const NUM_TETS_PER_HEX: usize = 6;
 
+/// The number of edges in a tetrahedral finite element.
+pub const NUM_EDGES_PER_TET: usize = 6;
+
 impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
         match node {
@@ -203,7 +206,10 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TetrahedralFiniteElements {
 }
 
 impl TetrahedralFiniteElements {
-    fn edge_vectors(&self, &[node_0, node_1, node_2, node_3]: &[usize; TET]) -> Vec<Vector> {
+    fn edge_vectors(
+        &self,
+        &[node_0, node_1, node_2, node_3]: &[usize; TET],
+    ) -> [Vector; NUM_EDGES_PER_TET] {
         let nodal_coordinates = self.get_nodal_coordinates();
 
         // Base edges (in a cycle 0 -> 1 -> 2 -> 0])
@@ -217,7 +223,7 @@ impl TetrahedralFiniteElements {
         let e5 = &nodal_coordinates[node_3] - &nodal_coordinates[node_2];
 
         // Return all six edge vectors
-        vec![e0, e1, e2, e3, e4, e5]
+        [e0, e1, e2, e3, e4, e5]
     }
 
     // Helper function to calculate the signed volume of a single tetrahedron.
