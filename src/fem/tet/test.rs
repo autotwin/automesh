@@ -41,7 +41,7 @@ fn simple_tetrahedral() {
         .edge_vectors(connectivity)
         .iter()
         .map(|v| v.norm())
-        .collect::<Vec<f64>>();
+        .collect();
 
     // Gold standard known lengths
     let known_edge_lengths = [
