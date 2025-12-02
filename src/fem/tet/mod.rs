@@ -275,7 +275,7 @@ impl TetrahedralFiniteElements {
         ]
         .into_iter()
         .reduce(f64::min)
-        .unwrap_or(0.0)
+        .unwrap()
     }
 
     /// Calculates the maximum skew for a single triangular face.
