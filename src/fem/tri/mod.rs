@@ -191,11 +191,14 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
                     .assign(&minimum_angles);
                 metrics_set.write_npy(file).unwrap();
             }
-            _ => panic!("print error message with input and extension"),
+            _ => panic!(
+                "Unsupported file extension for metrics output: {:?}.  Please use 'csv' or 'npy'.",
+                input_extension
+            ),
         }
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mWriting triangle metrics to file\x1b[0m {:?}",
+            "             \x1b[1;93mWriting triangular metrics to file\x1b[0m {:?}",
             time.elapsed()
         );
         Ok(())

@@ -5,10 +5,10 @@ automesh metrics tri --help
 <!-- cmdrun automesh metrics tri --help -->
 ```
 
-`automesh` implements the following triangular element quality metrics:
+`automesh` implements the following **triangular** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
-* Minium scaled Jacobian ${\rm SJ}_{\min}$
+* Minimum scaled Jacobian ${\rm SJ}_{\min}$
 * Maximum skew
 * Element area
 * Minimum angle $\theta_{\min}$
@@ -38,7 +38,7 @@ $$
 
 ## Maximum Skew
 
-* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
+* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube or a regular tetrahedron; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
 * Knupp *et al.*[^Knupp_2006] does not give a definition of skew for triangles, so we provide our definition below.
 For a triangle where $\theta_{\min}$ is the smallest angle of the triangle,
 
@@ -118,7 +118,7 @@ file  |  `e`  | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | a
 
 Figure: Triangle metrics.
 Leading values are from `automesh`.
-Values in [brackets] are from an independent Python calculation, (see [`metrics_triangle.py`](#metrics_trianglepy)) and agree with `automesh` in double precision with a tolerance of less than `2.22e-15`.
+Values in [brackets] are from an independent Python calculation, (see [`metrics_triangular.py`](#metrics_triangularpy)) and agree with `automesh` in double precision with a tolerance of less than `2.22e-15`.
 Except for edge ratio, all values were also verified with Cubit.
 Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
 
@@ -160,10 +160,10 @@ face | nodes
 
 ## Source
 
-### `metrics_triangle.py`
+### `metrics_triangular.py`
 
 ```python
-<!-- cmdrun cat metrics_triangle.py -->
+<!-- cmdrun cat metrics_triangular.py -->
 ```
 
 ## References

@@ -2902,7 +2902,7 @@ fn sparse() {
 
 #[test]
 fn valence_3_and_4_noised() {
-    // Reference: https://autotwin.github.io/automesh/cli/metrics.html#hexahedral-unit-tests
+    // https://autotwin.github.io/automesh/cli/metrics_hexahedral.html#unit-tests
     // We test both of the noised elements, valence_03' (noised)
     // valence_04' (noised)
 

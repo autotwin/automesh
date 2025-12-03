@@ -21,6 +21,7 @@ use std::{
 /// The number of nodes in a hexahedral finite element.
 pub const HEX: usize = 8;
 
+/// The number of nodes per face of a hexahedral finite element.
 const NUM_NODES_FACE: usize = 4;
 
 /// The element-to-node connectivity for hexahedral finite elements.
@@ -405,11 +406,14 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                 metrics_set.slice_mut(s![.., idx_volumes]).assign(&volumes);
                 metrics_set.write_npy(file).unwrap();
             }
-            _ => panic!("print error message with input and extension"),
+            _ => panic!(
+                "Unsupported file extension for metrics output: {:?}.  Please use 'csv' or 'npy'.",
+                input_extension
+            ),
         }
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mWriting hexahedron metrics to file\x1b[0m {:?}",
+            "             \x1b[1;93mWriting hexahedral metrics to file\x1b[0m {:?}",
             time.elapsed()
         );
         Ok(())

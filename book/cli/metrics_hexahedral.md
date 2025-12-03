@@ -5,10 +5,10 @@ automesh metrics hex --help
 <!-- cmdrun automesh metrics hex --help -->
 ```
 
-`automesh` implements the following hexahedral element quality metrics defined in the Verdict report.[^Knupp_2006]
+`automesh` implements the following **hexahedral** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
-* Minium scaled Jacobian ${\rm SJ}_{\min}$
+* Minimum scaled Jacobian ${\rm SJ}_{\min}$
 * Maximum skew
 * Element volume
 
@@ -31,7 +31,7 @@ Figure. Illustration of minimum scaled Jacobian[^Hovey_2023] with acceptable ran
 
 ## Maximum Skew
 
-* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
+* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube or regular tetrahedron; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
 * Knupp *et al.*[^Knupp_2006] (page 97) indicate an acceptable range of `[0.0, 0.5]`.
 
 ## Element Volume
@@ -57,11 +57,7 @@ valence | singleton | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}
 ...         | ...                                   | ...                   | ...                   | ...                   | ...
 10          | ![](img/single_valence_10.png)        | 1.000000e0 (1.000)    | 5.877851e-1 (0.588)   | 8.090171e-1 (0.809)   |  5.877850e-1 (0.588)
 
-Figure: Maximum edge ratio, minimum scaled Jacobian, maximum skew, and volume.
-Leading values are from `automesh`.
-Values in parenthesis are results from [HexaLab](https://www.hexalab.net).[^Hexalab_2023]
-Items with ** indicate where `automesh` and Cubit agree, but HexaLab disagrees.
-  Cubit uses the term *Aspect Ratio* for Edge Ratio.
+Figure: Hexahedral metrics.  Leading values are from `automesh`.  Values in parenthesis are results from [HexaLab](https://www.hexalab.net).[^Hexalab_2023] Items with ** indicate where `automesh` and Cubit agree, but HexaLab disagrees.  Cubit uses the term *Aspect Ratio* for Edge Ratio for hexahedral elements.  All values were also verified with Cubit.
 
 The connectivity for all elements:
 
@@ -154,14 +150,14 @@ The element coordinates follow:
 The local numbering scheme for nodes of a hexadedral element:
 
 ```sh
-      7---------6
-     /|        /|
-    / |       / |
-   4---------5  |
-   |  3------|--2
-   | /       | /
-   |/        |/
-   0---------1
+       7---------6
+      /|        /|
+     / |       / |
+    4---------5  |
+    |  3------|--2
+    | /       | /
+    |/        |/
+    0---------1
 ```
 
 node | connected nodes
@@ -177,22 +173,22 @@ node | connected nodes
 
 ### Faces
 
-The local numbering scheme for faces of a hexadedral element:
+From the exterior of the element, view the (0, 1, 5, 4) face and unwarp the remaining faces; the six face normals now point out of the page.  The local numbering scheme for faces of a hexadedral element:
 
 ```sh
-             7---------6
-             |         |
-             |    5    |
-             |         |
-   7---------4---------5---------6---------7
-   |         |         |         |         |
-   |    3    |    0    |    1    |    2    |
-   |         |         |         |         |
-   3---------0---------1---------2---------3
-             |         |
-             |    4    |
-             |         |
-             3---------2
+              7---------6
+              |         |
+              |    5    |
+              |         |
+    7---------4---------5---------6---------7
+    |         |         |         |         |
+    |    3    |    0    |    1    |    2    |
+    |         |         |         |         |
+    3---------0---------1---------2---------3
+              |         |
+              |    4    |
+              |         |
+              3---------2
 ```
 
 face | nodes
