@@ -826,7 +826,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
         let mut k;
         let mut index = 0;
         let mut indices = vec![[0, 0, 0]];
-        let lim = (tree.nel().x() - 2) as u16;
+        let lim = (tree.nel().x() - 1) as u16;
         while index < indices.len() {
             [i, j, k] = indices[index];
             if i > 0 && !samples[(i - 1) as usize][j as usize][k as usize] {
