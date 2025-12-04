@@ -517,8 +517,8 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block = ElementBlock::<LinearHexahedron<NeoHookean>, HEX>::new(
-                                &NeoHookean {
+                            let mut block = ElementBlock::<_, LinearHexahedron, _>::new(
+                                NeoHookean {
                                     bulk_modulus: 0.0,
                                     shear_modulus: 1.0,
                                 },
@@ -536,8 +536,8 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block = ElementBlock::<LinearTetrahedron<NeoHookean>, TET>::new(
-                                &NeoHookean {
+                            let mut block = ElementBlock::<_, LinearTetrahedron, _>::new(
+                                NeoHookean {
                                     bulk_modulus: 0.0,
                                     shear_modulus: 1.0,
                                 },

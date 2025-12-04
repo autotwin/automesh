@@ -1,4 +1,4 @@
-use automesh::{TET, TetrahedralFiniteElements, Voxels};
+use automesh::{TetrahedralFiniteElements, Voxels};
 use conspire::{
     constitutive::solid::{
         elastic::AppliedLoad,
@@ -39,8 +39,8 @@ macro_rules! affine_test {
             bulk_modulus: BULK_MODULUS,
             shear_modulus: SHEAR_MODULUS,
         };
-        let block = ElementBlock::<LinearTetrahedron<NeoHookean>, TET>::new(
-            &model,
+        let block = ElementBlock::<_, LinearTetrahedron, _>::new(
+            model.clone(),
             connectivity,
             coordinates.clone().into(),
         );
