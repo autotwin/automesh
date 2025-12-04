@@ -1,24 +1,22 @@
 use automesh::{TET, TetrahedralFiniteElements, Voxels};
 use conspire::{
-    constitutive::{
-        Constitutive,
-        solid::{
-            elastic::AppliedLoad,
-            hyperelastic::{NeoHookean, SecondOrderMinimize},
-        },
+    constitutive::solid::{
+        elastic::AppliedLoad,
+        hyperelastic::{NeoHookean, SecondOrderMinimize},
     },
     fem::{
         ElementBlock, FiniteElementBlock, FiniteElementBlockMethods, LinearTetrahedron,
         SecondOrderMinimize as Foo,
     },
     math::{
-        Matrix, Tensor, TensorVec, TestError, Vector, assert_eq_within_tols,
+        Matrix, Tensor, TestError, Vector, assert_eq_within_tols,
         optimize::{EqualityConstraint, NewtonRaphson},
     },
     mechanics::Scalar,
 };
 
-const PARAMETERS: &[Scalar; 2] = &[13.0, 3.0];
+const BULK_MODULUS: Scalar = 13.0;
+const SHEAR_MODULUS: Scalar = 3.0;
 const STRAIN: Scalar = 1.23;
 
 fn segmentation() -> [[[u8; 6]; 6]; 6] {
@@ -37,8 +35,12 @@ fn segmentation() -> [[[u8; 6]; 6]; 6] {
 macro_rules! affine_test {
     ($fem: ident, $corner: expr) => {
         let (_, connectivity, coordinates) = $fem.into();
-        let block = ElementBlock::<LinearTetrahedron<NeoHookean<_>>, TET>::new(
-            PARAMETERS,
+        let model = NeoHookean {
+            bulk_modulus: BULK_MODULUS,
+            shear_modulus: SHEAR_MODULUS,
+        };
+        let block = ElementBlock::<LinearTetrahedron<NeoHookean>, TET>::new(
+            &model,
             connectivity,
             coordinates.clone().into(),
         );
@@ -76,7 +78,7 @@ macro_rules! affine_test {
             EqualityConstraint::Linear(matrix, vector),
             NewtonRaphson::default(),
         )?;
-        let deformation_gradient = NeoHookean::new(PARAMETERS).minimize(
+        let deformation_gradient = model.minimize(
             AppliedLoad::UniaxialStress(STRAIN / side_length + 1.0),
             NewtonRaphson::default(),
         )?;

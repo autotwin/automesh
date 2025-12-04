@@ -517,12 +517,14 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block =
-                                ElementBlock::<LinearHexahedron<NeoHookean<_>>, HEX>::new(
-                                    &[0.0, 1.0],
-                                    connectivity,
-                                    self.get_nodal_coordinates().clone().into(),
-                                );
+                            let mut block = ElementBlock::<LinearHexahedron<NeoHookean>, HEX>::new(
+                                &NeoHookean {
+                                    bulk_modulus: 0.0,
+                                    shear_modulus: 1.0,
+                                },
+                                connectivity,
+                                self.get_nodal_coordinates().clone().into(),
+                            );
                             block.reset();
                             block.minimize(EqualityConstraint::Fixed(indices), solver)?
                         }
@@ -534,12 +536,14 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block =
-                                ElementBlock::<LinearTetrahedron<NeoHookean<_>>, TET>::new(
-                                    &[0.0, 1.0],
-                                    connectivity,
-                                    self.get_nodal_coordinates().clone().into(),
-                                );
+                            let mut block = ElementBlock::<LinearTetrahedron<NeoHookean>, TET>::new(
+                                &NeoHookean {
+                                    bulk_modulus: 0.0,
+                                    shear_modulus: 1.0,
+                                },
+                                connectivity,
+                                self.get_nodal_coordinates().clone().into(),
+                            );
                             block.reset();
                             block.minimize(EqualityConstraint::Fixed(indices), solver)?
                         }
@@ -894,7 +898,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
             .collect();
         let (exterior_faces, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
-        let mut new_points = exterior_nodes
+        let new_points: Coordinates = exterior_nodes
             .iter()
             .map(|&exterior_node| {
                 let [i, j, k] = rounded_coordinates[exterior_node];
@@ -953,8 +957,7 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             .for_each(|(surface_node, &exterior_node)| {
                 surface_nodes_map[exterior_node] = surface_node + numbering_offset
             });
-        // finite_elements.nodal_coordinates.extend(new_points);
-        finite_elements.nodal_coordinates.append(&mut new_points);
+        finite_elements.nodal_coordinates.extend(new_points);
         let new_hexes: Connectivity<HEX> = exterior_faces
             .into_iter()
             .map(|[node_0, node_1, node_2, node_3]| {

@@ -2,7 +2,7 @@ use super::{
     super::{Coordinates, FiniteElementMethods, FiniteElementSpecifics},
     TetrahedralFiniteElements,
 };
-use conspire::math::{Tensor, TensorVec};
+use conspire::math::Tensor;
 use ndarray::Array2;
 use ndarray_npy::ReadNpyExt;
 use std::fs::File; // For File::open
@@ -16,7 +16,7 @@ const EPSILON_6: f64 = 1.0e-6;
 fn simple_tetrahedral() {
     // https://autotwin.github.io/automesh/cli/metrics_tetrahedral.html
 
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
         [0.5, 1.0, 0.0],
@@ -92,7 +92,7 @@ fn simple_tetrahedral() {
 #[test]
 fn signed_element_volume_positive() {
     // A standard right-handed tetrahedron.  It volume should be positive.
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.0, 0.0, 0.0], // Node 0
         [1.0, 0.0, 0.0], // Node 1
         [0.0, 1.0, 0.0], // Node 2
@@ -124,7 +124,7 @@ fn signed_element_volume_negative() {
     // An inverted (left-handed) tetrahedron.
     // By swapping nodes 1 and 2 in the connectivity, we invert the element.
     // Its volume should be negative.
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.0, 0.0, 0.0], // Node 0
         [1.0, 0.0, 0.0], // Node 1
         [0.0, 1.0, 0.0], // Node 2
@@ -155,7 +155,7 @@ fn signed_element_volume_negative() {
 fn signed_element_volume_zero() {
     // A degenerate tetrahedron where all points are co-planar.
     // Its volume should be zero.
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.0, 0.0, 0.0], // Node 0
         [1.0, 0.0, 0.0], // Node 1
         [0.0, 1.0, 0.0], // Node 2
@@ -182,7 +182,7 @@ fn signed_element_volume_zero() {
 
 #[test]
 fn random_tetrahedron() {
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.5, 0.5, 0.5], // Node 0
         [1.8, 0.2, 1.1], // Node 1
         [0.1, 1.5, 0.3], // Node 2
@@ -211,7 +211,7 @@ fn random_tetrahedron() {
 
 #[test]
 fn minimum_scaled_jacobians_unit_tetrahedron() {
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.0, 0.0, 0.0], // Node 0
         [1.0, 0.0, 0.0], // Node 1
         [0.0, 1.0, 0.0], // Node 2
@@ -243,7 +243,7 @@ fn minimum_scaled_jacobians_unit_tetrahedron() {
 #[test]
 fn minimum_scaled_jacobians_degenerate_tetrahedron() {
     // A degenerate tetrahedron (co-planar points) should have a minimum scaled Jacobian of 0.0
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.0, 0.0, 0.0], // Node 0
         [1.0, 0.0, 0.0], // Node 1
         [0.0, 1.0, 0.0], // Node 2
@@ -276,7 +276,7 @@ fn maximum_skews_regular_tetrahedron() {
     // The minimum angle for each face is 60 degrees.
     // The skew for each face is (60 - 60) / 60 = 0.
     // Therefore, the maximum skew for the element is 0.
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [1.0, 1.0, 1.0],
         [1.0, -1.0, -1.0],
         [-1.0, 1.0, -1.0],
@@ -306,7 +306,7 @@ fn maximum_skews_regular_tetrahedron() {
 #[test]
 fn write_metrics() {
     // Setup: Create the same as `simple_tetrahedral` test.
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [0.0, 0.0, 0.0],
         [1.0, 0.0, 0.0],
         [0.5, 1.0, 0.0],

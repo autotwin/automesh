@@ -6,7 +6,7 @@ use super::{
 };
 use automesh::{FiniteElementMethods, Smoothing, TriangularFiniteElements};
 use clap::Subcommand;
-use conspire::math::TensorVec;
+use conspire::math::Tensor;
 use std::time::Instant;
 
 pub const REMESH_DEFAULT_ITERS: usize = 5;
