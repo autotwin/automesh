@@ -6,7 +6,7 @@ use crate::{
     fem::TriangularFiniteElements,
     tree::{Edges, Faces, NUM_FACES, NUM_NODES_FACE, Octree, PADDING, mirror_face},
 };
-use conspire::math::{TensorArray, TensorVec};
+use conspire::math::{Tensor, TensorArray, TensorVec};
 
 impl From<Octree> for TriangularFiniteElements {
     fn from(mut tree: Octree) -> Self {

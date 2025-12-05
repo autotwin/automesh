@@ -6,7 +6,7 @@ use super::{
 };
 use automesh::{FiniteElementMethods, Tessellation, Voxels};
 use clap::Subcommand;
-use conspire::math::TensorVec;
+use conspire::math::Tensor;
 use std::{path::Path, time::Instant};
 
 #[derive(Subcommand)]

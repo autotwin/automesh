@@ -1,5 +1,4 @@
 use super::{super::Coordinates, FiniteElementSpecifics, TriangularFiniteElements};
-use conspire::math::TensorVec;
 
 const EPSILON: f64 = 1.0e-14;
 const DEG_TO_RAD: f64 = std::f64::consts::PI / 180.0;
@@ -137,7 +136,7 @@ fn triangular_unit_tests() {
         [17, 18, 19], // tilt.stl
     ];
 
-    let nodal_coordinates = Coordinates::new(&[
+    let nodal_coordinates = Coordinates::from([
         [-0.2, 1.2, -0.1], // single_valence_04_noise2.inp begin
         [1.180501, 0.39199, 0.3254445],
         [0.1, 0.2, 0.3],

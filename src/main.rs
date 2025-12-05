@@ -3,7 +3,7 @@ use automesh::{
     TetrahedralFiniteElements, Translate, TriangularFiniteElements,
 };
 use clap::{Parser, Subcommand};
-use conspire::math::TensorVec;
+use conspire::math::Tensor;
 use std::time::Instant;
 
 mod cli;

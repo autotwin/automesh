@@ -1,7 +1,7 @@
 use automesh::{
     FiniteElementMethods, HexahedralFiniteElements, NSD, Nel, Remove, Scale, Translate, Voxels,
 };
-use conspire::math::{Tensor, TensorVec};
+use conspire::math::Tensor;
 
 const GOLD_DATA: [[[u8; 3]; 5]; 4] = [
     [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]],
