@@ -870,10 +870,8 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
     type Error = String;
     fn try_from((tessellation, size): (Tessellation, Size)) -> Result<Self, Self::Error> {
         let mut triangular_finite_elements = TriangularFiniteElements::from(tessellation);
-        triangular_finite_elements
-            .node_element_connectivity()
-            .unwrap();
-        triangular_finite_elements.node_node_connectivity().unwrap();
+        triangular_finite_elements.node_element_connectivity()?;
+        triangular_finite_elements.node_node_connectivity()?;
         triangular_finite_elements.refine(size.unwrap());
         let surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
         let (
