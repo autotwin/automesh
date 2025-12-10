@@ -60,7 +60,11 @@ Cargo.lock
 *.vscode
 **__pycache__
 **.pytest_cache
+.python-version
 book/build/
 benches/block/
 benches/compare/
 cobertura.xml
+flamegraph.svg
+perf.data
+perf.data.old

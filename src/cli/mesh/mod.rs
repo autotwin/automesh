@@ -134,7 +134,9 @@ pub fn mesh<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation> + From<(Tessellation, Size)>,
+    T: FiniteElementMethods<M, N>
+        + From<Tessellation>
+        + TryFrom<(Tessellation, Size), Error = String>,
     Tessellation: From<T>,
 {
     let scale = Scale::from([xscale, yscale, zscale]);
@@ -384,7 +386,7 @@ pub fn mesh_tessellation<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + From<(Tessellation, Size)>,
+    T: FiniteElementMethods<M, N> + TryFrom<(Tessellation, Size), Error = String>,
     Tessellation: From<T>,
 {
     let mut time = Instant::now();
@@ -399,7 +401,7 @@ where
         }
         mesh_print_info(MeshBasis::Voxels, &scale, &translate)
     }
-    let mut finite_elements = T::from((tessellation, size));
+    let mut finite_elements = T::try_from((tessellation, size))?;
     if !quiet {
         #[cfg(feature = "profile")]
         let other_time = Instant::now();
