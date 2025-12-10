@@ -112,7 +112,9 @@ where
     /// Calculates and sets the node-to-node connectivity.
     fn node_node_connectivity(&mut self) -> Result<(), &str>;
     /// Remove nodes and elements that connect to them.
-    fn remove_nodes(self, removed_nodes: Nodes) -> Data<N>;
+    fn remove_nodes(self, removed_nodes: Nodes) -> Self;
+    /// Removes nodes that are not connected to any elements.
+    fn remove_orphan_nodes(self) -> Result<Self, String>;
     /// Smooths the nodal coordinates according to the provided smoothing method.
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String>;
     /// Writes the finite elements data to a new Exodus file.
@@ -412,7 +414,7 @@ where
             Err("Need to calculate the node-to-element connectivity first")
         }
     }
-    fn remove_nodes(self, removed_nodes: Nodes) -> Data<N> {
+    fn remove_nodes(self, removed_nodes: Nodes) -> Self {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut is_removed_node = vec![false; self.nodal_coordinates.len()];
@@ -455,11 +457,11 @@ where
             .element_node_connectivity
             .into_iter()
             .zip(is_removed_elements)
-            .filter_map(|(coord, element_is_removed)| {
+            .filter_map(|(connectivity, element_is_removed)| {
                 if element_is_removed {
                     None
                 } else {
-                    Some(coord)
+                    Some(connectivity)
                 }
             })
             .collect();
@@ -470,18 +472,76 @@ where
             .nodal_coordinates
             .into_iter()
             .zip(is_removed_node)
-            .filter_map(
-                |(coord, node_is_removed)| {
-                    if node_is_removed { None } else { Some(coord) }
-                },
-            )
+            .filter_map(|(coordinates, node_is_removed)| {
+                if node_is_removed {
+                    None
+                } else {
+                    Some(coordinates)
+                }
+            })
             .collect();
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mRemoving marked nodes\x1b[0m {:?}",
             time.elapsed()
         );
-        (element_blocks, element_node_connectivity, nodal_coordinates)
+        Self::from((element_blocks, element_node_connectivity, nodal_coordinates))
+    }
+    fn remove_orphan_nodes(mut self) -> Result<Self, String> {
+        self.node_element_connectivity()?;
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let orphan_nodes: Vec<usize> = self
+            .get_node_element_connectivity()
+            .iter()
+            .enumerate()
+            .filter_map(|(node, elements)| {
+                if elements.is_empty() {
+                    Some(node)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        let mut is_orphan_node = vec![false; self.nodal_coordinates.len()];
+        orphan_nodes
+            .iter()
+            .for_each(|&orphan_node| is_orphan_node[orphan_node] = true);
+        let mut shift = 0;
+        let decrements: Nodes = is_orphan_node
+            .iter()
+            .map(|&node_is_orphan| {
+                if node_is_orphan {
+                    shift += 1;
+                }
+                shift
+            })
+            .collect();
+        self.element_node_connectivity
+            .iter_mut()
+            .for_each(|nodes| nodes.iter_mut().for_each(|node| *node -= decrements[*node]));
+        let nodal_coordinates = self
+            .nodal_coordinates
+            .into_iter()
+            .zip(is_orphan_node)
+            .filter_map(|(coordinates, node_is_orphan)| {
+                if node_is_orphan {
+                    None
+                } else {
+                    Some(coordinates)
+                }
+            })
+            .collect();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mRemoving orphan nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
+        Ok(Self::from((
+            self.element_blocks,
+            self.element_node_connectivity,
+            nodal_coordinates,
+        )))
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
         if !self.get_node_node_connectivity().is_empty() {
@@ -806,8 +866,9 @@ impl<const N: usize> From<Data<N>> for FiniteElements<N> {
     }
 }
 
-impl From<(Tessellation, Size)> for HexahedralFiniteElements {
-    fn from((tessellation, size): (Tessellation, Size)) -> Self {
+impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
+    type Error = String;
+    fn try_from((tessellation, size): (Tessellation, Size)) -> Result<Self, Self::Error> {
         let mut triangular_finite_elements = TriangularFiniteElements::from(tessellation);
         triangular_finite_elements
             .node_element_connectivity()
@@ -877,10 +938,9 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
             time.elapsed()
         );
-        let (element_blocks, element_node_connectivity, nodal_coordinates) =
-            hexahedral_finite_elements.remove_nodes(removed_nodes);
-        let mut finite_elements =
-            Self::from((element_blocks, element_node_connectivity, nodal_coordinates));
+        let mut finite_elements = hexahedral_finite_elements
+            .remove_nodes(removed_nodes)
+            .remove_orphan_nodes()?;
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let rounded_coordinates: Vec<_> = finite_elements
@@ -982,18 +1042,20 @@ impl From<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
             time.elapsed()
         );
-        finite_elements
+        Ok(finite_elements)
     }
 }
 
-impl From<(Tessellation, Size)> for TetrahedralFiniteElements {
-    fn from((_tessellation, _size): (Tessellation, Size)) -> Self {
+impl TryFrom<(Tessellation, Size)> for TetrahedralFiniteElements {
+    type Error = String;
+    fn try_from((_tessellation, _size): (Tessellation, Size)) -> Result<Self, Self::Error> {
         unimplemented!()
     }
 }
 
-impl From<(Tessellation, Size)> for TriangularFiniteElements {
-    fn from((_tessellation, _size): (Tessellation, Size)) -> Self {
+impl TryFrom<(Tessellation, Size)> for TriangularFiniteElements {
+    type Error = String;
+    fn try_from((_tessellation, _size): (Tessellation, Size)) -> Result<Self, Self::Error> {
         unimplemented!()
     }
 }
