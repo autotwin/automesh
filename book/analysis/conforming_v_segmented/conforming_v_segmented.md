@@ -9,7 +9,7 @@ the boundary in a "stair-step" fashion, with nodal placement fixed on a regular,
 of cube-shaped elements.  A segmented mesh has a stair-step approximation
 of the curvature on the boundary.
 
-The [*spheres with shells*](../sphere_with_shells/README.md) meshes illustrate these two mesh types:
+The meshes from the [Sphere with Shells](../sphere_with_shells/simulation.md) section illustrate these two mesh types:
 
 conforming | segmented
 :---: | :---:
@@ -26,7 +26,7 @@ To create a segmented version of a conforming mesh, we created the [`segment`](.
 
 ## Recovering the Segmented Sphere
 
-We use the [`conf_0.5cm.g`] file as our start point.  see [Mesh Creation and Visualization](../sphere_with_shells/conforming.md#mesh-creation-and-visualization) section for a download link.  Our objective it to recover the segmented version of the model, shown above, using the `segment` command.
+We use the `conf_0.5cm.g` file as our start point.  See [Mesh Creation and Visualization](../sphere_with_shells/conforming.md#mesh-creation-and-visualization) section for a download link.  Our objective it to recover the segmented version of the model, shown above, using the `segment` command.
 
 ```sh
 # Clone the .g to .exo
@@ -125,3 +125,17 @@ file | `md5` checksum | size
 [`test_1_3.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/EUsr5WUMGC5HpU5gbc6MIvYBikf3payAmtWGPtlZxjpEog?e=wBRYZv) | `50da29122a0435672e62156308120ea9` | 4 MB
 [`test_2_1.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ETotW7_4XSxAtEPO0iZofI4BJ_n7H6MWsK0sgIKt2_J-RQ?e=eEF6Me) | `d108b4fe0aa524610fbe036e337fc6e1` | 105 MB
 [`test_3_0p8.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/Ec-kJ6y0TSJDoPicl9mxNpsB18imZdEslq0EEUPKcaTI-w?e=BY6PL2) | `60dddb70a9b018b4a25a35850c676eb6` | 205 MB
+
+## Convert to `.inp` and scale from mm to meters
+
+```sh
+# convert conforming inp to voxelized npy
+automesh segment hex --input All_Hex_Dec.inp --output test_2_1.npy --grid 2 --size 1
+
+# mesh and scale voxelized npy to voxelized inp
+automesh mesh hex --input test_2_1.npy --output test_2_1e-3.inp --xscale 0.001 --yscale 0.001 --zscale 0.001
+```
+
+file | `md5` checksum | size | units
+:---: | :---: | :---: | :---:
+[`test_2_1e-3m.inp`]() | `` | xxx MB | m
