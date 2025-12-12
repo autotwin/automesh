@@ -1464,6 +1464,18 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
                 })?;
             newline(file)
         })?;
+    file.write_all(
+        "********************************** P R O P E R T I E S ************************\n"
+            .as_bytes(),
+    )?;
+    element_blocks_unique
+        .into_iter()
+        .try_for_each(|current_block| {
+            file.write_all(
+                format!("*SOLID SECTION, ELSET=EB{current_block}, MATERIAL=Default-Steel\n")
+                    .as_bytes(),
+            )
+        })?;
     let result = end_file(file);
     #[cfg(feature = "profile")]
     println!(
