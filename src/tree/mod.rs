@@ -1502,8 +1502,7 @@ impl Octree {
         let (max_leaf_id, _) = self
             .iter()
             .enumerate()
-            .filter(|(_, cell)| cell.is_leaf())
-            .next_back()
+            .rfind(|(_, cell)| cell.is_leaf())
             .unwrap();
         let mut supercells = vec![None; max_leaf_id + 1];
         self.iter()

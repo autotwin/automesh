@@ -1218,7 +1218,7 @@ fn finite_element_data_from_inp<const N: usize>(file_path: &str) -> Result<Data<
     let mut current_block = 0;
     let mut element_blocks: Blocks = vec![];
     let mut element_node_connectivity: Connectivity<N> = vec![];
-    while buffer != "**" {
+    while buffer != "**\n" {
         if buffer.trim().chars().take(8).collect::<String>() == "*ELEMENT" {
             current_block = buffer.trim().chars().last().unwrap().to_digit(10).unwrap() as u8;
         } else {
@@ -1396,13 +1396,13 @@ fn write_nodal_coordinates_to_inp(
             })
         })?;
     newline(file)?;
-    let result = end_section(file);
+    end_section(file)?;
     #[cfg(feature = "profile")]
     println!(
         "             \x1b[1;93mNodal coordinates\x1b[0m {:?}",
         time.elapsed()
     );
-    result
+    Ok(())
 }
 
 fn write_element_node_connectivity_to_inp<const N: usize>(
@@ -1464,13 +1464,26 @@ fn write_element_node_connectivity_to_inp<const N: usize>(
                 })?;
             newline(file)
         })?;
-    let result = end_file(file);
+    end_section(file)?;
+    file.write_all(
+        "********************************** P R O P E R T I E S ************************\n"
+            .as_bytes(),
+    )?;
+    element_blocks_unique
+        .into_iter()
+        .try_for_each(|current_block| {
+            file.write_all(
+                format!("*SOLID SECTION, ELSET=EB{current_block}, MATERIAL=Default-Steel\n")
+                    .as_bytes(),
+            )
+        })?;
+    end_file(file)?;
     #[cfg(feature = "profile")]
     println!(
         "             \x1b[1;93mElement-to-node connectivity\x1b[0m {:?}",
         time.elapsed()
     );
-    result
+    Ok(())
 }
 
 fn end_section(file: &mut BufWriter<File>) -> Result<(), ErrorIO> {
