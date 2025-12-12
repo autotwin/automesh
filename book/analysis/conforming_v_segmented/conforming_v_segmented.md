@@ -20,13 +20,13 @@ Both the conforming and segmented meshes approximate the true geometry: a sphere
 
 We are interested in comparing the two methods, and quantifying what error the segmented approach introduces relative to the conforming approach.
 
-For the *spheres with shells* example above, we were able to readily create two *de novo* meshes.  There are instances, however, where a traditional, conforming finite element mesh exists, but a segmented version of the same geometry does not exist.
+For the *spheres with shells* example above, we were able to readily create two *de novo* meshes (the conforming mesh and the segmented mesh).  There are instances, however, where a traditional, conforming finite element mesh exists, but a segmented version of the same geometry does not exist.
 
-To create a segmented version of a conforming mesh, we created the [`segment`](../../cli/segment.md) command.  Following are a examples using the segment functionality.
+To create a segmented version of a conforming mesh, we created the [`segment`](../../cli/segment.md) command.  Following are a examples using the `segment` functionality.
 
 ## Recovering the Segmented Sphere
 
-We use the `conf_0.5cm.g` file as our start point.  See [Mesh Creation and Visualization](../sphere_with_shells/conforming.md#mesh-creation-and-visualization) section for a download link.  Our objective it to recover the segmented version of the model, shown above, using the `segment` command.
+We use the `conf_0.5cm.g` file as our start point.  See the [Mesh Creation and Visualization](../sphere_with_shells/conforming.md#mesh-creation-and-visualization) section for a download link.  Our objective it to recover the segmented version of the model, shown above, using the `segment` command.
 
 ```sh
 # Clone the .g to .exo
@@ -70,7 +70,21 @@ automesh convert mesh hex -i conf_0.5cm_vox_orig.exo conf_0.5_vox_orig.inp
 
 ## RMU Brain Model
 
-The RMU brain model, `All_Hex_Dec`, is a model of a human head.  The model has 12 blocks composing the various anatomy of the head and brain, shown below.
+The RMU brain model, `All_Hex_Dec`, is a model of a human head.
+
+## Source Files
+
+file | `md5` checksum | size
+:---: | :---: | :---:
+[`All_Hex_Dec.inp`](https://1drv.ms/u/c/3cc1bee5e2795295/EclQLxv89d9IkTv69BhiN3MBccPVhVq7VoT7TvHAiktbag?e=eDW8ii) | `4e376f7d551890b807cabc1d89630772` | 212 MB
+[`All_Hex_Dec.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/EaIAW30tkq9PqYWj28QHX9IBscQ9-U2RCtNwBWxELuDLMQ?e=Bx9jjr) | `5df6f584a30139cb89e6e6917f843f55` | 66 MB
+[`test_1_1.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ERuNL-yuEv9CmYdQYdUQkhABn_1mcAQq-Ci_JAm1rsLY0A?e=EzbYmC) | `5c0f02a7960890ffbe536493c4993104` | 95 MB
+[`test_1_2.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ERcVQwrJC85Ou2RXchhKIhQB55y1rUP4iT3uUnaDbocgfQ?e=RknQ0S) | `db674b42065cd9de9c8eb30ce2945c0f` | 13 MB
+[`test_1_3.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/EUsr5WUMGC5HpU5gbc6MIvYBikf3payAmtWGPtlZxjpEog?e=wBRYZv) | `50da29122a0435672e62156308120ea9` | 4 MB
+[`test_2_1.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ETotW7_4XSxAtEPO0iZofI4BJ_n7H6MWsK0sgIKt2_J-RQ?e=eEF6Me) | `d108b4fe0aa524610fbe036e337fc6e1` | 105 MB
+[`test_3_0p8.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/Ec-kJ6y0TSJDoPicl9mxNpsB18imZdEslq0EEUPKcaTI-w?e=BY6PL2) | `60dddb70a9b018b4a25a35850c676eb6` | 205 MB
+
+The model has 12 blocks composing the various anatomy of the head and brain, shown below.
 
 ![All_Hex_Dec](./All_Hex_Dec.png)
 
@@ -113,18 +127,6 @@ The output files have the naming convention `test_x_y.exo` where
 `All_Hex_Dec.exo` | `test_3_0p8.exo`
 :---: | :---:
 ![All_Hex_Dec](./All_Hex_Dec.png) | ![test_3_0p8](./test_3_0p8.png)
-
-## Source Files
-
-file | `md5` checksum | size
-:---: | :---: | :---:
-[`All_Hex_Dec.inp`](https://1drv.ms/u/c/3cc1bee5e2795295/EclQLxv89d9IkTv69BhiN3MBccPVhVq7VoT7TvHAiktbag?e=eDW8ii) | `4e376f7d551890b807cabc1d89630772` | 212 MB
-[`All_Hex_Dec.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/EaIAW30tkq9PqYWj28QHX9IBscQ9-U2RCtNwBWxELuDLMQ?e=Bx9jjr) | `5df6f584a30139cb89e6e6917f843f55` | 66 MB
-[`test_1_1.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ERuNL-yuEv9CmYdQYdUQkhABn_1mcAQq-Ci_JAm1rsLY0A?e=EzbYmC) | `5c0f02a7960890ffbe536493c4993104` | 95 MB
-[`test_1_2.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ERcVQwrJC85Ou2RXchhKIhQB55y1rUP4iT3uUnaDbocgfQ?e=RknQ0S) | `db674b42065cd9de9c8eb30ce2945c0f` | 13 MB
-[`test_1_3.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/EUsr5WUMGC5HpU5gbc6MIvYBikf3payAmtWGPtlZxjpEog?e=wBRYZv) | `50da29122a0435672e62156308120ea9` | 4 MB
-[`test_2_1.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ETotW7_4XSxAtEPO0iZofI4BJ_n7H6MWsK0sgIKt2_J-RQ?e=eEF6Me) | `d108b4fe0aa524610fbe036e337fc6e1` | 105 MB
-[`test_3_0p8.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/Ec-kJ6y0TSJDoPicl9mxNpsB18imZdEslq0EEUPKcaTI-w?e=BY6PL2) | `60dddb70a9b018b4a25a35850c676eb6` | 205 MB
 
 ## Convert to `.inp` and scale from mm to meters
 
