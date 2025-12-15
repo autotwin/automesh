@@ -449,11 +449,11 @@ fn remesh(
         } else {
             lengths.iter().sum::<Scalar>() / (lengths.len() as Scalar)
         };
-        split_edges(fem, &mut edges, &mut lengths, average_length);
-        // collapse_edges(fem, &mut edges, &lengths, average_length);
-        flip_edges(fem, &mut edges);
-        fem.nodal_influencers();
-        fem.smooth(smoothing_method).unwrap();
+        // split_edges(fem, &mut edges, &mut lengths, average_length);
+        collapse_edges(fem, &mut edges, &mut lengths, average_length);
+        // flip_edges(fem, &mut edges);
+        // fem.nodal_influencers();
+        // fem.smooth(smoothing_method).unwrap();
     });
     #[cfg(feature = "profile")]
     println!(
@@ -597,26 +597,23 @@ fn collapse_edges(
     let mut edge_index = 0;
     let mut foo = 0;
     while edge_index < edges.len() {
-edges.iter().for_each(|[a, b]|
-    if a==b {
-        panic!()
-    }
-);
+        edges.iter().for_each(|[a, b]| {
+            if a == b {
+                panic!()
+            }
+        });
         [node_a, node_b] = edges[edge_index];
         if lengths[edge_index] < FOUR_FIFTHS * average_length {
-if foo <= 8900000 {
-println!("\nedge {foo} nodes: {:?}", edges[edge_index]);
+            if foo <= 8900000 {
+                println!("\nedge {foo} nodes: {:?}", edges[edge_index]);
                 [element_index_1, element_index_2, _, _] = edge_info(
                     node_a,
                     node_b,
                     &fem.element_node_connectivity,
                     &fem.node_element_connectivity,
                 );
-                let foobar = fem.nodal_coordinates.remove(node_b - NODE_NUMBERING_OFFSET);
-                fem.nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] = (&fem.nodal_coordinates
-                    [node_a - NODE_NUMBERING_OFFSET]
-                    + foobar)
-                    * 0.5;
+                let foobar = fem.nodal_coordinates.remove(node_b);
+                fem.nodal_coordinates[node_a] = (&fem.nodal_coordinates[node_a] + foobar) * 0.5;
                 if element_index_1 < element_index_2 {
                     fem.element_blocks.remove(element_index_1);
                     fem.element_blocks.remove(element_index_2 - 1);
@@ -652,7 +649,8 @@ println!("\nedge {foo} nodes: {:?}", edges[edge_index]);
                     });
                     edge.sort()
                 });
-                let mut seen: std::collections::HashSet<[usize; 2]> = std::collections::HashSet::new();
+                let mut seen: std::collections::HashSet<[usize; 2]> =
+                    std::collections::HashSet::new();
                 let mut index = 0;
                 edges.retain(|edge| {
                     let keep = seen.insert(edge.clone());
@@ -670,11 +668,11 @@ println!("\nedge {foo} nodes: {:?}", edges[edge_index]);
                     .iter()
                     .zip(lengths.iter_mut())
                     .for_each(|(&[node_a, node_b], length)| {
-                        *length = (&fem.get_nodal_coordinates()[node_a - NODE_NUMBERING_OFFSET]
-                            - &fem.get_nodal_coordinates()[node_b - NODE_NUMBERING_OFFSET])
+                        *length = (&fem.get_nodal_coordinates()[node_a]
+                            - &fem.get_nodal_coordinates()[node_b])
                             .norm()
                     });
-fem.write_exo("asdf.exo").unwrap();
+                fem.write_exo("asdf.exo").unwrap();
                 //
                 // It is possible to create these again (merging 3 into 1 creates another 3 inside 1)
                 // so may have to turn this into a loop of some sort.
@@ -684,101 +682,101 @@ fem.write_exo("asdf.exo").unwrap();
                 //
                 degenerate_triangles(fem, edges, lengths, &mut edge_index, node_a);
 
-//                 let elements = &fem.get_node_element_connectivity()[node_a - NODE_NUMBERING_OFFSET];
-// println!("elements: {:?}", elements);
-//                 let mut nodes: Vec<usize> = elements
-//                     .iter()
-//                     .flat_map(|&element| {
-//                         fem.get_element_node_connectivity()[element - ELEMENT_NUMBERING_OFFSET]
-//                     })
-//                     .collect();
-//                 nodes.sort();
-//                 nodes.dedup();
-// println!("nodes: {:?}", nodes);
-//                 let mut more_elements: Vec<usize> = nodes
-//                     .iter()
-//                     .flat_map(|&node| {
-//                         fem.get_node_element_connectivity()[node - NODE_NUMBERING_OFFSET].clone()
-//                     })
-//                     .collect();
-//                 //
-//                 // is pool of more_elements smaller if use node-to-node connectivity for the first step?
-//                 //
-//                 more_elements.sort();
-//                 more_elements.dedup();
-// println!("more_elements: {:?}", more_elements);
-//                 let (center_nodes, triangless): (Vec<usize>, Vec<Vec<usize>>) = nodes
-//                     .iter()
-//                     .map(|node| {
-//                         (node, more_elements
-//                             .iter()
-//                             .filter(|&&element| {
-//                                 fem.get_element_node_connectivity()
-//                                     [element - ELEMENT_NUMBERING_OFFSET]
-//                                     .contains(node)
-//                             })
-//                             .cloned()
-//                             .collect::<Vec<usize>>())
-//                     })
-//                     .filter(|(_, triangles)| triangles.len() == NUM_NODES_TRI)
-//                     .unzip();
-// println!("center_nodes: {:?}", center_nodes);
-// println!("triangles: {:?}", triangless);
-//                 // if let Some(center_node) = <[usize; 1]>::try_from(center_nodes).ok() {
-//                 //     if let Some(triangles) = <[Vec<usize>; 1]>::try_from(triangles).ok() {
-//                 for (center_node, triangles) in center_nodes.iter().zip(triangless) {
-// println!("center_nodes: {:?}", center_node);
-// println!("triangles: {:?}", triangles);
-//                         // let center_node = center_node[0];
-//                         // let triangles = <[usize; 3]>::try_from(triangles[0].clone())
-//                         //     .expect("Not exactly three triangles");
-//                         assert!(triangles.is_sorted()); // should be true anyway, take out when done
-//                         let mut triangle_nodes = triangles.iter().flat_map(|&triangle| {
-//                             println!("\ttri: {:?}, conn: {:?}", triangle, fem.get_element_node_connectivity()[triangle - ELEMENT_NUMBERING_OFFSET]);
-//                             fem.get_element_node_connectivity()[triangle - ELEMENT_NUMBERING_OFFSET]
-//                         }).collect::<Vec<usize>>();
-//                         triangle_nodes.sort();
-//                         triangle_nodes.dedup();
-//                         triangle_nodes.remove(triangle_nodes.iter().position(|node| node == center_node).expect("Center node not found"));
-// println!("triangle_nodes: {:?}", triangle_nodes);
-//                         let triangle_nodes = triangle_nodes.try_into().expect("Not exactly three nodes");
-//                         fem.element_blocks.remove(triangles[1] - ELEMENT_NUMBERING_OFFSET);
-//                         fem.element_blocks.remove(triangles[2] - ELEMENT_NUMBERING_OFFSET - 1);
-//                         fem.element_node_connectivity[triangles[0] - ELEMENT_NUMBERING_OFFSET] = triangle_nodes; // need to get 3 other nodes and ensure normal correct?
-//                         fem.element_node_connectivity.remove(triangles[1] - ELEMENT_NUMBERING_OFFSET);
-//                         fem.element_node_connectivity.remove(triangles[2] - ELEMENT_NUMBERING_OFFSET - 1);
-//                         fem.nodal_coordinates.remove(center_node - NODE_NUMBERING_OFFSET);
-//                         fem.element_node_connectivity
-//                             .iter_mut()
-//                             .for_each(|connectivity| {
-//                                 connectivity.iter_mut().for_each(|node| {
-//                                     if *node > *center_node {
-//                                         *node -= 1
-//                                     }
-//                                 })
-//                             });
-//                         fem.node_element_connectivity().unwrap(); // when do this later have to -1 or -2 the elements indices
-//                         (0..NUM_NODES_TRI).for_each(|_| {
-//                             let triangle_edge_index = edges.iter().position(|[edge_node_a, edge_node_b]|
-//                                 edge_node_a == center_node || edge_node_b == center_node
-//                             ).expect("Edge not found");
-//                             if triangle_edge_index < edge_index {
-//                                 edge_index -= 1
-//                             }
-//                             edges.remove(triangle_edge_index);
-//                             lengths.remove(triangle_edge_index);
-//                         });
-//                         edges.iter_mut().for_each(|edge| {
-//                             edge.iter_mut().for_each(|node| {
-//                                 if *node > *center_node {
-//                                     *node -= 1
-//                                 }
-//                             });
-//                             edge.sort()
-//                         });
-            // }
-}
-foo += 1;
+                //                 let elements = &fem.get_node_element_connectivity()[node_a];
+                // println!("elements: {:?}", elements);
+                //                 let mut nodes: Vec<usize> = elements
+                //                     .iter()
+                //                     .flat_map(|&element| {
+                //                         fem.get_element_node_connectivity()[element]
+                //                     })
+                //                     .collect();
+                //                 nodes.sort();
+                //                 nodes.dedup();
+                // println!("nodes: {:?}", nodes);
+                //                 let mut more_elements: Vec<usize> = nodes
+                //                     .iter()
+                //                     .flat_map(|&node| {
+                //                         fem.get_node_element_connectivity()[node].clone()
+                //                     })
+                //                     .collect();
+                //                 //
+                //                 // is pool of more_elements smaller if use node-to-node connectivity for the first step?
+                //                 //
+                //                 more_elements.sort();
+                //                 more_elements.dedup();
+                // println!("more_elements: {:?}", more_elements);
+                //                 let (center_nodes, triangless): (Vec<usize>, Vec<Vec<usize>>) = nodes
+                //                     .iter()
+                //                     .map(|node| {
+                //                         (node, more_elements
+                //                             .iter()
+                //                             .filter(|&&element| {
+                //                                 fem.get_element_node_connectivity()
+                //                                     [element]
+                //                                     .contains(node)
+                //                             })
+                //                             .cloned()
+                //                             .collect::<Vec<usize>>())
+                //                     })
+                //                     .filter(|(_, triangles)| triangles.len() == NUM_NODES_TRI)
+                //                     .unzip();
+                // println!("center_nodes: {:?}", center_nodes);
+                // println!("triangles: {:?}", triangless);
+                //                 // if let Some(center_node) = <[usize; 1]>::try_from(center_nodes).ok() {
+                //                 //     if let Some(triangles) = <[Vec<usize>; 1]>::try_from(triangles).ok() {
+                //                 for (center_node, triangles) in center_nodes.iter().zip(triangless) {
+                // println!("center_nodes: {:?}", center_node);
+                // println!("triangles: {:?}", triangles);
+                //                         // let center_node = center_node[0];
+                //                         // let triangles = <[usize; 3]>::try_from(triangles[0].clone())
+                //                         //     .expect("Not exactly three triangles");
+                //                         assert!(triangles.is_sorted()); // should be true anyway, take out when done
+                //                         let mut triangle_nodes = triangles.iter().flat_map(|&triangle| {
+                //                             println!("\ttri: {:?}, conn: {:?}", triangle, fem.get_element_node_connectivity()[triangle]);
+                //                             fem.get_element_node_connectivity()[triangle]
+                //                         }).collect::<Vec<usize>>();
+                //                         triangle_nodes.sort();
+                //                         triangle_nodes.dedup();
+                //                         triangle_nodes.remove(triangle_nodes.iter().position(|node| node == center_node).expect("Center node not found"));
+                // println!("triangle_nodes: {:?}", triangle_nodes);
+                //                         let triangle_nodes = triangle_nodes.try_into().expect("Not exactly three nodes");
+                //                         fem.element_blocks.remove(triangles[1]);
+                //                         fem.element_blocks.remove(triangles[2] - 1);
+                //                         fem.element_node_connectivity[triangles[0]] = triangle_nodes; // need to get 3 other nodes and ensure normal correct?
+                //                         fem.element_node_connectivity.remove(triangles[1]);
+                //                         fem.element_node_connectivity.remove(triangles[2] - 1);
+                //                         fem.nodal_coordinates.remove(center_node);
+                //                         fem.element_node_connectivity
+                //                             .iter_mut()
+                //                             .for_each(|connectivity| {
+                //                                 connectivity.iter_mut().for_each(|node| {
+                //                                     if *node > *center_node {
+                //                                         *node -= 1
+                //                                     }
+                //                                 })
+                //                             });
+                //                         fem.node_element_connectivity().unwrap(); // when do this later have to -1 or -2 the elements indices
+                //                         (0..NUM_NODES_TRI).for_each(|_| {
+                //                             let triangle_edge_index = edges.iter().position(|[edge_node_a, edge_node_b]|
+                //                                 edge_node_a == center_node || edge_node_b == center_node
+                //                             ).expect("Edge not found");
+                //                             if triangle_edge_index < edge_index {
+                //                                 edge_index -= 1
+                //                             }
+                //                             edges.remove(triangle_edge_index);
+                //                             lengths.remove(triangle_edge_index);
+                //                         });
+                //                         edges.iter_mut().for_each(|edge| {
+                //                             edge.iter_mut().for_each(|node| {
+                //                                 if *node > *center_node {
+                //                                     *node -= 1
+                //                                 }
+                //                             });
+                //                             edge.sort()
+                //                         });
+                // }
+            }
+            foo += 1;
         }
         edge_index += 1;
     }
@@ -796,13 +794,13 @@ foo += 1;
     //                 element_node_connectivity,
     //                 node_element_connectivity,
     //             );
-    //             // println!("{}", nodal_coordinates[node_a - NODE_NUMBERING_OFFSET]);
-    //             // println!("{}", nodal_coordinates[node_b - NODE_NUMBERING_OFFSET]);
-    //             nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] = (
-    //                 &nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] + nodal_coordinates[node_b - NODE_NUMBERING_OFFSET].clone()
+    //             // println!("{}", nodal_coordinates[node_a]);
+    //             // println!("{}", nodal_coordinates[node_b]);
+    //             nodal_coordinates[node_a] = (
+    //                 &nodal_coordinates[node_a] + nodal_coordinates[node_b].clone()
     //             ) * 0.5;
-    //             // nodal_coordinates[node_b - NODE_NUMBERING_OFFSET] = nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone();
-    //             // merged_nodes[node_b - NODE_NUMBERING_OFFSET] = Some(node_a);
+    //             // nodal_coordinates[node_b] = nodal_coordinates[node_a].clone();
+    //             // merged_nodes[node_b] = Some(node_a);
     //             // removed_edges.push(edge_index);
 
     //             if element_index_1 < element_index_2 {
@@ -816,7 +814,7 @@ foo += 1;
     //                 element_node_connectivity.remove(element_index_2);
     //                 element_node_connectivity.remove(element_index_1 - 1);
     //             }
-    //             nodal_coordinates.remove(node_b - NODE_NUMBERING_OFFSET);
+    //             nodal_coordinates.remove(node_b);
 
     //             element_node_connectivity.iter_mut().for_each(|connectivity|
     //                 connectivity.iter_mut().for_each(|node|
@@ -828,9 +826,9 @@ foo += 1;
     //                 )
     //             );
 
-    //             // let asdf = node_element_connectivity[node_b - NODE_NUMBERING_OFFSET].clone();
-    //             // node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].extend(asdf);
-    //             // node_element_connectivity.remove(node_b - NODE_NUMBERING_OFFSET);
+    //             // let asdf = node_element_connectivity[node_b].clone();
+    //             // node_element_connectivity[node_a].extend(asdf);
+    //             // node_element_connectivity.remove(node_b);
 
     //             // node_element_connectivity.iter_mut().for_each(|connectivity| {
     //             //     if let Some(index) = connectivity.iter().position(|&element| element == element_index_1 + 1) {
@@ -847,7 +845,7 @@ foo += 1;
     //                 .enumerate()
     //                 .for_each(|(element, connectivity)| {
     //                     connectivity.iter().for_each(|node| {
-    //                         asdf[node - NODE_NUMBERING_OFFSET]
+    //                         asdf[node]
     //                             .push(element + ELEMENT_NUMBERING_OFFSET)
     //                     })
     //                 });
@@ -887,8 +885,8 @@ foo += 1;
 //         node_a = edges[edge_index][0];
 //         node_b = edges[edge_index][1];
 // println!("\n{:?}", (node_a, node_b));
-//         if (&nodal_coordinates[node_a - NODE_NUMBERING_OFFSET]
-//             - &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET])
+//         if (&nodal_coordinates[node_a]
+//             - &nodal_coordinates[node_b])
 //             .norm()
 //             < FOUR_FIFTHS * average_length
 //         {
@@ -948,11 +946,11 @@ foo += 1;
 //                         })
 //                     });
 //                 }
-//                 let mut foo = node_element_connectivity[node_b - NODE_NUMBERING_OFFSET].clone();
-//                 node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].append(&mut foo);
-//                 node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].sort();
-//                 node_element_connectivity[node_a - NODE_NUMBERING_OFFSET].dedup();
-//                 node_element_connectivity.remove(node_b - NODE_NUMBERING_OFFSET);
+//                 let mut foo = node_element_connectivity[node_b].clone();
+//                 node_element_connectivity[node_a].append(&mut foo);
+//                 node_element_connectivity[node_a].sort();
+//                 node_element_connectivity[node_a].dedup();
+//                 node_element_connectivity.remove(node_b);
 //                 element_node_connectivity.iter_mut().for_each(|nodes| {
 //                     nodes.iter_mut().for_each(|node| {
 //                         if node == &node_b {
@@ -972,11 +970,11 @@ foo += 1;
 //                     });
 //                     nodes.sort() // can sort when change from b to a only
 //                 });
-//                 nodal_coordinates[node_a - NODE_NUMBERING_OFFSET] = (
-//                     nodal_coordinates[node_a - NODE_NUMBERING_OFFSET].clone() +
-//                     &nodal_coordinates[node_b - NODE_NUMBERING_OFFSET]
+//                 nodal_coordinates[node_a] = (
+//                     nodal_coordinates[node_a].clone() +
+//                     &nodal_coordinates[node_b]
 //                 ) * 0.5;
-//                 nodal_coordinates.remove(node_b - NODE_NUMBERING_OFFSET);
+//                 nodal_coordinates.remove(node_b);
 //             }
 //         }
 //         edge_index += 1
@@ -1069,64 +1067,75 @@ fn edge_info(
         .filter(|element_a| node_element_connectivity[node_b].contains(element_a))
         .collect::<Vec<_>>()
         .try_into()
-        .expect("Not exactly 2 elements");
+        .expect(format!("Nodes {node_a} and {node_b} do not share exactly two elements").as_str());
     let node_c = *element_node_connectivity[element_index_1]
         .iter()
         .find(|node_1| !element_node_connectivity[element_index_2].contains(node_1))
-        .expect("Not exactly 1 node");
+        .expect(
+            format!("Elements {element_index_1} and {element_index_2} are overlapping.").as_str(),
+        );
     let node_d = *element_node_connectivity[element_index_2]
         .iter()
         .find(|node_2| !element_node_connectivity[element_index_1].contains(node_2))
-        .expect("Not exactly 1 node");
+        .expect(
+            format!("Elements {element_index_1} and {element_index_2} are overlapping.").as_str(),
+        );
     [element_index_1, element_index_2, node_c, node_d]
 }
 
-fn degenerate_triangles(fem: &mut TriangularFiniteElements, edges: &mut Edges, lengths: &mut Lengths, edge_index: &mut usize, node_a: usize) {
+fn degenerate_triangles(
+    fem: &mut TriangularFiniteElements,
+    edges: &mut Edges,
+    lengths: &mut Lengths,
+    edge_index: &mut usize,
+    node_a: usize,
+) {
     let mut complete = false;
     while !complete {
         complete = degenerate_triangle(fem, edges, lengths, edge_index, node_a)
     }
 }
 
-fn degenerate_triangle(fem: &mut TriangularFiniteElements, edges: &mut Edges, lengths: &mut Lengths, edge_index: &mut usize, node_a: usize) -> bool {
+fn degenerate_triangle(
+    fem: &mut TriangularFiniteElements,
+    edges: &mut Edges,
+    lengths: &mut Lengths,
+    edge_index: &mut usize,
+    node_a: usize,
+) -> bool {
     //
     // How large to create the stencil of nodes to search from node_a?
     //
-    let elements = &fem.get_node_element_connectivity()[node_a - NODE_NUMBERING_OFFSET];
-println!("elements: {:?}", elements);
+    let elements = &fem.get_node_element_connectivity()[node_a];
+    println!("elements: {:?}", elements);
     let mut nodes: Vec<usize> = elements
         .iter()
-        .flat_map(|&element| {
-            fem.get_element_node_connectivity()[element - ELEMENT_NUMBERING_OFFSET]
-        })
+        .flat_map(|&element| fem.get_element_node_connectivity()[element])
         .collect();
     nodes.sort();
     nodes.dedup();
-println!("nodes: {:?}", nodes);
+    println!("nodes: {:?}", nodes);
     let mut more_elements: Vec<usize> = nodes
         .iter()
-        .flat_map(|&node| {
-            fem.get_node_element_connectivity()[node - NODE_NUMBERING_OFFSET].clone()
-        })
+        .flat_map(|&node| fem.get_node_element_connectivity()[node].clone())
         .collect();
     //
     // is pool of more_elements smaller if use node-to-node connectivity for the first step?
     //
     more_elements.sort();
     more_elements.dedup();
-println!("more_elements: {:?}", more_elements);
+    println!("more_elements: {:?}", more_elements);
     let (mut center_nodes, mut triangless): (Vec<usize>, Vec<Vec<usize>>) = nodes
         .iter()
         .map(|node| {
-            (node, more_elements
-                .iter()
-                .filter(|&&element| {
-                    fem.get_element_node_connectivity()
-                        [element - ELEMENT_NUMBERING_OFFSET]
-                        .contains(node)
-                })
-                .cloned()
-                .collect::<Vec<usize>>())
+            (
+                node,
+                more_elements
+                    .iter()
+                    .filter(|&&element| fem.get_element_node_connectivity()[element].contains(node))
+                    .cloned()
+                    .collect::<Vec<usize>>(),
+            )
         })
         .filter(|(_, triangles)| triangles.len() == NUM_NODES_TRI)
         .unzip();
@@ -1134,55 +1143,70 @@ println!("more_elements: {:?}", more_elements);
     if let Some(center_node) = center_nodes.pop() {
         if let Some(triangles) = triangless.pop() {
             complete = false;
-println!("center_nodes: {:?}", center_node);
-println!("triangles: {:?}", triangles);
-        // let center_node = center_node[0];
-        // let triangles = <[usize; 3]>::try_from(triangles[0].clone())
-        //     .expect("Not exactly three triangles");
-        assert!(triangles.is_sorted()); // should be true anyway, take out when done
-        let mut triangle_nodes = triangles.iter().flat_map(|&triangle| {
-            println!("\ttri: {:?}, conn: {:?}", triangle, fem.get_element_node_connectivity()[triangle - ELEMENT_NUMBERING_OFFSET]);
-            fem.get_element_node_connectivity()[triangle - ELEMENT_NUMBERING_OFFSET]
-        }).collect::<Vec<usize>>();
-        triangle_nodes.sort();
-        triangle_nodes.dedup();
-        triangle_nodes.remove(triangle_nodes.iter().position(|node| node == &center_node).expect("Center node not found"));
-println!("triangle_nodes: {:?}", triangle_nodes);
-        let triangle_nodes = triangle_nodes.try_into().expect("Not exactly three nodes");
-        fem.element_blocks.remove(triangles[1] - ELEMENT_NUMBERING_OFFSET);
-        fem.element_blocks.remove(triangles[2] - ELEMENT_NUMBERING_OFFSET - 1);
-        fem.element_node_connectivity[triangles[0] - ELEMENT_NUMBERING_OFFSET] = triangle_nodes; // need to get 3 other nodes and ensure normal correct?
-        fem.element_node_connectivity.remove(triangles[1] - ELEMENT_NUMBERING_OFFSET);
-        fem.element_node_connectivity.remove(triangles[2] - ELEMENT_NUMBERING_OFFSET - 1);
-        fem.nodal_coordinates.remove(center_node - NODE_NUMBERING_OFFSET);
-        fem.element_node_connectivity
-            .iter_mut()
-            .for_each(|connectivity| {
-                connectivity.iter_mut().for_each(|node| {
+            println!("center_nodes: {:?}", center_node);
+            println!("triangles: {:?}", triangles);
+            // let center_node = center_node[0];
+            // let triangles = <[usize; 3]>::try_from(triangles[0].clone())
+            //     .expect("Not exactly three triangles");
+            assert!(triangles.is_sorted()); // should be true anyway, take out when done
+            let mut triangle_nodes = triangles
+                .iter()
+                .flat_map(|&triangle| {
+                    println!(
+                        "\ttri: {:?}, conn: {:?}",
+                        triangle,
+                        fem.get_element_node_connectivity()[triangle]
+                    );
+                    fem.get_element_node_connectivity()[triangle]
+                })
+                .collect::<Vec<usize>>();
+            triangle_nodes.sort();
+            triangle_nodes.dedup();
+            triangle_nodes.remove(
+                triangle_nodes
+                    .iter()
+                    .position(|node| node == &center_node)
+                    .expect("Center node not found"),
+            );
+            println!("triangle_nodes: {:?}", triangle_nodes);
+            let triangle_nodes = triangle_nodes.try_into().expect("Not exactly three nodes");
+            fem.element_blocks.remove(triangles[1]);
+            fem.element_blocks.remove(triangles[2] - 1);
+            fem.element_node_connectivity[triangles[0]] = triangle_nodes; // need to get 3 other nodes and ensure normal correct?
+            fem.element_node_connectivity.remove(triangles[1]);
+            fem.element_node_connectivity.remove(triangles[2] - 1);
+            fem.nodal_coordinates.remove(center_node);
+            fem.element_node_connectivity
+                .iter_mut()
+                .for_each(|connectivity| {
+                    connectivity.iter_mut().for_each(|node| {
+                        if *node > center_node {
+                            *node -= 1
+                        }
+                    })
+                });
+            fem.node_element_connectivity().unwrap(); // when do this later have to -1 or -2 the elements indices
+            (0..NUM_NODES_TRI).for_each(|_| {
+                let triangle_edge_index = edges
+                    .iter()
+                    .position(|[edge_node_a, edge_node_b]| {
+                        edge_node_a == &center_node || edge_node_b == &center_node
+                    })
+                    .expect("Edge not found");
+                if &triangle_edge_index < edge_index {
+                    *edge_index -= 1
+                }
+                edges.remove(triangle_edge_index);
+                lengths.remove(triangle_edge_index);
+            });
+            edges.iter_mut().for_each(|edge| {
+                edge.iter_mut().for_each(|node| {
                     if *node > center_node {
                         *node -= 1
                     }
-                })
+                });
+                edge.sort()
             });
-        fem.node_element_connectivity().unwrap(); // when do this later have to -1 or -2 the elements indices
-        (0..NUM_NODES_TRI).for_each(|_| {
-            let triangle_edge_index = edges.iter().position(|[edge_node_a, edge_node_b]|
-                edge_node_a == &center_node || edge_node_b == &center_node
-            ).expect("Edge not found");
-            if &triangle_edge_index < edge_index {
-                *edge_index -= 1
-            }
-            edges.remove(triangle_edge_index);
-            lengths.remove(triangle_edge_index);
-        });
-        edges.iter_mut().for_each(|edge| {
-            edge.iter_mut().for_each(|node| {
-                if *node > center_node {
-                    *node -= 1
-                }
-            });
-            edge.sort()
-        });
         }
     }
     complete
