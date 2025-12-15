@@ -605,6 +605,7 @@ fn collapse_edges(
         [node_a, node_b] = edges[edge_index];
         if lengths[edge_index] < FOUR_FIFTHS * average_length {
             if foo <= 8900000 {
+                fem.write_exo("before.exo").unwrap();
                 println!("\nedge {foo} nodes: {:?}", edges[edge_index]);
                 [element_index_1, element_index_2, _, _] = edge_info(
                     node_a,
@@ -672,7 +673,73 @@ fn collapse_edges(
                             - &fem.get_nodal_coordinates()[node_b])
                             .norm()
                     });
-                fem.write_exo("asdf.exo").unwrap();
+                fem.write_exo("after.exo").unwrap();
+
+                //
+                // would this have to be iterative too? or not?
+                //
+                // using some clones for now to avoid mutable/immutable borrow issues
+                //
+                fem.get_node_element_connectivity()[node_a].clone().iter().for_each(|&element_1| {
+                    let mut nodes_a = fem.get_element_node_connectivity()[element_1].clone();
+                    nodes_a.sort();
+                    fem.get_node_element_connectivity()[node_a].clone().iter().for_each(|&element_2| {
+                        if element_1 != element_2 {
+                            let mut nodes_b = fem.get_element_node_connectivity()[element_2].clone();
+                            nodes_b.sort();
+                            if element_1 != element_2 && nodes_a == nodes_b {
+                                println!("Removing overlapping elements {element_1} and {element_2}.");
+                                let dangler = nodes_a.iter().find(|&&node|
+                                    fem.get_node_element_connectivity()[node].len() == 2
+                                ).expect("umm...");
+                                fem.nodal_coordinates.remove(*dangler);
+                                fem.node_element_connectivity.remove(*dangler);
+                                if element_1 < element_2 {
+                                    fem.element_blocks.remove(element_1);
+                                    fem.element_blocks.remove(element_2 - 1);
+                                    fem.element_node_connectivity.remove(element_1);
+                                    fem.element_node_connectivity.remove(element_2 - 1);
+                                } else if element_2 < element_1 {
+                                    fem.element_blocks.remove(element_2);
+                                    fem.element_blocks.remove(element_1 - 1);
+                                    fem.element_node_connectivity.remove(element_2);
+                                    fem.element_node_connectivity.remove(element_1 - 1);
+                                }
+                                fem.element_node_connectivity
+                                    .iter_mut()
+                                    .for_each(|connectivity| {
+                                        connectivity.iter_mut().for_each(|node| {
+                                            if *node == *dangler {
+                                                panic!()
+                                            } else if *node > *dangler {
+                                                *node -= 1
+                                            }
+                                        })
+                                    });
+                                edges.retain(|edge| !edge.contains(dangler));
+                                edges.iter_mut().for_each(|edge| {
+                                    edge.iter_mut().for_each(|node| {
+                                        if *node == *dangler {
+                                            panic!()
+                                        } else if *node > *dangler {
+                                            *node -= 1
+                                        }
+                                    });
+                                    edge.sort()
+                                });
+                                edges
+                                    .iter()
+                                    .zip(lengths.iter_mut())
+                                    .for_each(|(&[node_a, node_b], length)| {
+                                        *length = (&fem.get_nodal_coordinates()[node_a]
+                                            - &fem.get_nodal_coordinates()[node_b])
+                                            .norm()
+                                    });
+                            }
+                        }
+                    })
+                });
+
                 //
                 // It is possible to create these again (merging 3 into 1 creates another 3 inside 1)
                 // so may have to turn this into a loop of some sort.
@@ -680,7 +747,7 @@ fn collapse_edges(
                 // So maybe want to start right away with "while there are some..."
                 // And possible issues with how far to search...
                 //
-                degenerate_triangles(fem, edges, lengths, &mut edge_index, node_a);
+                // degenerate_triangles(fem, edges, lengths, &mut edge_index, node_a);
 
                 //                 let elements = &fem.get_node_element_connectivity()[node_a];
                 // println!("elements: {:?}", elements);
