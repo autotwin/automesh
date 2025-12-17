@@ -16,7 +16,8 @@ impl From<Octree> for Tessellation {
     }
 }
 
-type Bins = Vec<Vec<Vec<bool>>>;
+type Bins = HashMap<[usize; NSD], Vec<usize>>;
+pub type Samples = Vec<Vec<Vec<bool>>>;
 
 type OctreeAndStuff = (
     Octree,
@@ -117,10 +118,7 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
     tree
 }
 
-fn bin_samples_on_surface(
-    nel: Nel,
-    surface_coordinates: Coordinates,
-) -> (HashMap<[usize; NSD], Vec<usize>>, Bins) {
+fn bin_samples_on_surface(nel: Nel, surface_coordinates: Coordinates) -> (Bins, Samples) {
     let rounded: Vec<[_; NSD]> = surface_coordinates
         .into_iter()
         .map(|coordinates| {

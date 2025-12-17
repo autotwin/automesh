@@ -6,7 +6,7 @@ mod tessellation;
 mod tri;
 
 pub use hex::HexesAndCoords;
-pub use tessellation::octree_from_surface;
+pub use tessellation::{Samples, octree_from_surface};
 
 use super::{
     Coordinate, Coordinates, NSD, Vector,
