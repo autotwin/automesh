@@ -29,6 +29,7 @@ use conspire::{
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
+    array::from_fn,
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
     path::PathBuf,
@@ -882,29 +883,25 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             bins,
         ) = octree_from_surface(triangular_finite_elements, size);
         let (hexahedral_finite_elements, coordinates_0) = HexesAndCoords::from(&tree).into();
-        let (mut removed_nodes, surface_nodes) = mark_outside_nodes(coordinates_0, samples, &tree);
+        let (mut removed_nodes, surface_nodes) = mark_outside_nodes(&coordinates_0, samples, &tree);
         //
         // get exterior nodes from surface_nodes (maybe fine if not all exterior nodes, ones missing are probably interior far from surface)
         // identify and remove nodes outside the surface
         //
         let coordinates = hexahedral_finite_elements.get_nodal_coordinates();
-        let rounded_coordinates: Vec<_> = coordinates // could use coordinates_0 if keep and could loop/collect over surface_nodes if change below (loop/enumerate over rounded_coordinates instead of index rounded_coordinates)
+        // do below similarly, and consolidate all these common things in general!
+        let rounded_coordinates: Vec<_> = surface_nodes
             .iter()
-            .map(|coordinate| {
-                [
-                    ((coordinate[0] - tree.translate().x()) / tree.scale().x()).floor() as i16,
-                    ((coordinate[1] - tree.translate().y()) / tree.scale().y()).floor() as i16,
-                    ((coordinate[2] - tree.translate().z()) / tree.scale().z()).floor() as i16,
-                ]
-            })
+            .map(|&surface_node| from_fn(|i| coordinates_0[surface_node][i].floor() as i16))
             .collect();
         let voxel_grid: Vec<_> = (-2..=2)
             .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
             .collect();
         let asdf: Nodes = surface_nodes
             .iter()
-            .filter_map(|&exterior_node| {
-                let [i, j, k] = rounded_coordinates[exterior_node];
+            .zip(rounded_coordinates)
+            .filter_map(|(&exterior_node, rounded_coordinate)| {
+                let [i, j, k] = rounded_coordinate;
                 let mut nearby_surface_nodes: Nodes = voxel_grid
                     .iter()
                     .filter_map(|[i0, j0, k0]| {
@@ -1086,7 +1083,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
 }
 
 fn mark_outside_nodes(
-    coordinates: Coordinates,
+    coordinates: &Coordinates,
     mut samples: Samples,
     tree: &Octree,
 ) -> (Nodes, Nodes) {
@@ -1127,7 +1124,7 @@ fn mark_outside_nodes(
         index += 1
     }
     let removed_and_surface_nodes: Vec<(usize, u8)> = coordinates
-        .into_iter()
+        .iter()
         .enumerate()
         .filter_map(|(node, coordinate)| {
             let bar = samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
