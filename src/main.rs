@@ -39,7 +39,7 @@ macro_rules! about {
     @@@@@@@@@@ @@@@@ @
      @@@@@@@@@@@@@@@@",
             env!("CARGO_PKG_NAME"),
-            format!("v{} {} {}", env!("CARGO_PKG_VERSION"), OS, ARCH,),
+            format!("v{} {} {}", env!("CARGO_PKG_VERSION"), OS, ARCH),
             format!(
                 "build {} {}",
                 option_env!("GIT_COMMIT_HASH").unwrap_or(""),
