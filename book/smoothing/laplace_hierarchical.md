@@ -12,7 +12,7 @@ To come.
 
 ### Bracket
 
-To begin to examine hiearchical control, we consider the [Bracket](../unit_tests/README.md#bracket) example.
+To begin to examine hiearchical control, we consider the [Bracket](../examples/unit_tests/unit_tests.md#bracket) example.
 
 ![../examples/unit_tests/bracket.png](../examples/unit_tests/bracket.png)
 

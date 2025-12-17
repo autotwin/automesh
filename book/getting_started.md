@@ -564,7 +564,7 @@ used to produce spherical shapes at higher resolutions.
 See [Octa Loop](https://github.com/autotwin/mesh/blob/main/doc/octa_loop.md) for additional information.
 A sphere in resolutions of (`24 x 24 x 24`) and (`48 x 48 x 48`), used
 in the [Sphere with Shells](https://autotwin.github.io/automesh/analysis/sphere_with_shells/index.html) section,
-is shown below: ![spheres_cont_cut](analysis/sphere_with_shells/img/spheres_cont_cut.png)
+is shown below: ![spheres_cont_cut](analysis/fig/spheres_cont_cut.png)
 
 ## Segmentation File Types
 
@@ -720,7 +720,7 @@ The original voxel mesh and the smoothed voxel mesh are shown below:
 :---: | :---:
 ![octahedron_voxels](fig/octahedron_voxels.png) | ![octahedron_voxels_s05](fig/octahedron_voxels_s05.png)
 
-See the [Smoothing](smoothing/README.md) section for more information.
+See the [Smoothing](smoothing/smoothing.md) section for more information.
 
 ## Isosurface
 
@@ -740,6 +740,6 @@ The surfaces are visualized below:
 ![isosurface_mesh_lab](fig/isosurface_mesh_lab.png) | ![isosurface_cubit_cut_plane](fig/isosurface_cubit_cut_plane.png)
 
 `automesh` creates an isosurface from the boundary faces of voxels.  The
-quadrilateral faces are divided into two triangles.  The [Isosurface](https://autotwin.github.io/automesh/isosurface/index.html) section contains more details about alternative methods used to create an isosurface.
+quadrilateral faces are divided into two triangles.  The [Isosurface](./isosurface.md) section contains more details about alternative methods used to create an isosurface.
 
-The [Sphere with Shells](https://autotwin.github.io/automesh/analysis/sphere_with_shells/index.html) section contains more examples of the command line interface.
+The [Sphere with Shells](./analysis/sphere_with_shells.md) section contains more examples of the command line interface.

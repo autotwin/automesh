@@ -30,24 +30,23 @@ macro_rules! about {
 
      @@@@@@@@@@@@@@@@
       @@@@  @@@@@@@@@@
-     @@@@  @@@@@@@@@@@
-    @@@@  @@@@@@@@@@@@    \x1b[1;4m{}: Automatic mesh generation\x1b[0m
+     @@@@  @@@@@@@@@@@    \x1b[1;4m{}: Automatic mesh generation\x1b[0m
+    @@@@  @@@@@@@@@@@@
       @@    @@    @@      {}
       @@    @@    @@      {}
     @@@@@@@@@@@@  @@@     {}
-    @@@@@@@@@@@  @@@@
+    @@@@@@@@@@@  @@@@     {}
     @@@@@@@@@@ @@@@@ @
      @@@@@@@@@@@@@@@@",
             env!("CARGO_PKG_NAME"),
+            format!("v{} {} {}", env!("CARGO_PKG_VERSION"), OS, ARCH),
             format!(
-                "v{} build {} {} {}",
-                env!("CARGO_PKG_VERSION"),
-                std::env::var("GIT_COMMIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION").to_string()),
-                OS,
-                ARCH,
+                "build {} {}",
+                option_env!("GIT_COMMIT_HASH").unwrap_or(""),
+                env!("BUILD_TIME"),
             ),
-            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[0],
-            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[1],
+            env!("CARGO_PKG_AUTHORS").split(':').next().unwrap_or(""),
+            env!("CARGO_PKG_AUTHORS").split(':').nth(1).unwrap_or(""),
         )
     };
 }

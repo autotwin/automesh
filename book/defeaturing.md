@@ -13,7 +13,7 @@ automesh defeature -i blobs.npy -o blobs_defeatured.npy -m 20
 Both the segmentation files, original and defeatured, were then converted to a
 mesh and visualized in [Hexalab](https://www.hexalab.net).
 
-![Example of defeaturing: (left) mesh prior to defeaturing, (right) mesh after defeaturing.](blob_defeatured_iso2_high_res.png)
+![Example of defeaturing: (left) mesh prior to defeaturing, (right) mesh after defeaturing.](fig/blob_defeatured_iso2_high_res.png)
 
 Figure:  (left) Four circular blobs with noise (`blobs.npy`) used as input to the **defeature** command, (right) the output defeatured segmentation (`blobs_defeatured.npy`).
 

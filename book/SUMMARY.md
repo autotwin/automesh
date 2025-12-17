@@ -6,21 +6,21 @@
 
 - [Installation](installation.md)
 - [Getting Started](getting_started.md)
-- [Examples](examples/README.md)
-  - [Unit Tests](examples/unit_tests/README.md)
-  - [Spheres](examples/spheres/README.md)
-- [Defeaturing](defeature/README.md)
-- [Smoothing](smoothing/README.md)
+- [Examples](examples.md)
+  - [Unit Tests](examples/unit_tests/unit_tests.md)
+  - [Spheres](examples/spheres/spheres.md)
+- [Defeaturing](defeaturing.md)
+- [Smoothing](smoothing.md)
   - [Laplace](smoothing/laplace.md)
   - [Hierarchical Laplace](smoothing/laplace_hierarchical.md)
   - [Taubin](smoothing/taubin.md)
   - [Python visualization](smoothing/python_visualization.md)
-- [Isosurfaces](isosurface/README.md)
-- [Dualization](dualization/README.md) <!-- work in progress -->
+- [Isosurfaces](isosurface.md)
+- [Dualization](dualization.md) <!-- work in progress -->
 
 # Reference Guide
 
-- [Command Line Interface](cli/README.md)
+- [Command Line Interface](cli.md)
   - [Convert](cli/convert.md)
   - [Defeature](cli/defeature.md)
   - [Diff](cli/diff.md)
@@ -33,19 +33,19 @@
   - [Remesh](cli/remesh.md)
   - [Segment](cli/segment.md)
   - [Smooth](cli/smooth.md)
-- [Analysis](analysis/README.md)
-  - [Sphere with Shells](analysis/sphere_with_shells/README.md)
+- [Analysis](analysis.md)
+  - [Sphere with Shells](analysis/sphere_with_shells.md)
     - [Voxel Mesh `automesh`](analysis/sphere_with_shells/voxel_automesh.md)
     - [Voxel Mesh Sculpt](analysis/sphere_with_shells/voxel_sculpt.md)
     - [Simulation](analysis/sphere_with_shells/simulation.md)
     - [Conforming Mesh Cubit](analysis/sphere_with_shells/conforming.md)
     - [Smoothed Mesh `automesh`](analysis/sphere_with_shells/smoothed.md)
     - [Comparisons](analysis/sphere_with_shells/comparisons.md)
-  - [Conforming v Segmented Meshes](analysis/conforming_v_segmented/README.md)
+  - [Conforming v Segmented Meshes](analysis/conforming_v_segmented.md)
 
 # Appendices
 
-- [Development](development/README.md)
+- [Development](development.md)
     - [Python](development/python.md)
     - [Rust](development/rust.md)
 

@@ -72,7 +72,7 @@ $S_{\rm{local}} = \{1, 2, 4, 3, 5, 6, 8, 7\}$ and $S_{\rm{local}} = S_{\rm{globa
 which is a special case not typically observed, as shown in more complex
 examples below.
 
-**Remark:** Input `.npy` and `.spn` files for the examples below can be found on the repository at [tests/input](https://github.com/autotwin/automesh/tree/main/tests/input).
+**Remark:** Input `.npy` and `.spn` files for the examples below can be found on the repository at [automesh/tests/input](https://github.com/autotwin/automesh/tree/main/tests/input).
 
 ## Double
 
