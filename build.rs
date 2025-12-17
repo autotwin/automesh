@@ -18,10 +18,8 @@ fn main() {
         let mut commit_info = hash.trim().to_string();
 
         // Check if there are uncommitted changes
-        if let Ok(status_output) = Command::new("git")
-            .args(["status", "--porcelain"])
-            .output()
-        && !status_output.stdout.is_empty()
+        if let Ok(status_output) = Command::new("git").args(["status", "--porcelain"]).output()
+            && !status_output.stdout.is_empty()
         {
             commit_info.push('+');
         }
@@ -32,8 +30,7 @@ fn main() {
     if let Ok(date_output) = Command::new("date")
         .arg("+%Y-%m-%dT%H:%M:%S%z") // // ISO 8601 format: YYYY-MM-DDTHH:MM:SS-offset
         .output()
-        && let Ok(time) = String::from_utf8
-        (date_output.stdout)
+        && let Ok(time) = String::from_utf8(date_output.stdout)
     {
         println!("cargo:rustc-env=BUILD_TIME={}", time.trim());
     }
