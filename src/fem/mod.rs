@@ -873,19 +873,113 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         triangular_finite_elements.node_element_connectivity()?;
         triangular_finite_elements.node_node_connectivity()?;
         triangular_finite_elements.refine(size.unwrap());
-        let _surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
+        let surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
         let (
             tree,
             samples,
-            _surface_element_node_connectivity,
-            _surface_node_element_connectivity,
-            _bins,
+            surface_element_node_connectivity,
+            surface_node_element_connectivity,
+            bins,
         ) = octree_from_surface(triangular_finite_elements, size);
-        let (hexahedral_finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
-        let removed_nodes = mark_outside_nodes(coordinates, samples, &tree);
+        let (hexahedral_finite_elements, coordinates_0) = HexesAndCoords::from(&tree).into();
+        let (mut removed_nodes, surface_nodes) = mark_outside_nodes(coordinates_0, samples, &tree);
+        //
+        // get exterior nodes from surface_nodes (maybe fine if not all exterior nodes, ones missing are probably interior far from surface)
+        // identify and remove nodes outside the surface
+        //
+        let coordinates = hexahedral_finite_elements.get_nodal_coordinates();
+        let rounded_coordinates: Vec<_> = coordinates // could use coordinates_0 if keep and could loop/collect over surface_nodes if change below (loop/enumerate over rounded_coordinates instead of index rounded_coordinates)
+            .iter()
+            .map(|coordinate| {
+                [
+                    ((coordinate[0] - tree.translate().x()) / tree.scale().x()).floor() as i16,
+                    ((coordinate[1] - tree.translate().y()) / tree.scale().y()).floor() as i16,
+                    ((coordinate[2] - tree.translate().z()) / tree.scale().z()).floor() as i16,
+                ]
+            })
+            .collect();
+        let voxel_grid: Vec<_> = (-2..=2)
+            .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
+            .collect();
+        let asdf: Nodes = surface_nodes
+            .iter()
+            .filter_map(|&exterior_node| {
+                let [i, j, k] = rounded_coordinates[exterior_node];
+                let mut nearby_surface_nodes: Nodes = voxel_grid
+                    .iter()
+                    .filter_map(|[i0, j0, k0]| {
+                        bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+                    })
+                    .flatten()
+                    .copied()
+                    .collect();
+                assert!(!nearby_surface_nodes.is_empty());
+                nearby_surface_nodes.sort();
+                nearby_surface_nodes.dedup();
+                let exterior_node_coordinates = &coordinates[exterior_node];
+                let (closest_node, _) = nearby_surface_nodes.iter().fold(
+                    (usize::MAX, f64::MAX),
+                    |(closest_node, minimum_distance_squared), &surface_node| {
+                        let distance_squared = (&surface_nodal_coordinates[surface_node]
+                            - exterior_node_coordinates)
+                            .norm_squared();
+                        if distance_squared < minimum_distance_squared {
+                            (surface_node, distance_squared)
+                        } else {
+                            (closest_node, minimum_distance_squared)
+                        }
+                    },
+                );
+                let (closest_triangle, closest_point, _) =
+                    surface_node_element_connectivity[closest_node].iter().fold(
+                        (0, Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                        |(closest_triangle, closest_point, minimum_distance_squared), &triangle| {
+                            let point = TriangularFiniteElements::closest_point(
+                                exterior_node_coordinates,
+                                &surface_nodal_coordinates,
+                                surface_element_node_connectivity[triangle],
+                            );
+                            let distance_squared =
+                                (exterior_node_coordinates - &point).norm_squared();
+                            if distance_squared < minimum_distance_squared {
+                                (triangle, point, distance_squared)
+                            } else {
+                                (closest_triangle, closest_point, minimum_distance_squared)
+                            }
+                        },
+                    );
+                let normal = TriangularFiniteElements::normal(
+                    &surface_nodal_coordinates,
+                    surface_element_node_connectivity[closest_triangle],
+                );
+                let cosine = normal * (exterior_node_coordinates - closest_point);
+                if cosine > 0.0 {
+                    Some(exterior_node)
+                } else if cosine < 0.0 {
+                    None
+                } else {
+                    panic!()
+                }
+            })
+            .collect();
+
+        // outside if vector to closest tri dotted with that tri's normal is negative?
+
+        removed_nodes.extend(asdf);
+
+        // why is this needed?
+        removed_nodes.sort();
+        removed_nodes.dedup();
+
         let finite_elements = hexahedral_finite_elements
             .remove_nodes(removed_nodes)
             .remove_orphan_nodes()?;
+
+        // now what happens below if nodes are close to (or even on) the surface?
+        // if add capability below to move them onto surface (and remove them from stitching consideration)
+        // would be easy maybe to just do the same above by returning None for nodes where distance is similarly small
+        // could do 0.2*Size or something for now
+
         // #[cfg(feature = "profile")]
         // let time = Instant::now();
         // let rounded_coordinates: Vec<_> = finite_elements
@@ -991,7 +1085,11 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
     }
 }
 
-fn mark_outside_nodes(coordinates: Coordinates, mut samples: Samples, tree: &Octree) -> Nodes {
+fn mark_outside_nodes(
+    coordinates: Coordinates,
+    mut samples: Samples,
+    tree: &Octree,
+) -> (Nodes, Nodes) {
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let mut i;
@@ -1028,26 +1126,29 @@ fn mark_outside_nodes(coordinates: Coordinates, mut samples: Samples, tree: &Oct
         }
         index += 1
     }
-    let removed_nodes = coordinates
+    let removed_and_surface_nodes: Vec<(usize, u8)> = coordinates
         .into_iter()
         .enumerate()
         .filter_map(|(node, coordinate)| {
-            if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
-                [coordinate[2].floor() as usize]
-                == 0
-            {
-                Some(node)
-            } else {
-                None
-            }
+            let bar = samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
+                [coordinate[2].floor() as usize];
+            if bar < 2 { Some((node, bar)) } else { None }
         })
+        .collect();
+    let removed_nodes = removed_and_surface_nodes
+        .iter()
+        .filter_map(|&(node, bar)| if bar == 0 { Some(node) } else { None })
+        .collect();
+    let surface_nodes = removed_and_surface_nodes
+        .into_iter()
+        .filter_map(|(node, bar)| if bar == 1 { Some(node) } else { None })
         .collect();
     #[cfg(feature = "profile")]
     println!(
         "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
         time.elapsed()
     );
-    removed_nodes
+    (removed_nodes, surface_nodes)
 }
 
 impl TryFrom<(Tessellation, Size)> for TetrahedralFiniteElements {
