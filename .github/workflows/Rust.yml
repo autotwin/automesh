@@ -52,7 +52,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
       - name: Info
-        run: sed -i "s/std::env::var(\"GIT_COMMIT_HASH\").unwrap_or(env!(\"CARGO_PKG_VERSION\").to_string()),/\"$(git rev-parse --short HEAD)\".to_string(),/" src/main.rs
+        run: sed -i "s/option_env!(\"GIT_COMMIT_HASH\").unwrap(),/\"$(git rev-parse --short HEAD)\".to_string(),/" src/main.rs
       - name: Package
         run: cargo package --allow-dirty
       - name: Login

@@ -42,7 +42,7 @@ macro_rules! about {
             format!("v{} {} {}", env!("CARGO_PKG_VERSION"), OS, ARCH,),
             format!(
                 "build {} {}",
-                option_env!("GIT_COMMIT_HASH").unwrap_or("crates.io"),
+                option_env!("GIT_COMMIT_HASH").unwrap(),
                 env!("BUILD_TIME"),
             ),
             env!("CARGO_PKG_AUTHORS").split(':').next().unwrap_or(""),
