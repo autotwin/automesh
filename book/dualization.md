@@ -9,11 +9,11 @@ Both quadrilateral and hexahedral elements will be discussed.
 
 With [`plot_quadtree_convention.py`](https://github.com/sandialabs/sibl/blob/master/geo/doc/plot_quadtree_convention.py), we create the following index scheme:
 
-![](mwe/plot_quadtree_convention.png)
+![](fig/plot_quadtree_convention.png)
 
 With [`fig_quadtree.tex`](https://github.com/sandialabs/sibl/blob/master/geo/doc/fig_quadtree.tex), we create the following image of the inverted tree:
 
-![](mwe/fig_quadtree.png)
+![](fig/fig_quadtree.png)
 
 With [`plot_quadtree.py`](https://github.com/sandialabs/sibl/blob/master/geo/doc/plot_quadtree.py), we plot a domain
 
@@ -22,11 +22,11 @@ With [`plot_quadtree.py`](https://github.com/sandialabs/sibl/blob/master/geo/doc
 
 Level 0 | 1 | 2
 --- | --- | ---
-![](mwe/plot_quadtree_L0.png) | ![](mwe/plot_quadtree_L1.png) | ![](mwe/plot_quadtree_L2.png)
+![](fig/plot_quadtree_L0.png) | ![](fig/plot_quadtree_L1.png) | ![](fig/plot_quadtree_L2.png)
 
 3 | 4 | 5
 --- | --- | ---
-![](mwe/plot_quadtree_L3.png) | ![](mwe/plot_quadtree_L4.png) | ![](mwe/plot_quadtree_L5.png)
+![](fig/plot_quadtree_L3.png) | ![](fig/plot_quadtree_L4.png) | ![](fig/plot_quadtree_L5.png)
 
 ### Circle from Segmentation
 
@@ -40,13 +40,13 @@ We illustrate the **segmentation start point** as it applies to quadtree formati
 
 3 | 4 | 5 | 6
 --- | --- | --- | ---
-![](code/circle_segmentation_diam_3.svg) | ![](code/circle_segmentation_diam_4.svg) | ![](code/circle_segmentation_diam_5.svg) | ![](code/circle_segmentation_diam_6.svg)
+![](fig/circle_segmentation_diam_3.svg) | ![](fig/circle_segmentation_diam_4.svg) | ![](fig/circle_segmentation_diam_5.svg) | ![](fig/circle_segmentation_diam_6.svg)
 
 13 | 14 | 15 | 16
 --- | --- | --- | ---
-![](code/circle_segmentation_diam_13.svg) | ![](code/circle_segmentation_diam_14.svg) | ![](code/circle_segmentation_diam_15.svg) | ![](code/circle_segmentation_diam_16.svg)
+![](fig/circle_segmentation_diam_13.svg) | ![](fig/circle_segmentation_diam_14.svg) | ![](fig/circle_segmentation_diam_15.svg) | ![](fig/circle_segmentation_diam_16.svg)
 
-![](code/circle_segmentation_diam_100.svg)
+![](fig/circle_segmentation_diam_100.svg)
 
 ### Circle from Boundary
 
@@ -58,15 +58,15 @@ We illustrate the **boundary start point** as it applies to quadtree formation.
 
 Consider a boundary of a circle defined by discrete `(x, y)` points.
 
-![](code/circle_loop_r_50_npts_36.svg)
+![](fig/circle_loop_r_50_npts_36.svg)
 
 Level 0 | 1 | 2
 --- | --- | ---
-| ![](code/quadtree_circle_level_0.svg) | ![](code/quadtree_circle_level_1.svg) | ![](code/quadtree_circle_level_2.svg)
+| ![](fig/quadtree_circle_level_0.svg) | ![](fig/quadtree_circle_level_1.svg) | ![](fig/quadtree_circle_level_2.svg)
 
 3 | 4 | 5
 --- | --- | ---
-![](code/quadtree_circle_level_3.svg) | ![](code/quadtree_circle_level_4.svg) | ![](code/quadtree_circle_level_5.svg)
+![](fig/quadtree_circle_level_3.svg) | ![](fig/quadtree_circle_level_4.svg) | ![](fig/quadtree_circle_level_5.svg)
 
 
 ### Circle from Tesellation
@@ -84,11 +84,11 @@ With [Python](#source), we produce a Quadtree with zero to five levels of refine
 
 Level 0 | 1 | 2
 --- | --- | ---
-| ![](code/quadtree_quarter_plate_level_0.svg) | ![](code/quadtree_quarter_plate_level_1.svg) | ![](code/quadtree_quarter_plate_level_2.svg)
+| ![](fig/quadtree_quarter_plate_level_0.svg) | ![](fig/quadtree_quarter_plate_level_1.svg) | ![](fig/quadtree_quarter_plate_level_2.svg)
 
 3 | 4 | 5
 --- | --- | ---
-![](code/quadtree_quarter_plate_level_3.svg) | ![](code/quadtree_quarter_plate_level_4.svg) | ![](code/quadtree_quarter_plate_level_5.svg)
+![](fig/quadtree_quarter_plate_level_3.svg) | ![](fig/quadtree_quarter_plate_level_4.svg) | ![](fig/quadtree_quarter_plate_level_5.svg)
 
 ## Octree
 

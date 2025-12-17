@@ -155,4 +155,8 @@ if __name__ == "__main__":
     ee = gap_energy(pairs=ps, mesh=mm, spring=SPRING)
     assert ee == 500.0
 
+    # Here we need a constraint on the vector locating the new postion of a pair
+    # of consolidated nodes.  For the two nodes, we know the position vectors from the
+    # source node (origin) to each of the to-be-consolidated nodes.
+
     print("Done.")

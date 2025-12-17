@@ -31,7 +31,7 @@ For each voxel, the eight nodes of the voxel are evaluated as outside (`0`) the 
 
 maniford | non-manifold
 :---: | :---:
-![](img/Luebke_2001_manifold.png) | ![](img/Luebke_2001_non-manifold.png)
+![](fig/Luebke_2001_manifold.png) | ![](fig/Luebke_2001_non-manifold.png)
 
 Figure: Reproduction of Luebke[^Luebke_2001] Figure 2 (left) showing a manifold mesh, and Figure 3 (right) showing a non-manifold mesh because of (a) an edge shared by more than two triangles, (b) a vertex shared by two unconnected sets of triangles, and (c) a T-junction vertex.
 
@@ -41,7 +41,7 @@ DC improves upon the MC algorithm.  DC uses the dual grid of the voxel data, loc
 
 Boris[^Boris_2025] created a figure, reproduced below, that illustrates the differences between MC and DC.
 
-![](img/Boris_MC_DC.png)
+![](fig/Boris_MC_DC.png)
 
 Figure: Reproduction of the figure from Boris[^Boris_2025], illustrating, in two dimentions, the differences between MC and DC.  White circle are outside points.  Black circles are inside points.  In MC, the red points indicate surface vertices at edge intersections.  In DC, the red points indicate surface vertices within a voxel.
 

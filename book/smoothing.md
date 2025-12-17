@@ -14,7 +14,7 @@ Consider a subject node with position $\boldsymbol{p} = \boldsymbol{p}(x, y, z) 
 
 For concereteness, consider a node with four neighbors, shown in the figure below.
 
-![node_p_q](node_p_q.png)
+![node_p_q](fig/node_p_q.png)
 
 Figure: The subject node $\boldsymbol{p}$ with edge connections (dotted lines) to neighbor nodes $\boldsymbol{q}_{i}$ with $i \in [1, n]$ (withouth loss of generality, the specific example of $n=4$ is shown).  The average position of all neighbors of $\boldsymbol{p}$ is denoted $\bar{\boldsymbol{q}}$, and the gap $\Delta \boldsymbol{p}$ (dashed line) originates at $\boldsymbol{p}$ and terminates at $\bar{\boldsymbol{q}}$.
 
@@ -79,7 +79,7 @@ $k$ | $\bar{\boldsymbol{q}}^{(k)}$ | $\boldsymbol{p}^{(k)}$ | $\Delta\boldsymbol
 9 | 0.5 | 0.540353607 | -0.040353607 | -0.012106082
 10 | 0.5 | 0.528247525 | -0.028247525 | -0.008474257
 
-![laplace_smoothing.png](laplace_smoothing.png)
+![laplace_smoothing.png](fig/laplace_smoothing.png)
 
 Figure: Convergence of position $\boldsymbol{p}$ toward $0.5$ as a function of iteration $k$.
 
@@ -154,15 +154,15 @@ as belonging to one of the following categories.
 
 This classification is shown below in figures.  All nodes in the mesh are categorized as `FREE` nodes:
 
-![free_nodes.png](free_nodes.png)
+![free_nodes.png](fig/free_nodes.png)
 
 Nodes that lie on the exterior and/or an interface are categoried as `BOUNDARY` nodes.  The remaining free nodes that are not `BOUNDARY` nodes are `INTERIOR` nodes.
 
-![boundary_and_interior_nodes.png](boundary_and_interior_nodes.png)
+![boundary_and_interior_nodes.png](fig/boundary_and_interior_nodes.png)
 
 Some `INTERIOR` and `BOUNDARY` nodes may be recategorized as `PRESCRIBED` nodes.
 
-![prescribed_nodes.png](prescribed_nodes.png)
+![prescribed_nodes.png](fig/prescribed_nodes.png)
 
 Note that this focuses on regular volumetric finite element meshes, and does not apply to certain other meshes.
 For example, manifold surface meshes embedded in three dimensions have only interior nodes, so hierarchical control would not apply.
@@ -198,7 +198,7 @@ Hierarchical control redefines a node's neighborhood according to the following 
 
 The following figure shows this concept:
 
-![hierarchy_sets_refactored](hierarchy_sets_refactored.png)
+![hierarchy_sets_refactored](fig/hierarchy_sets_refactored.png)
 
 Figure: Classification of nodes into categories of interior nodes $\mathbb{A}$, boundary nodes $\mathbb{B}$, and prescribed nodes $\mathbb{C}$.  Hierarchical relationship: An interior node's smooothing neighbors are nodes of any category, a boundary node's smoothing neighbors are other boundary nodes or other prescribed nodes, and prescribed nodes have no smoothing neighbors.
 
@@ -211,7 +211,7 @@ A `SideSet` is a set of nodes on the boundary of a domain, used to prescribe a b
 * A `SideSet` is composed of either exterior nodes or interface nodes.
 * Because a node can lie both on the exterior and on an interface, some nodes (shown in red) are included in both the exterior nodes and the interface nodes.
 
-![exterior_interface_nodes.png](exterior_interface_nodes.png)
+![exterior_interface_nodes.png](fig/exterior_interface_nodes.png)
 
 ### Chen Example
 

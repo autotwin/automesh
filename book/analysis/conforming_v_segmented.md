@@ -9,12 +9,12 @@ the boundary in a "stair-step" fashion, with nodal placement fixed on a regular,
 of cube-shaped elements.  A segmented mesh has a stair-step approximation
 of the curvature on the boundary.
 
-The meshes from the [Sphere with Shells](../sphere_with_shells/simulation.md) section illustrate these two mesh types:
+The meshes from the [Sphere with Shells](sphere_with_shells/simulation.md) section illustrate these two mesh types:
 
 conforming | segmented
 :---: | :---:
-![](../sphere_with_shells/img/resolution_2c.png) | ![](../sphere_with_shells/img/resolution_2.png)
-![](../sphere_with_shells/img/resolution_2c_iso.png) | ![](../sphere_with_shells/img/resolution_2_iso.png)
+![](sphere_with_shells/img/resolution_2c.png) | ![](sphere_with_shells/img/resolution_2.png)
+![](sphere_with_shells/img/resolution_2c_iso.png) | ![](sphere_with_shells/img/resolution_2_iso.png)
 
 Both the conforming and segmented meshes approximate the true geometry: a sphere with concentric shells.  Both approaches introduce error when used in finite element analysis in the calculation of quantities of interest, such as stress and strain.
 
@@ -26,7 +26,7 @@ To create a segmented version of a conforming mesh, we created the [`segment`](.
 
 ## Recovering the Segmented Sphere
 
-We use the `conf_0.5cm.g` file as our start point.  See the [Mesh Creation and Visualization](../sphere_with_shells/conforming.md#mesh-creation-and-visualization) section for a download link.  Our objective it to recover the segmented version of the model, shown above, using the `segment` command.
+We use the `conf_0.5cm.g` file as our start point.  See the [Mesh Creation and Visualization](sphere_with_shells/conforming.md#mesh-creation-and-visualization) section for a download link.  Our objective it to recover the segmented version of the model, shown above, using the `segment` command.
 
 ```sh
 # Clone the .g to .exo
@@ -86,7 +86,7 @@ file | `md5` checksum | size
 
 The model has 12 blocks composing the various anatomy of the head and brain, shown below.
 
-![All_Hex_Dec](./All_Hex_Dec.png)
+![All_Hex_Dec](fig/All_Hex_Dec.png)
 
 **Figure: RMU brain model `All_Hex_Dec.exo`**
 
@@ -102,23 +102,23 @@ The output files have the naming convention `test_x_y.exo` where
 * `y` is the element length in mm,
 * and `0p8` means `0.8 mm`.
 
-![test_1_1.png](./test_1_1.png)
+![test_1_1.png](fig/test_1_1.png)
 
 **Figure: `test_1_1.exo` created with options `--grid 1 --size 1`**
 
-![test_1_2.png](./test_1_2.png)
+![test_1_2.png](fig/test_1_2.png)
 
 **Figure: `test_1_2.exo` created with options `--grid 1 --size 2`**
 
-![test_1_3.png](./test_1_3.png)
+![test_1_3.png](fig/test_1_3.png)
 
 **Figure: `test_1_3.exo` created with options `--grid 1 --size 3`**
 
-![test_2_1.png](./test_2_1.png)
+![test_2_1.png](fig/test_2_1.png)
 
 **Figure: `test_2_1.exo` created with options `--grid 2 --size 1`**
 
-![test_3_0p8.png](./test_3_0p8.png)
+![test_3_0p8.png](fig/test_3_0p8.png)
 
 **Figure: `test_3_0p8.exo` created with options `--grid 3 --size 0.8`**
 
@@ -126,7 +126,7 @@ The output files have the naming convention `test_x_y.exo` where
 
 `All_Hex_Dec.exo` | `test_3_0p8.exo`
 :---: | :---:
-![All_Hex_Dec](./All_Hex_Dec.png) | ![test_3_0p8](./test_3_0p8.png)
+![All_Hex_Dec](fig/All_Hex_Dec.png) | ![test_3_0p8](fig/test_3_0p8.png)
 
 ## Convert to `.inp` and scale from mm to meters
 
