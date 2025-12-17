@@ -50,8 +50,8 @@ macro_rules! about {
                 option_env!("GIT_COMMIT_HASH").unwrap_or("0000000"),
                 env!("BUILD_TIME"),
             ),
-            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[0],
-            env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[1],
+            env!("CARGO_PKG_AUTHORS").split(':').next().unwrap_or(""),
+            env!("CARGO_PKG_AUTHORS").split(':').nth(1).unwrap_or(""),
         )
     };
 }
