@@ -55,5 +55,5 @@ Figure: Sphere segmentations with cutting plane of (left) `spheres_resolution_1.
 ### `spheres_cont.py`
 
 ```python
-<!-- cmdrun cat spheres_cont.py -->
+<!-- cmdrun cat sphere_with_shells/spheres_cont.py -->
 ```
