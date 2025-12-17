@@ -17,15 +17,9 @@ impl From<Octree> for Tessellation {
 }
 
 type Bins = HashMap<[usize; NSD], Vec<usize>>;
-pub type Samples = Vec<Vec<Vec<bool>>>;
+pub type Samples = Vec<Vec<Vec<u8>>>;
 
-type OctreeAndStuff = (
-    Octree,
-    Vec<Vec<Vec<bool>>>,
-    Connectivity<TRI>,
-    VecConnectivity,
-    HashMap<[usize; NSD], Vec<usize>>,
-);
+type OctreeAndStuff = (Octree, Samples, Connectivity<TRI>, VecConnectivity, Bins);
 
 pub fn octree_from_surface(
     triangular_finite_elements: TriangularFiniteElements,
@@ -130,13 +124,13 @@ fn bin_samples_on_surface(nel: Nel, surface_coordinates: Coordinates) -> (Bins, 
         })
         .collect();
     let (nel_x, nel_y, nel_z) = nel.into();
-    let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+    let mut samples = vec![vec![vec![2; nel_x]; nel_y]; nel_z];
     let mut bins = HashMap::<_, Vec<_>>::new();
     rounded
         .into_iter()
         .enumerate()
         .for_each(|(node, [i, j, k])| {
-            samples[i][j][k] = true;
+            samples[i][j][k] = 1;
             bins.entry([i, j, k]).or_default().push(node);
         });
     (bins, samples)
