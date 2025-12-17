@@ -13,7 +13,7 @@ use std::time::Instant;
 
 use crate::{
     Coordinate, Coordinates, NSD, Tessellation, Vector,
-    tree::{HexesAndCoords, octree_from_surface},
+    tree::{HexesAndCoords, Octree, Samples, octree_from_surface},
 };
 use chrono::Utc;
 use conspire::{
@@ -876,66 +876,13 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         let surface_nodal_coordinates = triangular_finite_elements.get_nodal_coordinates().clone();
         let (
             tree,
-            mut samples,
+            samples,
             surface_element_node_connectivity,
             surface_node_element_connectivity,
             bins,
         ) = octree_from_surface(triangular_finite_elements, size);
         let (hexahedral_finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let mut i;
-        let mut j;
-        let mut k;
-        let mut index = 0;
-        let mut indices = vec![[0, 0, 0]];
-        let lim = (tree.nel().x() - 1) as u16;
-        while index < indices.len() {
-            [i, j, k] = indices[index];
-            if i > 0 && !samples[(i - 1) as usize][j as usize][k as usize] {
-                samples[(i - 1) as usize][j as usize][k as usize] = true;
-                indices.push([i - 1, j, k]);
-            }
-            if i < lim && !samples[(i + 1) as usize][j as usize][k as usize] {
-                samples[(i + 1) as usize][j as usize][k as usize] = true;
-                indices.push([i + 1, j, k]);
-            }
-            if j > 0 && !samples[i as usize][(j - 1) as usize][k as usize] {
-                samples[i as usize][(j - 1) as usize][k as usize] = true;
-                indices.push([i, j - 1, k]);
-            }
-            if j < lim && !samples[i as usize][(j + 1) as usize][k as usize] {
-                samples[i as usize][(j + 1) as usize][k as usize] = true;
-                indices.push([i, j + 1, k]);
-            }
-            if k > 0 && !samples[i as usize][j as usize][(k - 1) as usize] {
-                samples[i as usize][j as usize][(k - 1) as usize] = true;
-                indices.push([i, j, k - 1]);
-            }
-            if k < lim && !samples[i as usize][j as usize][(k + 1) as usize] {
-                samples[i as usize][j as usize][(k + 1) as usize] = true;
-                indices.push([i, j, k + 1]);
-            }
-            index += 1
-        }
-        let removed_nodes = coordinates
-            .into_iter()
-            .enumerate()
-            .filter_map(|(node, coordinate)| {
-                if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
-                    [coordinate[2].floor() as usize]
-                {
-                    Some(node)
-                } else {
-                    None
-                }
-            })
-            .collect();
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
-            time.elapsed()
-        );
+        let removed_nodes = mark_outside_nodes(coordinates, samples, &tree);
         let mut finite_elements = hexahedral_finite_elements
             .remove_nodes(removed_nodes)
             .remove_orphan_nodes()?;
@@ -1042,6 +989,64 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         );
         Ok(finite_elements)
     }
+}
+
+fn mark_outside_nodes(coordinates: Coordinates, mut samples: Samples, tree: &Octree) -> Nodes {
+    #[cfg(feature = "profile")]
+    let time = Instant::now();
+    let mut i;
+    let mut j;
+    let mut k;
+    let mut index = 0;
+    let mut indices = vec![[0, 0, 0]];
+    let lim = (tree.nel().x() - 1) as u16;
+    while index < indices.len() {
+        [i, j, k] = indices[index];
+        if i > 0 && !samples[(i - 1) as usize][j as usize][k as usize] {
+            samples[(i - 1) as usize][j as usize][k as usize] = true;
+            indices.push([i - 1, j, k]);
+        }
+        if i < lim && !samples[(i + 1) as usize][j as usize][k as usize] {
+            samples[(i + 1) as usize][j as usize][k as usize] = true;
+            indices.push([i + 1, j, k]);
+        }
+        if j > 0 && !samples[i as usize][(j - 1) as usize][k as usize] {
+            samples[i as usize][(j - 1) as usize][k as usize] = true;
+            indices.push([i, j - 1, k]);
+        }
+        if j < lim && !samples[i as usize][(j + 1) as usize][k as usize] {
+            samples[i as usize][(j + 1) as usize][k as usize] = true;
+            indices.push([i, j + 1, k]);
+        }
+        if k > 0 && !samples[i as usize][j as usize][(k - 1) as usize] {
+            samples[i as usize][j as usize][(k - 1) as usize] = true;
+            indices.push([i, j, k - 1]);
+        }
+        if k < lim && !samples[i as usize][j as usize][(k + 1) as usize] {
+            samples[i as usize][j as usize][(k + 1) as usize] = true;
+            indices.push([i, j, k + 1]);
+        }
+        index += 1
+    }
+    let removed_nodes = coordinates
+        .into_iter()
+        .enumerate()
+        .filter_map(|(node, coordinate)| {
+            if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
+                [coordinate[2].floor() as usize]
+            {
+                Some(node)
+            } else {
+                None
+            }
+        })
+        .collect();
+    #[cfg(feature = "profile")]
+    println!(
+        "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
+        time.elapsed()
+    );
+    removed_nodes
 }
 
 impl TryFrom<(Tessellation, Size)> for TetrahedralFiniteElements {

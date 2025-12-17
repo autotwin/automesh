@@ -16,6 +16,9 @@ impl From<Octree> for Tessellation {
     }
 }
 
+type Bins = HashMap<[usize; NSD], Vec<usize>>;
+pub type Samples = Vec<Vec<Vec<bool>>>;
+
 type OctreeAndStuff = (
     Octree,
     Vec<Vec<Vec<bool>>>,
@@ -38,26 +41,7 @@ pub fn octree_from_surface(
         let mut tree = octree_from_bounding_cube(&mut surface_coordinates, size);
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let rounded: Vec<[_; NSD]> = surface_coordinates
-            .into_iter()
-            .map(|coordinates| {
-                [
-                    coordinates[0].floor() as usize,
-                    coordinates[1].floor() as usize,
-                    coordinates[2].floor() as usize,
-                ]
-            })
-            .collect();
-        let (nel_x, nel_y, nel_z) = tree.nel().into();
-        let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
-        let mut bins = HashMap::<_, Vec<_>>::new();
-        rounded
-            .into_iter()
-            .enumerate()
-            .for_each(|(node, [i, j, k])| {
-                samples[i][j][k] = true;
-                bins.entry([i, j, k]).or_default().push(node);
-            });
+        let (bins, samples) = bin_samples_on_surface(tree.nel(), surface_coordinates);
         let mut index = 0;
         while index < tree.len() {
             if tree[index].is_voxel() || !tree[index].any_samples_inside(&samples) {
@@ -132,4 +116,28 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
         time.elapsed()
     );
     tree
+}
+
+fn bin_samples_on_surface(nel: Nel, surface_coordinates: Coordinates) -> (Bins, Samples) {
+    let rounded: Vec<[_; NSD]> = surface_coordinates
+        .into_iter()
+        .map(|coordinates| {
+            [
+                coordinates[0].floor() as usize,
+                coordinates[1].floor() as usize,
+                coordinates[2].floor() as usize,
+            ]
+        })
+        .collect();
+    let (nel_x, nel_y, nel_z) = nel.into();
+    let mut samples = vec![vec![vec![false; nel_x]; nel_y]; nel_z];
+    let mut bins = HashMap::<_, Vec<_>>::new();
+    rounded
+        .into_iter()
+        .enumerate()
+        .for_each(|(node, [i, j, k])| {
+            samples[i][j][k] = true;
+            bins.entry([i, j, k]).or_default().push(node);
+        });
+    (bins, samples)
 }
