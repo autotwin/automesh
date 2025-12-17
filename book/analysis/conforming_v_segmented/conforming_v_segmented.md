@@ -4,7 +4,7 @@ We define a **conforming mesh** as a traditional finite element mesh that
 has nodal placement on the boundary of the geometry approximated by the mesh.
 A conforming mesh has a piecewise approximation of the curvature on the boundary.
 
-In contrast, a **segmented mesh** (also known as a **voxelized** or "sugar-cube" mesh) is composed of voxels that approximate
+In contrast, a **segmented mesh** (also known as a **voxelized** or **"sugar-cube"** mesh) is composed of voxels that approximate
 the boundary in a "stair-step" fashion, with nodal placement fixed on a regular, uniform grid
 of cube-shaped elements.  A segmented mesh has a stair-step approximation
 of the curvature on the boundary.

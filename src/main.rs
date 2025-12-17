@@ -40,11 +40,12 @@ macro_rules! about {
      @@@@@@@@@@@@@@@@",
             env!("CARGO_PKG_NAME"),
             format!(
-                "v{} build {} {} {}",
+                "v{} build {} {} {} {}",
                 env!("CARGO_PKG_VERSION"),
                 std::env::var("GIT_COMMIT_HASH").unwrap_or(env!("CARGO_PKG_VERSION").to_string()),
                 OS,
                 ARCH,
+                env!("BUILD_TIME"),
             ),
             env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[0],
             env!("CARGO_PKG_AUTHORS").split(":").collect::<Vec<&str>>()[1],
