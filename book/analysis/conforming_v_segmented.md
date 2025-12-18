@@ -32,40 +32,8 @@ We use the `conf_0.5cm.g` file as our start point.  See the [Mesh Creation and V
 # Clone the .g to .exo
 cp conf_0.5cm.g conf_0.5cm.exo
 
-# Use automesh to convert the .exo to a .npy
-# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm.npy -g 1 -s 0.5 -r 0
-# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm.npy -g 2 -s 0.5 -r 255
-# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm.npy -g 3 -s 0.5 -r 255
-# automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_orig.exo -g 2 -s 0.5 -r 255
-automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_orig.exo -g 2 -s 0.5
-
-# why no .inp output? available
-automesh convert mesh hex -i conf_0.5cm_vox_orig.exo conf_0.5_vox_orig.inp
-```
-
-```sh
-# Investigate the `.npy` using Python
-# 
-# ```python
-# import numpy as np
-# arr = np.load("conf_0.5cm.npy")
-# values, counts = np.unique(arr, return_counts=True)
-# 
-# values
-#   array([  1,   2,   3, 255], dtype=uint8)
-# 
-# counts
-# #  array([ 31840,  11760,  10968, 207576])
-# #  array([ 31960,  11760,  10968, 207576])
-#   array([ 33072,  11648,  12800, 207576])
-# print(counts)
-# ```
-# 
-# Create a segmented mesh from the `.npy` file
-# 
-# ```sh
-# automesh mesh hex -i conf_0.5cm.npy -o conf_0.5cm_vox.exo -r 255
-# ```
+automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_recreate.exo -g 2 -s 0.5
+automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_recreate.inp -g 2 -s 0.5
 ```
 
 ## RMU Brain Model
