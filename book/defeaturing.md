@@ -22,5 +22,5 @@ Figure:  (left) Four circular blobs with noise (`blobs.npy`) used as input to th
 ### `defeature.py`
 
 ```python
-<!-- cmdrun cat defeature.py -->
+<!-- cmdrun cat defeature/defeature.py -->
 ```
