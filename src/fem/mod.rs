@@ -962,7 +962,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             })
             .collect();
 
-        // can collect nodes below the tolerance too to start the list of nodes 
+        // can collect nodes below the tolerance too to start the list of nodes
 
         removed_nodes.extend(asdf);
 
@@ -1009,13 +1009,16 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         let coordinates = finite_elements.get_nodal_coordinates();
         let rounded_coordinates: Vec<_> = exterior_nodes
             .iter()
-            .map(|&exterior_node|
+            .map(|&exterior_node| {
                 [
-                    ((coordinates[exterior_node][0] - tree.translate().x()) / tree.scale().x()).floor() as i16,
-                    ((coordinates[exterior_node][1] - tree.translate().y()) / tree.scale().y()).floor() as i16,
-                    ((coordinates[exterior_node][2] - tree.translate().z()) / tree.scale().z()).floor() as i16,
+                    ((coordinates[exterior_node][0] - tree.translate().x()) / tree.scale().x())
+                        .floor() as i16,
+                    ((coordinates[exterior_node][1] - tree.translate().y()) / tree.scale().y())
+                        .floor() as i16,
+                    ((coordinates[exterior_node][2] - tree.translate().z()) / tree.scale().z())
+                        .floor() as i16,
                 ]
-            )
+            })
             .collect();
         // let voxel_grid: Vec<_> = (-2..=2)
         //     .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
@@ -1035,7 +1038,8 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 assert!(!nearby_surface_nodes.is_empty());
                 nearby_surface_nodes.sort();
                 nearby_surface_nodes.dedup();
-                let exterior_node_coordinates = &finite_elements.get_nodal_coordinates()[exterior_node];
+                let exterior_node_coordinates =
+                    &finite_elements.get_nodal_coordinates()[exterior_node];
                 let (closest_node, _) = nearby_surface_nodes.iter().fold(
                     (usize::MAX, f64::MAX),
                     |(closest_node, minimum_distance_squared), &surface_node| {
@@ -1101,28 +1105,19 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     if let Some(b) = surface_nodes_map[node_1] {
                         if let Some(c) = surface_nodes_map[node_2] {
                             if let Some(d) = surface_nodes_map[node_3] {
-                                Some([
-                                    node_0,
-                                    node_1,
-                                    node_2,
-                                    node_3,
-                                    a,
-                                    b,
-                                    c,
-                                    d,
-                                ])
+                                Some([node_0, node_1, node_2, node_3, a, b, c, d])
                             } else {
                                 None
                             }
                         } else {
-                                None
-                            }
+                            None
+                        }
                     } else {
-                                None
-                            }
+                        None
+                    }
                 } else {
-                                None
-                            }
+                    None
+                }
                 // [
                 //     node_0,
                 //     node_1,
