@@ -1088,16 +1088,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset)
             });
         finite_elements.nodal_coordinates.extend(new_coordinates);
-        //
-        // need to handle cases where one or more nodes of the face have already been moved onto the surface
-        // can index the surface_nodes_map to get the node back! might need to use None or Some() in the map though
-        //
-        // no, will have to add onto the map somehow!
-        //
-        // see how you create wedges => need to not project those other nodes and instead connect to them (fold the wedge, kind of like node consolidation!)
-        //
-        // also seems that in most (all?) cases, you need to bring either all 4 nodes of a face up, or none of them!
-        //
         let new_hexes: Connectivity<HEX> = exterior_faces
             .into_iter()
             .filter_map(|[node_0, node_1, node_2, node_3]| {
