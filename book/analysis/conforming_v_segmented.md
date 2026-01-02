@@ -32,9 +32,17 @@ We use the `conf_0.5cm.g` file as our start point.  See the [Mesh Creation and V
 # Clone the .g to .exo
 cp conf_0.5cm.g conf_0.5cm.exo
 
-automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_recreate.exo -g 2 -s 0.5
-automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_recreate.inp -g 2 -s 0.5
+automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_segmented_g2_s0p5.exo -g 2 -s 0.5
+automesh segment hex -i conf_0.5cm.exo -o conf_0.5cm_vox_segmented_g2_s0p5.inp -g 2 -s 0.5
 ```
+
+The resulting mesh from `conf_0.5cm_segmented_g2_s0p5.exo` is shown (with a cut plane to show the interior) below:
+
+midline | isometric
+--- | ---
+![conf_0.5cm_segmented_g2_s0p5_exo](fig/conf_0.5cm_segmented_g2_s0p5_exo.jpg) | ![conf_0.5cm_segmented_g2_s0p5_exo_iso](fig/conf_0.5cm_segmented_g2_s0p5_exo_iso.jpg)
+
+The `conf_0.5cm_segmented_g2_s0p5.inp` file mesh matches `conf_0.5cm_segmented_g2_s0p5.exo` exactly.  Note that these new segmented meshes are slightly different from the original segmentations since they are created from a conforming mesh source.
 
 ## RMU Brain Model
 
@@ -105,7 +113,3 @@ automesh segment hex --input All_Hex_Dec.inp --output test_2_1.npy --grid 2 --si
 # mesh and scale voxelized npy to voxelized inp
 automesh mesh hex --input test_2_1.npy --output test_2_1e-3.inp --xscale 0.001 --yscale 0.001 --zscale 0.001
 ```
-
-file | `md5` checksum | size | units
-:---: | :---: | :---: | :---:
-[`test_2_1e-3m.inp`]() | `` | xxx MB | m
