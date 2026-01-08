@@ -59,6 +59,7 @@ file | `md5` checksum | size
 [`test_1_3.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/EUsr5WUMGC5HpU5gbc6MIvYBikf3payAmtWGPtlZxjpEog?e=wBRYZv) | `50da29122a0435672e62156308120ea9` | 4 MB
 [`test_2_1.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/ETotW7_4XSxAtEPO0iZofI4BJ_n7H6MWsK0sgIKt2_J-RQ?e=eEF6Me) | `d108b4fe0aa524610fbe036e337fc6e1` | 105 MB
 [`test_3_0p8.exo`](https://1drv.ms/u/c/3cc1bee5e2795295/Ec-kJ6y0TSJDoPicl9mxNpsB18imZdEslq0EEUPKcaTI-w?e=BY6PL2) | `60dddb70a9b018b4a25a35850c676eb6` | 205 MB
+[`test_3_0p8.inp`](https://1drv.ms/u/c/3cc1bee5e2795295/IQB11l7P8Fh-RLG0GYCt-6yPAU5SVuVM20WusvGynPYc8Oo?e=abFys3) | `63da6d1266a86561209ccda5f69bca23` | 541 MB
 
 The model has 12 blocks composing the various anatomy of the head and brain, shown below.
 
@@ -103,13 +104,3 @@ The output files have the naming convention `test_x_y.exo` where
 `All_Hex_Dec.exo` | `test_3_0p8.exo`
 :---: | :---:
 ![All_Hex_Dec](fig/All_Hex_Dec.png) | ![test_3_0p8](fig/test_3_0p8.png)
-
-## Convert to `.inp` and scale from mm to meters
-
-```sh
-# convert conforming inp to voxelized npy
-automesh segment hex --input All_Hex_Dec.inp --output test_2_1.npy --grid 2 --size 1
-
-# mesh and scale voxelized npy to voxelized inp
-automesh mesh hex --input test_2_1.npy --output test_2_1e-3.inp --xscale 0.001 --yscale 0.001 --zscale 0.001
-```
