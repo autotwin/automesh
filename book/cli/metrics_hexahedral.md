@@ -200,6 +200,176 @@ face | nodes
 4 | 3, 2, 1, 0
 5 | 4, 5, 6, 7
 
+## Formulation
+
+For a hexahedral element with eight nodes, the scaled Jacobian at each node is computed as:
+
+$$J_{\text{scaled}} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}
+$$
+
+where:
+
+* $\mathbf{u}$, $\mathbf{v}$, and $\mathbf{w}$ are edge vectors emanating from the node,
+* $\mathbf{n} = \mathbf{u} \times \mathbf{v}$ is the cross product of the first two edge vectors, and
+* $\|\cdot\|$ denotes the Euclidean norm.
+
+The minimum scaled Jacobian for the element is:
+
+$$
+J_{\text{min}} = \min_{i=0}^{7} J_{\text{scaled}}^{(i)}
+$$
+
+### Node Numbering Convention
+
+The hexahedral element uses the following local node numbering (standard convention):
+       
+```src
+       7----------6
+      /|         /|
+     / |        / |
+    4----------5  |
+    |  |       |  |
+    |  3-------|--2
+    | /        | /
+    |/         |/
+    0----------1
+```
+
+## Edge Vectors at Each Node
+
+For each node $i$, three edge vectors are defined that point to adjacent nodes. The connectivity follows this pattern:
+
+| Node | $\mathbf{u}$ | $\mathbf{v}$ | $\mathbf{w}$ | Edge Vector Definitions |
+|------|--------------|--------------|--------------|-------------------------|
+| 0    | →  1     | →  3     | →  4     | $\mathbf{u} = \mathbf{x}_1 - \mathbf{x}_0$, $\mathbf{v} = \mathbf{x}_3 - \mathbf{x}_0$, $\mathbf{w} = \mathbf{x}_4 - \mathbf{x}_0$ |
+| 1    | →  2     | →  0     | →  5     | $\mathbf{u} = \mathbf{x}_2 - \mathbf{x}_1$, $\mathbf{v} = \mathbf{x}_0 - \mathbf{x}_1$, $\mathbf{w} = \mathbf{x}_5 - \mathbf{x}_1$ |
+| 2    | →  3     | →  1     | →  6     | $\mathbf{u} = \mathbf{x}_3 - \mathbf{x}_2$, $\mathbf{v} = \mathbf{x}_1 - \mathbf{x}_2$, $\mathbf{w} = \mathbf{x}_6 - \mathbf{x}_2$ |
+| 3    | →  0     | →  2     | →  7     | $\mathbf{u} = \mathbf{x}_0 - \mathbf{x}_3$, $\mathbf{v} = \mathbf{x}_2 - \mathbf{x}_3$, $\mathbf{w} = \mathbf{x}_7 - \mathbf{x}_3$ |
+| 4    | →  7     | →  5     | →  0     | $\mathbf{u} = \mathbf{x}_7 - \mathbf{x}_4$, $\mathbf{v} = \mathbf{x}_5 - \mathbf{x}_4$, $\mathbf{w} = \mathbf{x}_0 - \mathbf{x}_4$ |
+| 5    | →  4     | →  6     | →  1     | $\mathbf{u} = \mathbf{x}_4 - \mathbf{x}_5$, $\mathbf{v} = \mathbf{x}_6 - \mathbf{x}_5$, $\mathbf{w} = \mathbf{x}_1 - \mathbf{x}_5$ |
+| 6    | →  5     | →  7     | →  2     | $\mathbf{u} = \mathbf{x}_5 - \mathbf{x}_6$, $\mathbf{v} = \mathbf{x}_7 - \mathbf{x}_6$, $\mathbf{w} = \mathbf{x}_2 - \mathbf{x}_6$ |
+| 7    | →  6     | →  4     | →  3     | $\mathbf{u} = \mathbf{x}_6 - \mathbf{x}_7$, $\mathbf{v} = \mathbf{x}_4 - \mathbf{x}_7$, $\mathbf{w} = \mathbf{x}_3 - \mathbf{x}_7$ |
+
+where $\mathbf{x}_i$ is the position of node $i$.
+
+## Algorithm
+
+1. **For each element in the mesh:**
+
+   a. Extract the 8 node indices from the connectivity array
+   
+   b. **For each node $i \in \{0, 1, \ldots, 7\}$:**
+      
+      - Compute edge vectors:
+        $$\mathbf{u} = \mathbf{x}_j - \mathbf{x}_i$$
+        $$\mathbf{v} = \mathbf{x}_k - \mathbf{x}_i$$
+        $$\mathbf{w} = \mathbf{x}_\ell - \mathbf{x}_i$$
+        where $j$, $k$, $\ell$ are adjacent nodes per the table above
+      
+      - Compute cross product: $\mathbf{n} = \mathbf{u} \times \mathbf{v}$
+      
+      - Compute scaled Jacobian:
+        $$J_{\text{scaled}}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}$$
+   
+   c. Take minimum over all 8 nodes:
+      $$J_{\text{min}} = \min_{i=0}^{7} J_{\text{scaled}}^{(i)}$$
+
+2. **Return** the vector of minimum scaled Jacobians, one per element
+
+## Implementation
+
+This prototyptical Rust implementation calculates the MSJ by evaluating the Jacobian at each of the eight corners using the edges connected to that corner.
+
+```rust
+struct Vector3 {
+    x: f64,
+    y: f64,
+    z: f64,
+}
+
+impl Vector3 {
+    fn sub(a: &Vector3, b: &Vector3) -> Vector3 {
+        Vector3 { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }
+    }
+
+    fn dot(a: &Vector3, b: &Vector3) -> f64 {
+        a.x * b.x + a.y * b.y + a.z * b.z
+    }
+
+    fn cross(a: &Vector3, b: &Vector3) -> Vector3 {
+        Vector3 {
+            x: a.y * b.z - a.z * b.y,
+            y: a.z * b.x - a.x * b.z,
+            z: a.x * b.y - a.y * b.x,
+        }
+    }
+
+    fn norm(&self) -> f64 {
+        (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
+    }
+}
+
+/// Calculates the Minimum Scaled Jacobian for a hexahedron.
+/// nodes: An array of 8 points ordered by standard FEM convention.
+pub fn min_scaled_jacobian(nodes: &[Vector3; 8]) -> f64 {
+    // Define the three edges meeting at each of the 8 corners
+    // Corners are ordered: 0-3 (bottom face), 4-7 (top face)
+    // For each node index: (current_node, u_target, v_target, w_target)
+    let corner_indices = [
+        (0, 1, 3, 4), // Corner 0: edges to 1, 3, 4
+        (1, 2, 0, 5), // Corner 1: edges to 2, 0, 5
+        (2, 3, 1, 6), // Corner 2: edges to 3, 1, 6
+        (3, 0, 2, 7), // Corner 3: edges to 0, 2, 7
+        (4, 7, 5, 0), // Corner 4: edges to 7, 5, 0
+        (5, 4, 6, 1), // Corner 5: edges to 4, 6, 1
+        (6, 5, 7, 2), // Corner 6: edges to 5, 7, 2
+        (7, 6, 4, 3), // Corner 7: edges to 6, 4, 3
+    ];
+
+    let mut min_sj = f64::MAX;
+    const EPSILON: f64 = 1e-15; // Small threshold to avoid division by zero
+
+    for &(curr, i, j, k) in &corner_indices {
+        // Calculate edge vectors: u, v, w from current node
+        let u = Vector3::sub(&nodes[i], &nodes[curr]);
+        let v = Vector3::sub(&nodes[j], &nodes[curr]);
+        let w = Vector3::sub(&nodes[k], &nodes[curr]);
+
+        // Calculate n = u × v
+        let n = Vector3::cross(&u, &v);
+
+        // Calculate scaled Jacobian: (n · w) / (||u|| * ||v|| * ||w||)
+        let det = Vector3::dot(&n, &w);
+        let lengths = u.norm() * v.norm() * w.norm();
+
+        // Avoid division by zero for degenerate elements
+        let sj = if lengths > EPSILON {
+            det / lengths
+        } else {
+            f64::NEG_INFINITY // Flag completely degenerate elements
+        };
+
+        if sj < min_sj {
+            min_sj = sj;
+        }
+    }
+
+    min_sj
+}
+```
+
+## Interpretation
+
+- **$J_{\text{min}} = 1.0$**: Perfect rectangular element
+- **$J_{\text{min}} > 0$**: Element is valid (positive Jacobian)
+- **$J_{\text{min}} = 0$**: Degenerate element (zero volume)
+- **$J_{\text{min}} < 0$**: Invalid element (inverted/negative Jacobian)
+
+Typically, mesh quality requirements specify $J_{\text{min}} > 0.3$ for acceptable elements.
+
+## Implementation Notes
+
+The implementation evaluates all 8 nodes of each element and returns the minimum value. This ensures that element distortion at any corner is captured, as poor quality at a single node can affect finite element solution accuracy.
 
 ## References
 
