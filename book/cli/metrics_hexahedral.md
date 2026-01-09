@@ -212,7 +212,7 @@ face | nodes
 
 For a hexahedral element with eight nodes, the scaled Jacobian at each node is computed as:
 
-$$J_{\text{scaled}} = \hat{J} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}
+$$J_{\text{scaled}} = \hat{J} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|}
 $$
 
 where:
@@ -277,7 +277,7 @@ where $\mathbf{x}_i$ is the position of node $i$.
       - Compute cross product: $\mathbf{n} = \mathbf{u} \times \mathbf{v}$
       
       - Compute scaled Jacobian:
-        $$\hat{J}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}$$
+        $$\hat{J}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|}$$
    
    c. Take minimum over all 8 nodes:
       $$\hat{J}_{\min} = \min \{\hat{J}^{(i)}\}_{i=0}^{7}$$
@@ -369,6 +369,54 @@ pub fn min_scaled_jacobian(nodes: &[Vector3; 8]) -> f64 {
 ### Implementation Notes
 
 The implementation evaluates all 8 nodes of each element and returns the minimum value. This ensures that element distortion at any corner is captured, as poor quality at a single node can affect finite element solution accuracy.
+
+## Node-based $\hat{J}_{\min}$ Improvement
+
+Node based $\hat{J}_{\min}$ improvement seeks to reformulate traditional
+minimum scaled Jacobian formulation, which focus on the minimum value
+on a **per element** basis, and cast the calculation as a *weighted*
+minimum value on a **per node** basis.  
+
+* This calculation produces the
+incremental movement of the subject node that would result in an improved minimum scaled Jacobian.
+* The development follows an incremental update of nodal position, similar
+to the update formulation of Laplace and Taubin [smoothing](./../smoothing.md).)
+
+### Element Valence
+
+Typically, we think about nodal valence, but another similar concept, element valence, can be useful.
+
+We define **nodal valence** as the number of nodes connected via an element edge to the subject node.  For a hexahedral mesh, the minimum nodal valence is three (for a node at an external corner of an element); the maximim nodal valence eight (for a node on the internal portion of the mesh).
+
+We define **element valence** as the number of elements connected via an element connectivity to the subject node.   For a hexahedral mesh, the minimum element valence is one (for a node at an external corner of an element); the maximum nodal valence is eight (for a node on the internal portion of the mesh).  Let $n_{\text{ev}} \subset [1, 8]$ denote the element valence for a particular node.
+
+For a given subject node with position $\mathbf{e}$ connected to one-to-eight elements, for the $e^{\text{th}}$ element, $e=0 \ldots n_{\text{ev}}-1$, find the three edge-connected element nodes, located at position $\mathbf{a}, \mathbf{b}$, and $\mathbf{c}$.
+
+The current scaled Jacobian $\hat{J}^{(k)}$ is defined by the current location of $\mathbf{e}^{(k)}$, holding positions of $\mathbf{a}, \mathbf{b}$, $\mathbf{c}$ constant:
+
+$$
+\hat{J}^{(k)} := \frac{\left[ (\mathbf{a} - \mathbf{e}^{(k)}) \times (\mathbf{b} - \mathbf{e}^{(k)}) \right] \cdot (\mathbf{c} - \mathbf{e}^{(k)})}{\|\mathbf{a} - \mathbf{e}^{(k)}\| \; \|\mathbf{b} - \mathbf{e}^{(k)}\| \; \|\mathbf{c} - \mathbf{e}^{(k)}\|}
+$$
+
+From this definition, we define an **ideal** nodal position $\mathbf{e}^{*}$ that exactly produces a scaled Jacobian of one:
+
+$$
+\hat{J}^{*} := \frac{\left[ (\mathbf{a} - \mathbf{e}^{*}) \times (\mathbf{b} - \mathbf{e}^{*}) \right] \cdot (\mathbf{c} - \mathbf{e}^{*})}{\|\mathbf{a} - \mathbf{e}^{*}\| \; \|\mathbf{b} - \mathbf{e}^{*}\| \; \|\mathbf{c} - \mathbf{e}^{*}\|} \; \overset{\text{set}}{=} \; 1.0
+$$
+
+We define a gap vector $\Delta \mathbf{e}$ as originating at the current position $\mathbf{e}^{(k)}$ and terminating at the ideal nodal position $\mathbf{e}^{*}$:
+
+$$
+\Delta \mathbf{e}^{(k)} := \mathbf{e}^{*} - \mathbf{e}^{(k)}
+$$
+
+
+$$
+\hat{J}^{(k+1)} := \frac{\left[ (\mathbf{a} - \mathbf{e}^{(k+1)}) \times (\mathbf{b} - \mathbf{e}^{(k+1)}) \right] \cdot (\mathbf{c} - \mathbf{e}^{(k+1)})}{\|\mathbf{a} - \mathbf{e}^{(k+1)}\| \; \|\mathbf{b} - \mathbf{e}^{(k+1)}\| \; \|\mathbf{c} - \mathbf{e}^{(k+1)}\|} \; \overset{\text{set}}{=} \; 1.0
+$$
+
+
+
 
 ## References
 
