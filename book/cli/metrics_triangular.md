@@ -8,7 +8,7 @@ automesh metrics tri --help
 `automesh` implements the following **triangular** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
-* Minimum scaled Jacobian ${\rm SJ}_{\min}$
+* Minimum scaled Jacobian $\hat{J}_{\min}$
 * Maximum skew
 * Element area
 * Minimum angle $\theta_{\min}$
@@ -23,13 +23,13 @@ A brief description of each metric follows.
 
 ## Minimum Scaled Jacobian
 
-* ${\rm SJ}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes, normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
+* $\hat{J}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes, normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
 * Knupp *et al.*[^Knupp_2006] (page 29) indicate an acceptable range of `[0.5, 2*sqrt(3)/3]` $\approx$ `[0.5, 1.2]`.
 * A scaled Jacobian close to `0` indicates that the triangle is poorly shaped (e.g., very thin or degenerate), which can lead to numerical instability.
 * A scaled Jacobian of `1` indicates that the triangle is equilateral, which is the ideal shape for numerical methods.  This is achieved through scaling as follows:
 
 $$
-{\rm SJ_{\min} = \frac{\sin(\theta_{\min})}{\sin(60^{\circ})}}
+{\hat{J}_{\min} = \frac{\sin(\theta_{\min})}{\sin(60^{\circ})}}
 $$
 
 * In the preceeding equation,
@@ -97,7 +97,7 @@ quality tri all element area global draw mesh list detail
 
 We verify the following element qualities:
 
-file  |  `e`  | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | area | $\theta_{\min}$ (deg)
+file  |  `e`  | ${\rm ER}_{\max}$ | $\hat{J}_{\min}$ | ${\rm skew_{\max}}$  | area | $\theta_{\min}$ (deg)
 :---: | :---: | :---: | :---: | :---: | :---: | :---:
 `A`   |   1   | 1.508 [1.508] | 0.761 [0.761] | 0.313 [0.331] | 0.610 [0.610] | 41.2 [41.2]
 `A`   |   2   | 1.550 [1.550] | 0.739 [0.739] | 0.337 [0.337] | 0.550 [0.550] | 39.8 [39.8]

@@ -8,7 +8,7 @@ automesh metrics hex --help
 `automesh` implements the following **hexahedral** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
-* Minimum scaled Jacobian ${\rm SJ}_{\min}$
+* Minimum scaled Jacobian $\hat{J}_{\min}$
 * Maximum skew
 * Element volume
 
@@ -22,7 +22,15 @@ A brief description of each metric follows.
 
 ## Minimum Scaled Jacobian
 
-* ${\rm SJ}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes, normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
+* $\hat{J}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes, normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
+* Interpretation
+  * **$\hat{J}_{\min} = 1.0$**: Perfect rectangular element
+  * **$\hat{J}_{\min} > 0$**: Element is valid (positive Jacobian)
+  * **$\hat{J}_{\min} = 0$**: Element zero volume
+  * **$\hat{J}_{\min} < 0$**: Invalid element (inverted/negative Jacobian)
+
+Typically, mesh quality requirements specify $\hat{J}_{\min} > 0.3$ for acceptable elements.
+
 * Knupp *et al.*[^Knupp_2006] (page 92) indicate an acceptable range of `[0.5, 1.0]`, though in practice, minimum values as low as `0.2` and `0.3` are often used.
 
 ![](img/metrics_msj.png)
@@ -46,7 +54,7 @@ Inspired by Figure 2 of Livesu *et al.*[^Livesu_2021] reproduced here below
 
 we examine several unit test singleton elements and their metrics.
 
-valence | singleton | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$ | volume
+valence | singleton | ${\rm ER}_{\max}$ | $\hat{J}_{\min}$ | ${\rm skew_{\max}}$ | volume
 :---: | :---: | :---: | :---: | :---: | :---:
 3           | ![](img/single_valence_03.png)        | 1.000000e0 (1.000)    | 8.660253e-1 (0.866)   | 5.000002e-1 (0.500)   | 8.660250e-1 (0.866)
 3' (noised) | ![](img/single_valence_03_noise1.png) | 1.292260e0 (2.325) ** *Cubit (aspect ratio): 1.292* | 1.917367e-1 (0.192)   | 6.797483e-1 (0.680)   | 1.247800e0  (1.248)
@@ -200,11 +208,11 @@ face | nodes
 4 | 3, 2, 1, 0
 5 | 4, 5, 6, 7
 
-## Formulation
+## $\hat{J}_{\min}$ Formulation
 
 For a hexahedral element with eight nodes, the scaled Jacobian at each node is computed as:
 
-$$J_{\text{scaled}} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}
+$$J_{\text{scaled}} = \hat{J} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}
 $$
 
 where:
@@ -216,7 +224,7 @@ where:
 The minimum scaled Jacobian for the element is:
 
 $$
-J_{\text{min}} = \min_{i=0}^{7} J_{\text{scaled}}^{(i)}
+\hat{J}_{\text{min}} = \min \{\hat{J}^{(i)}\}_{i=0}^{7}
 $$
 
 ### Node Numbering Convention
@@ -235,7 +243,7 @@ The hexahedral element uses the following local node numbering (standard convent
     0----------1
 ```
 
-## Edge Vectors at Each Node
+### Edge Vectors at Each Node
 
 For each node $i$, three edge vectors are defined that point to adjacent nodes. The connectivity follows this pattern:
 
@@ -252,7 +260,7 @@ For each node $i$, three edge vectors are defined that point to adjacent nodes. 
 
 where $\mathbf{x}_i$ is the position of node $i$.
 
-## Algorithm
+### Algorithm
 
 1. **For each element in the mesh:**
 
@@ -269,14 +277,14 @@ where $\mathbf{x}_i$ is the position of node $i$.
       - Compute cross product: $\mathbf{n} = \mathbf{u} \times \mathbf{v}$
       
       - Compute scaled Jacobian:
-        $$J_{\text{scaled}}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}$$
+        $$\hat{J}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \|\mathbf{v}\| \|\mathbf{w}\|}$$
    
    c. Take minimum over all 8 nodes:
-      $$J_{\text{min}} = \min_{i=0}^{7} J_{\text{scaled}}^{(i)}$$
+      $$\hat{J}_{\min} = \min \{\hat{J}^{(i)}\}_{i=0}^{7}$$
 
 2. **Return** the vector of minimum scaled Jacobians, one per element
 
-## Implementation
+### Implementation
 
 This prototyptical Rust implementation calculates the MSJ by evaluating the Jacobian at each of the eight corners using the edges connected to that corner.
 
@@ -358,16 +366,7 @@ pub fn min_scaled_jacobian(nodes: &[Vector3; 8]) -> f64 {
 }
 ```
 
-## Interpretation
-
-- **$J_{\text{min}} = 1.0$**: Perfect rectangular element
-- **$J_{\text{min}} > 0$**: Element is valid (positive Jacobian)
-- **$J_{\text{min}} = 0$**: Degenerate element (zero volume)
-- **$J_{\text{min}} < 0$**: Invalid element (inverted/negative Jacobian)
-
-Typically, mesh quality requirements specify $J_{\text{min}} > 0.3$ for acceptable elements.
-
-## Implementation Notes
+### Implementation Notes
 
 The implementation evaluates all 8 nodes of each element and returns the minimum value. This ensures that element distortion at any corner is captured, as poor quality at a single node can affect finite element solution accuracy.
 
