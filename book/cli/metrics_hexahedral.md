@@ -39,7 +39,7 @@ Figure. Illustration of minimum scaled Jacobian[^Hovey_2023] with acceptable ran
 
 ## Maximum Skew
 
-* Skew measures how much an element deviates from being a regular shape (e.g., in 3D a cube or regular tetrahedron; in 2D a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
+* Skew measures how much an element deviates from being a regular shape (e.g., in 3D, a cube or regular tetrahedron; in 2D, a square or equilateral triangle). A skew value of 0 indicates a perfectly regular shape, while higher values indicate increasing levels of distortion.
 * Knupp *et al.*[^Knupp_2006] (page 97) indicate an acceptable range of `[0.0, 0.5]`.
 
 ## Element Volume
@@ -155,7 +155,7 @@ The element coordinates follow:
 
 ### Nodes
 
-The local numbering scheme for nodes of a hexadedral element:
+The local numbering scheme for nodes of a hexahedral element:
 
 ```sh
        7---------6
@@ -181,7 +181,7 @@ node | connected nodes
 
 ### Faces
 
-From the exterior of the element, view the (0, 1, 5, 4) face and unwarp the remaining faces; the six face normals now point out of the page.  The local numbering scheme for faces of a hexadedral element:
+From the exterior of the element, view the (0, 1, 5, 4) face and unwarp the remaining faces; the six face normals now point out of the page.  The local numbering scheme for faces of a hexahedral element:
 
 ```sh
               7---------6
@@ -212,7 +212,7 @@ face | nodes
 
 For a hexahedral element with eight nodes, the scaled Jacobian at each node is computed as:
 
-$$J_{\text{scaled}} = \hat{J} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|}
+$$J_{\text{scaled}} := \hat{J} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|}
 $$
 
 where:
@@ -224,7 +224,7 @@ where:
 The minimum scaled Jacobian for the element is:
 
 $$
-\hat{J}_{\text{min}} = \min \{\hat{J}^{(i)}\}_{i=0}^{7}
+\hat{J}_{\text{min}} := \min \{\hat{J}^{(i)}\}_{i=0}^{7}
 $$
 
 ### Node Numbering Convention
@@ -370,27 +370,30 @@ pub fn min_scaled_jacobian(nodes: &[Vector3; 8]) -> f64 {
 
 The implementation evaluates all 8 nodes of each element and returns the minimum value. This ensures that element distortion at any corner is captured, as poor quality at a single node can affect finite element solution accuracy.
 
-## Node-based $\hat{J}_{\min}$ Improvement
+## Node-based $\hat{J}_{\min}$ Refinement
 
-Node based $\hat{J}_{\min}$ improvement seeks to reformulate traditional
-minimum scaled Jacobian formulation, which focus on the minimum value
-on a **per element** basis, and cast the calculation as a *weighted*
-minimum value on a **per node** basis.  
+Node-based $\hat{J}_{\min}$ refinement reframes the traditional
+minimum scaled Jacobian formulation, which finds a **per element** minimum value,
+as a **per node** *weighted* value calculation.
 
 * This calculation produces the
-incremental movement of the subject node that would result in an improved minimum scaled Jacobian.
+incremental movement of the subject node that would improve the scaled Jacobian for the element at that node.
 * The development follows an incremental update of nodal position, similar
 to the update formulation of Laplace and Taubin [smoothing](./../smoothing.md).)
 
-### Element Valence
+### Node and Element Valence
 
-Typically, we think about nodal valence, but another similar concept, element valence, can be useful.
-
-We define **nodal valence** as the number of nodes connected via an element edge to the subject node.  For a hexahedral mesh, the minimum nodal valence is three (for a node at an external corner of an element); the maximim nodal valence eight (for a node on the internal portion of the mesh).
+We define **nodal valence** as the number of nodes connected via an element edge to the subject node.  For a hexahedral mesh, the minimum nodal valence is three (for a node at an external corner of an element); the maximum nodal valence eight (for a node on the internal portion of the mesh).
 
 We define **element valence** as the number of elements connected via an element connectivity to the subject node.   For a hexahedral mesh, the minimum element valence is one (for a node at an external corner of an element); the maximum nodal valence is eight (for a node on the internal portion of the mesh).  Let $n_{\text{ev}} \subset [1, 8]$ denote the element valence for a particular node.
 
-For a given subject node with position $\mathbf{e}$ connected to one-to-eight elements, for the $e^{\text{th}}$ element, $e=0 \ldots n_{\text{ev}}-1$, find the three edge-connected element nodes, located at position $\mathbf{a}, \mathbf{b}$, and $\mathbf{c}$.
+For a given subject node with position $\mathbf{e}$ connected to one-to-eight elements, for the $\ell^{\text{th}}$ element, $\ell=0 \ldots n_{\text{ev}}-1$, find the three edge-connected element nodes, located at position $\mathbf{a}, \mathbf{b}$, and $\mathbf{c}$.  We assume the [node numbering convention](#node-numbering-convention) given above, with
+
+$$\mathbf{u} := \mathbf{a} - \mathbf{e}$$
+$$\mathbf{v} := \mathbf{b} - \mathbf{e}$$
+$$\mathbf{w} := \mathbf{c} - \mathbf{e}$$
+
+![abc_e_definition](img/abc_e_definition.jpg)
 
 The current scaled Jacobian $\hat{J}^{(k)}$ is defined by the current location of $\mathbf{e}^{(k)}$, holding positions of $\mathbf{a}, \mathbf{b}$, $\mathbf{c}$ constant:
 
@@ -404,19 +407,182 @@ $$
 \hat{J}^{*} := \frac{\left[ (\mathbf{a} - \mathbf{e}^{*}) \times (\mathbf{b} - \mathbf{e}^{*}) \right] \cdot (\mathbf{c} - \mathbf{e}^{*})}{\|\mathbf{a} - \mathbf{e}^{*}\| \; \|\mathbf{b} - \mathbf{e}^{*}\| \; \|\mathbf{c} - \mathbf{e}^{*}\|} \; \overset{\text{set}}{=} \; 1.0
 $$
 
+The ideal position $\mathbf{e}^{*}$ is a point such that the vectors $(\mathbf{a} - \mathbf{e}^{*})$, $(\mathbf{b} - \mathbf{e}^{*})$, and $(\mathbf{c} - \mathbf{e}^{*})$ are mutually orthogonal.  <!--Geometrically, if these vectors are orthogonal, then $\mathbf{e}^{*}$ must project directly onto the orthocenter $\mathbf{h}$ of the triangle $abc$.-->
+How can we solve for $\mathbf{e}^{*}$ in terms of $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$?
+
+We solve for $\mathbf{e}^{*}$ by assuring that the three right triangles formed by
+$\mathbf{e}^{*}$ and combinations of $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ satisfy
+Pythagorean's theorem.  Let 
+
+$$ u^* = \|\mathbf{u}^*\| = \|\mathbf{a} - \mathbf{e}^*\|$$
+$$ v^* = \|\mathbf{v}^*\| = \|\mathbf{b} - \mathbf{e}^*\|$$
+$$ w^* = \|\mathbf{w}^*\| = \|\mathbf{c} - \mathbf{e}^*\|$$
+
+Then
+
+$$(u^*)^2 + (v^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a})$$
+$$(v^*)^2 + (w^*)^2 = (\mathbf{c} - \mathbf{b}) \cdot (\mathbf{c} - \mathbf{b})$$
+$$(w^*)^2 + (u^*)^2 = (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c})$$
+
+This represents a system of three independent equations and three unknowns $u$, $v$, and $w$.
+
+Solving,
+
+$$2 (u^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) - (\mathbf{c} - \mathbf{b})\cdot (\mathbf{c} - \mathbf{b}) + (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c})$$
+
+Before proceeding, we can further simplify the expressions of these equations by defining
+edge vectors that connect each of the points $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$.  Let
+
+$$\mathbf{r} := \mathbf{b} - \mathbf{a} \quad \implies \quad r^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) = \|\mathbf{r}\|^2$$
+$$\mathbf{s} := \mathbf{c} - \mathbf{b} \quad \implies \quad s^2 = (\mathbf{c} - \mathbf{b}) \cdot (\mathbf{c} - \mathbf{b}) = \|\mathbf{s}\|^2$$
+$$\mathbf{t} := \mathbf{a} - \mathbf{c} \quad \implies \quad t^2 = (\mathbf{a} - \mathbf{a}) \cdot (\mathbf{a} - \mathbf{c}) = \|\mathbf{t}\|^2$$
+
+Note that the square values of each of the three hypotenuses is $r^2$, $s^2$, and $t^2$, respectively.  Then
+
+$$(u^*)^2 + (v^*)^2 = r^2$$
+$$(v^*)^2 + (w^*)^2 = s^2$$
+$$(w^*)^2 + (u^*)^2 = t^2$$
+
+Solving,
+
+$$2 (u^*)^2 = r^2 - s^2 + t^2$$
+$$2 (v^*)^2 = s^2 - t^2 + r^2$$
+$$2 (w^*)^2 = t^2 - r^2 + s^2$$
+
+The lengths $u^*$, $v^*$, and $w^*$ are now known.  It is also known that in the local
+$x$, $y$, $z$ coordinate system spanned by the right-handed, orthonormal triad $\hat{\mathbf{u}}^*$, $\hat{\mathbf{v}}^*$, $\hat{\mathbf{w}}^*$ at point $\mathbf{e}^*$, the lengths $u^*$, $v^*$, $w^*$, with their corresponding components of $\mathbf{a}$, $\mathbf{b}$, $\mathbf{c}$ define the three components of $\mathbf{e}^*$, that is,
+
+$$\mathbf{e}^* = 
+\begin{Bmatrix}
+e_x^* \\
+e_y^* \\
+e_z^*
+\end{Bmatrix}
+= 
+\begin{Bmatrix}
+a_x - u^* \\
+b_y - v^* \\
+c_z - w^*
+\end{Bmatrix}
+$$
+
+#### Voting (aka Weighting)
+
+Any scheme for weighting of the connected elements can be adopted.  Perhaps elements that lie on the surface should be given greater weighting than elements that lie on the interior.  The effect would be to create higher quality element near the surface, and relatively lower quality element would be pushed into the interior of the volume.
+For a given element $\ell$ in the element valence of node $\mathbf{e}$, $\ell=0 \ldots n_{\text{ev}}-1$,
+
+$$\mathbf{e}^* = \sum_{\ell=0}^{n_{\text{ev}}-1} w_{\ell} \mathbf{e}^*_{\ell} \bigg/ \sum_{\ell=0}^{n_{\text{ev}}-1} w_{\ell}$$
+
+For now, however, let's just explore the equal weighting scheme:
+
+$$\mathbf{e}^* = \sum_{\ell=0}^{n_{\text{ev}}-1} \mathbf{e}^*_{\ell} \bigg/ n_{\text{ev}}$$
+
+#### Iteration
+
 We define a gap vector $\Delta \mathbf{e}$ as originating at the current position $\mathbf{e}^{(k)}$ and terminating at the ideal nodal position $\mathbf{e}^{*}$:
 
 $$
 \Delta \mathbf{e}^{(k)} := \mathbf{e}^{*} - \mathbf{e}^{(k)}
 $$
 
+## Deprecated and likely deleted soon
 
-$$
-\hat{J}^{(k+1)} := \frac{\left[ (\mathbf{a} - \mathbf{e}^{(k+1)}) \times (\mathbf{b} - \mathbf{e}^{(k+1)}) \right] \cdot (\mathbf{c} - \mathbf{e}^{(k+1)})}{\|\mathbf{a} - \mathbf{e}^{(k+1)}\| \; \|\mathbf{b} - \mathbf{e}^{(k+1)}\| \; \|\mathbf{c} - \mathbf{e}^{(k+1)}\|} \; \overset{\text{set}}{=} \; 1.0
-$$
+#### Orthocenter
 
+We introduce the concept of orthocenter first for a triangle, and then for a tetrahedron.
 
+An altitude of a triangle is a line from a vertex perpendicular to the opposite edge.  A triangle has three vertices, three edges, and thus three altitude.
 
+An altitude of a tetrahedron is a line from a vertex perpendicular to the opposite face. A tetrahedron has four vertices, four faces, and thus four altitudes. 
+
+* For a **general tetrahedron**, the four altitude typically do **not** all meet at a single point.  In this case, there is no orthocenter.
+* For an **orthocentric tetrahedron**, the four altitudes meet at a single, unique point called the orthocenter.   The orthocentric tetrahedron has one and only one orthocenter.
+
+The orthocenter is typically denoted as point $H$ located by vector $h$.
+
+"The **orthocenter** of a triangle $H$ is the point where the three (possibly extended) altitudes intersect.  The orthocenter lies inside the triangle if and only if the triangle is acute.  For a right triangle, the orthocenter coincides with the vertex at the right angle.  For an equilateral triangle, the orthocenter coincides with the centroid."
+
+![triangle_orthocenter](img/triangle_orthocenter.png)
+
+"An **orthocentric tetrahedron** is a tetrahedron where all pairs of opposite edges are perpendicular.  In an orthocentric tetrahedron the four altitudes are concurrent.  This common point is called the **tetrahedron orthocenter**."
+
+The orthocenter of a tetrahedron is a point where all four altitudes meet.  
+
+![tetrahedron_orthocenter](img/tetrahedron_orthocenter.gif)
+
+#### Notes
+
+We define the **orthocenter** $\mathbf{h}$ as the point on the face of the triangle with vertices $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ where the three altitudes meet.  An altitude is perpendicular to the opposite side.  So the altitude from vertex $\mathbf{a}$ is perpendicular to the opposite side $\mathbf{b} \mathbf{c}$,
+
+$$(\mathbf{h} - \mathbf{a}) \cdot (\mathbf{c} - \mathbf{b}) = 0$$
+
+Similarly, the altitude from vertex $\mathbf{b}$ is perpendicular to the opposite side $\mathbf{c} \mathbf{a}$,
+
+$$(\mathbf{h} - \mathbf{b}) \cdot (\mathbf{a} - \mathbf{c}) = 0$$
+
+Finally, the altitude from vertex $\mathbf{c}$ is perpendicular to the opposite side $\mathbf{a} \mathbf{b}$,
+
+$$(\mathbf{h} - \mathbf{c}) \cdot (\mathbf{b} - \mathbf{a}) = 0$$
+
+For the three foregoing equations, only two are linearly independent (the third follows from the other two).  So, to solve for $\mathbf{h}$ in terms of $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$, we typically parameterize the position of $\mathbf{h}$ as
+
+$$\mathbf{h} = \mathbf{a} + s (\mathbf{b} - \mathbf{a}) + t (\mathbf{c} - \mathbf{a})$$
+
+To find the orthocenter $\mathbf{h}$ and the ideal node position $\mathbf{e}$, we treat the triangle formed by a, b, and c as the base of a tetrahedron where e is the apex.
+
+1. Solving for the Orthocenter parameters $s$ and $t$
+
+We use the parametrization $h=a+s(b−a)+t(c−a)$ and substitute it into the orthogonality conditions. Let $u=b−a$ and $v=c−a$.
+
+The conditions given are:
+
+$$(h−b)⋅(a−c)=0$$
+
+$$(h−c)⋅(b−a)=0$$
+
+By substituting the parametrization into these equations, we get a system of two linear equations:
+
+$$[su+(t−1)v]⋅u=0⟹s(u⋅u)+t(u⋅v)=u⋅v$$
+
+$$[(s−1)u+tv]⋅v=0⟹s(u⋅v)+t(v⋅v)=u⋅v$$
+
+Solving this system for $s$ and $t$:
+
+$$s= 
+(u⋅u)(v⋅v)−(u⋅v) 
+2
+ 
+(v⋅v−u⋅v)(u⋅v)$$
+​	
+ 
+$$t= 
+(u⋅u)(v⋅v)−(u⋅v) 
+2
+ 
+(u⋅u−u⋅v)(u⋅v)
+​$$
+ 
+2. Finding $e$ from $h$
+
+The ideal node $e$ is the point such that the vectors $(a−e)$, $(b−e)$, and $(c−e)$ are mutually orthogonal. Geometrically, if these three vectors are orthogonal, then $e$ must project directly onto the orthocenter $h$ of the opposite face △$abc$.
+
+The vector $(e ∗ −h)$ is perpendicular to the plane $abc$. Therefore:
+
+Direction: $e$ lies on a line passing through $h$ with a direction vector $n=(b−a)×(c−a)$.
+
+Distance: The distance $L$ from $h$ to e ∗ is determined by the requirement that the interior angles at $e$ are $90^{\circ}$.
+
+Using the Pythagorean theorem and the properties of orthogonal coordinates, the distance $L$ from $h$ to $e$ g ∗ is found by:
+
+$$ L= −(h−a)⋅(h−b)$$
+ 
+(Note: This dot product is negative because the vectors point away from the orthocenter toward the vertices in an acute triangle.)
+
+Finally, the ideal position is:
+
+$$e =h±L ∥n∥$$
+ 
+(We choose the sign that places e on the correct side of the element face to maintain a positive Jacobian).
 
 ## References
 
