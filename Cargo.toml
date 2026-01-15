@@ -17,7 +17,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 clap = { version = "=4.5.54", features = ["derive"] }
-chrono = "=0.4.42"
+chrono = "=0.4.43"
 conspire = { version = "=0.5.12", features = ["fem"] }
 ndarray = { version = "=0.17.2", features = ["rayon"] }
 ndarray-npy = "=0.10.0"
