@@ -213,6 +213,7 @@ face | nodes
 For a hexahedral element with eight nodes, the scaled Jacobian at each node is computed as:
 
 $$J_{\text{scaled}} := \hat{J} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|}
+\tag{1}
 $$
 
 where:
@@ -225,6 +226,7 @@ The minimum scaled Jacobian for the element is:
 
 $$
 \hat{J}_{\text{min}} := \min \{\hat{J}^{(i)}\}_{i=0}^{7}
+\tag{2}
 $$
 
 ### Node Numbering Convention
@@ -269,18 +271,19 @@ where $\mathbf{x}_i$ is the position of node $i$.
    b. **For each node $i \in \{0, 1, \ldots, 7\}$:**
       
       - Compute edge vectors:
-        $$\mathbf{u} = \mathbf{x}_j - \mathbf{x}_i$$
-        $$\mathbf{v} = \mathbf{x}_k - \mathbf{x}_i$$
-        $$\mathbf{w} = \mathbf{x}_\ell - \mathbf{x}_i$$
+        $$\mathbf{u} = \mathbf{x}_j - \mathbf{x}_i \tag{3}$$
+        $$\mathbf{v} = \mathbf{x}_k - \mathbf{x}_i \tag{4}$$
+        $$\mathbf{w} = \mathbf{x}_\ell - \mathbf{x}_i \tag{5}$$
         where $j$, $k$, $\ell$ are adjacent nodes per the table above
       
-      - Compute cross product: $\mathbf{n} = \mathbf{u} \times \mathbf{v}$
+      - Compute cross product:
+        $$\mathbf{n} = \mathbf{u} \times \mathbf{v} \tag{6}$$
       
       - Compute scaled Jacobian:
-        $$\hat{J}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|}$$
+        $$\hat{J}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|} \tag{7}$$
    
    c. Take minimum over all 8 nodes:
-      $$\hat{J}_{\min} = \min \{\hat{J}^{(i)}\}_{i=0}^{7}$$
+      $$\hat{J}_{\min} = \min \{\hat{J}^{(i)}\}_{i=0}^{7} \tag{8}$$
 
 2. **Return** the vector of minimum scaled Jacobians, one per element
 
@@ -389,22 +392,24 @@ We define **element valence** as the number of elements connected via an element
 
 For a given subject node with position $\mathbf{e}$ connected to one-to-eight elements, for the $\ell^{\text{th}}$ element, $\ell=0 \ldots n_{\text{ev}}-1$, find the three edge-connected element nodes, located at position $\mathbf{a}, \mathbf{b}$, and $\mathbf{c}$.  We assume the [node numbering convention](#node-numbering-convention) given above, with
 
-$$\mathbf{u} := \mathbf{a} - \mathbf{e}$$
-$$\mathbf{v} := \mathbf{b} - \mathbf{e}$$
-$$\mathbf{w} := \mathbf{c} - \mathbf{e}$$
+$$\mathbf{u} := \mathbf{a} - \mathbf{e} \tag{9}$$
+$$\mathbf{v} := \mathbf{b} - \mathbf{e} \tag{10}$$
+$$\mathbf{w} := \mathbf{c} - \mathbf{e} \tag{11}$$
 
 ![abc_e_definition](img/abc_e_definition.jpg)
 
-The current scaled Jacobian $\hat{J}^{(k)}$ is defined by the current location of $\mathbf{e}^{(k)}$, holding positions of $\mathbf{a}, \mathbf{b}$, $\mathbf{c}$ constant:
+The current scaled Jacobian $\hat{J}$ is defined by the current location of $\mathbf{e}$, holding positions of $\mathbf{a}, \mathbf{b}$, $\mathbf{c}$ constant:
 
 $$
-\hat{J}^{(k)} := \frac{\left[ (\mathbf{a} - \mathbf{e}^{(k)}) \times (\mathbf{b} - \mathbf{e}^{(k)}) \right] \cdot (\mathbf{c} - \mathbf{e}^{(k)})}{\|\mathbf{a} - \mathbf{e}^{(k)}\| \; \|\mathbf{b} - \mathbf{e}^{(k)}\| \; \|\mathbf{c} - \mathbf{e}^{(k)}\|}
+\hat{J} := \frac{\left[ (\mathbf{a} - \mathbf{e}) \times (\mathbf{b} - \mathbf{e}) \right] \cdot (\mathbf{c} - \mathbf{e})}{\|\mathbf{a} - \mathbf{e}\| \; \|\mathbf{b} - \mathbf{e}\| \; \|\mathbf{c} - \mathbf{e}\|}
+\tag{12}
 $$
 
-From this definition, we define an **ideal** nodal position $\mathbf{e}^{*}$ that exactly produces a scaled Jacobian of one:
+From this definition, we define an **ideal** nodal position $\mathbf{e}^{*}$ that exactly produces a scaled Jacobian of unity:
 
 $$
 \hat{J}^{*} := \frac{\left[ (\mathbf{a} - \mathbf{e}^{*}) \times (\mathbf{b} - \mathbf{e}^{*}) \right] \cdot (\mathbf{c} - \mathbf{e}^{*})}{\|\mathbf{a} - \mathbf{e}^{*}\| \; \|\mathbf{b} - \mathbf{e}^{*}\| \; \|\mathbf{c} - \mathbf{e}^{*}\|} \; \overset{\text{set}}{=} \; 1.0
+\tag{13}
 $$
 
 The ideal position $\mathbf{e}^{*}$ is a point such that the vectors $(\mathbf{a} - \mathbf{e}^{*})$, $(\mathbf{b} - \mathbf{e}^{*})$, and $(\mathbf{c} - \mathbf{e}^{*})$ are mutually orthogonal.  <!--Geometrically, if these vectors are orthogonal, then $\mathbf{e}^{*}$ must project directly onto the orthocenter $\mathbf{h}$ of the triangle $abc$.-->
@@ -412,42 +417,42 @@ How can we solve for $\mathbf{e}^{*}$ in terms of $\mathbf{a}$, $\mathbf{b}$, an
 
 We solve for $\mathbf{e}^{*}$ by assuring that the three right triangles formed by
 $\mathbf{e}^{*}$ and combinations of $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ satisfy
-Pythagorean's theorem.  Let 
+Pythagorean's theorem.  Let lengths
 
-$$ u^* = \|\mathbf{u}^*\| = \|\mathbf{a} - \mathbf{e}^*\|$$
-$$ v^* = \|\mathbf{v}^*\| = \|\mathbf{b} - \mathbf{e}^*\|$$
-$$ w^* = \|\mathbf{w}^*\| = \|\mathbf{c} - \mathbf{e}^*\|$$
+$$ u^* = \|\mathbf{u}^*\| = \|\mathbf{a} - \mathbf{e}^*\| \tag{14}$$
+$$ v^* = \|\mathbf{v}^*\| = \|\mathbf{b} - \mathbf{e}^*\| \tag{15}$$
+$$ w^* = \|\mathbf{w}^*\| = \|\mathbf{c} - \mathbf{e}^*\| \tag{16}$$
 
-Then
+Then Pythagorean's theorem requires
 
-$$(u^*)^2 + (v^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a})$$
-$$(v^*)^2 + (w^*)^2 = (\mathbf{c} - \mathbf{b}) \cdot (\mathbf{c} - \mathbf{b})$$
-$$(w^*)^2 + (u^*)^2 = (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c})$$
+$$(u^*)^2 + (v^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) \tag{17}$$
+$$(v^*)^2 + (w^*)^2 = (\mathbf{c} - \mathbf{b}) \cdot (\mathbf{c} - \mathbf{b}) \tag{18}$$
+$$(w^*)^2 + (u^*)^2 = (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c}) \tag{19}$$
 
-This represents a system of three independent equations and three unknowns $u$, $v$, and $w$.
+This represents a system of three independent equations and three unknowns $u^*$, $v^*$, and $w^*$.
 
-Solving,
+Subtracting Eq. (18) from Eq. (17) and solving,
 
-$$2 (u^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) - (\mathbf{c} - \mathbf{b})\cdot (\mathbf{c} - \mathbf{b}) + (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c})$$
+$$2 (u^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) - (\mathbf{c} - \mathbf{b})\cdot (\mathbf{c} - \mathbf{b}) + (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c}) \tag{20}$$
 
 Before proceeding, we can further simplify the expressions of these equations by defining
-edge vectors that connect each of the points $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$.  Let
+edge vectors that connect each of the points $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ that circle the path on $\triangle ABC$.  Let
 
-$$\mathbf{r} := \mathbf{b} - \mathbf{a} \quad \implies \quad r^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) = \|\mathbf{r}\|^2$$
-$$\mathbf{s} := \mathbf{c} - \mathbf{b} \quad \implies \quad s^2 = (\mathbf{c} - \mathbf{b}) \cdot (\mathbf{c} - \mathbf{b}) = \|\mathbf{s}\|^2$$
-$$\mathbf{t} := \mathbf{a} - \mathbf{c} \quad \implies \quad t^2 = (\mathbf{a} - \mathbf{a}) \cdot (\mathbf{a} - \mathbf{c}) = \|\mathbf{t}\|^2$$
+$$\mathbf{r} := \mathbf{b} - \mathbf{a} \quad \implies \quad r^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) = \|\mathbf{r}\|^2 \tag{21}$$
+$$\mathbf{s} := \mathbf{c} - \mathbf{b} \quad \implies \quad s^2 = (\mathbf{c} - \mathbf{b}) \cdot (\mathbf{c} - \mathbf{b}) = \|\mathbf{s}\|^2 \tag{22}$$
+$$\mathbf{t} := \mathbf{a} - \mathbf{c} \quad \implies \quad t^2 = (\mathbf{a} - \mathbf{a}) \cdot (\mathbf{a} - \mathbf{c}) = \|\mathbf{t}\|^2 \tag{23}$$
 
 Note that the square values of each of the three hypotenuses is $r^2$, $s^2$, and $t^2$, respectively.  Then
 
-$$(u^*)^2 + (v^*)^2 = r^2$$
-$$(v^*)^2 + (w^*)^2 = s^2$$
-$$(w^*)^2 + (u^*)^2 = t^2$$
+$$(u^*)^2 + (v^*)^2 = r^2 \tag{24}$$
+$$(v^*)^2 + (w^*)^2 = s^2 \tag{25}$$
+$$(w^*)^2 + (u^*)^2 = t^2 \tag{26}$$
 
 Solving,
 
-$$2 (u^*)^2 = r^2 - s^2 + t^2$$
-$$2 (v^*)^2 = s^2 - t^2 + r^2$$
-$$2 (w^*)^2 = t^2 - r^2 + s^2$$
+$$2 (u^*)^2 = r^2 - s^2 + t^2 \tag{27}$$
+$$2 (v^*)^2 = s^2 - t^2 + r^2 \tag{28}$$
+$$2 (w^*)^2 = t^2 - r^2 + s^2 \tag{29}$$
 
 The lengths $u^*$, $v^*$, and $w^*$ are now known.  It is also known that in the local
 $x$, $y$, $z$ coordinate system spanned by the right-handed, orthonormal triad $\hat{\mathbf{u}}^*$, $\hat{\mathbf{v}}^*$, $\hat{\mathbf{w}}^*$ at point $\mathbf{e}^*$, the lengths $u^*$, $v^*$, $w^*$, with their corresponding components of $\mathbf{a}$, $\mathbf{b}$, $\mathbf{c}$ define the three components of $\mathbf{e}^*$, that is,
@@ -464,125 +469,81 @@ a_x - u^* \\
 b_y - v^* \\
 c_z - w^*
 \end{Bmatrix}
+\tag{30}
 $$
 
-#### Voting (aka Weighting)
+#### Weighting (aka Voting)
 
 Any scheme for weighting of the connected elements can be adopted.  Perhaps elements that lie on the surface should be given greater weighting than elements that lie on the interior.  The effect would be to create higher quality element near the surface, and relatively lower quality element would be pushed into the interior of the volume.
 For a given element $\ell$ in the element valence of node $\mathbf{e}$, $\ell=0 \ldots n_{\text{ev}}-1$,
 
-$$\mathbf{e}^* = \sum_{\ell=0}^{n_{\text{ev}}-1} w_{\ell} \mathbf{e}^*_{\ell} \bigg/ \sum_{\ell=0}^{n_{\text{ev}}-1} w_{\ell}$$
+$$\mathbf{e}^* = \sum_{\ell=0}^{n_{\text{ev}}-1} w_{\ell} \mathbf{e}^*_{\ell} \bigg/ \sum_{\ell=0}^{n_{\text{ev}}-1} w_{\ell} \tag{31}$$
 
 For now, however, let's just explore the equal weighting scheme:
 
-$$\mathbf{e}^* = \sum_{\ell=0}^{n_{\text{ev}}-1} \mathbf{e}^*_{\ell} \bigg/ n_{\text{ev}}$$
+$$\mathbf{e}^* = \sum_{\ell=0}^{n_{\text{ev}}-1} \mathbf{e}^*_{\ell} \bigg/ n_{\text{ev}} \tag{32}$$
+
+This is just the average of all ideal locations for each connected element $\ell$.
 
 #### Iteration
 
-We define a gap vector $\Delta \mathbf{e}$ as originating at the current position $\mathbf{e}^{(k)}$ and terminating at the ideal nodal position $\mathbf{e}^{*}$:
+We define a gap vector $\Delta \mathbf{e}^{(k)}$ as originating at the current position $\mathbf{e}^{(k)}$ and terminating at the current ideal nodal position $\mathbf{e}^{*(k)}$:
 
 $$
-\Delta \mathbf{e}^{(k)} := \mathbf{e}^{*} - \mathbf{e}^{(k)}
+\Delta \mathbf{e}^{(k)} := \mathbf{e}^{*(k)} - \mathbf{e}^{(k)}
+\tag{33}
 $$
 
-## Deprecated and likely deleted soon
+The quantity $\Delta \mathbf{e}^{(k)}$ is geometrically interpreted as a **search direction** or **gap vector**, analogous to the $\Delta\boldsymbol{p}$ gap vector defined for [Laplace smoothing](./../smoothing.md).
 
-#### Orthocenter
+Let $\lambda \in \mathbb{R}^+$ be the positive scaling factor for the gap $\Delta \mathbf{e}^{(k)}$.
 
-We introduce the concept of orthocenter first for a triangle, and then for a tetrahedron.
+Since
 
-An altitude of a triangle is a line from a vertex perpendicular to the opposite edge.  A triangle has three vertices, three edges, and thus three altitude.
+$$ \mathbf{e}^{*(k)} = \mathbf{e}^{(k)} + \lambda\Delta\mathbf{e}^{(k)} \hspace{0.5cm} \rm{when} \hspace{0.5cm} \lambda = 1 \tag{34}$$
 
-An altitude of a tetrahedron is a line from a vertex perpendicular to the opposite face. A tetrahedron has four vertices, four faces, and thus four altitudes. 
+subdivision of this relationship into several substeps gives rise to an iterative approach.
+We typically select $\lambda < 1$ to avoid overshoot of the update, $\lambda \in \mathbb{R}^+ \subset (0, 1)$.
 
-* For a **general tetrahedron**, the four altitude typically do **not** all meet at a single point.  In this case, there is no orthocenter.
-* For an **orthocentric tetrahedron**, the four altitudes meet at a single, unique point called the orthocenter.   The orthocentric tetrahedron has one and only one orthocenter.
+At iteration $k$, we update the position of $\mathbf{e}^{(k)}$ by an amount $\lambda \Delta\mathbf{e}^{(k)}$ to $\mathbf{e}^{(k+1)}$ as
 
-The orthocenter is typically denoted as point $H$ located by vector $h$.
+$$ \mathbf{e}^{(k+1)} := \mathbf{e}^{(k)} + \lambda \Delta\mathbf{e}^{(k)}, \tag{35} $$
 
-"The **orthocenter** of a triangle $H$ is the point where the three (possibly extended) altitudes intersect.  The orthocenter lies inside the triangle if and only if the triangle is acute.  For a right triangle, the orthocenter coincides with the vertex at the right angle.  For an equilateral triangle, the orthocenter coincides with the centroid."
+with
 
-![triangle_orthocenter](img/triangle_orthocenter.png)
+$$ \Delta\mathbf{e}^{(k)} = \mathbf{e}^{*(k)} - \mathbf{e}^{(k)}. \tag{36}$$
 
-"An **orthocentric tetrahedron** is a tetrahedron where all pairs of opposite edges are perpendicular.  In an orthocentric tetrahedron the four altitudes are concurrent.  This common point is called the **tetrahedron orthocenter**."
+Thus
 
-The orthocenter of a tetrahedron is a point where all four altitudes meet.  
+$$ \mathbf{e}^{(k+1)} := \mathbf{e}^{(k)} + \lambda \left( \Delta\mathbf{e}^{(k)}\right), \tag{37}$$
 
-![tetrahedron_orthocenter](img/tetrahedron_orthocenter.gif)
+$$ \mathbf{e}^{(k+1)} := \mathbf{e}^{(k)} + \lambda \left( \mathbf{e}^{*(k)} - \mathbf{e}^{(k)} \right), \tag{38}$$
 
-#### Notes
+and finally considering equal weighting for all connected elements
 
-We define the **orthocenter** $\mathbf{h}$ as the point on the face of the triangle with vertices $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ where the three altitudes meet.  An altitude is perpendicular to the opposite side.  So the altitude from vertex $\mathbf{a}$ is perpendicular to the opposite side $\mathbf{b} \mathbf{c}$,
+$$ \boxed{\mathbf{e}^{(k+1)} := \boldsymbol{e}^{(k)} + \lambda \left(
+   \sum_{\ell=0}^{n_{\text{ev}}-1} \mathbf{e}^{*(k)}_{\ell} \bigg/ n_{\text{ev}} 
+    - \mathbf{e}^{(k)} \right).} \tag{39}$$
 
-$$(\mathbf{h} - \mathbf{a}) \cdot (\mathbf{c} - \mathbf{b}) = 0$$
+#### Sign Check
 
-Similarly, the altitude from vertex $\mathbf{b}$ is perpendicular to the opposite side $\mathbf{c} \mathbf{a}$,
+Because the derivation of finding $\mathbf{e}^*$ involves squared terms, we must take one additional precaution to assure that the search direction $\Delta \mathbf{e}$ is **opposite** the direction of the face normal $\mathbf{n}$ of $\triangle ABC$.
 
-$$(\mathbf{h} - \mathbf{b}) \cdot (\mathbf{a} - \mathbf{c}) = 0$$
+Let the face normal be defined as the cross product of any two edges of $\triangle ABC$, e.g.,
 
-Finally, the altitude from vertex $\mathbf{c}$ is perpendicular to the opposite side $\mathbf{a} \mathbf{b}$,
+$$\mathbf{n} := \mathbf{r} \times \mathbf{s} \tag{40}$$
 
-$$(\mathbf{h} - \mathbf{c}) \cdot (\mathbf{b} - \mathbf{a}) = 0$$
+In general, $\Delta \mathbf{e}$ and $\mathbf{n}$ are not colinear (they are colinear only for the special case where all lengths $r$, $s$, $t$ are equal).  Nonetheless, for a non-inverted element with the search direction $\Delta \mathbf{e}$ in the opposite direction of the face normal $\mathbf{n}$, the sign function (sgn) is used,
 
-For the three foregoing equations, only two are linearly independent (the third follows from the other two).  So, to solve for $\mathbf{h}$ in terms of $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$, we typically parameterize the position of $\mathbf{h}$ as
+$$\text{sgn}(\Delta \mathbf{e}) = - \text{sgn}(\mathbf{n}) \tag{41}$$
 
-$$\mathbf{h} = \mathbf{a} + s (\mathbf{b} - \mathbf{a}) + t (\mathbf{c} - \mathbf{a})$$
+If an inverted element is encountered such that $\text{sgn}(\Delta \mathbf{e}) = \text{sgn}(\mathbf{n})$, then Eq. (39) should be modified to reverse the direction of $\Delta \mathbf{e}$, *viz.*
 
-To find the orthocenter $\mathbf{h}$ and the ideal node position $\mathbf{e}$, we treat the triangle formed by a, b, and c as the base of a tetrahedron where e is the apex.
+$$ \boxed{\mathbf{e}^{(k+1)} := \boldsymbol{e}^{(k)} - \lambda \left(
+   \sum_{\ell=0}^{n_{\text{ev}}-1} \mathbf{e}^{*(k)}_{\ell} \bigg/ n_{\text{ev}} 
+    - \mathbf{e}^{(k)} \right).} \tag{42}$$
 
-1. Solving for the Orthocenter parameters $s$ and $t$
-
-We use the parametrization $h=a+s(b−a)+t(c−a)$ and substitute it into the orthogonality conditions. Let $u=b−a$ and $v=c−a$.
-
-The conditions given are:
-
-$$(h−b)⋅(a−c)=0$$
-
-$$(h−c)⋅(b−a)=0$$
-
-By substituting the parametrization into these equations, we get a system of two linear equations:
-
-$$[su+(t−1)v]⋅u=0⟹s(u⋅u)+t(u⋅v)=u⋅v$$
-
-$$[(s−1)u+tv]⋅v=0⟹s(u⋅v)+t(v⋅v)=u⋅v$$
-
-Solving this system for $s$ and $t$:
-
-$$s= 
-(u⋅u)(v⋅v)−(u⋅v) 
-2
- 
-(v⋅v−u⋅v)(u⋅v)$$
-​	
- 
-$$t= 
-(u⋅u)(v⋅v)−(u⋅v) 
-2
- 
-(u⋅u−u⋅v)(u⋅v)
-​$$
- 
-2. Finding $e$ from $h$
-
-The ideal node $e$ is the point such that the vectors $(a−e)$, $(b−e)$, and $(c−e)$ are mutually orthogonal. Geometrically, if these three vectors are orthogonal, then $e$ must project directly onto the orthocenter $h$ of the opposite face △$abc$.
-
-The vector $(e ∗ −h)$ is perpendicular to the plane $abc$. Therefore:
-
-Direction: $e$ lies on a line passing through $h$ with a direction vector $n=(b−a)×(c−a)$.
-
-Distance: The distance $L$ from $h$ to e ∗ is determined by the requirement that the interior angles at $e$ are $90^{\circ}$.
-
-Using the Pythagorean theorem and the properties of orthogonal coordinates, the distance $L$ from $h$ to $e$ g ∗ is found by:
-
-$$ L= −(h−a)⋅(h−b)$$
- 
-(Note: This dot product is negative because the vectors point away from the orthocenter toward the vertices in an acute triangle.)
-
-Finally, the ideal position is:
-
-$$e =h±L ∥n∥$$
- 
-(We choose the sign that places e on the correct side of the element face to maintain a positive Jacobian).
+Compare the $+\lambda$ in Eq. (39) to the $-\lambda$ in Eq. (42).
 
 ## References
 
