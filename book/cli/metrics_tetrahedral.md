@@ -8,7 +8,7 @@ automesh metrics tet --help
 `automesh` implements the following **tetrahedral** element quality metrics[^Knupp_2006]:
 
 * Maximum edge ratio ${\rm ER}_{\max}$
-* Minimum scaled Jacobian ${\rm SJ}_{\min}$
+* Minimum scaled Jacobian $\hat{J}_{\min}$
 * Maximum skew
 * Element volume
 
@@ -22,7 +22,7 @@ A brief description of each metric follows.
 
 ## Minimum Scaled Jacobian
 
-* ${\rm SJ}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes (and the Jacobian itself[^Knupp_2006] page 71), normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
+* $\hat{J}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes (and the Jacobian itself[^Knupp_2006] page 71), normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
 * Knupp *et al.*[^Knupp_2006] (page 75) indicate an acceptable range of `[0.5, sqrt(2)/2]` $\approx$ `[0.5, 0.707]`.
 * A scaled Jacobian close to `0` indicates that the tetrahedra is poorly shaped (e.g., very thin or degenerate), which can lead to numerical instability.
 * A scaled Jacobian of `1` indicates that the tetrahedra is equilateral, which is the ideal shape for numerical methods.
@@ -49,7 +49,7 @@ $$
 
 We verify the following element qualities:
 
-tetrahedron | ${\rm ER}_{\max}$ | ${\rm SJ}_{\min}$ | ${\rm skew_{\max}}$  | volume
+tetrahedron | ${\rm ER}_{\max}$ | $\hat{J}_{\min}$ | ${\rm skew_{\max}}$  | volume
 :---: | :---: | :---: | :---: | :---:
 simple   | 1.225 | 0.843 [0.843] | 0.197 | 0.167 [0.167]
 right-handed   | 1.414 | 0.707 [0.707] | 0.250 | 0.167 [0.167]

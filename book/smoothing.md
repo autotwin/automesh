@@ -22,7 +22,7 @@ Define $\bar{\boldsymbol{q}}$ as the average position of all $\boldsymbol{q}_i$ 
 
 $$ \bar{\boldsymbol{q}} := \frac{1}{n} \sum_{i=1}^{n} \boldsymbol{q}_{i}.  $$
 
-Define the gap vector $\Delta\boldsymbol{p}$ as originating at $\boldsymbol{p}$ and terminating at $\bar{\boldsymbol{q}}$ (*viz.*, $\boldsymbol{p} + \Delta\boldsymbol{p} = \bar{\boldsymbol{q}}$),
+Define the **gap vector** $\Delta\boldsymbol{p}$ as originating at $\boldsymbol{p}$ and terminating at $\bar{\boldsymbol{q}}$ (*viz.*, $\boldsymbol{p} + \Delta\boldsymbol{p} = \bar{\boldsymbol{q}}$),
 
 $$ \Delta\boldsymbol{p} := \bar{\boldsymbol{q}} - \boldsymbol{p}. $$
 
