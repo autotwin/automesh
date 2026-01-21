@@ -6,7 +6,7 @@ use std::time::Instant;
 
 use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
-    Metrics, Size, Smoothing, Tessellation, Vector,
+    Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
@@ -163,6 +163,9 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
             }
         });
         deduplicated_faces
+    }
+    fn foo(&self, node_node_connectivity: &VecConnectivity) -> Coordinates {
+        todo!()
     }
     fn interior_points(&self, grid_length: usize) -> Coordinates {
         if grid_length == 0 {

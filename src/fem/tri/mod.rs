@@ -82,6 +82,9 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
     fn faces(&self) -> Connectivity<NUM_NODES_FACE> {
         unimplemented!()
     }
+    fn foo(&self, _node_node_connectivity: &VecConnectivity) -> Coordinates {
+        todo!()
+    }
     fn interior_points(&self, _grid_length: usize) -> Coordinates {
         todo!()
     }

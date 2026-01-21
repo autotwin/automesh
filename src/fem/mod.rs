@@ -63,6 +63,7 @@ pub type VecConnectivity = Vec<Vec<usize>>;
 /// Possible smoothing methods.
 pub enum Smoothing {
     Energetic,
+    Jacobian(usize, Scalar),
     Laplacian(usize, Scalar),
     Taubin(usize, Scalar, Scalar),
     None,
@@ -611,7 +612,8 @@ where
                     };
                     return Ok(());
                 }
-                Smoothing::Laplacian(iterations, scale) => {
+                Smoothing::Jacobian(iterations, scale)
+                | Smoothing::Laplacian(iterations, scale) => {
                     if scale <= 0.0 || scale >= 1.0 {
                         return Err("Need to specify 0.0 < scale < 1.0".to_string());
                     } else {
@@ -637,6 +639,7 @@ where
                 }
                 Smoothing::None => return Ok(()),
             }
+            let use_laplacian = !matches!(*method, Smoothing::Jacobian(_, _));
             let prescribed_nodes_inhomogeneous = self.get_prescribed_nodes_inhomogeneous().clone();
             let prescribed_nodes_inhomogeneous_coordinates: Coordinates = self
                 .get_prescribed_nodes_inhomogeneous_coordinates()
@@ -649,7 +652,7 @@ where
                 .zip(prescribed_nodes_inhomogeneous_coordinates.iter())
                 .for_each(|(&node, coordinates)| nodal_coordinates_mut[node] = coordinates.clone());
             let mut iteration = 1;
-            let mut laplacian;
+            let mut increments;
             let mut scale;
             #[cfg(feature = "profile")]
             let mut frequency = 1;
@@ -669,10 +672,14 @@ where
                 } else {
                     smoothing_scale_deflate
                 };
-                laplacian = self.laplacian(self.get_nodal_influencers());
+                increments = if use_laplacian {
+                    self.laplacian(self.get_nodal_influencers())
+                } else {
+                    self.foo(self.get_nodal_influencers())
+                };
                 self.get_nodal_coordinates_mut()
                     .iter_mut()
-                    .zip(laplacian.iter())
+                    .zip(increments.iter())
                     .for_each(|(coordinate, entry)| *coordinate += entry * scale);
                 #[cfg(feature = "profile")]
                 if frequency == 1 {
@@ -1081,6 +1088,8 @@ pub trait FiniteElementSpecifics<const M: usize> {
     }
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
+    /// ???
+    fn foo(&self, node_node_connectivity: &VecConnectivity) -> Coordinates;
     /// Calculates evenly-spaced points interior to each element.
     fn interior_points(&self, grid_length: usize) -> Coordinates;
     /// Calculates the maximum edge ratios.
