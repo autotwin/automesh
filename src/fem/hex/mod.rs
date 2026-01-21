@@ -173,7 +173,15 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                 if connectivity.is_empty() {
                     Coordinate::zero()
                 } else {
-                    todo!()
+                    connectivity
+                        .iter()
+                        .map(|&node_j| {
+                            let e_star_j = todo!();
+                            e_star_j
+                        })
+                        .sum::<Coordinate>()
+                        / (connectivity.len() as f64)
+                        - &nodal_coordinates[node_index_i]
                 }
             })
             .collect()
