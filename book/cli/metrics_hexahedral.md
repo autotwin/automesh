@@ -444,7 +444,7 @@ $$2 (u^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) - (\math
 
 ![nodal_scaled_jacobian_vectors_hex](img/nodal_scaled_jacobian_vectors_hex.svg)
 
-Figure: Vector $\mathbf{r}$, $\mathbf{s}$, and $\mathbf{t}$ that sequentially connect points $\mathbf{a}$, $\mathbf{b}$ and $\mathbf{c}$.
+Figure: Vectors $\mathbf{r}$, $\mathbf{s}$, and $\mathbf{t}$ that sequentially connect points $\mathbf{a}$, $\mathbf{b}$ and $\mathbf{c}$.
 
 Before proceeding, we can further simplify the expressions of these equations by defining
 edge vectors that connect each of the points $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ that circle the path on $\triangle ABC$.  Let
