@@ -170,6 +170,13 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
             .iter()
             .enumerate()
             .map(|(node_i, connectivity)| {
+                //
+                // This is maybe not the same thing.
+                // Need node-to-element connectivity and then use nodes in each element to find e*.
+                // So the node-to-node connectivity is not used?
+                // And how to incorporate frozen nodes if not using nodal influencers (a node-to-node connectivity)?
+                // If the node-to-node connectivity is empty? So only use it for that? 
+                //
                 if connectivity.is_empty() {
                     Coordinate::zero()
                 } else {
