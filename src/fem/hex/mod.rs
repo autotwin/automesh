@@ -5,7 +5,7 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
+    Connectivity, Coordinate, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
     Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
@@ -165,7 +165,18 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         deduplicated_faces
     }
     fn foo(&self, node_node_connectivity: &VecConnectivity) -> Coordinates {
-        todo!()
+        let nodal_coordinates = self.get_nodal_coordinates();
+        node_node_connectivity
+            .iter()
+            .enumerate()
+            .map(|(node_index_i, connectivity)| {
+                if connectivity.is_empty() {
+                    Coordinate::zero()
+                } else {
+                    todo!()
+                }
+            })
+            .collect()
     }
     fn interior_points(&self, grid_length: usize) -> Coordinates {
         if grid_length == 0 {
