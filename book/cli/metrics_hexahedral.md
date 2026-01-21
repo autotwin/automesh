@@ -396,7 +396,14 @@ $$\mathbf{u} := \mathbf{a} - \mathbf{e} \tag{9}$$
 $$\mathbf{v} := \mathbf{b} - \mathbf{e} \tag{10}$$
 $$\mathbf{w} := \mathbf{c} - \mathbf{e} \tag{11}$$
 
-![abc_e_definition](img/abc_e_definition.jpg)
+
+![nodal_scaled_jacobian_general_hex](img/nodal_scaled_jacobian_general_hex.svg)
+
+Figure: A general hexahedral element in $\real^3$.
+
+![nodal_scaled_jacobian_points_hex](img/nodal_scaled_jacobian_points_hex.svg)
+
+Figure: A dextral, orthogonal local reference frame $(x, y, z)$ created from three nodes $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ that share edge connectivity with common node $\mathbf{e}$.  The location of $\mathbf{e}^{*}$ is the location of $\mathbf{e}$ that creates a scaled Jacobian of unity.
 
 The current scaled Jacobian $\hat{J}$ is defined by the current location of $\mathbf{e}$, holding positions of $\mathbf{a}, \mathbf{b}$, $\mathbf{c}$ constant:
 
@@ -434,6 +441,10 @@ This represents a system of three independent equations and three unknowns $u^*$
 Subtracting Eq. (18) from Eq. (17) and solving,
 
 $$2 (u^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) - (\mathbf{c} - \mathbf{b})\cdot (\mathbf{c} - \mathbf{b}) + (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c}) \tag{20}$$
+
+![nodal_scaled_jacobian_vectors_hex](img/nodal_scaled_jacobian_vectors_hex.svg)
+
+Figure: Vector $\mathbf{r}$, $\mathbf{s}$, and $\mathbf{t}$ that sequentially connect points $\mathbf{a}$, $\mathbf{b}$ and $\mathbf{c}$.
 
 Before proceeding, we can further simplify the expressions of these equations by defining
 edge vectors that connect each of the points $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ that circle the path on $\triangle ABC$.  Let
