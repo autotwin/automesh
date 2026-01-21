@@ -5,8 +5,8 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Connectivity, Coordinate, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
-    Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
+    Connectivity, Coordinate, Coordinates, FiniteElementMethods, FiniteElementSpecifics,
+    FiniteElements, Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Array2, s};
@@ -29,6 +29,17 @@ pub type HexConnectivity = Connectivity<HEX>;
 
 /// The hexahedral finite elements type.
 pub type HexahedralFiniteElements = FiniteElements<HEX>;
+
+const CORNERS: [[usize; 3]; HEX] = [
+    [1, 3, 4],
+    [2, 0, 5],
+    [3, 1, 6],
+    [0, 2, 7],
+    [7, 5, 0],
+    [4, 6, 1],
+    [5, 7, 2],
+    [6, 4, 3],
+];
 
 impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
     fn connected_nodes(node: &usize) -> Vec<usize> {
@@ -165,30 +176,47 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         deduplicated_faces
     }
     fn foo(&self, node_node_connectivity: &VecConnectivity) -> Coordinates {
+        let element_node_connectivity = self.get_element_node_connectivity();
         let nodal_coordinates = self.get_nodal_coordinates();
-        node_node_connectivity
+        //
+        // Could pass in element influencers instead,
+        // where empty elements where node is constrained.
+        //
+        self.get_node_element_connectivity()
             .iter()
+            .zip(node_node_connectivity.iter())
             .enumerate()
-            .map(|(node_i, connectivity)| {
-                //
-                // This is maybe not the same thing.
-                // Need node-to-element connectivity and then use nodes in each element to find e*.
-                // So the node-to-node connectivity is not used?
-                // And how to incorporate frozen nodes if not using nodal influencers (a node-to-node connectivity)?
-                // If the node-to-node connectivity is empty? So only use it for that? 
-                //
-                if connectivity.is_empty() {
+            .map(|(node, (elements, nodes))| {
+                if nodes.is_empty() {
                     Coordinate::zero()
                 } else {
-                    connectivity
+                    elements
                         .iter()
-                        .map(|&node_j| {
-                            let e_star_j = todo!();
-                            e_star_j
+                        .map(|&element| {
+                            let spot = element_node_connectivity[element]
+                                .iter()
+                                .position(|&element_node| node == element_node)
+                                .unwrap();
+                            let [node_a, node_b, node_c] = CORNERS[spot];
+                            let r_2 = (&nodal_coordinates[node_b] - &nodal_coordinates[node_a])
+                                .norm_squared();
+                            let s_2 = (&nodal_coordinates[node_c] - &nodal_coordinates[node_b])
+                                .norm_squared();
+                            let t_2 = (&nodal_coordinates[node_a] - &nodal_coordinates[node_c])
+                                .norm_squared();
+                            let u = 0.5 * (r_2 - s_2 + t_2).sqrt();
+                            let v = 0.5 * (s_2 - t_2 + r_2).sqrt();
+                            let w = 0.5 * (t_2 - r_2 + s_2).sqrt();
+                            [
+                                nodal_coordinates[node_a][0] - u,
+                                nodal_coordinates[node_b][1] - v,
+                                nodal_coordinates[node_c][2] - w,
+                            ]
+                            .into()
                         })
                         .sum::<Coordinate>()
-                        / (connectivity.len() as f64)
-                        - &nodal_coordinates[node_i]
+                        / (elements.len() as f64)
+                        - &nodal_coordinates[node]
                 }
             })
             .collect()
