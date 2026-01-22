@@ -451,7 +451,7 @@ edge vectors that connect each of the points $\mathbf{a}$, $\mathbf{b}$, and $\m
 
 $$\mathbf{r} := \mathbf{b} - \mathbf{a} \quad \implies \quad r^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) = \|\mathbf{r}\|^2 \tag{21}$$
 $$\mathbf{s} := \mathbf{c} - \mathbf{b} \quad \implies \quad s^2 = (\mathbf{c} - \mathbf{b}) \cdot (\mathbf{c} - \mathbf{b}) = \|\mathbf{s}\|^2 \tag{22}$$
-$$\mathbf{t} := \mathbf{a} - \mathbf{c} \quad \implies \quad t^2 = (\mathbf{a} - \mathbf{a}) \cdot (\mathbf{a} - \mathbf{c}) = \|\mathbf{t}\|^2 \tag{23}$$
+$$\mathbf{t} := \mathbf{a} - \mathbf{c} \quad \implies \quad t^2 = (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c}) = \|\mathbf{t}\|^2 \tag{23}$$
 
 Note that the square values of each of the three hypotenuses is $r^2$, $s^2$, and $t^2$, respectively.  Then
 
