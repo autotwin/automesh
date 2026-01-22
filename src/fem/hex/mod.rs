@@ -182,30 +182,45 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         // Could pass in element influencers instead,
         // where empty elements where node is constrained.
         //
+        // Need to add the sign check too!
+        //
         self.get_node_element_connectivity()
             .iter()
             .zip(node_node_connectivity.iter())
             .enumerate()
-            .map(|(node, (elements, nodes))| {
-                if nodes.is_empty() {
+            .map(|(node, (elements, foo))| {
+                if foo.is_empty() {
                     Coordinate::zero()
                 } else {
                     elements
                         .iter()
                         .map(|&element| {
-                            let spot = element_node_connectivity[element]
+                            let element_nodes = element_node_connectivity[element];
+                            let spot = element_nodes
                                 .iter()
                                 .position(|&element_node| node == element_node)
                                 .unwrap();
-                            let [node_a, node_b, node_c] = CORNERS[spot];
+                            let [spot_a, spot_b, spot_c] = CORNERS[spot];
+                            let node_a = element_nodes[spot_a];
+                            let node_b = element_nodes[spot_b];
+                            let node_c = element_nodes[spot_c];
                             let r_2 = (&nodal_coordinates[node_b] - &nodal_coordinates[node_a])
                                 .norm_squared();
                             let s_2 = (&nodal_coordinates[node_c] - &nodal_coordinates[node_b])
                                 .norm_squared();
                             let t_2 = (&nodal_coordinates[node_a] - &nodal_coordinates[node_c])
                                 .norm_squared();
+                            if (r_2 - s_2 + t_2) < 0.0 {
+                                panic!()
+                            }
                             let u = 0.5 * (r_2 - s_2 + t_2).sqrt();
+                            if (s_2 - t_2 + r_2) < 0.0 {
+                                panic!()
+                            }
                             let v = 0.5 * (s_2 - t_2 + r_2).sqrt();
+                            if (t_2 - r_2 + s_2) < 0.0 {
+                                panic!()
+                            }
                             let w = 0.5 * (t_2 - r_2 + s_2).sqrt();
                             [
                                 nodal_coordinates[node_a][0] - u,

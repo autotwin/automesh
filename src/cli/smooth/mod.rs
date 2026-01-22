@@ -194,6 +194,8 @@ where
         smoothing_method.as_str(),
         "Energetic"
             | "energetic"
+            | "Jacobian"
+            | "jacobian"
             | "Laplacian"
             | "Laplace"
             | "laplacian"
@@ -209,6 +211,9 @@ where
                 }
                 "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                     println!("with {iterations} iterations of Laplace")
+                }
+                "Jacobian" | "jacobian" => {
+                    println!("with {iterations} iterations of Jacobian")
                 }
                 "Taubin" | "taubin" => {
                     println!("with {iterations} iterations of Taubin")
@@ -228,6 +233,9 @@ where
             }
             "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                 output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;
+            }
+            "Jacobian" | "jacobian" => {
+                output_type.smooth(&Smoothing::Jacobian(iterations, scale))?;
             }
             "Taubin" | "taubin" => {
                 output_type.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
