@@ -184,6 +184,8 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
         //
         // Need to add the sign check too!
         //
+        // Doesn't the final step to compute e* have to be in the local coordinate system?
+        //
         self.get_node_element_connectivity()
             .iter()
             .zip(node_node_connectivity.iter())
@@ -211,15 +213,15 @@ impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
                             let t_2 = (&nodal_coordinates[node_a] - &nodal_coordinates[node_c])
                                 .norm_squared();
                             if (r_2 - s_2 + t_2) < 0.0 {
-                                panic!()
+                                panic!("Element {element} with nodes {element_nodes:?} on node {node} from [a, b, c] {:?} with {r_2} {s_2} {t_2}", [node_a, node_b, node_c])
                             }
                             let u = 0.5 * (r_2 - s_2 + t_2).sqrt();
                             if (s_2 - t_2 + r_2) < 0.0 {
-                                panic!()
+                                panic!("Element {element} with nodes {element_nodes:?} on node {node} from [a, b, c] {:?} with {r_2} {s_2} {t_2}", [node_a, node_b, node_c])
                             }
                             let v = 0.5 * (s_2 - t_2 + r_2).sqrt();
                             if (t_2 - r_2 + s_2) < 0.0 {
-                                panic!()
+                                panic!("Element {element} with nodes {element_nodes:?} on node {node} from [a, b, c] {:?} with {r_2} {s_2} {t_2}", [node_a, node_b, node_c])
                             }
                             let w = 0.5 * (t_2 - r_2 + s_2).sqrt();
                             [
