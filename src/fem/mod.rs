@@ -870,7 +870,7 @@ impl<const N: usize> From<Data<N>> for FiniteElements<N> {
 impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
     type Error = String;
     fn try_from((tessellation, size): (Tessellation, Size)) -> Result<Self, Self::Error> {
-        let tolerance = 2e-1 * size.unwrap();
+        let tolerance = 5e-1 * size.unwrap();
         let mut triangular_finite_elements = TriangularFiniteElements::from(tessellation);
         triangular_finite_elements.node_element_connectivity()?;
         triangular_finite_elements.node_node_connectivity()?;
