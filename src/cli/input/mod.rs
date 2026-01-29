@@ -20,13 +20,14 @@ pub struct Input<'a> {
     translate: Translate,
 }
 
-pub struct FiniteElementInput<const M: usize, const N: usize, T>(T)
+pub struct FiniteElementInput<const M: usize, const N: usize, const O: usize, T>(T)
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation>;
+    T: FiniteElementMethods<M, N, O> + From<Tessellation>;
 
-impl<const M: usize, const N: usize, T> TryFrom<&str> for FiniteElementInput<M, N, T>
+impl<const M: usize, const N: usize, const O: usize, T> TryFrom<&str>
+    for FiniteElementInput<M, N, O, T>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N, O> + From<Tessellation>,
 {
     type Error = ErrorWrapper;
     fn try_from(file: &str) -> Result<Self, Self::Error> {
@@ -40,9 +41,10 @@ where
     }
 }
 
-impl<const M: usize, const N: usize, T> TryFrom<String> for FiniteElementInput<M, N, T>
+impl<const M: usize, const N: usize, const O: usize, T> TryFrom<String>
+    for FiniteElementInput<M, N, O, T>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N, O> + From<Tessellation>,
 {
     type Error = ErrorWrapper;
     fn try_from(file: String) -> Result<Self, Self::Error> {
@@ -70,13 +72,13 @@ impl<'a> TryFrom<Input<'a>> for Voxels {
     }
 }
 
-pub fn read_finite_elements<const M: usize, const N: usize, T>(
+pub fn read_finite_elements<const M: usize, const N: usize, const O: usize, T>(
     file: &str,
     quiet: bool,
     title: bool,
 ) -> Result<T, ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N, O> + From<Tessellation>,
 {
     let time = Instant::now();
     if !quiet {
@@ -89,7 +91,7 @@ where
         }
         print!("     \x1b[1;96mReading\x1b[0m {file}");
     }
-    let finite_elements = FiniteElementInput::<M, N, T>::try_from(file)?.0;
+    let finite_elements = FiniteElementInput::<M, N, O, T>::try_from(file)?.0;
     if !quiet {
         println!(
             "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
