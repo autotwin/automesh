@@ -1246,13 +1246,13 @@ impl Octree {
             }
         }
     }
-    pub fn from_finite_elements<const M: usize, const N: usize, T>(
+    pub fn from_finite_elements<const M: usize, const N: usize, const O: usize, T>(
         finite_elements: T,
         grid: usize,
         size: f64,
     ) -> Self
     where
-        T: FiniteElementMethods<M, N>,
+        T: FiniteElementMethods<M, N, O>,
     {
         let mut blocks: Blocks = finite_elements
             .get_element_blocks()

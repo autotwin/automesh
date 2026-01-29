@@ -88,9 +88,9 @@ pub struct FiniteElements<const N: usize> {
 }
 
 /// Methods common to all finite element types.
-pub trait FiniteElementMethods<const M: usize, const N: usize>
+pub trait FiniteElementMethods<const M: usize, const N: usize, const O: usize>
 where
-    Self: FiniteElementSpecifics<M> + Sized,
+    Self: FiniteElementSpecifics<M, O> + Sized,
 {
     /// Calculates and returns the bounding box.
     fn bounding_box(&self) -> BoundingBox;
@@ -98,6 +98,16 @@ where
     fn centroids(&self) -> Coordinates;
     /// Returns the centroid for each exterior face.
     fn exterior_faces_centroids(&self) -> Coordinates;
+    /// Returns the exterior faces and nodes.
+    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes);
+    /// Returns the node-to-face connectivity for exterior nodes and faces.
+    fn exterior_node_face_connectivity(&self, exterior_faces: &Connectivity<M>) -> VecConnectivity;
+    /// Returns the node-to-node connectivity for exterior nodes.
+    fn exterior_node_node_connectivity(
+        &self,
+        exterior_face_nodes: &Connectivity<M>,
+        exterior_node_faces: &VecConnectivity,
+    ) -> Result<VecConnectivity, &str>;
     /// Constructs and returns a new finite elements type from an Exodus input file.
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF>;
     /// Constructs and returns a new finite elements type from an Abaqus input file.
@@ -164,9 +174,10 @@ where
     ) -> Result<(), &str>;
 }
 
-impl<const M: usize, const N: usize> FiniteElementMethods<M, N> for FiniteElements<N>
+impl<const M: usize, const N: usize, const O: usize> FiniteElementMethods<M, N, O>
+    for FiniteElements<N>
 where
-    Self: FiniteElementSpecifics<M> + Sized,
+    Self: FiniteElementSpecifics<M, O> + Sized,
 {
     fn bounding_box(&self) -> BoundingBox {
         #[cfg(feature = "profile")]
@@ -221,6 +232,80 @@ where
                     / number_of_nodes
             })
             .collect()
+    }
+    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes) {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let faces = self.exterior_faces();
+        let mut nodes: Nodes = faces.iter().flatten().copied().collect();
+        nodes.sort();
+        nodes.dedup();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mExterior face-to-node\x1b[0m {:?}",
+            time.elapsed()
+        );
+        (faces, nodes)
+    }
+    fn exterior_node_face_connectivity(
+        &self,
+        exterior_face_nodes: &Connectivity<M>,
+    ) -> VecConnectivity {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let number_of_nodes = self.get_nodal_coordinates().len();
+        let mut node_face_connectivity = vec![vec![]; number_of_nodes];
+        exterior_face_nodes
+            .iter()
+            .enumerate()
+            .for_each(|(face, nodes)| {
+                nodes
+                    .iter()
+                    .for_each(|&node| node_face_connectivity[node].push(face))
+            });
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mExterior node-to-face\x1b[0m {:?} ",
+            time.elapsed()
+        );
+        node_face_connectivity
+    }
+    fn exterior_node_node_connectivity(
+        &self,
+        exterior_face_nodes: &Connectivity<M>,
+        exterior_node_faces: &VecConnectivity,
+    ) -> Result<VecConnectivity, &str> {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let mut nodes = [0; M];
+        let number_of_nodes = self.get_nodal_coordinates().len();
+        let mut node_node_connectivity: VecConnectivity = vec![vec![]; number_of_nodes];
+        node_node_connectivity
+            .iter_mut()
+            .zip(exterior_node_faces.iter().enumerate())
+            .try_for_each(|(connectivity, (node, faces))| {
+                faces.iter().try_for_each(|&face| {
+                    nodes.clone_from(&exterior_face_nodes[face]);
+                    if let Some(neighbors) = nodes.iter().position(|n| n == &node) {
+                        Self::connected_nodes_face(&neighbors)
+                            .into_iter()
+                            .for_each(|neighbor| connectivity.push(nodes[neighbor]));
+                        Ok(())
+                    } else {
+                        Err("The face-to-node connectivity has been incorrectly calculated")
+                    }
+                })
+            })?;
+        node_node_connectivity.iter_mut().for_each(|connectivity| {
+            connectivity.sort();
+            connectivity.dedup();
+        });
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mExterior node-to-node\x1b[0m {:?} ",
+            time.elapsed()
+        );
+        Ok(node_node_connectivity)
     }
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
@@ -390,8 +475,8 @@ where
                             element_connectivity.iter().position(|n| n == &node)
                         {
                             Self::connected_nodes(&neighbors)
-                                .iter()
-                                .for_each(|&neighbor| {
+                                .into_iter()
+                                .for_each(|neighbor| {
                                     connectivity.push(element_connectivity[neighbor])
                                 });
                             Ok(())
@@ -965,18 +1050,41 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         let mut finite_elements = hexahedral_finite_elements
             .remove_nodes(removed_nodes)
             .remove_orphan_nodes()?;
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let (exterior_faces, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mOuter faces and nodes\x1b[0m {:?}",
-            time.elapsed()
-        );
+        let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
+        let exterior_node_faces =
+            finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
+        let exterior_node_nodes = finite_elements
+            .exterior_node_node_connectivity(&exterior_face_nodes, &exterior_node_faces)?;
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let coordinates = finite_elements.get_nodal_coordinates();
-        let rounded_coordinates: Vec<_> = exterior_nodes
+        let flat_nodes: Nodes = exterior_nodes
+            .iter()
+            .filter(|&&node| {
+                let neighbors = &exterior_node_nodes[node];
+                neighbors.len() == 4
+                    && coordinates[neighbors[0]].iter().enumerate().any(
+                        |(index, &neighbor_0_coords)| {
+                            neighbors
+                                .iter()
+                                .skip(1)
+                                .all(|&neighbor| coordinates[neighbor][index] == neighbor_0_coords)
+                        },
+                    )
+            })
+            .copied()
+            .collect();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mCollecting flat nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
+
+        let projected_nodes = flat_nodes; // temporary
+
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let rounded_coordinates: Vec<_> = projected_nodes
             .iter()
             .map(|&exterior_node| {
                 [
@@ -989,7 +1097,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 ]
             })
             .collect();
-        let new_coordinates: Coordinates = exterior_nodes
+        let new_coordinates: Coordinates = projected_nodes
             .iter()
             .zip(rounded_coordinates)
             .map(|(&exterior_node, [i, j, k])| {
@@ -1041,27 +1149,34 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             })
             .collect();
         let numbering_offset = finite_elements.get_nodal_coordinates().len();
-        let mut surface_nodes_map = vec![0; exterior_nodes.iter().max().unwrap() + 1];
-        exterior_nodes
+        let mut surface_nodes_map = vec![None; exterior_nodes.iter().max().unwrap() + 1];
+        projected_nodes
             .into_iter()
             .enumerate()
             .for_each(|(surface_node, exterior_node)| {
-                surface_nodes_map[exterior_node] = surface_node + numbering_offset
+                surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset)
             });
         finite_elements.nodal_coordinates.extend(new_coordinates);
-        let new_hexes: Connectivity<HEX> = exterior_faces
+        let new_hexes: Connectivity<HEX> = exterior_face_nodes
             .into_iter()
-            .map(|[node_0, node_1, node_2, node_3]| {
-                [
-                    node_0,
-                    node_1,
-                    node_2,
-                    node_3,
-                    surface_nodes_map[node_0],
-                    surface_nodes_map[node_1],
-                    surface_nodes_map[node_2],
-                    surface_nodes_map[node_3],
-                ]
+            .filter_map(|[node_0, node_1, node_2, node_3]| {
+                if let Some(node_4) = surface_nodes_map[node_0] {
+                    if let Some(node_5) = surface_nodes_map[node_1] {
+                        if let Some(node_6) = surface_nodes_map[node_2] {
+                            surface_nodes_map[node_3].map(|node_7| {
+                                [
+                                    node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7,
+                                ]
+                            })
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             })
             .collect();
         finite_elements
@@ -1158,21 +1273,15 @@ impl TryFrom<(Tessellation, Size)> for TriangularFiniteElements {
 }
 
 /// Methods specific to each finite element type.
-pub trait FiniteElementSpecifics<const M: usize> {
+pub trait FiniteElementSpecifics<const M: usize, const O: usize> {
     /// Returns the nodes connected to the given node within an element.
-    fn connected_nodes(node: &usize) -> Vec<usize>;
+    fn connected_nodes(node: &usize) -> [usize; O];
+    /// Returns the nodes connected to the given node within an element face.
+    fn connected_nodes_face(node: &usize) -> [usize; 2];
     /// Returns the exterior faces.
     fn exterior_faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each exterior face.
     fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates;
-    /// Returns the exterior faces and nodes.
-    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes) {
-        let faces = self.exterior_faces();
-        let mut nodes: Nodes = faces.iter().flatten().copied().collect();
-        nodes.sort();
-        nodes.dedup();
-        (faces, nodes)
-    }
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each element.
