@@ -1187,14 +1187,9 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     if let Some(direction) = average_direction {
                         let cosine =
                             direction * (&closest_point - exterior_node_coordinates).normalized();
-                        // println!("{foo}, {direction}");
-                        // if foo.is_nan() {
-                        //     panic!
-                        // }
                         if !cosine.is_nan() && cosine.abs() > 0.9 {
                             projected_nodes[exterior_node_index] = true;
                             Some(closest_point)
-                            // None
                         } else {
                             None
                         }
