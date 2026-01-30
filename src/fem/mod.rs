@@ -1092,32 +1092,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mFilter exterior nodes\x1b[0m {:?}",
             time.elapsed()
         );
-
-        // #[cfg(feature = "profile")]
-        // let time = Instant::now();
-        // let flat_nodes: Nodes = exterior_nodes
-        //     .iter()
-        //     .filter(|&&node| {
-        //         let neighbors = &exterior_node_nodes[node];
-        //         neighbors.len() == 4
-        //             && coordinates[neighbors[0]].iter().enumerate().any(
-        //                 |(index, &neighbor_0_coords)| {
-        //                     neighbors
-        //                         .iter()
-        //                         .skip(1)
-        //                         .all(|&neighbor| coordinates[neighbor][index] == neighbor_0_coords)
-        //                 },
-        //             )
-        //     })
-        //     .copied()
-        //     .collect();
-        // #[cfg(feature = "profile")]
-        // println!(
-        //     "             \x1b[1;93mCollecting flat nodes\x1b[0m {:?}",
-        //     time.elapsed()
-        // );
-        // let foo_nodes = flat_nodes; // temporary
-
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let rounded_coordinates: Vec<_> = projection_info
@@ -1187,7 +1161,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     if let Some(direction) = average_direction {
                         let cosine =
                             direction * (&closest_point - exterior_node_coordinates).normalized();
-                        if !cosine.is_nan() && cosine.abs() > 0.9 {
+                        if !cosine.is_nan() && cosine > 0.5 {
                             projected_nodes[exterior_node_index] = true;
                             Some(closest_point)
                         } else {
@@ -1211,12 +1185,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 }
             },
         );
-        // foo_nodes
-        //     .into_iter()
-        //     .enumerate()
-        //     .for_each(|(surface_node, exterior_node)| {
-        //         surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset)
-        //     });
         finite_elements.nodal_coordinates.extend(new_coordinates);
         let new_hexes: Connectivity<HEX> = exterior_face_nodes
             .into_iter()
@@ -1249,6 +1217,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
             time.elapsed()
         );
+        let finite_elements = finite_elements.remove_orphan_nodes()?; // since some faces do not have 4 projected nodes
         Ok(finite_elements)
     }
 }
