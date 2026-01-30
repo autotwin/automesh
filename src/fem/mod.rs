@@ -1058,11 +1058,11 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let coordinates = finite_elements.get_nodal_coordinates();
-        let flat_nodes: Nodes = exterior_nodes
+        let projection_info: Vec<(usize, Option<Coordinate>)> = exterior_nodes
             .iter()
-            .filter(|&&node| {
+            .map(|&node| {
                 let neighbors = &exterior_node_nodes[node];
-                neighbors.len() == 4
+                if neighbors.len() == 4
                     && coordinates[neighbors[0]].iter().enumerate().any(
                         |(index, &neighbor_0_coords)| {
                             neighbors
@@ -1071,91 +1071,157 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                                 .all(|&neighbor| coordinates[neighbor][index] == neighbor_0_coords)
                         },
                     )
+                {
+                    (node, None)
+                } else {
+                    (
+                        node,
+                        Some(
+                            neighbors
+                                .iter()
+                                .map(|&neighbor| &coordinates[node] - &coordinates[neighbor])
+                                .sum::<Coordinate>()
+                                .normalized(),
+                        ),
+                    )
+                }
             })
-            .copied()
             .collect();
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mCollecting flat nodes\x1b[0m {:?}",
+            "             \x1b[1;93mFilter exterior nodes\x1b[0m {:?}",
             time.elapsed()
         );
 
-        let projected_nodes = flat_nodes; // temporary
+        // #[cfg(feature = "profile")]
+        // let time = Instant::now();
+        // let flat_nodes: Nodes = exterior_nodes
+        //     .iter()
+        //     .filter(|&&node| {
+        //         let neighbors = &exterior_node_nodes[node];
+        //         neighbors.len() == 4
+        //             && coordinates[neighbors[0]].iter().enumerate().any(
+        //                 |(index, &neighbor_0_coords)| {
+        //                     neighbors
+        //                         .iter()
+        //                         .skip(1)
+        //                         .all(|&neighbor| coordinates[neighbor][index] == neighbor_0_coords)
+        //                 },
+        //             )
+        //     })
+        //     .copied()
+        //     .collect();
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "             \x1b[1;93mCollecting flat nodes\x1b[0m {:?}",
+        //     time.elapsed()
+        // );
+        // let foo_nodes = flat_nodes; // temporary
 
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let rounded_coordinates: Vec<_> = projected_nodes
+        let rounded_coordinates: Vec<_> = projection_info
             .iter()
-            .map(|&exterior_node| {
+            .map(|(exterior_node, _)| {
                 [
-                    ((coordinates[exterior_node][0] - tree.translate().x()) / tree.scale().x())
+                    ((coordinates[*exterior_node][0] - tree.translate().x()) / tree.scale().x())
                         .floor() as i16,
-                    ((coordinates[exterior_node][1] - tree.translate().y()) / tree.scale().y())
+                    ((coordinates[*exterior_node][1] - tree.translate().y()) / tree.scale().y())
                         .floor() as i16,
-                    ((coordinates[exterior_node][2] - tree.translate().z()) / tree.scale().z())
+                    ((coordinates[*exterior_node][2] - tree.translate().z()) / tree.scale().z())
                         .floor() as i16,
                 ]
             })
             .collect();
-        let new_coordinates: Coordinates = projected_nodes
+        let mut projected_nodes = vec![false; projection_info.len()];
+        let new_coordinates: Coordinates = projection_info
             .iter()
+            .enumerate()
             .zip(rounded_coordinates)
-            .map(|(&exterior_node, [i, j, k])| {
-                let mut nearby_surface_nodes: Nodes = voxel_grid
-                    .iter()
-                    .filter_map(|[i0, j0, k0]| {
-                        bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
-                    })
-                    .flatten()
-                    .copied()
-                    .collect();
-                assert!(!nearby_surface_nodes.is_empty());
-                nearby_surface_nodes.sort();
-                nearby_surface_nodes.dedup();
-                let exterior_node_coordinates =
-                    &finite_elements.get_nodal_coordinates()[exterior_node];
-                let (closest_node, _) = nearby_surface_nodes.iter().fold(
-                    (usize::MAX, f64::MAX),
-                    |(closest_node, minimum_distance_squared), &surface_node| {
-                        let distance_squared = (&surface_nodal_coordinates[surface_node]
-                            - exterior_node_coordinates)
-                            .norm_squared();
-                        if distance_squared < minimum_distance_squared {
-                            (surface_node, distance_squared)
-                        } else {
-                            (closest_node, minimum_distance_squared)
-                        }
-                    },
-                );
-                let (closest_point, _) =
-                    surface_node_element_connectivity[closest_node].iter().fold(
-                        (Coordinate::new([f64::MAX; NSD]), f64::MAX),
-                        |(closest_point, minimum_distance_squared), &triangle| {
-                            let point = TriangularFiniteElements::closest_point(
-                                exterior_node_coordinates,
-                                &surface_nodal_coordinates,
-                                surface_element_node_connectivity[triangle],
-                            );
-                            let distance_squared =
-                                (exterior_node_coordinates - &point).norm_squared();
+            .filter_map(
+                |((exterior_node_index, (exterior_node, average_direction)), [i, j, k])| {
+                    let mut nearby_surface_nodes: Nodes = voxel_grid
+                        .iter()
+                        .filter_map(|[i0, j0, k0]| {
+                            bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+                        })
+                        .flatten()
+                        .copied()
+                        .collect();
+                    assert!(!nearby_surface_nodes.is_empty());
+                    nearby_surface_nodes.sort();
+                    nearby_surface_nodes.dedup();
+                    let exterior_node_coordinates =
+                        &finite_elements.get_nodal_coordinates()[*exterior_node];
+                    let (closest_node, _) = nearby_surface_nodes.iter().fold(
+                        (usize::MAX, f64::MAX),
+                        |(closest_node, minimum_distance_squared), &surface_node| {
+                            let distance_squared = (&surface_nodal_coordinates[surface_node]
+                                - exterior_node_coordinates)
+                                .norm_squared();
                             if distance_squared < minimum_distance_squared {
-                                (point, distance_squared)
+                                (surface_node, distance_squared)
                             } else {
-                                (closest_point, minimum_distance_squared)
+                                (closest_node, minimum_distance_squared)
                             }
                         },
                     );
-                closest_point
-            })
+                    let (closest_point, _) =
+                        surface_node_element_connectivity[closest_node].iter().fold(
+                            (Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                            |(closest_point, minimum_distance_squared), &triangle| {
+                                let point = TriangularFiniteElements::closest_point(
+                                    exterior_node_coordinates,
+                                    &surface_nodal_coordinates,
+                                    surface_element_node_connectivity[triangle],
+                                );
+                                let distance_squared =
+                                    (exterior_node_coordinates - &point).norm_squared();
+                                if distance_squared < minimum_distance_squared {
+                                    (point, distance_squared)
+                                } else {
+                                    (closest_point, minimum_distance_squared)
+                                }
+                            },
+                        );
+                    if let Some(direction) = average_direction {
+                        let cosine =
+                            direction * (&closest_point - exterior_node_coordinates).normalized();
+                        // println!("{foo}, {direction}");
+                        // if foo.is_nan() {
+                        //     panic!
+                        // }
+                        if !cosine.is_nan() && cosine.abs() > 0.9 {
+                            projected_nodes[exterior_node_index] = true;
+                            Some(closest_point)
+                            // None
+                        } else {
+                            None
+                        }
+                    } else {
+                        projected_nodes[exterior_node_index] = true;
+                        Some(closest_point)
+                    }
+                },
+            )
             .collect();
         let numbering_offset = finite_elements.get_nodal_coordinates().len();
         let mut surface_nodes_map = vec![None; exterior_nodes.iter().max().unwrap() + 1];
-        projected_nodes
-            .into_iter()
-            .enumerate()
-            .for_each(|(surface_node, exterior_node)| {
-                surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset)
-            });
+        let mut surface_node = 0;
+        projection_info.into_iter().zip(projected_nodes).for_each(
+            |((exterior_node, _), do_dat)| {
+                if do_dat {
+                    surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset);
+                    surface_node += 1;
+                }
+            },
+        );
+        // foo_nodes
+        //     .into_iter()
+        //     .enumerate()
+        //     .for_each(|(surface_node, exterior_node)| {
+        //         surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset)
+        //     });
         finite_elements.nodal_coordinates.extend(new_coordinates);
         let new_hexes: Connectivity<HEX> = exterior_face_nodes
             .into_iter()
