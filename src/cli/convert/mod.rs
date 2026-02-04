@@ -89,17 +89,29 @@ pub fn convert_mesh(subcommand: ConvertMeshSubcommand) -> Result<(), ErrorWrappe
     match subcommand {
         ConvertMeshSubcommand::Hex(args) => write_finite_elements(
             args.output,
-            read_finite_elements::<_, _, HexahedralFiniteElements>(&args.input, args.quiet, true)?,
+            read_finite_elements::<_, _, _, HexahedralFiniteElements>(
+                &args.input,
+                args.quiet,
+                true,
+            )?,
             args.quiet,
         ),
         ConvertMeshSubcommand::Tet(args) => write_finite_elements(
             args.output,
-            read_finite_elements::<_, _, TetrahedralFiniteElements>(&args.input, args.quiet, true)?,
+            read_finite_elements::<_, _, _, TetrahedralFiniteElements>(
+                &args.input,
+                args.quiet,
+                true,
+            )?,
             args.quiet,
         ),
         ConvertMeshSubcommand::Tri(args) => write_finite_elements(
             args.output,
-            read_finite_elements::<_, _, TriangularFiniteElements>(&args.input, args.quiet, true)?,
+            read_finite_elements::<_, _, _, TriangularFiniteElements>(
+                &args.input,
+                args.quiet,
+                true,
+            )?,
             args.quiet,
         ),
     }

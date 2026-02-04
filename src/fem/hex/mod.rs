@@ -21,26 +21,35 @@ use std::{
 /// The number of nodes in a hexahedral finite element.
 pub const HEX: usize = 8;
 
-/// The number of nodes per face of a hexahedral finite element.
+const O: usize = 3;
 const NUM_NODES_FACE: usize = 4;
 
 /// The element-to-node connectivity for hexahedral finite elements.
 pub type HexConnectivity = Connectivity<HEX>;
 
-/// The hexahedral finite elements type.
+/// The hexahedral finite elements type.d
 pub type HexahedralFiniteElements = FiniteElements<HEX>;
 
-impl FiniteElementSpecifics<NUM_NODES_FACE> for HexahedralFiniteElements {
-    fn connected_nodes(node: &usize) -> Vec<usize> {
+impl FiniteElementSpecifics<NUM_NODES_FACE, O> for HexahedralFiniteElements {
+    fn connected_nodes(node: &usize) -> [usize; O] {
         match node {
-            0 => vec![1, 3, 4],
-            1 => vec![0, 2, 5],
-            2 => vec![1, 3, 6],
-            3 => vec![0, 2, 7],
-            4 => vec![0, 5, 7],
-            5 => vec![1, 4, 6],
-            6 => vec![2, 5, 7],
-            7 => vec![3, 4, 6],
+            0 => [1, 3, 4],
+            1 => [0, 2, 5],
+            2 => [1, 3, 6],
+            3 => [0, 2, 7],
+            4 => [0, 5, 7],
+            5 => [1, 4, 6],
+            6 => [2, 5, 7],
+            7 => [3, 4, 6],
+            _ => panic!(),
+        }
+    }
+    fn connected_nodes_face(node: &usize) -> [usize; 2] {
+        match node {
+            0 => [1, 3],
+            1 => [0, 2],
+            2 => [1, 3],
+            3 => [0, 2],
             _ => panic!(),
         }
     }

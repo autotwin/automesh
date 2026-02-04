@@ -136,7 +136,7 @@ pub struct SmoothTriArgs {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn smooth<const M: usize, const N: usize, T>(
+pub fn smooth<const M: usize, const N: usize, const O: usize, T>(
     input: String,
     output: String,
     iterations: usize,
@@ -149,7 +149,7 @@ pub fn smooth<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + From<Tessellation>,
+    T: FiniteElementMethods<M, N, O> + From<Tessellation>,
     Tessellation: From<T>,
 {
     let mut finite_elements: T = read_finite_elements(&input, quiet, true)?;
@@ -176,7 +176,7 @@ where
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn apply_smoothing_method<const M: usize, const N: usize, T>(
+pub fn apply_smoothing_method<const M: usize, const N: usize, const O: usize, T>(
     output_type: &mut T,
     iterations: usize,
     method: Option<String>,
@@ -186,7 +186,7 @@ pub fn apply_smoothing_method<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N>,
+    T: FiniteElementMethods<M, N, O>,
 {
     let time = Instant::now();
     let smoothing_method = method.unwrap_or("Taubin".to_string());

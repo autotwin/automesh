@@ -32,20 +32,20 @@ pub fn remesh(
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
     let mut finite_elements =
-        read_finite_elements::<_, _, TriangularFiniteElements>(&input, quiet, true)?;
+        read_finite_elements::<_, _, _, TriangularFiniteElements>(&input, quiet, true)?;
     apply_remeshing(&mut finite_elements, iterations, quiet, false)?;
     write_finite_elements(output, finite_elements, quiet)
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn apply_remeshing<const M: usize, const N: usize, T>(
+pub fn apply_remeshing<const M: usize, const N: usize, const O: usize, T>(
     finite_elements: &mut T,
     iterations: usize,
     quiet: bool,
     smoothed: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N>,
+    T: FiniteElementMethods<M, N, O>,
 {
     let time = Instant::now();
     if !quiet {

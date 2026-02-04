@@ -114,7 +114,7 @@ pub enum MeshBasis {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn mesh<const M: usize, const N: usize, T>(
+pub fn mesh<const M: usize, const N: usize, const O: usize, T>(
     smoothing: Option<MeshSmoothCommands>,
     input: String,
     output: String,
@@ -134,7 +134,7 @@ pub fn mesh<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N>
+    T: FiniteElementMethods<M, N, O>
         + From<Tessellation>
         + TryFrom<(Tessellation, Size), Error = String>,
     Tessellation: From<T>,
@@ -147,7 +147,7 @@ where
             smoothing, input, output, defeature, nelx, nely, nelz, remove, scale, translate,
             metrics, quiet,
         ),
-        Some("stl") => mesh_tessellation::<M, N, T>(
+        Some("stl") => mesh_tessellation::<M, N, O, T>(
             smoothing, input, output, size, scale, translate, metrics, quiet,
         ),
         _ => Err(invalid_input(&input, input_extension)),
@@ -375,7 +375,7 @@ pub fn mesh_segmentation<const N: usize>(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn mesh_tessellation<const M: usize, const N: usize, T>(
+pub fn mesh_tessellation<const M: usize, const N: usize, const O: usize, T>(
     smoothing: Option<MeshSmoothCommands>,
     input: String,
     output: String,
@@ -386,7 +386,7 @@ pub fn mesh_tessellation<const M: usize, const N: usize, T>(
     quiet: bool,
 ) -> Result<(), ErrorWrapper>
 where
-    T: FiniteElementMethods<M, N> + TryFrom<(Tessellation, Size), Error = String>,
+    T: FiniteElementMethods<M, N, O> + TryFrom<(Tessellation, Size), Error = String>,
     Tessellation: From<T>,
 {
     let mut time = Instant::now();

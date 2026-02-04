@@ -156,14 +156,15 @@ pub struct Cell {
 }
 
 impl Cell {
-    pub fn any_samples_inside(&self, samples: &[Vec<Vec<bool>>]) -> bool {
+    pub fn any_samples_inside(&self, samples: &[Vec<Vec<u8>>]) -> bool {
         let min_x = self.min_x as usize;
         let min_y = self.min_y as usize;
         let min_z = self.min_z as usize;
         let max_x = (self.min_x + self.lngth) as usize;
         let max_y = (self.min_y + self.lngth) as usize;
         let max_z = (self.min_z + self.lngth) as usize;
-        (min_x..max_x).any(|i| (min_y..max_y).any(|j| (min_z..max_z).any(|k| samples[i][j][k])))
+        (min_x..max_x)
+            .any(|i| (min_y..max_y).any(|j| (min_z..max_z).any(|k| samples[i][j][k] == 1)))
     }
     pub const fn get_block(&self) -> u8 {
         if let Some(block) = self.block {
@@ -1245,13 +1246,13 @@ impl Octree {
             }
         }
     }
-    pub fn from_finite_elements<const M: usize, const N: usize, T>(
+    pub fn from_finite_elements<const M: usize, const N: usize, const O: usize, T>(
         finite_elements: T,
         grid: usize,
         size: f64,
     ) -> Self
     where
-        T: FiniteElementMethods<M, N>,
+        T: FiniteElementMethods<M, N, O>,
     {
         let mut blocks: Blocks = finite_elements
             .get_element_blocks()

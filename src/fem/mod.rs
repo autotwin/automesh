@@ -29,6 +29,7 @@ use conspire::{
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
 use std::{
+    array::from_fn,
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
     path::PathBuf,
@@ -87,9 +88,9 @@ pub struct FiniteElements<const N: usize> {
 }
 
 /// Methods common to all finite element types.
-pub trait FiniteElementMethods<const M: usize, const N: usize>
+pub trait FiniteElementMethods<const M: usize, const N: usize, const O: usize>
 where
-    Self: FiniteElementSpecifics<M> + Sized,
+    Self: FiniteElementSpecifics<M, O> + Sized,
 {
     /// Calculates and returns the bounding box.
     fn bounding_box(&self) -> BoundingBox;
@@ -97,6 +98,16 @@ where
     fn centroids(&self) -> Coordinates;
     /// Returns the centroid for each exterior face.
     fn exterior_faces_centroids(&self) -> Coordinates;
+    /// Returns the exterior faces and nodes.
+    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes);
+    /// Returns the node-to-face connectivity for exterior nodes and faces.
+    fn exterior_node_face_connectivity(&self, exterior_faces: &Connectivity<M>) -> VecConnectivity;
+    /// Returns the node-to-node connectivity for exterior nodes.
+    fn exterior_node_node_connectivity(
+        &self,
+        exterior_face_nodes: &Connectivity<M>,
+        exterior_node_faces: &VecConnectivity,
+    ) -> Result<VecConnectivity, &str>;
     /// Constructs and returns a new finite elements type from an Exodus input file.
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF>;
     /// Constructs and returns a new finite elements type from an Abaqus input file.
@@ -163,9 +174,10 @@ where
     ) -> Result<(), &str>;
 }
 
-impl<const M: usize, const N: usize> FiniteElementMethods<M, N> for FiniteElements<N>
+impl<const M: usize, const N: usize, const O: usize> FiniteElementMethods<M, N, O>
+    for FiniteElements<N>
 where
-    Self: FiniteElementSpecifics<M> + Sized,
+    Self: FiniteElementSpecifics<M, O> + Sized,
 {
     fn bounding_box(&self) -> BoundingBox {
         #[cfg(feature = "profile")]
@@ -220,6 +232,80 @@ where
                     / number_of_nodes
             })
             .collect()
+    }
+    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes) {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let faces = self.exterior_faces();
+        let mut nodes: Nodes = faces.iter().flatten().copied().collect();
+        nodes.sort();
+        nodes.dedup();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mExterior face-to-node\x1b[0m {:?}",
+            time.elapsed()
+        );
+        (faces, nodes)
+    }
+    fn exterior_node_face_connectivity(
+        &self,
+        exterior_face_nodes: &Connectivity<M>,
+    ) -> VecConnectivity {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let number_of_nodes = self.get_nodal_coordinates().len();
+        let mut node_face_connectivity = vec![vec![]; number_of_nodes];
+        exterior_face_nodes
+            .iter()
+            .enumerate()
+            .for_each(|(face, nodes)| {
+                nodes
+                    .iter()
+                    .for_each(|&node| node_face_connectivity[node].push(face))
+            });
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mExterior node-to-face\x1b[0m {:?} ",
+            time.elapsed()
+        );
+        node_face_connectivity
+    }
+    fn exterior_node_node_connectivity(
+        &self,
+        exterior_face_nodes: &Connectivity<M>,
+        exterior_node_faces: &VecConnectivity,
+    ) -> Result<VecConnectivity, &str> {
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let mut nodes = [0; M];
+        let number_of_nodes = self.get_nodal_coordinates().len();
+        let mut node_node_connectivity: VecConnectivity = vec![vec![]; number_of_nodes];
+        node_node_connectivity
+            .iter_mut()
+            .zip(exterior_node_faces.iter().enumerate())
+            .try_for_each(|(connectivity, (node, faces))| {
+                faces.iter().try_for_each(|&face| {
+                    nodes.clone_from(&exterior_face_nodes[face]);
+                    if let Some(neighbors) = nodes.iter().position(|n| n == &node) {
+                        Self::connected_nodes_face(&neighbors)
+                            .into_iter()
+                            .for_each(|neighbor| connectivity.push(nodes[neighbor]));
+                        Ok(())
+                    } else {
+                        Err("The face-to-node connectivity has been incorrectly calculated")
+                    }
+                })
+            })?;
+        node_node_connectivity.iter_mut().for_each(|connectivity| {
+            connectivity.sort();
+            connectivity.dedup();
+        });
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mExterior node-to-node\x1b[0m {:?} ",
+            time.elapsed()
+        );
+        Ok(node_node_connectivity)
     }
     fn from_exo(file_path: &str) -> Result<Self, ErrorNetCDF> {
         let (element_blocks, element_node_connectivity, nodal_coordinates) =
@@ -389,8 +475,8 @@ where
                             element_connectivity.iter().position(|n| n == &node)
                         {
                             Self::connected_nodes(&neighbors)
-                                .iter()
-                                .for_each(|&neighbor| {
+                                .into_iter()
+                                .for_each(|neighbor| {
                                     connectivity.push(element_connectivity[neighbor])
                                 });
                             Ok(())
@@ -869,6 +955,7 @@ impl<const N: usize> From<Data<N>> for FiniteElements<N> {
 impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
     type Error = String;
     fn try_from((tessellation, size): (Tessellation, Size)) -> Result<Self, Self::Error> {
+        let buffer = size.unwrap() / 2.0;
         let mut triangular_finite_elements = TriangularFiniteElements::from(tessellation);
         triangular_finite_elements.node_element_connectivity()?;
         triangular_finite_elements.node_node_connectivity()?;
@@ -881,32 +968,22 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             surface_node_element_connectivity,
             bins,
         ) = octree_from_surface(triangular_finite_elements, size);
-        let (hexahedral_finite_elements, coordinates) = HexesAndCoords::from(&tree).into();
-        let removed_nodes = mark_outside_nodes(coordinates, samples, &tree);
-        let mut finite_elements = hexahedral_finite_elements
-            .remove_nodes(removed_nodes)
-            .remove_orphan_nodes()?;
+        let (hexahedral_finite_elements, coordinates_0) = HexesAndCoords::from(&tree).into();
+        let (mut removed_nodes, nearby_nodes) = mark_outside_nodes(&coordinates_0, samples, &tree);
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let rounded_coordinates: Vec<_> = finite_elements
-            .get_nodal_coordinates()
+        let coordinates = hexahedral_finite_elements.get_nodal_coordinates();
+        let rounded_coordinates: Vec<_> = nearby_nodes
             .iter()
-            .map(|coordinate| {
-                [
-                    ((coordinate[0] - tree.translate().x()) / tree.scale().x()).floor() as i16,
-                    ((coordinate[1] - tree.translate().y()) / tree.scale().y()).floor() as i16,
-                    ((coordinate[2] - tree.translate().z()) / tree.scale().z()).floor() as i16,
-                ]
-            })
+            .map(|&surface_node| from_fn(|i| coordinates_0[surface_node][i].floor() as i16))
             .collect();
         let voxel_grid: Vec<_> = (-2..=2)
             .flat_map(|i| (-2..=2).flat_map(move |j| (-2..=2).map(move |k| [i, j, k])))
             .collect();
-        let (exterior_faces, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
-        let new_points: Coordinates = exterior_nodes
-            .iter()
-            .map(|&exterior_node| {
-                let [i, j, k] = rounded_coordinates[exterior_node];
+        let buffer_nodes: Nodes = nearby_nodes
+            .into_iter()
+            .zip(rounded_coordinates)
+            .filter_map(|(nearby_node, [i, j, k])| {
                 let mut nearby_surface_nodes: Nodes = voxel_grid
                     .iter()
                     .filter_map(|[i0, j0, k0]| {
@@ -918,13 +995,12 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 assert!(!nearby_surface_nodes.is_empty());
                 nearby_surface_nodes.sort();
                 nearby_surface_nodes.dedup();
-                let exterior_node_coordinates =
-                    &finite_elements.get_nodal_coordinates()[exterior_node];
+                let nearby_node_coordinates = &coordinates[nearby_node];
                 let (closest_node, _) = nearby_surface_nodes.iter().fold(
                     (usize::MAX, f64::MAX),
                     |(closest_node, minimum_distance_squared), &surface_node| {
                         let distance_squared = (&surface_nodal_coordinates[surface_node]
-                            - exterior_node_coordinates)
+                            - nearby_node_coordinates)
                             .norm_squared();
                         if distance_squared < minimum_distance_squared {
                             (surface_node, distance_squared)
@@ -933,49 +1009,203 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                         }
                     },
                 );
-                let (closest_point, _) =
+                let (closest_triangle, closest_point, minimum_distance_squared) =
                     surface_node_element_connectivity[closest_node].iter().fold(
-                        (Coordinate::new([f64::MAX; NSD]), f64::MAX),
-                        |(closest_point, minimum_distance_squared), &triangle| {
+                        (usize::MAX, Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                        |(closest_triangle, closest_point, minimum_distance_squared), &triangle| {
                             let point = TriangularFiniteElements::closest_point(
-                                exterior_node_coordinates,
+                                nearby_node_coordinates,
                                 &surface_nodal_coordinates,
                                 surface_element_node_connectivity[triangle],
                             );
                             let distance_squared =
-                                (exterior_node_coordinates - &point).norm_squared();
+                                (nearby_node_coordinates - &point).norm_squared();
                             if distance_squared < minimum_distance_squared {
-                                (point, distance_squared)
+                                (triangle, point, distance_squared)
                             } else {
-                                (closest_point, minimum_distance_squared)
+                                (closest_triangle, closest_point, minimum_distance_squared)
                             }
                         },
                     );
-                closest_point
+                let cosine = TriangularFiniteElements::normal(
+                    &surface_nodal_coordinates,
+                    surface_element_node_connectivity[closest_triangle],
+                ) * (nearby_node_coordinates - closest_point);
+                if cosine > 0.0 || minimum_distance_squared.sqrt() < buffer {
+                    Some(nearby_node)
+                } else if cosine < 0.0 {
+                    None
+                } else {
+                    panic!()
+                }
             })
             .collect();
-        let numbering_offset = rounded_coordinates.len();
-        let mut surface_nodes_map = vec![0; exterior_nodes.iter().max().unwrap() + 1];
-        exterior_nodes
+        removed_nodes.extend(buffer_nodes);
+        removed_nodes.sort();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mMarking further nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
+        let mut finite_elements = hexahedral_finite_elements
+            .remove_nodes(removed_nodes)
+            .remove_orphan_nodes()?;
+        let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
+        let exterior_node_faces =
+            finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
+        let exterior_node_nodes = finite_elements
+            .exterior_node_node_connectivity(&exterior_face_nodes, &exterior_node_faces)?;
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let coordinates = finite_elements.get_nodal_coordinates();
+        let projection_info: Vec<(usize, Option<Coordinate>)> = exterior_nodes
+            .iter()
+            .map(|&node| {
+                let neighbors = &exterior_node_nodes[node];
+                if neighbors.len() == 4
+                    && coordinates[neighbors[0]].iter().enumerate().any(
+                        |(index, &neighbor_0_coords)| {
+                            neighbors
+                                .iter()
+                                .skip(1)
+                                .all(|&neighbor| coordinates[neighbor][index] == neighbor_0_coords)
+                        },
+                    )
+                {
+                    (node, None)
+                } else {
+                    (
+                        node,
+                        Some(
+                            neighbors
+                                .iter()
+                                .map(|&neighbor| &coordinates[node] - &coordinates[neighbor])
+                                .sum::<Coordinate>()
+                                .normalized(),
+                        ),
+                    )
+                }
+            })
+            .collect();
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mFilter exterior nodes\x1b[0m {:?}",
+            time.elapsed()
+        );
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        let rounded_coordinates: Vec<_> = projection_info
+            .iter()
+            .map(|(exterior_node, _)| {
+                [
+                    ((coordinates[*exterior_node][0] - tree.translate().x()) / tree.scale().x())
+                        .floor() as i16,
+                    ((coordinates[*exterior_node][1] - tree.translate().y()) / tree.scale().y())
+                        .floor() as i16,
+                    ((coordinates[*exterior_node][2] - tree.translate().z()) / tree.scale().z())
+                        .floor() as i16,
+                ]
+            })
+            .collect();
+        let mut projected_nodes = vec![false; projection_info.len()];
+        let new_coordinates: Coordinates = projection_info
             .iter()
             .enumerate()
-            .for_each(|(surface_node, &exterior_node)| {
-                surface_nodes_map[exterior_node] = surface_node + numbering_offset
-            });
-        finite_elements.nodal_coordinates.extend(new_points);
-        let new_hexes: Connectivity<HEX> = exterior_faces
+            .zip(rounded_coordinates)
+            .filter_map(
+                |((exterior_node_index, (exterior_node, average_direction)), [i, j, k])| {
+                    let mut nearby_surface_nodes: Nodes = voxel_grid
+                        .iter()
+                        .filter_map(|[i0, j0, k0]| {
+                            bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+                        })
+                        .flatten()
+                        .copied()
+                        .collect();
+                    assert!(!nearby_surface_nodes.is_empty());
+                    nearby_surface_nodes.sort();
+                    nearby_surface_nodes.dedup();
+                    let exterior_node_coordinates =
+                        &finite_elements.get_nodal_coordinates()[*exterior_node];
+                    let (closest_node, _) = nearby_surface_nodes.iter().fold(
+                        (usize::MAX, f64::MAX),
+                        |(closest_node, minimum_distance_squared), &surface_node| {
+                            let distance_squared = (&surface_nodal_coordinates[surface_node]
+                                - exterior_node_coordinates)
+                                .norm_squared();
+                            if distance_squared < minimum_distance_squared {
+                                (surface_node, distance_squared)
+                            } else {
+                                (closest_node, minimum_distance_squared)
+                            }
+                        },
+                    );
+                    let (closest_point, _) =
+                        surface_node_element_connectivity[closest_node].iter().fold(
+                            (Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                            |(closest_point, minimum_distance_squared), &triangle| {
+                                let point = TriangularFiniteElements::closest_point(
+                                    exterior_node_coordinates,
+                                    &surface_nodal_coordinates,
+                                    surface_element_node_connectivity[triangle],
+                                );
+                                let distance_squared =
+                                    (exterior_node_coordinates - &point).norm_squared();
+                                if distance_squared < minimum_distance_squared {
+                                    (point, distance_squared)
+                                } else {
+                                    (closest_point, minimum_distance_squared)
+                                }
+                            },
+                        );
+                    if let Some(direction) = average_direction {
+                        let cosine =
+                            direction * (&closest_point - exterior_node_coordinates).normalized();
+                        if !cosine.is_nan() && cosine > 0.5 {
+                            projected_nodes[exterior_node_index] = true;
+                            Some(closest_point)
+                        } else {
+                            None
+                        }
+                    } else {
+                        projected_nodes[exterior_node_index] = true;
+                        Some(closest_point)
+                    }
+                },
+            )
+            .collect();
+        let numbering_offset = finite_elements.get_nodal_coordinates().len();
+        let mut surface_nodes_map = vec![None; exterior_nodes.iter().max().unwrap() + 1];
+        let mut surface_node = 0;
+        projection_info.into_iter().zip(projected_nodes).for_each(
+            |((exterior_node, _), do_dat)| {
+                if do_dat {
+                    surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset);
+                    surface_node += 1;
+                }
+            },
+        );
+        finite_elements.nodal_coordinates.extend(new_coordinates);
+        let new_hexes: Connectivity<HEX> = exterior_face_nodes
             .into_iter()
-            .map(|[node_0, node_1, node_2, node_3]| {
-                [
-                    node_0,
-                    node_1,
-                    node_2,
-                    node_3,
-                    surface_nodes_map[node_0],
-                    surface_nodes_map[node_1],
-                    surface_nodes_map[node_2],
-                    surface_nodes_map[node_3],
-                ]
+            .filter_map(|[node_0, node_1, node_2, node_3]| {
+                if let Some(node_4) = surface_nodes_map[node_0] {
+                    if let Some(node_5) = surface_nodes_map[node_1] {
+                        if let Some(node_6) = surface_nodes_map[node_2] {
+                            surface_nodes_map[node_3].map(|node_7| {
+                                [
+                                    node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7,
+                                ]
+                            })
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
             })
             .collect();
         finite_elements
@@ -987,11 +1217,16 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
             time.elapsed()
         );
+        let finite_elements = finite_elements.remove_orphan_nodes()?; // since some faces do not have 4 projected nodes
         Ok(finite_elements)
     }
 }
 
-fn mark_outside_nodes(coordinates: Coordinates, mut samples: Samples, tree: &Octree) -> Nodes {
+fn mark_outside_nodes(
+    coordinates: &Coordinates,
+    mut samples: Samples,
+    tree: &Octree,
+) -> (Nodes, Nodes) {
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let mut i;
@@ -1002,51 +1237,55 @@ fn mark_outside_nodes(coordinates: Coordinates, mut samples: Samples, tree: &Oct
     let lim = (tree.nel().x() - 1) as u16;
     while index < indices.len() {
         [i, j, k] = indices[index];
-        if i > 0 && !samples[(i - 1) as usize][j as usize][k as usize] {
-            samples[(i - 1) as usize][j as usize][k as usize] = true;
+        if i > 0 && samples[(i - 1) as usize][j as usize][k as usize] == 2 {
+            samples[(i - 1) as usize][j as usize][k as usize] = 0;
             indices.push([i - 1, j, k]);
         }
-        if i < lim && !samples[(i + 1) as usize][j as usize][k as usize] {
-            samples[(i + 1) as usize][j as usize][k as usize] = true;
+        if i < lim && samples[(i + 1) as usize][j as usize][k as usize] == 2 {
+            samples[(i + 1) as usize][j as usize][k as usize] = 0;
             indices.push([i + 1, j, k]);
         }
-        if j > 0 && !samples[i as usize][(j - 1) as usize][k as usize] {
-            samples[i as usize][(j - 1) as usize][k as usize] = true;
+        if j > 0 && samples[i as usize][(j - 1) as usize][k as usize] == 2 {
+            samples[i as usize][(j - 1) as usize][k as usize] = 0;
             indices.push([i, j - 1, k]);
         }
-        if j < lim && !samples[i as usize][(j + 1) as usize][k as usize] {
-            samples[i as usize][(j + 1) as usize][k as usize] = true;
+        if j < lim && samples[i as usize][(j + 1) as usize][k as usize] == 2 {
+            samples[i as usize][(j + 1) as usize][k as usize] = 0;
             indices.push([i, j + 1, k]);
         }
-        if k > 0 && !samples[i as usize][j as usize][(k - 1) as usize] {
-            samples[i as usize][j as usize][(k - 1) as usize] = true;
+        if k > 0 && samples[i as usize][j as usize][(k - 1) as usize] == 2 {
+            samples[i as usize][j as usize][(k - 1) as usize] = 0;
             indices.push([i, j, k - 1]);
         }
-        if k < lim && !samples[i as usize][j as usize][(k + 1) as usize] {
-            samples[i as usize][j as usize][(k + 1) as usize] = true;
+        if k < lim && samples[i as usize][j as usize][(k + 1) as usize] == 2 {
+            samples[i as usize][j as usize][(k + 1) as usize] = 0;
             indices.push([i, j, k + 1]);
         }
         index += 1
     }
-    let removed_nodes = coordinates
-        .into_iter()
+    let removed_and_surface_nodes: Vec<(usize, u8)> = coordinates
+        .iter()
         .enumerate()
         .filter_map(|(node, coordinate)| {
-            if samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
-                [coordinate[2].floor() as usize]
-            {
-                Some(node)
-            } else {
-                None
-            }
+            let bar = samples[coordinate[0].floor() as usize][coordinate[1].floor() as usize]
+                [coordinate[2].floor() as usize];
+            if bar < 2 { Some((node, bar)) } else { None }
         })
+        .collect();
+    let removed_nodes = removed_and_surface_nodes
+        .iter()
+        .filter_map(|&(node, bar)| if bar == 0 { Some(node) } else { None })
+        .collect();
+    let surface_nodes = removed_and_surface_nodes
+        .into_iter()
+        .filter_map(|(node, bar)| if bar == 1 { Some(node) } else { None })
         .collect();
     #[cfg(feature = "profile")]
     println!(
         "             \x1b[1;93mMarking outside nodes\x1b[0m {:?}",
         time.elapsed()
     );
-    removed_nodes
+    (removed_nodes, surface_nodes)
 }
 
 impl TryFrom<(Tessellation, Size)> for TetrahedralFiniteElements {
@@ -1064,21 +1303,15 @@ impl TryFrom<(Tessellation, Size)> for TriangularFiniteElements {
 }
 
 /// Methods specific to each finite element type.
-pub trait FiniteElementSpecifics<const M: usize> {
+pub trait FiniteElementSpecifics<const M: usize, const O: usize> {
     /// Returns the nodes connected to the given node within an element.
-    fn connected_nodes(node: &usize) -> Vec<usize>;
+    fn connected_nodes(node: &usize) -> [usize; O];
+    /// Returns the nodes connected to the given node within an element face.
+    fn connected_nodes_face(node: &usize) -> [usize; 2];
     /// Returns the exterior faces.
     fn exterior_faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each exterior face.
     fn exterior_faces_interior_points(&self, grid_length: usize) -> Coordinates;
-    /// Returns the exterior faces and nodes.
-    fn exterior_faces_and_nodes(&self) -> (Connectivity<M>, Nodes) {
-        let faces = self.exterior_faces();
-        let mut nodes: Nodes = faces.iter().flatten().copied().collect();
-        nodes.sort();
-        nodes.dedup();
-        (faces, nodes)
-    }
     /// Returns the faces.
     fn faces(&self) -> Connectivity<M>;
     /// Calculates evenly-spaced points interior to each element.

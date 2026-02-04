@@ -30,6 +30,7 @@ const REGULAR_DEGREE: i8 = 6;
 /// The number of nodes in a triangular finite element.
 pub const TRI: usize = 3;
 
+const O: usize = 2;
 const NUM_NODES_FACE: usize = 1;
 
 type Curvatures = VectorConspire;
@@ -64,14 +65,17 @@ impl From<Tessellation> for TriangularFiniteElements {
     }
 }
 
-impl FiniteElementSpecifics<NUM_NODES_FACE> for TriangularFiniteElements {
-    fn connected_nodes(node: &usize) -> Vec<usize> {
+impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
+    fn connected_nodes(node: &usize) -> [usize; O] {
         match node {
-            0 => vec![1, 2],
-            1 => vec![0, 2],
-            2 => vec![0, 1],
+            0 => [1, 2],
+            1 => [0, 2],
+            2 => [0, 1],
             _ => panic!(),
         }
+    }
+    fn connected_nodes_face(_node: &usize) -> [usize; 2] {
+        unimplemented!()
     }
     fn exterior_faces(&self) -> Connectivity<NUM_NODES_FACE> {
         unimplemented!()

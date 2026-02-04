@@ -51,14 +51,14 @@ impl From<&Octree> for HexesAndCoords {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let mut cells_nodes = vec![0; tree.len()];
-        let mut coordinates = Coordinates::zero(0);
+        let mut coordinates_0 = Coordinates::zero(0);
         let mut node_index = 0;
         tree.iter()
             .enumerate()
             .filter(|(_, cell)| cell.is_leaf())
             .for_each(|(leaf_index, leaf)| {
                 cells_nodes[leaf_index] = node_index;
-                coordinates.push(Coordinate::new([
+                coordinates_0.push(Coordinate::new([
                     0.5 * (2 * leaf.get_min_x() + leaf.get_lngth()) as f64,
                     0.5 * (2 * leaf.get_min_y() + leaf.get_lngth()) as f64,
                     0.5 * (2 * leaf.get_min_z() + leaf.get_lngth()) as f64,
@@ -73,7 +73,7 @@ impl From<&Octree> for HexesAndCoords {
             &mut node_index,
             tree,
             &mut element_node_connectivity,
-            &mut coordinates,
+            &mut coordinates_0,
         );
         edge_template_3::apply(
             &cells_nodes,
@@ -81,7 +81,7 @@ impl From<&Octree> for HexesAndCoords {
             &mut node_index,
             tree,
             &mut element_node_connectivity,
-            &mut coordinates,
+            &mut coordinates_0,
         );
         face_template_1::apply(
             &cells_nodes,
@@ -89,17 +89,17 @@ impl From<&Octree> for HexesAndCoords {
             &mut node_index,
             tree,
             &mut element_node_connectivity,
-            &mut coordinates,
+            &mut coordinates_0,
         );
         element_node_connectivity.append(
             &mut (1..=25)
                 .into_par_iter()
                 .flat_map(|index| {
-                    apply_concurrently(index, &cells_nodes, &nodes_map, tree, &coordinates)
+                    apply_concurrently(index, &cells_nodes, &nodes_map, tree, &coordinates_0)
                 })
                 .collect(),
         );
-        let nodal_coordinates = coordinates
+        let nodal_coordinates = coordinates_0
             .iter()
             .map(|coordinate| {
                 Coordinate::new([
@@ -119,7 +119,7 @@ impl From<&Octree> for HexesAndCoords {
             "             \x1b[1;93mDualization of octree\x1b[0m {:?} ",
             time.elapsed()
         );
-        Self(finite_elements, coordinates)
+        Self(finite_elements, coordinates_0)
     }
 }
 
