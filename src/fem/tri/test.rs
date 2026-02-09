@@ -41,7 +41,7 @@ mod contains {
     }
 }
 
-mod intersects {
+mod intersection {
     use crate::{Coordinates, fem::TriangularFiniteElements};
     use conspire::math::Tensor;
     #[test]
@@ -49,38 +49,79 @@ mod intersects {
         let coordinates = Coordinates::from([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
         let connectivity = [0, 1, 2];
         coordinates.iter().for_each(|coordinate| {
-            assert!(TriangularFiniteElements::intersects(
+            assert_eq!(
+                TriangularFiniteElements::intersection(
+                    &[0.0, 0.0, 1.0].into(),
+                    coordinate,
+                    &coordinates,
+                    connectivity,
+                ),
+                Some(coordinate).cloned()
+            )
+        });
+        assert_eq!(
+            TriangularFiniteElements::intersection(
                 &[0.0, 0.0, 1.0].into(),
-                coordinate,
+                &[0.5, 0.0, 0.0].into(),
                 &coordinates,
                 connectivity,
-            ))
-        });
-        // assert!(TriangularFiniteElements::intersects(
-        //     &[0.0, 0.0, 1.0].into(),
-        //     &[0.5, 0.0, 0.0].into(),
-        //     &coordinates,
-        //     connectivity,
-        // ));
-        assert!(TriangularFiniteElements::intersects(
-            &[0.0, 0.0, 1.0].into(),
-            &[0.25, 0.25, 0.0].into(),
-            &coordinates,
-            connectivity,
-        ));
-        assert!(!TriangularFiniteElements::intersects(
-            &[0.0, 0.0, 1.0].into(),
-            &[-0.25, 0.25, 0.0].into(),
-            &coordinates,
-            connectivity,
-        ));
-        assert!(TriangularFiniteElements::intersects(
-            &[0.0, 0.0, 1.0].into(),
-            &[0.25, 0.25, 1.0].into(),
-            &coordinates,
-            connectivity,
-        ))
-        // do one off-angled
+            ),
+            Some([0.5, 0.0, 0.0].into())
+        );
+        assert_eq!(
+            TriangularFiniteElements::intersection(
+                &[0.0, 0.0, 1.0].into(),
+                &[0.25, 0.25, 0.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            Some([0.25, 0.25, 0.0].into())
+        );
+        assert_eq!(
+            TriangularFiniteElements::intersection(
+                &[0.0, 0.0, 1.0].into(),
+                &[-0.25, 0.25, 0.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            None
+        );
+        assert_eq!(
+            TriangularFiniteElements::intersection(
+                &[0.0, 0.0, 1.0].into(),
+                &[0.25, 0.25, 1.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            Some([0.25, 0.25, 0.0].into())
+        );
+        assert_eq!(
+            TriangularFiniteElements::intersection(
+                &[0.0, 0.0, -1.0].into(),
+                &[0.25, 0.25, 1.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            Some([0.25, 0.25, 0.0].into())
+        );
+        assert_eq!(
+            TriangularFiniteElements::intersection(
+                &[0.5, 0.5, 1.0].into(),
+                &[1.0, 1.0, 1.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            Some([0.5, 0.5, 0.0].into())
+        );
+        assert_eq!(
+            TriangularFiniteElements::intersection(
+                &[0.5, 0.5, -1.0].into(),
+                &[1.0, 1.0, 1.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            None
+        );
     }
 }
 

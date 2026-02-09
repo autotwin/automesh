@@ -237,25 +237,25 @@ impl TriangularFiniteElements {
         let area_20 = v_0.cross(&v_2).norm();
         assert_eq_within_tols(&(2.0 * area), &(area_01 + area_12 + area_20)).is_ok()
     }
-    /// Determines whether the triangle is intersected by the vector or not.
-    pub fn intersects(
+    /// Determines whether the triangle is intersected by the vector and returns the point of intersection.
+    pub fn intersection(
         direction: &Coordinate,
         origin: &Coordinate,
         coordinates: &Coordinates,
         connectivity: [usize; TRI],
-    ) -> bool {
+    ) -> Option<Coordinate> {
         let normal = Self::normal(coordinates, connectivity);
-        let cosine = direction * &normal;
-        if cosine.abs() < f64::EPSILON {
-            false
+        let product = direction * &normal;
+        if product.abs() < f64::EPSILON {
+            None
         } else {
-            let distance = (normal * (&coordinates[connectivity[0]] - origin)) / cosine;
+            let distance = (normal * (&coordinates[connectivity[0]] - origin)) / product;
             let point = origin + direction * distance;
-            Self::contains(&point, coordinates, connectivity)
-            //
-            // Return Some(point of intersection) / None instead
-            // rename `intersection` and change description
-            //
+            if Self::contains(&point, coordinates, connectivity) {
+                Some(point)
+            } else {
+                None
+            }
         }
     }
     /// Computes and returns the closest point in the triangle to another point.
