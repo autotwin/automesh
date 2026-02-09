@@ -10,7 +10,7 @@ use super::{
     FiniteElements, Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::{
-    math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire},
+    math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire, assert_eq_within_tols},
     mechanics::Scalar,
 };
 use ndarray::{Array2, s};
@@ -210,18 +210,53 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
 }
 
 impl TriangularFiniteElements {
+    fn area(coordinates: &Coordinates, &[node_0, node_1, node_2]: &[usize; TRI]) -> f64 {
+        0.5 * ((&coordinates[node_2] - &coordinates[node_1])
+            .cross(&(&coordinates[node_0] - &coordinates[node_2])))
+        .norm()
+    }
     fn areas(&self) -> Metrics {
-        let nodal_coordinates = self.get_nodal_coordinates();
-        let mut l0 = Vector::zero();
-        let mut l1 = Vector::zero();
+        let coordinates = self.get_nodal_coordinates();
         self.get_element_node_connectivity()
             .iter()
-            .map(|connectivity| {
-                l0 = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[connectivity[1]];
-                l1 = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[connectivity[2]];
-                0.5 * (l0.cross(&l1)).norm()
-            })
+            .map(|connectivity| Self::area(coordinates, connectivity))
             .collect()
+    }
+    /// Determines whether the triangle contains the point or not.
+    pub fn contains(
+        point: &Coordinate,
+        coordinates: &Coordinates,
+        [node_0, node_1, node_2]: [usize; TRI],
+    ) -> bool {
+        let area = Self::area(coordinates, &[node_0, node_1, node_2]);
+        let v_0 = &coordinates[node_0] - point;
+        let v_1 = &coordinates[node_1] - point;
+        let v_2 = &coordinates[node_2] - point;
+        let area_01 = v_1.cross(&v_0).norm();
+        let area_12 = v_2.cross(&v_1).norm();
+        let area_20 = v_0.cross(&v_2).norm();
+        assert_eq_within_tols(&(2.0 * area), &(area_01 + area_12 + area_20)).is_ok()
+    }
+    /// Determines whether the triangle is intersected by the vector and returns the point of intersection.
+    pub fn intersection(
+        direction: &Coordinate,
+        origin: &Coordinate,
+        coordinates: &Coordinates,
+        connectivity: [usize; TRI],
+    ) -> Option<Coordinate> {
+        let normal = Self::normal(coordinates, connectivity);
+        let product = direction * &normal;
+        if product.abs() < f64::EPSILON {
+            None
+        } else {
+            let distance = (normal * (&coordinates[connectivity[0]] - origin)) / product;
+            let point = origin + direction * distance;
+            if Self::contains(&point, coordinates, connectivity) {
+                Some(point)
+            } else {
+                None
+            }
+        }
     }
     /// Computes and returns the closest point in the triangle to another point.
     pub fn closest_point(
