@@ -211,9 +211,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
 
 impl TriangularFiniteElements {
     fn area(coordinates: &Coordinates, &[node_0, node_1, node_2]: &[usize; TRI]) -> f64 {
-        0.5 * ((&coordinates[node_2] - &coordinates[node_1])
-            .cross(&(&coordinates[node_0] - &coordinates[node_2])))
-        .norm()
+        0.5 * Self::normal(coordinates, [node_0, node_1, node_2]).norm()
     }
     fn areas(&self) -> Metrics {
         let coordinates = self.get_nodal_coordinates();
