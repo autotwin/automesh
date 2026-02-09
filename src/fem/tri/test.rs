@@ -41,6 +41,49 @@ mod contains {
     }
 }
 
+mod intersects {
+    use crate::{Coordinates, fem::TriangularFiniteElements};
+    use conspire::math::Tensor;
+    #[test]
+    fn reference() {
+        let coordinates = Coordinates::from([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
+        let connectivity = [0, 1, 2];
+        coordinates.iter().for_each(|coordinate| {
+            assert!(TriangularFiniteElements::intersects(
+                &[0.0, 0.0, 1.0].into(),
+                coordinate,
+                &coordinates,
+                connectivity,
+            ))
+        });
+        // assert!(TriangularFiniteElements::intersects(
+        //     &[0.0, 0.0, 1.0].into(),
+        //     &[0.5, 0.0, 0.0].into(),
+        //     &coordinates,
+        //     connectivity,
+        // ));
+        assert!(TriangularFiniteElements::intersects(
+            &[0.0, 0.0, 1.0].into(),
+            &[0.25, 0.25, 0.0].into(),
+            &coordinates,
+            connectivity,
+        ));
+        assert!(!TriangularFiniteElements::intersects(
+            &[0.0, 0.0, 1.0].into(),
+            &[-0.25, 0.25, 0.0].into(),
+            &coordinates,
+            connectivity,
+        ));
+        assert!(TriangularFiniteElements::intersects(
+            &[0.0, 0.0, 1.0].into(),
+            &[0.25, 0.25, 1.0].into(),
+            &coordinates,
+            connectivity,
+        ))
+        // do one off-angled
+    }
+}
+
 #[test]
 fn triangular_unit_tests() {
     // https://autotwin.github.io/automesh/cli/metrics_triangular.html#unit-tests

@@ -211,7 +211,9 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
 
 impl TriangularFiniteElements {
     fn area(coordinates: &Coordinates, &[node_0, node_1, node_2]: &[usize; TRI]) -> f64 {
-        0.5 * Self::normal(coordinates, [node_0, node_1, node_2]).norm()
+        0.5 * ((&coordinates[node_2] - &coordinates[node_1])
+            .cross(&(&coordinates[node_0] - &coordinates[node_2])))
+        .norm()
     }
     fn areas(&self) -> Metrics {
         let coordinates = self.get_nodal_coordinates();
@@ -234,6 +236,27 @@ impl TriangularFiniteElements {
         let area_12 = v_2.cross(&v_1).norm();
         let area_20 = v_0.cross(&v_2).norm();
         assert_eq_within_tols(&(2.0 * area), &(area_01 + area_12 + area_20)).is_ok()
+    }
+    /// Determines whether the triangle is intersected by the vector or not.
+    pub fn intersects(
+        direction: &Coordinate,
+        origin: &Coordinate,
+        coordinates: &Coordinates,
+        connectivity: [usize; TRI],
+    ) -> bool {
+        let normal = Self::normal(coordinates, connectivity);
+        let cosine = direction * &normal;
+        if cosine.abs() < f64::EPSILON {
+            false
+        } else {
+            let distance = (normal * (&coordinates[connectivity[0]] - origin)) / cosine;
+            let point = origin + direction * distance;
+            Self::contains(&point, coordinates, connectivity)
+            //
+            // Return Some(point of intersection) / None instead
+            // rename `intersection` and change description
+            //
+        }
     }
     /// Computes and returns the closest point in the triangle to another point.
     pub fn closest_point(
