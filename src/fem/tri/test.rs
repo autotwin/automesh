@@ -4,6 +4,43 @@ const EPSILON: f64 = 1.0e-14;
 const DEG_TO_RAD: f64 = std::f64::consts::PI / 180.0;
 const RAD_TO_DEG: f64 = 1.0 / DEG_TO_RAD;
 
+mod contains {
+    use crate::{Coordinates, fem::TriangularFiniteElements};
+    use conspire::math::Tensor;
+    #[test]
+    fn reference() {
+        let coordinates = Coordinates::from([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
+        let connectivity = [0, 1, 2];
+        coordinates.iter().for_each(|coordinate| {
+            assert!(TriangularFiniteElements::contains(
+                coordinate,
+                &coordinates,
+                connectivity,
+            ))
+        });
+        assert!(TriangularFiniteElements::contains(
+            &[0.5, 0.0, 0.0].into(),
+            &coordinates,
+            connectivity,
+        ));
+        assert!(TriangularFiniteElements::contains(
+            &[0.25, 0.25, 0.0].into(),
+            &coordinates,
+            connectivity,
+        ));
+        assert!(!TriangularFiniteElements::contains(
+            &[-0.25, 0.25, 0.0].into(),
+            &coordinates,
+            connectivity,
+        ));
+        assert!(!TriangularFiniteElements::contains(
+            &[0.25, 0.25, 1.0].into(),
+            &coordinates,
+            connectivity,
+        ))
+    }
+}
+
 #[test]
 fn triangular_unit_tests() {
     // https://autotwin.github.io/automesh/cli/metrics_triangular.html#unit-tests
