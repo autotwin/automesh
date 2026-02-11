@@ -1068,7 +1068,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             }).collect();
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mNeighbor face normals\x1b[0m {:?}",
+            "             \x1b[1;93mAveraged face normals\x1b[0m {:?}",
             time.elapsed()
         );
 
@@ -1145,80 +1145,98 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     nearby_surface_nodes.dedup();
                     let exterior_node_coordinates =
                         &finite_elements.get_nodal_coordinates()[*exterior_node];
-                    let (closest_node, _) = nearby_surface_nodes.iter().fold(
-                        (usize::MAX, f64::MAX),
-                        |(closest_node, minimum_distance_squared), &surface_node| {
 
-                            // avoid checking the same triangles repeatedly
-                            surface_node_element_connectivity[surface_node].iter().for_each(|&triangle|
-                                if let Some(point) = TriangularFiniteElements::intersection(
-                                    &bar,
-                                    exterior_node_coordinates,
-                                    &surface_nodal_coordinates,
-                                    surface_element_node_connectivity[triangle],
-                                ) {
-                                    // println!("Hit for node {} at {point} on triangle {triangle}.", exterior_node + 1)
-                                // } else {
-                                    // println!("No hits for node {} with direction {bar} on triangle {triangle}.", exterior_node + 1)
-                                }
-                            );
+                    let mut triangles: Vec<_> = nearby_surface_nodes.iter().flat_map(|&surface_node|
+                        surface_node_element_connectivity[surface_node].clone()
+                    ).collect();
+                    triangles.sort();
+                    triangles.dedup();
+                    let [ass] = triangles.into_iter().filter_map(|triangle|
+                        TriangularFiniteElements::intersection(
+                            &bar,
+                            exterior_node_coordinates,
+                            &surface_nodal_coordinates,
+                            surface_element_node_connectivity[triangle],
+                        )
+                    ).collect::<Vec<_>>().try_into().expect("Not exactly one intersection");
+                    // println!("Hit for node {} at {}", exterior_node + 1, ass[0]);
+                    projected_nodes[exterior_node_index] = true;
+                    Some(ass)
+
+                    // let (closest_node, _) = nearby_surface_nodes.iter().fold(
+                    //     (usize::MAX, f64::MAX),
+                    //     |(closest_node, minimum_distance_squared), &surface_node| {
+
+                    //         // // avoid checking the same triangles repeatedly to hopefully speed this up a bit
+                    //         // surface_node_element_connectivity[surface_node].iter().for_each(|&triangle|
+                    //         //     if let Some(point) = TriangularFiniteElements::intersection(
+                    //         //         &bar,
+                    //         //         exterior_node_coordinates,
+                    //         //         &surface_nodal_coordinates,
+                    //         //         surface_element_node_connectivity[triangle],
+                    //         //     ) {
+                    //         //         // println!("Hit for node {} at {point} on triangle {triangle}.", exterior_node + 1)
+                    //         //     // } else {
+                    //         //         // println!("No hits for node {} with direction {bar} on triangle {triangle}.", exterior_node + 1)
+                    //         //     }
+                    //         // );
                             
-                            let distance_squared = (&surface_nodal_coordinates[surface_node]
-                                - exterior_node_coordinates)
-                                .norm_squared();
-                            if distance_squared < minimum_distance_squared {
-                                (surface_node, distance_squared)
-                            } else {
-                                (closest_node, minimum_distance_squared)
-                            }
-                        },
-                    );
-                    let (closest_point, _) =
-                        surface_node_element_connectivity[closest_node].iter().fold(
-                            (Coordinate::new([f64::MAX; NSD]), f64::MAX),
-                            |(closest_point, minimum_distance_squared), &triangle| {
-                                let point = TriangularFiniteElements::closest_point(
-                                    exterior_node_coordinates,
-                                    &surface_nodal_coordinates,
-                                    surface_element_node_connectivity[triangle],
-                                );
+                    //         let distance_squared = (&surface_nodal_coordinates[surface_node]
+                    //             - exterior_node_coordinates)
+                    //             .norm_squared();
+                    //         if distance_squared < minimum_distance_squared {
+                    //             (surface_node, distance_squared)
+                    //         } else {
+                    //             (closest_node, minimum_distance_squared)
+                    //         }
+                    //     },
+                    // );
+                    // let (closest_point, _) =
+                    //     surface_node_element_connectivity[closest_node].iter().fold(
+                    //         (Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                    //         |(closest_point, minimum_distance_squared), &triangle| {
+                    //             let point = TriangularFiniteElements::closest_point(
+                    //                 exterior_node_coordinates,
+                    //                 &surface_nodal_coordinates,
+                    //                 surface_element_node_connectivity[triangle],
+                    //             );
     
-                                // if let Some(point) = TriangularFiniteElements::intersection(
-                                //     &bar,
-                                //     exterior_node_coordinates,
-                                //     &surface_nodal_coordinates,
-                                //     surface_element_node_connectivity[triangle],
-                                // ) {
-                                //     println!("Hit for node {exterior_node} at {point}.")
-                                // } else {
-                                //     println!("No hits for node {exterior_node} with direction {bar}.")
-                                // }
+                    //             // if let Some(point) = TriangularFiniteElements::intersection(
+                    //             //     &bar,
+                    //             //     exterior_node_coordinates,
+                    //             //     &surface_nodal_coordinates,
+                    //             //     surface_element_node_connectivity[triangle],
+                    //             // ) {
+                    //             //     println!("Hit for node {exterior_node} at {point}.")
+                    //             // } else {
+                    //             //     println!("No hits for node {exterior_node} with direction {bar}.")
+                    //             // }
 
-                                let distance_squared =
-                                    (exterior_node_coordinates - &point).norm_squared();
-                                if distance_squared < minimum_distance_squared {
-                                    (point, distance_squared)
-                                } else {
-                                    (closest_point, minimum_distance_squared)
-                                }
-                            },
-                        );
+                    //             let distance_squared =
+                    //                 (exterior_node_coordinates - &point).norm_squared();
+                    //             if distance_squared < minimum_distance_squared {
+                    //                 (point, distance_squared)
+                    //             } else {
+                    //                 (closest_point, minimum_distance_squared)
+                    //             }
+                    //         },
+                    //     );
 
-                    // println!("================================================================");
+                    // // println!("================================================================");
 
-                    if let Some(direction) = average_direction {
-                        let cosine =
-                            direction * (&closest_point - exterior_node_coordinates).normalized();
-                        if !cosine.is_nan() && cosine > 0.5 {
-                            projected_nodes[exterior_node_index] = true;
-                            Some(closest_point)
-                        } else {
-                            None
-                        }
-                    } else {
-                        projected_nodes[exterior_node_index] = true;
-                        Some(closest_point)
-                    }
+                    // if let Some(direction) = average_direction {
+                    //     let cosine =
+                    //         direction * (&closest_point - exterior_node_coordinates).normalized();
+                    //     if !cosine.is_nan() && cosine > 0.5 {
+                    //         projected_nodes[exterior_node_index] = true;
+                    //         Some(closest_point)
+                    //     } else {
+                    //         None
+                    //     }
+                    // } else {
+                    //     projected_nodes[exterior_node_index] = true;
+                    //     Some(closest_point)
+                    // }
                 },
             )
             .collect();
