@@ -1174,18 +1174,82 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 },
             )
             .collect();
-        let numbering_offset = finite_elements.get_nodal_coordinates().len();
+        let mut surface_node = finite_elements.get_nodal_coordinates().len();
         let mut surface_nodes_map = vec![None; exterior_nodes.iter().max().unwrap() + 1];
-        let mut surface_node = 0;
         projection_info.into_iter().zip(projected_nodes).for_each(
             |((exterior_node, _), do_dat)| {
                 if do_dat {
-                    surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset);
+                    surface_nodes_map[exterior_node] = Some(surface_node);
                     surface_node += 1;
                 }
             },
         );
         finite_elements.nodal_coordinates.extend(new_coordinates);
+
+        for _ in 0..5 {
+            let coordinates = finite_elements.get_nodal_coordinates();
+            let mut projected_nodes = vec![false; exterior_nodes.iter().max().unwrap() + 1];
+            let new_coordinates: Coordinates = exterior_nodes.iter().enumerate().filter_map(|(exterior_node_index, exterior_node)| {
+                if surface_nodes_map[*exterior_node].is_none() {
+                    //
+                    // Try >=2 also
+                    //
+                    let foo = exterior_node_nodes[*exterior_node].iter().filter_map(|&neighbor|
+                        if let Some(foo) = surface_nodes_map[neighbor] {
+                            Some([neighbor, foo])
+                        } else {
+                            None
+                        }
+                    ).collect::<Vec<_>>();
+                    if foo.len() > 1 {
+                        let vector_0 = (&coordinates[foo[0][1]] - &coordinates[foo[0][0]]).normalized();
+                        if foo.iter().skip(1).all(|&[neighbor, foo]| (&coordinates[foo] - &coordinates[neighbor]).normalized() * &vector_0 > 0.9) {
+                        // let vector_b = (&coordinates[surf_b] - &coordinates[node_b]).normalized();
+                        // if vector_a * vector_b > 0.9 {
+                            // let direction = (&coordinates[surf_a] + &coordinates[surf_b]) * 0.5 - &coordinates[exterior_node];
+                            // Some((&coordinates[surf_a] + coordinates[surf_b].clone()) * 0.5)
+                            projected_nodes[exterior_node_index] = true;
+                            Some(foo.iter().map(|&[_, foo]| coordinates[foo].clone()).sum::<Coordinate>() / foo.len() as f64)
+                            //
+                            // Still needs to actually put that node on the surface!
+                            // And remember, if going to let surface nodes move off surface during smoothing,
+                            // may or may not be worth it to put them on the surface in the first place,
+                            // i.e. if something like this approximation gets them close, that would be fine to start.
+                            //
+                            // Or...
+                            // Can you do this approximate way (or exact) and iterate until done,
+                            // next project whatever is left with something dumb like closet point,
+                            // then do some sort of surface-only smoothing to improve the quads,
+                            // (hopefully does not introduce tangling w.r.t interior, that is probably why have to do simultaneously)
+                            // then move all the nodes back onto the surface,
+                            // then do interior smoothing?
+                            //
+                            // Should really just switch to trying to get smoothing like other tool working soon...
+                            // and find out how slow it actually is, and think of ways to improve it after
+                        } else {
+                            None
+                        }
+                    } else {
+                            None
+                        }
+                } else {
+                    None
+                }
+            }).collect();
+            exterior_nodes.iter().zip(projected_nodes).for_each(
+                |(exterior_node, do_dat)| {
+                    if do_dat {
+                        surface_nodes_map[*exterior_node] = Some(surface_node);
+                        surface_node += 1;
+                    }
+                },
+            );
+            finite_elements.nodal_coordinates.extend(new_coordinates);
+        }
+
+        // if using surface_nodes_map inside, probably have to update it after, otherwise can hit the new values which are not in coordinates yet
+        // goes towards doing the iterative picture
+
         let new_hexes: Connectivity<HEX> = exterior_face_nodes
             .into_iter()
             .filter_map(|[node_0, node_1, node_2, node_3]| {
