@@ -952,6 +952,32 @@ impl<const N: usize> From<Data<N>> for FiniteElements<N> {
     }
 }
 
+// Should order and handle these according to a hierarchy of importance.
+// Sort of like hierarchical smoothing, projection can only be handled by nodes up the chain,
+// which gives you rules for adjusting favored projections based on neighbor nodes,
+// which if are up the chain have already been projected.
+enum ExteriorNode {
+    ConcaveCorner(usize, Vector),
+    ConvexCorner(usize, Vector),
+    // ConcaveEdge(),
+    // ConvexEdge(),
+    Cross(usize),
+    Neutral(usize),
+    Other(usize, Vector), // may not need once have all other cases, but some of the cases seem hard so maybe there will be a catch-all
+}
+
+impl ExteriorNode {
+    fn node(&self) -> usize {
+        match self {
+            Self::ConcaveCorner(node, _) => *node,
+            Self::ConvexCorner(node, _) => *node,
+            Self::Cross(node) => *node,
+            Self::Neutral(node) => *node,
+            Self::Other(node, _) => *node,
+        }
+    }
+}
+
 impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
     type Error = String;
     fn try_from((tessellation, size): (Tessellation, Size)) -> Result<Self, Self::Error> {
@@ -1050,6 +1076,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         let mut finite_elements = hexahedral_finite_elements
             .remove_nodes(removed_nodes)
             .remove_orphan_nodes()?;
+        finite_elements.node_element_connectivity()?;
         let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
         let exterior_node_faces =
             finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
@@ -1058,11 +1085,29 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let coordinates = finite_elements.get_nodal_coordinates();
-        let projection_info: Vec<(usize, Option<Coordinate>)> = exterior_nodes
+        let node_elements = finite_elements.get_node_element_connectivity();
+        let mut foo = vec![0; exterior_nodes.iter().max().unwrap() + 1];
+        let projection_info: Vec<ExteriorNode> = exterior_nodes
             .iter()
-            .map(|&node| {
+            .enumerate()
+            .map(|(node_index, &node)| {
+                foo[node] = node_index;
                 let neighbors = &exterior_node_nodes[node];
-                if neighbors.len() == 4
+                if neighbors.len() == 5 {
+                    print!("{}, ", node + 1)
+                }
+                if neighbors.len() == 3 {
+                    let direction = neighbors
+                        .iter()
+                        .map(|&neighbor| (&coordinates[node] - &coordinates[neighbor]).normalized())
+                        .sum::<Coordinate>()
+                        / (neighbors.len() as Scalar);
+                    if node_elements[node].len() == 1 {
+                        ExteriorNode::ConvexCorner(node, direction)
+                    } else {
+                        ExteriorNode::ConcaveCorner(node, direction * -1.0)
+                    }
+                } else if neighbors.len() == 4 // can you just check that it also touches 4 faces or no?
                     && coordinates[neighbors[0]].iter().enumerate().any(
                         |(index, &neighbor_0_coords)| {
                             neighbors
@@ -1072,17 +1117,17 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                         },
                     )
                 {
-                    (node, None)
+                    ExteriorNode::Neutral(node)
+                } else if neighbors.len() == 6 {
+                    ExteriorNode::Cross(node)
                 } else {
-                    (
+                    ExteriorNode::Other(
                         node,
-                        Some(
-                            neighbors
-                                .iter()
-                                .map(|&neighbor| &coordinates[node] - &coordinates[neighbor])
-                                .sum::<Coordinate>()
-                                .normalized(),
-                        ),
+                        neighbors
+                            .iter()
+                            .map(|&neighbor| &coordinates[node] - &coordinates[neighbor])
+                            .sum::<Coordinate>()
+                            .normalized(),
                     )
                 }
             })
@@ -1096,69 +1141,130 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         let time = Instant::now();
         let rounded_coordinates: Vec<_> = projection_info
             .iter()
-            .map(|(exterior_node, _)| {
+            .map(|exterior_node| {
                 [
-                    ((coordinates[*exterior_node][0] - tree.translate().x()) / tree.scale().x())
-                        .floor() as i16,
-                    ((coordinates[*exterior_node][1] - tree.translate().y()) / tree.scale().y())
-                        .floor() as i16,
-                    ((coordinates[*exterior_node][2] - tree.translate().z()) / tree.scale().z())
-                        .floor() as i16,
+                    ((coordinates[exterior_node.node()][0] - tree.translate().x())
+                        / tree.scale().x())
+                    .floor() as i16,
+                    ((coordinates[exterior_node.node()][1] - tree.translate().y())
+                        / tree.scale().y())
+                    .floor() as i16,
+                    ((coordinates[exterior_node.node()][2] - tree.translate().z())
+                        / tree.scale().z())
+                    .floor() as i16,
                 ]
             })
             .collect();
         let mut projected_nodes = vec![false; projection_info.len()];
+        let mut triangles = vec![];
         let new_coordinates: Coordinates = projection_info
             .iter()
             .enumerate()
             .zip(rounded_coordinates)
-            .filter_map(
-                |((exterior_node_index, (exterior_node, average_direction)), [i, j, k])| {
-                    let mut nearby_surface_nodes: Nodes = voxel_grid
-                        .iter()
-                        .filter_map(|[i0, j0, k0]| {
-                            bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
-                        })
-                        .flatten()
-                        .copied()
-                        .collect();
-                    assert!(!nearby_surface_nodes.is_empty());
-                    nearby_surface_nodes.sort();
-                    nearby_surface_nodes.dedup();
-                    let exterior_node_coordinates =
-                        &finite_elements.get_nodal_coordinates()[*exterior_node];
-                    let (closest_node, _) = nearby_surface_nodes.iter().fold(
-                        (usize::MAX, f64::MAX),
-                        |(closest_node, minimum_distance_squared), &surface_node| {
-                            let distance_squared = (&surface_nodal_coordinates[surface_node]
-                                - exterior_node_coordinates)
-                                .norm_squared();
+            .filter_map(|((exterior_node_index, exterior_node), [i, j, k])| {
+                let mut nearby_surface_nodes: Nodes = voxel_grid
+                    .iter()
+                    .filter_map(|[i0, j0, k0]| {
+                        bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+                    })
+                    .flatten()
+                    .copied()
+                    .collect();
+                assert!(!nearby_surface_nodes.is_empty());
+                nearby_surface_nodes.sort();
+                nearby_surface_nodes.dedup();
+                let exterior_node_coordinates =
+                    &finite_elements.get_nodal_coordinates()[exterior_node.node()];
+                let (closest_node, _) = nearby_surface_nodes.iter().fold(
+                    (usize::MAX, f64::MAX),
+                    |(closest_node, minimum_distance_squared), &surface_node| {
+                        let distance_squared = (&surface_nodal_coordinates[surface_node]
+                            - exterior_node_coordinates)
+                            .norm_squared();
+                        if distance_squared < minimum_distance_squared {
+                            (surface_node, distance_squared)
+                        } else {
+                            (closest_node, minimum_distance_squared)
+                        }
+                    },
+                );
+                let (closest_point, _) =
+                    surface_node_element_connectivity[closest_node].iter().fold(
+                        (Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                        |(closest_point, minimum_distance_squared), &triangle| {
+                            let point = TriangularFiniteElements::closest_point(
+                                exterior_node_coordinates,
+                                &surface_nodal_coordinates,
+                                surface_element_node_connectivity[triangle],
+                            );
+                            let distance_squared =
+                                (exterior_node_coordinates - &point).norm_squared();
                             if distance_squared < minimum_distance_squared {
-                                (surface_node, distance_squared)
+                                (point, distance_squared)
                             } else {
-                                (closest_node, minimum_distance_squared)
+                                (closest_point, minimum_distance_squared)
                             }
                         },
                     );
-                    let (closest_point, _) =
-                        surface_node_element_connectivity[closest_node].iter().fold(
-                            (Coordinate::new([f64::MAX; NSD]), f64::MAX),
-                            |(closest_point, minimum_distance_squared), &triangle| {
-                                let point = TriangularFiniteElements::closest_point(
+                match exterior_node {
+                    ExteriorNode::ConcaveCorner(_, direction) => {
+                        //
+                        // Try using only close triangles first? (also, does that work by itself for innies?)
+                        // then try with remaining triangles after?
+                        //
+                        triangles = nearby_surface_nodes
+                            .iter()
+                            .flat_map(|&surface_node| {
+                                surface_node_element_connectivity[surface_node].clone()
+                            })
+                            .collect();
+                        triangles.sort();
+                        triangles.dedup();
+                        let [intersection] = triangles
+                            .iter()
+                            .filter_map(|&triangle| {
+                                TriangularFiniteElements::intersection(
+                                    &direction,
                                     exterior_node_coordinates,
                                     &surface_nodal_coordinates,
                                     surface_element_node_connectivity[triangle],
-                                );
-                                let distance_squared =
-                                    (exterior_node_coordinates - &point).norm_squared();
-                                if distance_squared < minimum_distance_squared {
-                                    (point, distance_squared)
-                                } else {
-                                    (closest_point, minimum_distance_squared)
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .try_into()
+                            .expect("Not exactly one intersection");
+                        projected_nodes[exterior_node_index] = true;
+                        Some(intersection)
+                    }
+                    ExteriorNode::ConvexCorner(_, _) => {
+                        projected_nodes[exterior_node_index] = true;
+                        Some(closest_point)
+                    }
+                    ExteriorNode::Cross(node) => {
+                        projected_nodes[exterior_node_index] = true;
+                        let mut count = 0;
+                        let influence = exterior_node_nodes[*node].iter().filter_map(|&neighbor|
+                            match &projection_info[foo[neighbor]] {
+                                ExteriorNode::ConcaveCorner(_, direction) => {
+                                    count += 1;
+                                    Some(direction.clone())
                                 }
-                            },
-                        );
-                    if let Some(direction) = average_direction {
+                                _ => None,
+                            }
+                        ).sum::<Vector>() / (count as Scalar);
+                        if count > 0 {
+                            println!("node {} will be projected using unweighted sum of higher ranked neighbors and its preferred direction", node + 1);
+                            // dont forget to compare new thing vs. using closest point
+                            Some(closest_point)
+                        } else {
+                            Some(closest_point)
+                        }
+                    }
+                    ExteriorNode::Neutral(_) => {
+                        projected_nodes[exterior_node_index] = true;
+                        Some(closest_point)
+                    }
+                    ExteriorNode::Other(_, direction) => {
                         let cosine =
                             direction * (&closest_point - exterior_node_coordinates).normalized();
                         if !cosine.is_nan() && cosine > 0.5 {
@@ -1167,24 +1273,22 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                         } else {
                             None
                         }
-                    } else {
-                        projected_nodes[exterior_node_index] = true;
-                        Some(closest_point)
                     }
-                },
-            )
+                }
+            })
             .collect();
         let numbering_offset = finite_elements.get_nodal_coordinates().len();
         let mut surface_nodes_map = vec![None; exterior_nodes.iter().max().unwrap() + 1];
         let mut surface_node = 0;
-        projection_info.into_iter().zip(projected_nodes).for_each(
-            |((exterior_node, _), do_dat)| {
+        projection_info
+            .into_iter()
+            .zip(projected_nodes)
+            .for_each(|(exterior_node, do_dat)| {
                 if do_dat {
-                    surface_nodes_map[exterior_node] = Some(surface_node + numbering_offset);
+                    surface_nodes_map[exterior_node.node()] = Some(surface_node + numbering_offset);
                     surface_node += 1;
                 }
-            },
-        );
+            });
         finite_elements.nodal_coordinates.extend(new_coordinates);
         let new_hexes: Connectivity<HEX> = exterior_face_nodes
             .into_iter()
