@@ -14,7 +14,6 @@ use super::{
         TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
-use conspire::math::TensorArray;
 use ndarray::{Array3, Axis, parallel::prelude::*, s};
 use ndarray_npy::{ReadNpyError, ReadNpyExt, WriteNpyError, WriteNpyExt};
 use std::{
@@ -134,7 +133,7 @@ impl Scale {
 
 impl Default for Scale {
     fn default() -> Self {
-        Self(Vector::new([1.0; NSD]))
+        Self([1.0; NSD].into())
     }
 }
 
@@ -143,7 +142,7 @@ impl From<[f64; NSD]> for Scale {
         if scale.iter().any(|&entry| entry <= 0.0) {
             panic!("Need to specify scale > 0.")
         } else {
-            Self(Vector::new(scale))
+            Self(scale.into())
         }
     }
 }
@@ -166,7 +165,7 @@ impl Translate {
 
 impl Default for Translate {
     fn default() -> Self {
-        Self(Vector::new([0.0; NSD]))
+        Self([0.0; NSD].into())
     }
 }
 
@@ -184,7 +183,7 @@ impl From<Vector> for Translate {
 
 impl From<[f64; NSD]> for Translate {
     fn from(translate: [f64; NSD]) -> Self {
-        Self(Vector::new(translate))
+        Self(translate.into())
     }
 }
 
@@ -669,11 +668,14 @@ fn initial_nodal_coordinates(
         .for_each(|(&[x, y, z], connectivity)| {
             offsets.iter().enumerate().for_each(|(node, [cx, cy, cz])| {
                 if nodal_coordinates[connectivity[node]].is_none() {
-                    nodal_coordinates[connectivity[node]] = Some(Coordinate::new([
-                        (x + cx) as f64 * scale.x() + translate.x(),
-                        (y + cy) as f64 * scale.y() + translate.y(),
-                        (z + cz) as f64 * scale.z() + translate.z(),
-                    ]))
+                    nodal_coordinates[connectivity[node]] = Some(
+                        [
+                            (x + cx) as f64 * scale.x() + translate.x(),
+                            (y + cy) as f64 * scale.y() + translate.y(),
+                            (z + cz) as f64 * scale.z() + translate.z(),
+                        ]
+                        .into(),
+                    )
                 }
             })
         });

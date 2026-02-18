@@ -48,7 +48,9 @@ impl From<Tessellation> for TriangularFiniteElements {
         let nodal_coordinates = data
             .vertices
             .into_iter()
-            .map(|vertex| Coordinate::new([vertex[0] as f64, vertex[1] as f64, vertex[2] as f64]))
+            .map(|vertex| {
+                Coordinate::const_from([vertex[0] as f64, vertex[1] as f64, vertex[2] as f64])
+            })
             .collect();
         let element_node_connectivity = data.faces.into_iter().map(|face| face.vertices).collect();
         let triangular_finite_elements = TriangularFiniteElements::from((

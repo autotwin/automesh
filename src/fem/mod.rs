@@ -18,8 +18,9 @@ use crate::{
 use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
-    fem::{
-        ElementBlock, FiniteElementBlock, FirstOrderMinimize, LinearHexahedron, LinearTetrahedron,
+    fem::block::{
+        Block, FiniteElementBlock, FirstOrderMinimize,
+        element::linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron},
     },
     math::{
         Scalar, Tensor, TensorArray, TensorRank1List, TensorVec,
@@ -182,23 +183,21 @@ where
     fn bounding_box(&self) -> BoundingBox {
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        let (minimum, maximum) = self.get_nodal_coordinates().iter().fold(
-            (
-                Coordinate::new([f64::INFINITY; NSD]),
-                Coordinate::new([f64::NEG_INFINITY; NSD]),
-            ),
-            |(mut minimum, mut maximum), coordinate| {
-                minimum
-                    .iter_mut()
-                    .zip(maximum.iter_mut().zip(coordinate.iter()))
-                    .for_each(|(min, (max, &coord))| {
-                        *min = min.min(coord);
-                        *max = max.max(coord);
-                    });
-                (minimum, maximum)
-            },
-        );
-        let bounding_box = BoundingBox::new([minimum.into(), maximum.into()]);
+        let (minimum, maximum): (Coordinate, Coordinate) =
+            self.get_nodal_coordinates().iter().fold(
+                ([f64::INFINITY; NSD].into(), [f64::NEG_INFINITY; NSD].into()),
+                |(mut minimum, mut maximum), coordinate| {
+                    minimum
+                        .iter_mut()
+                        .zip(maximum.iter_mut().zip(coordinate.iter()))
+                        .for_each(|(min, (max, &coord))| {
+                            *min = min.min(coord);
+                            *max = max.max(coord);
+                        });
+                    (minimum, maximum)
+                },
+            );
+        let bounding_box = BoundingBox::from([minimum, maximum]);
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mBounding box function\x1b[0m {:?}",
@@ -663,14 +662,14 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block = ElementBlock::<_, LinearHexahedron, _>::new(
+                            let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
                                 NeoHookean {
                                     bulk_modulus: 0.0,
                                     shear_modulus: 1.0,
                                 },
                                 connectivity,
                                 self.get_nodal_coordinates().clone().into(),
-                            );
+                            ));
                             block.reset();
                             block.minimize(EqualityConstraint::Fixed(indices), solver)?
                         }
@@ -682,14 +681,14 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block = ElementBlock::<_, LinearTetrahedron, _>::new(
+                            let mut block = Block::<_, LinearTetrahedron, _, _, _, _>::from((
                                 NeoHookean {
                                     bulk_modulus: 0.0,
                                     shear_modulus: 1.0,
                                 },
                                 connectivity,
                                 self.get_nodal_coordinates().clone().into(),
-                            );
+                            ));
                             block.reset();
                             block.minimize(EqualityConstraint::Fixed(indices), solver)?
                         }
@@ -1003,7 +1002,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 );
                 let (closest_triangle, closest_point, minimum_distance_squared) =
                     surface_node_element_connectivity[closest_node].iter().fold(
-                        (usize::MAX, Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                        (usize::MAX, [f64::MAX; NSD].into(), f64::MAX),
                         |(closest_triangle, closest_point, minimum_distance_squared), &triangle| {
                             let point = TriangularFiniteElements::closest_point(
                                 nearby_node_coordinates,
@@ -1087,7 +1086,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 );
                 let (closest_point, _) =
                     surface_node_element_connectivity[closest_node].iter().fold(
-                        (Coordinate::new([f64::MAX; NSD]), f64::MAX),
+                        ([f64::MAX; NSD].into(), f64::MAX),
                         |(closest_point, minimum_distance_squared), &triangle| {
                             let point = TriangularFiniteElements::closest_point(
                                 exterior_node_coordinates,

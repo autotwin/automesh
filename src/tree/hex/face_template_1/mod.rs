@@ -1,9 +1,8 @@
 use super::super::{
-    Coordinate, Coordinates, HexConnectivity, NUM_OCTANTS, NUM_SUBCELLS_FACE, NodeMap, Octree,
-    SubSubCellsFace, subcells_on_own_face,
+    super::NSD, Coordinate, Coordinates, HexConnectivity, NUM_OCTANTS, NUM_SUBCELLS_FACE, NodeMap,
+    Octree, SubSubCellsFace, Vector, subcells_on_own_face,
 };
-use crate::{NSD, Vector};
-use conspire::math::{TensorArray, TensorVec, tensor_rank_1};
+use conspire::math::{TensorArray, TensorVec};
 
 const SCALE_1: f64 = 0.5;
 
@@ -405,52 +404,52 @@ fn translations(
 ) -> (Vector, Vector) {
     match face_index {
         0 => (
-            tensor_rank_1([
+            Vector::const_from([
                 0.0,
                 SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
                 0.0,
             ]),
-            tensor_rank_1([0.0, *tree[face_subsubcells[0]].get_lngth() as f64, 0.0]),
+            Vector::const_from([0.0, *tree[face_subsubcells[0]].get_lngth() as f64, 0.0]),
         ),
         1 => (
-            tensor_rank_1([
+            Vector::const_from([
                 -SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
                 0.0,
                 0.0,
             ]),
-            tensor_rank_1([-(*tree[face_subsubcells[0]].get_lngth() as f64), 0.0, 0.0]),
+            Vector::const_from([-(*tree[face_subsubcells[0]].get_lngth() as f64), 0.0, 0.0]),
         ),
         2 => (
-            tensor_rank_1([
+            Vector::const_from([
                 0.0,
                 -SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
                 0.0,
             ]),
-            tensor_rank_1([0.0, -(*tree[face_subsubcells[0]].get_lngth() as f64), 0.0]),
+            Vector::const_from([0.0, -(*tree[face_subsubcells[0]].get_lngth() as f64), 0.0]),
         ),
         3 => (
-            tensor_rank_1([
+            Vector::const_from([
                 SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
                 0.0,
                 0.0,
             ]),
-            tensor_rank_1([*tree[face_subsubcells[0]].get_lngth() as f64, 0.0, 0.0]),
+            Vector::const_from([*tree[face_subsubcells[0]].get_lngth() as f64, 0.0, 0.0]),
         ),
         4 => (
-            tensor_rank_1([
+            Vector::const_from([
                 0.0,
                 0.0,
                 SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
             ]),
-            tensor_rank_1([0.0, 0.0, *tree[face_subsubcells[0]].get_lngth() as f64]),
+            Vector::const_from([0.0, 0.0, *tree[face_subsubcells[0]].get_lngth() as f64]),
         ),
         5 => (
-            tensor_rank_1([
+            Vector::const_from([
                 0.0,
                 0.0,
                 -SCALE_1 * *tree[face_subsubcells[0]].get_lngth() as f64,
             ]),
-            tensor_rank_1([0.0, 0.0, -(*tree[face_subsubcells[0]].get_lngth() as f64)]),
+            Vector::const_from([0.0, 0.0, -(*tree[face_subsubcells[0]].get_lngth() as f64)]),
         ),
         _ => panic!(),
     }

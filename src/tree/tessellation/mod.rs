@@ -4,7 +4,7 @@ use crate::{
     tessellation::Tessellation,
     tree::{Cell, NUM_FACES, Octree, PADDING},
 };
-use conspire::math::{Scalar, Tensor, TensorArray};
+use conspire::math::{Scalar, Tensor};
 use std::collections::HashMap;
 
 #[cfg(feature = "profile")]
@@ -62,8 +62,8 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
     let time = Instant::now();
     let (minimum, maximum) = samples.iter().fold(
         (
-            Coordinate::new([f64::INFINITY; NSD]),
-            Coordinate::new([f64::NEG_INFINITY; NSD]),
+            Coordinate::from([f64::INFINITY; NSD]),
+            Coordinate::from([f64::NEG_INFINITY; NSD]),
         ),
         |(mut minimum, mut maximum), coordinate| {
             minimum
@@ -83,7 +83,7 @@ pub fn octree_from_bounding_cube(samples: &mut Coordinates, minimum_cell_size: S
     let scale = 1.0 / minimum_cell_size;
     let nel = 2.0_f64.powf((maximum_length / minimum_cell_size).log2().ceil()) as usize;
     let translation =
-        (minimum + maximum) * 0.5 - Coordinate::new([0.5 * (nel as f64) / scale; NSD]);
+        (minimum + maximum) * 0.5 - Coordinate::from([0.5 * (nel as f64) / scale; NSD]);
     samples.iter_mut().for_each(|sample| {
         *sample -= &translation;
         *sample *= &scale;

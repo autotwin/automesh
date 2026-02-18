@@ -2,11 +2,11 @@
 use std::time::Instant;
 
 use crate::{
-    Blocks, Coordinate, Coordinates,
+    Blocks, Coordinates,
     fem::TriangularFiniteElements,
     tree::{Edges, Faces, NUM_FACES, NUM_NODES_FACE, Octree, PADDING, mirror_face},
 };
-use conspire::math::{Tensor, TensorArray, TensorVec};
+use conspire::math::{Tensor, TensorVec};
 
 impl From<Octree> for TriangularFiniteElements {
     fn from(mut tree: Octree) -> Self {
@@ -128,14 +128,17 @@ impl From<Octree> for TriangularFiniteElements {
                                     {
                                         *face_node = node
                                     } else {
-                                        nodal_coordinates.push(Coordinate::new([
-                                            nodal_indices[0] as f64 * tree.scale.x()
-                                                + tree.translate.x(),
-                                            nodal_indices[1] as f64 * tree.scale.y()
-                                                + tree.translate.y(),
-                                            nodal_indices[2] as f64 * tree.scale.z()
-                                                + tree.translate.z(),
-                                        ]));
+                                        nodal_coordinates.push(
+                                            [
+                                                nodal_indices[0] as f64 * tree.scale.x()
+                                                    + tree.translate.x(),
+                                                nodal_indices[1] as f64 * tree.scale.y()
+                                                    + tree.translate.y(),
+                                                nodal_indices[2] as f64 * tree.scale.z()
+                                                    + tree.translate.z(),
+                                            ]
+                                            .into(),
+                                        );
                                         *face_node = node_new;
                                         nodes[nodal_indices[0] as usize]
                                             [nodal_indices[1] as usize]

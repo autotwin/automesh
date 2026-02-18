@@ -2,11 +2,11 @@
 use std::time::Instant;
 
 use crate::{
-    Coordinate, Coordinates, Octree,
+    Coordinates, Octree,
     fem::hex::{HEX, HexConnectivity, HexahedralFiniteElements},
     tree::{Faces, Indices, NodeMap},
 };
-use conspire::math::{Tensor, TensorArray, TensorVec};
+use conspire::math::{Tensor, TensorVec};
 use ndarray::parallel::prelude::*;
 use std::collections::HashMap;
 
@@ -58,11 +58,14 @@ impl From<&Octree> for HexesAndCoords {
             .filter(|(_, cell)| cell.is_leaf())
             .for_each(|(leaf_index, leaf)| {
                 cells_nodes[leaf_index] = node_index;
-                coordinates_0.push(Coordinate::new([
-                    0.5 * (2 * leaf.get_min_x() + leaf.get_lngth()) as f64,
-                    0.5 * (2 * leaf.get_min_y() + leaf.get_lngth()) as f64,
-                    0.5 * (2 * leaf.get_min_z() + leaf.get_lngth()) as f64,
-                ]));
+                coordinates_0.push(
+                    [
+                        0.5 * (2 * leaf.get_min_x() + leaf.get_lngth()) as f64,
+                        0.5 * (2 * leaf.get_min_y() + leaf.get_lngth()) as f64,
+                        0.5 * (2 * leaf.get_min_z() + leaf.get_lngth()) as f64,
+                    ]
+                    .into(),
+                );
                 node_index += 1;
             });
         let mut element_node_connectivity: HexConnectivity = vec![];
@@ -102,11 +105,12 @@ impl From<&Octree> for HexesAndCoords {
         let nodal_coordinates = coordinates_0
             .iter()
             .map(|coordinate| {
-                Coordinate::new([
+                [
                     coordinate[0] * tree.scale.x() + tree.translate.x(),
                     coordinate[1] * tree.scale.y() + tree.translate.y(),
                     coordinate[2] * tree.scale.z() + tree.translate.z(),
-                ])
+                ]
+                .into()
             })
             .collect();
         let finite_elements = HexahedralFiniteElements::from((
