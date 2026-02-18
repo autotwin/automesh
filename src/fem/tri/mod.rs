@@ -10,7 +10,7 @@ use super::{
     FiniteElements, Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::{
-    fem::block::element::{FiniteElement, surface::linear::Triangle as LinearTriangle},
+    fem::block::element::{FiniteElement, surface::linear::Triangle},
     math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire, assert_eq_within_tols},
     mechanics::Scalar,
 };
@@ -127,7 +127,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
         self.get_element_node_connectivity()
             .iter()
             .map(|nodes| {
-                LinearTriangle::minimum_scaled_jacobian(
+                Triangle::minimum_scaled_jacobian(
                     nodes
                         .iter()
                         .map(|&node| coordinates[node].clone())
