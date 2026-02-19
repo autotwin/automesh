@@ -8,7 +8,10 @@ use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
     Metrics, Size, Smoothing, Tessellation, Vector,
 };
-use conspire::math::{Tensor, TensorArray, TensorVec};
+use conspire::{
+    fem::block::element::{FiniteElement, linear::Hexahedron},
+    math::{Tensor, TensorArray, TensorVec},
+};
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
@@ -288,68 +291,16 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for HexahedralFiniteElements {
             .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let nodal_coordinates = self.get_nodal_coordinates();
-        let mut u = Vector::zero();
-        let mut v = Vector::zero();
-        let mut w = Vector::zero();
-        let mut n = Vector::zero();
+        let coordinates = self.get_nodal_coordinates();
         self.get_element_node_connectivity()
             .iter()
-            .map(|connectivity| {
-                connectivity
-                    .iter()
-                    .enumerate()
-                    .map(|(index, &node)| {
-                        match index {
-                            0 => {
-                                u = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[node];
-                            }
-                            1 => {
-                                u = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[5]] - &nodal_coordinates[node];
-                            }
-                            2 => {
-                                u = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[6]] - &nodal_coordinates[node];
-                            }
-                            3 => {
-                                u = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[7]] - &nodal_coordinates[node];
-                            }
-                            4 => {
-                                u = &nodal_coordinates[connectivity[7]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[5]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[0]] - &nodal_coordinates[node];
-                            }
-                            5 => {
-                                u = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[6]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[node];
-                            }
-                            6 => {
-                                u = &nodal_coordinates[connectivity[5]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[7]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[2]] - &nodal_coordinates[node];
-                            }
-                            7 => {
-                                u = &nodal_coordinates[connectivity[6]] - &nodal_coordinates[node];
-                                v = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[node];
-                                w = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[node];
-                            }
-                            _ => panic!(),
-                        }
-                        n = u.cross(&v);
-                        (&n * &w) / u.norm() / v.norm() / w.norm()
-                    })
-                    .collect::<Vec<f64>>()
-                    .into_iter()
-                    .reduce(f64::min)
-                    .unwrap()
+            .map(|nodes| {
+                Hexahedron::minimum_scaled_jacobian(
+                    nodes
+                        .iter()
+                        .map(|&node| coordinates[node].clone())
+                        .collect(),
+                )
             })
             .collect()
     }

@@ -4,9 +4,9 @@ use conspire::{
         elastic::AppliedLoad,
         hyperelastic::{NeoHookean, SecondOrderMinimize},
     },
-    fem::{
-        ElementBlock, FiniteElementBlock, FiniteElementBlockMethods, LinearTetrahedron,
-        SecondOrderMinimize as Foo,
+    fem::block::{
+        Block, SecondOrderMinimize as Foo, element::linear::Tetrahedron as LinearTetrahedron,
+        solid::SolidFiniteElementBlock,
     },
     math::{
         Matrix, Tensor, TestError, Vector, assert_eq_within_tols,
@@ -39,11 +39,11 @@ macro_rules! affine_test {
             bulk_modulus: BULK_MODULUS,
             shear_modulus: SHEAR_MODULUS,
         };
-        let block = ElementBlock::<_, LinearTetrahedron, _>::new(
+        let block = Block::<_, LinearTetrahedron, _, _, _, _>::from((
             model.clone(),
             connectivity,
             coordinates.clone().into(),
-        );
+        ));
         let side_length = segmentation().len() as Scalar;
         let length = coordinates
             .iter()

@@ -1,5 +1,5 @@
-use super::super::{Coordinates, HexConnectivity, NUM_OCTANTS, NodeMap, Octree};
-use conspire::math::{TensorVec, tensor_rank_1};
+use super::super::{Coordinates, HexConnectivity, NUM_OCTANTS, NodeMap, Octree, Vector};
+use conspire::math::TensorVec;
 
 pub fn apply(
     cells_nodes: &[usize],
@@ -161,18 +161,63 @@ fn template(
 ) {
     let (face_m, face_n, subcell_c, subcell_d, subcell_e, subcell_f, flip, direction) =
         match (subcell_a, subcell_b) {
-            (0, 1) => (0, 4, 2, 4, 3, 5, false, tensor_rank_1([0.0, 1.0, 0.0])),
-            (0, 2) => (3, 4, 1, 4, 3, 6, true, tensor_rank_1([1.0, 0.0, 0.0])),
-            (0, 4) => (3, 0, 1, 2, 5, 6, false, tensor_rank_1([1.0, 0.0, 0.0])),
-            (1, 3) => (1, 4, 0, 5, 2, 7, false, tensor_rank_1([-1.0, 0.0, 0.0])),
-            (1, 5) => (0, 1, 3, 0, 7, 4, false, tensor_rank_1([0.0, 1.0, 0.0])),
-            (2, 3) => (2, 4, 0, 6, 1, 7, true, tensor_rank_1([0.0, -1.0, 0.0])),
-            (2, 6) => (2, 3, 0, 3, 4, 7, false, tensor_rank_1([0.0, -1.0, 0.0])),
-            (3, 7) => (1, 2, 2, 1, 6, 5, false, tensor_rank_1([-1.0, 0.0, 0.0])),
-            (4, 5) => (5, 0, 0, 6, 1, 7, false, tensor_rank_1([0.0, 0.0, -1.0])),
-            (4, 6) => (5, 3, 0, 5, 2, 7, true, tensor_rank_1([0.0, 0.0, -1.0])),
-            (5, 7) => (5, 1, 1, 4, 3, 6, false, tensor_rank_1([0.0, 0.0, -1.0])),
-            (6, 7) => (5, 2, 2, 4, 3, 5, true, tensor_rank_1([0.0, 0.0, -1.0])),
+            (0, 1) => (0, 4, 2, 4, 3, 5, false, Vector::const_from([0.0, 1.0, 0.0])),
+            (0, 2) => (3, 4, 1, 4, 3, 6, true, Vector::const_from([1.0, 0.0, 0.0])),
+            (0, 4) => (3, 0, 1, 2, 5, 6, false, Vector::const_from([1.0, 0.0, 0.0])),
+            (1, 3) => (
+                1,
+                4,
+                0,
+                5,
+                2,
+                7,
+                false,
+                Vector::const_from([-1.0, 0.0, 0.0]),
+            ),
+            (1, 5) => (0, 1, 3, 0, 7, 4, false, Vector::const_from([0.0, 1.0, 0.0])),
+            (2, 3) => (2, 4, 0, 6, 1, 7, true, Vector::const_from([0.0, -1.0, 0.0])),
+            (2, 6) => (
+                2,
+                3,
+                0,
+                3,
+                4,
+                7,
+                false,
+                Vector::const_from([0.0, -1.0, 0.0]),
+            ),
+            (3, 7) => (
+                1,
+                2,
+                2,
+                1,
+                6,
+                5,
+                false,
+                Vector::const_from([-1.0, 0.0, 0.0]),
+            ),
+            (4, 5) => (
+                5,
+                0,
+                0,
+                6,
+                1,
+                7,
+                false,
+                Vector::const_from([0.0, 0.0, -1.0]),
+            ),
+            (4, 6) => (5, 3, 0, 5, 2, 7, true, Vector::const_from([0.0, 0.0, -1.0])),
+            (5, 7) => (
+                5,
+                1,
+                1,
+                4,
+                3,
+                6,
+                false,
+                Vector::const_from([0.0, 0.0, -1.0]),
+            ),
+            (6, 7) => (5, 2, 2, 4, 3, 5, true, Vector::const_from([0.0, 0.0, -1.0])),
             _ => panic!(),
         };
     let subcell_a_faces = tree[cell_subcells[subcell_a]].get_faces();

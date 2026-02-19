@@ -8,7 +8,10 @@ use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, HEX,
     HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
-use conspire::math::{Tensor, TensorRank1};
+use conspire::{
+    fem::block::element::{FiniteElement, linear::Tetrahedron},
+    math::Tensor,
+};
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
@@ -101,38 +104,16 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TetrahedralFiniteElements {
             .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
+        let coordinates = self.get_nodal_coordinates();
         self.get_element_node_connectivity()
             .iter()
-            .map(|connectivity| {
-                // The element Jacobian j is 6.0 times the signed element volume
-                let jac = self.signed_element_volume(connectivity) * 6.0;
-
-                // Get all six edge lengths
-                let [len_0, len_1, len_2, len_3, len_4, len_5]: [_; NUM_EDGES] = self
-                    .edge_vectors(connectivity)
-                    .into_iter()
-                    .map(|v| v.norm())
-                    .collect::<TensorRank1<_, 1>>()
-                    .into();
-
-                // Compute the four nodal Jacobians
-                let lambda_0 = len_0 * len_2 * len_3;
-                let lambda_1 = len_0 * len_1 * len_4;
-                let lambda_2 = len_1 * len_2 * len_5;
-                let lambda_3 = len_3 * len_4 * len_5;
-
-                // Find the maximum of the nodal Jacobians (including the element Jacobian)
-                let lambda_max = [jac, lambda_0, lambda_1, lambda_2, lambda_3]
-                    .into_iter()
-                    .reduce(f64::max)
-                    .unwrap();
-
-                // Calculate the final quality metric
-                if lambda_max == 0.0 {
-                    0.0 // Avoid division by zero for collapsed elements
-                } else {
-                    jac * 2.0_f64.sqrt() / lambda_max
-                }
+            .map(|nodes| {
+                Tetrahedron::minimum_scaled_jacobian(
+                    nodes
+                        .iter()
+                        .map(|&node| coordinates[node].clone())
+                        .collect(),
+                )
             })
             .collect()
     }

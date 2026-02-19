@@ -29,7 +29,7 @@ pub trait IntoFoo<T> {
 
 impl IntoFoo<Coordinates> for PyCoordinates {
     fn as_foo(&self) -> Coordinates {
-        self.iter().map(|entry| Coordinate::new(*entry)).collect()
+        self.iter().map(|entry| Coordinate::from(*entry)).collect()
     }
 }
 

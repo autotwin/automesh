@@ -1,5 +1,5 @@
-use super::super::{Cell, Coordinates, HexConnectivity, NodeMap, Octree, mirror_face};
-use conspire::math::{TensorRank1, TensorVec, tensor_rank_1};
+use super::super::{Cell, Coordinates, HexConnectivity, NodeMap, Octree, Vector, mirror_face};
+use conspire::math::TensorVec;
 
 pub fn apply(
     cells_nodes: &[usize],
@@ -183,18 +183,18 @@ fn template(
         (5, 1) => (7, 13, 5, 15, 1, 3, 4, 6, 0, 2),
         _ => panic!(),
     };
-    let directions: [TensorRank1<3, 1>; 2] = [face_m, face_n]
+    let directions: [Vector; 2] = [face_m, face_n]
         .iter()
         .map(|face| match face {
-            0 => tensor_rank_1([0.0, -1.0, 0.0]),
-            1 => tensor_rank_1([1.0, 0.0, 0.0]),
-            2 => tensor_rank_1([0.0, 1.0, 0.0]),
-            3 => tensor_rank_1([-1.0, 0.0, 0.0]),
-            4 => tensor_rank_1([0.0, 0.0, -1.0]),
-            5 => tensor_rank_1([0.0, 0.0, 1.0]),
+            0 => Vector::const_from([0.0, -1.0, 0.0]),
+            1 => Vector::const_from([1.0, 0.0, 0.0]),
+            2 => Vector::const_from([0.0, 1.0, 0.0]),
+            3 => Vector::const_from([-1.0, 0.0, 0.0]),
+            4 => Vector::const_from([0.0, 0.0, -1.0]),
+            5 => Vector::const_from([0.0, 0.0, 1.0]),
             _ => panic!(),
         })
-        .collect::<Vec<TensorRank1<3, 1>>>()
+        .collect::<Vec<Vector>>()
         .try_into()
         .unwrap();
     if let Some(cell_face_m) = cell.get_faces()[face_m]

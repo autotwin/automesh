@@ -13,7 +13,7 @@ use super::{
     fem::{Blocks, FiniteElementMethods, HEX, HexahedralFiniteElements, hex::HexConnectivity},
     voxel::{Nel, Remove, Scale, Translate, VoxelData, Voxels},
 };
-use conspire::math::{Tensor, TensorArray, TensorVec, tensor_rank_1};
+use conspire::math::{Tensor, TensorArray, TensorVec};
 use ndarray::{Axis, parallel::prelude::*, s};
 use std::{
     array::from_fn,
@@ -43,12 +43,12 @@ const SUBCELLS_ON_OWN_FACE_5: SubcellsOnFace = [4, 5, 6, 7];
 
 const fn face_direction(face_index: usize) -> Vector {
     match face_index {
-        0 => tensor_rank_1([0.0, -1.0, 0.0]),
-        1 => tensor_rank_1([1.0, 0.0, 0.0]),
-        2 => tensor_rank_1([0.0, 1.0, 0.0]),
-        3 => tensor_rank_1([-1.0, 0.0, 0.0]),
-        4 => tensor_rank_1([0.0, 0.0, -1.0]),
-        5 => tensor_rank_1([0.0, 0.0, 1.0]),
+        0 => Vector::const_from([0.0, -1.0, 0.0]),
+        1 => Vector::const_from([1.0, 0.0, 0.0]),
+        2 => Vector::const_from([0.0, 1.0, 0.0]),
+        3 => Vector::const_from([-1.0, 0.0, 0.0]),
+        4 => Vector::const_from([0.0, 0.0, -1.0]),
+        5 => Vector::const_from([0.0, 0.0, 1.0]),
         _ => panic!(),
     }
 }
@@ -345,7 +345,7 @@ impl Cell {
             {
                 Some(block_0)
             } else if self.is_voxel() {
-                let center = Coordinate::new(self.get_center());
+                let center = self.get_center().into();
                 let min_index = insides
                     .into_iter()
                     .reduce(|min_index, index| {
@@ -1324,14 +1324,14 @@ impl Octree {
                 x_val = (cell.get_min_x() + cell.get_lngth()) as f64 * scale.x() + translate.x();
                 y_val = (cell.get_min_y() + cell.get_lngth()) as f64 * scale.y() + translate.y();
                 z_val = (cell.get_min_z() + cell.get_lngth()) as f64 * scale.z() + translate.z();
-                nodal_coordinates[index] = Coordinate::new([x_min, y_min, z_min]);
-                nodal_coordinates[index + 1] = Coordinate::new([x_val, y_min, z_min]);
-                nodal_coordinates[index + 2] = Coordinate::new([x_val, y_val, z_min]);
-                nodal_coordinates[index + 3] = Coordinate::new([x_min, y_val, z_min]);
-                nodal_coordinates[index + 4] = Coordinate::new([x_min, y_min, z_val]);
-                nodal_coordinates[index + 5] = Coordinate::new([x_val, y_min, z_val]);
-                nodal_coordinates[index + 6] = Coordinate::new([x_val, y_val, z_val]);
-                nodal_coordinates[index + 7] = Coordinate::new([x_min, y_val, z_val]);
+                nodal_coordinates[index] = [x_min, y_min, z_min].into();
+                nodal_coordinates[index + 1] = [x_val, y_min, z_min].into();
+                nodal_coordinates[index + 2] = [x_val, y_val, z_min].into();
+                nodal_coordinates[index + 3] = [x_min, y_val, z_min].into();
+                nodal_coordinates[index + 4] = [x_min, y_min, z_val].into();
+                nodal_coordinates[index + 5] = [x_val, y_min, z_val].into();
+                nodal_coordinates[index + 6] = [x_val, y_val, z_val].into();
+                nodal_coordinates[index + 7] = [x_min, y_val, z_val].into();
                 index += HEX;
             });
         Ok(HexahedralFiniteElements::from((

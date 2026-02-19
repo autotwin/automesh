@@ -10,6 +10,7 @@ use super::{
     FiniteElements, Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::{
+    fem::block::element::{FiniteElement, surface::linear::Triangle},
     math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire, assert_eq_within_tols},
     mechanics::Scalar,
 };
@@ -24,7 +25,6 @@ use std::{
 
 const FOUR_THIRDS: Scalar = 4.0 / 3.0;
 // const FOUR_FIFTHS: Scalar = 4.0 / 5.0;
-const J_EQUILATERAL: Scalar = 0.8660254037844387;
 const REGULAR_DEGREE: i8 = 6;
 
 /// The number of nodes in a triangular finite element.
@@ -48,7 +48,9 @@ impl From<Tessellation> for TriangularFiniteElements {
         let nodal_coordinates = data
             .vertices
             .into_iter()
-            .map(|vertex| Coordinate::new([vertex[0] as f64, vertex[1] as f64, vertex[2] as f64]))
+            .map(|vertex| {
+                Coordinate::const_from([vertex[0] as f64, vertex[1] as f64, vertex[2] as f64])
+            })
             .collect();
         let element_node_connectivity = data.faces.into_iter().map(|face| face.vertices).collect();
         let triangular_finite_elements = TriangularFiniteElements::from((
@@ -121,9 +123,17 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
             .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        self.minimum_angles()
+        let coordinates = self.get_nodal_coordinates();
+        self.get_element_node_connectivity()
             .iter()
-            .map(|angle| angle.sin() / J_EQUILATERAL)
+            .map(|nodes| {
+                Triangle::minimum_scaled_jacobian(
+                    nodes
+                        .iter()
+                        .map(|&node| coordinates[node].clone())
+                        .collect(),
+                )
+            })
             .collect()
     }
     fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing, size: Size) {
