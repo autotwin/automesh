@@ -213,7 +213,7 @@ where
             .map(|nodes| {
                 nodes
                     .iter()
-                    .map(|&node| coordinates[node].clone())
+                    .map(|&node| &coordinates[node])
                     .sum::<Coordinate>()
                     / number_of_nodes
             })
@@ -226,7 +226,7 @@ where
             .iter()
             .map(|face| {
                 face.iter()
-                    .map(|&node| coordinates[node].clone())
+                    .map(|&node| &coordinates[node])
                     .sum::<Coordinate>()
                     / number_of_nodes
             })
@@ -329,16 +329,16 @@ where
         node_node_connectivity
             .iter()
             .enumerate()
-            .map(|(node_index_i, connectivity)| {
-                if connectivity.is_empty() {
+            .map(|(node, nodes)| {
+                if nodes.is_empty() {
                     Coordinate::zero()
                 } else {
-                    connectivity
+                    nodes
                         .iter()
-                        .map(|&node_j| nodal_coordinates[node_j].clone())
+                        .map(|&neighbor| &nodal_coordinates[neighbor])
                         .sum::<Coordinate>()
-                        / (connectivity.len() as f64)
-                        - &nodal_coordinates[node_index_i]
+                        / (nodes.len() as f64)
+                        - &nodal_coordinates[node]
                 }
             })
             .collect()
@@ -1114,20 +1114,27 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 surface_nodes_map[exterior_node] = surface_node + numbering_offset
             });
         finite_elements.nodal_coordinates.extend(new_coordinates);
-        let new_hexes: Connectivity<HEX> = exterior_face_nodes
-            .into_iter()
-            .map(|[node_0, node_1, node_2, node_3]| {
+        let projected_face_nodes: Connectivity<_> = exterior_face_nodes
+            .iter()
+            .map(|&[node_0, node_1, node_2, node_3]| {
                 [
-                    node_0,
-                    node_1,
-                    node_2,
-                    node_3,
                     surface_nodes_map[node_0],
                     surface_nodes_map[node_1],
                     surface_nodes_map[node_2],
                     surface_nodes_map[node_3],
                 ]
             })
+            .collect();
+        let new_hexes: Connectivity<_> = exterior_face_nodes
+            .into_iter()
+            .zip(projected_face_nodes.iter())
+            .map(
+                |([node_0, node_1, node_2, node_3], &[node_4, node_5, node_6, node_7])| {
+                    [
+                        node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7,
+                    ]
+                },
+            )
             .collect();
         finite_elements
             .element_blocks
@@ -1138,6 +1145,24 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
             time.elapsed()
         );
+        let projected_node_faces =
+            finite_elements.exterior_node_face_connectivity(&projected_face_nodes);
+        let projected_node_nodes = finite_elements
+            .exterior_node_node_connectivity(&projected_face_nodes, &projected_node_faces)?;
+        
+        // projected_node_nodes
+        //     .iter()
+        //     .enumerate()
+        //     .map(|(node, nodes)| {
+        //         nodes
+        //             .iter()
+        //             .map(|&neighbor| nodal_coordinates[neighbor].clone())
+        //             .sum::<Coordinate>()
+        //             / (connectivity.len() as f64)
+        //             - &nodal_coordinates[node]
+        //     })
+        //     .collect()
+
         Ok(finite_elements)
     }
 }
