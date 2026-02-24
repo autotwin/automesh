@@ -79,6 +79,15 @@ impl Tessellation {
     pub fn get_data(&self) -> &IndexedMesh {
         &self.data
     }
+    /// Computes the signed distance from a query point to the tessellation.
+    /// Positive values indicate the point is inside the closed surface,
+    /// while negative values indicate it is outside.
+    pub fn signed_distance(&self, query_point: &super::Coordinate) -> f64 {
+        TriangularFiniteElements::from(Tessellation {
+            data: self.get_data().clone(),
+        })
+        .signed_distance(query_point)
+    }
     /// Isotropic remeshing of the tessellation.
     pub fn remesh(self, iterations: usize, smoothing_method: &Smoothing, size: Size) -> Self {
         let mut finite_elements = TriangularFiniteElements::from(self);
