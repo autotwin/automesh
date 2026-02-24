@@ -16,6 +16,7 @@
   - [Taubin](smoothing/taubin.md)
   - [Python visualization](smoothing/python_visualization.md)
 - [Isosurfaces](isosurface.md)
+  - [Subdivision](isosurface/subdivision.md)
 - [Dualization](dualization.md) <!-- work in progress -->
 
 # Reference Guide
