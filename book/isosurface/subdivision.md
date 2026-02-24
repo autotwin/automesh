@@ -13,7 +13,7 @@ By iteratively applying simple refinement rules—typically involving a "splitti
 
 ## Octa Loop
 
-This example ues Loop subdivision to transform an octahedron into a sphere.  The results below are based on [Octa-Loop Subdivision Scheme (GitHub)](https://github.com/autotwin/mesh/blob/main/doc/octa_loop.md).
+This example uses Loop subdivision to transform an octahedron into a sphere.  The results below are based on [Octa-Loop Subdivision Scheme (GitHub)](https://github.com/autotwin/mesh/blob/main/doc/octa_loop.md).
 
 We create a **unit radius** octahedron template, and successively refine it into a sphere.  The sphere is a useful baseline subject of study because it:
 
@@ -65,24 +65,24 @@ The refinement below was created with MeshLab 2022.02, *Subdivision Surfaces LS3
 * The surface area of a sphere is $A = 4 \pi r^2$, and when $r=1$, $A \approx 12.566371$.
 * The volume of a sphere is $\frac{4}{3} \pi r^3$, and when $r=1$, $V \approx 4.188790$.
 
-The **vertex count** relationship:
+Using the **Euler Characteristic** for a sphere ($v - e + f = 2$), we can verify the progression from the base octahedron ($v=6, e=12, f=8$):
 
-* Vertices of the current iteration $v_{i+1}$ are a sum of the vertices from the previous iteration $v_{i}$ plus the edges from the previous iteration $e_{i}$, viz.
+Iteration ($i$) | Vertices ($v_i$​) | Edges ($e_i$​) | Faces ($f_i$) | Calculation ($v_{i+1}​=v_i​+e_i​$)
+--- | --- | --- | --- | ---
+0 (Base) | 6 | 12 | 8 | 6+12=18
+1|18|48|32|18+48=66
+2|66|192|128|66+192=258
+3|258|768|512|258+768=1,026
+4|1,026|3,072|2,048|1,026+3,072=4,098
+5|4,098|12,288|8,192|4,098+12,288=16,386
+6|16,386|49,152|32,768|16,386+49,152=65,538
+7|65,538|196,608|131,072|65,538+196,608=262,146
 
-$$v_{i+1} = v_{i} + e_{i}$$
+The recursive relationships for a closed triangular mesh:
 
-for example:
-
-* on `iter 1`: $v_i + e_i = 6 + 12 = 18 = v_{i+1}$ 
-* on `iter 7`: $16,386 + 49,152 = 65,538$.
-
-The **edge count** relationship::
-
-Similarly, the edge count relationship,
-
-$$e_{i+1} = 2 \cdot e_i + 3 \cdot f_i$$
-
-is shown in the table above.
+* **Faces:** $f_{i+1} = 4 \times f_i$
+* **Edges:** $e_{i+1} = 2 e_i + 3 f_i$
+* **Vertices:** $v_{i+1} = v_i + e_i$
 
 ## References
 
