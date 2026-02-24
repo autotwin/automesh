@@ -16,6 +16,7 @@
   - [Taubin](smoothing/taubin.md)
   - [Python visualization](smoothing/python_visualization.md)
 - [Isosurfaces](isosurface.md)
+  - [Subdivision](isosurface/subdivision.md)
 - [Dualization](dualization.md) <!-- work in progress -->
 
 # Reference Guide
@@ -48,6 +49,10 @@
 - [Development](development.md)
     - [Python](development/python.md)
     - [Rust](development/rust.md)
+    
+# Reviews
+
+- [Tong 2004](reviews/tong_2024.md)
 
 -----------
 
