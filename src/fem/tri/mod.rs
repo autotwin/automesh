@@ -290,7 +290,7 @@ impl TriangularFiniteElements {
             return coordinates_0.clone(); // v0 is the closest point
         }
         // Check if point is in the vertex region outside v1
-        let v_1p = point - coordinates_1;  // vector from v1 to target point P
+        let v_1p = point - coordinates_1; // vector from v1 to target point P
         let d3 = &v_01 * &v_1p;
         let d4 = &v_02 * v_1p;
         if d3 >= 0.0 && d4 <= d3 {
@@ -342,13 +342,14 @@ impl TriangularFiniteElements {
             (Coordinate::zero(), usize::MAX),
             |(mut best_p, mut best_idx), (idx, &nodes)| {
                 let p_s = Self::closest_point(query_point, coordinates, nodes);
-                if best_idx == usize::MAX ||
-                (query_point - &p_s).norm_squared() < (query_point - &best_p).norm_squared() {
+                if best_idx == usize::MAX
+                    || (query_point - &p_s).norm_squared() < (query_point - &best_p).norm_squared()
+                {
                     best_p = p_s;
                     best_idx = idx;
                 } // used norm_squared because it is faster than norm, closest result is same with either
                 (best_p, best_idx)
-            }
+            },
         );
 
         // Calculate the distance magnitude
@@ -393,7 +394,11 @@ impl TriangularFiniteElements {
             }
         } else {
             let mut on_edge = None;
-            let edges = [[nodes[0], nodes[1]], [nodes[1], nodes[2]], [nodes[2], nodes[0]]];
+            let edges = [
+                [nodes[0], nodes[1]],
+                [nodes[1], nodes[2]],
+                [nodes[2], nodes[0]],
+            ];
             for edge in edges {
                 let p0 = &coordinates[edge[0]];
                 let p1 = &coordinates[edge[1]];
