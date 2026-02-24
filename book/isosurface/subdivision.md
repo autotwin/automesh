@@ -84,6 +84,38 @@ The recursive relationships for a closed triangular mesh:
 * **Edges:** $e_{i+1} = 2 e_i + 3 f_i$
 * **Vertices:** $v_{i+1} = v_i + e_i$
 
+### Sculpt Baseline
+
+We created Sculpt baseline meshes with the [`sculpt_stl_to_inp.py` script](https://github.com/autotwin/mesh/blob/main/src/atmesh/sculpt_stl_to_inp.py) as
+
+```sh
+(atmeshenv) ~/autotwin/mesh/src/atmesh> python sculpt_stl_to_inp.py
+```
+
+and create standard views in Cubit with
+
+```sh
+Cubit>
+graphics perspective off  # orthogonal, not perspective view
+up 0 0 1  # z-axis points up
+view iso # isometric x, y, z camera
+quality volume 1 scaled jacobian global draw histogram draw mesh list
+```
+
+to produce the following results:
+
+
+| iter  | image                                                                     |    cells | nodes `nnp` | elements `nel` | element density `nel`$/ V$ |
+| :---: | ------------------------------------------------------------------------- | -------: | ----------: | -------------: | -------------------------: |
+|   0   | ![sculpt00](subdivision/sculpt00.png) | 35x35x35 |       8,696 |          7,343 |                      5,507 |
+|   1   | ![sculpt01](subdivision/sculpt01.png) | 28x28x28 |       8,133 |          6,960 |                      2,365 |
+|   2   | ![sculpt02](subdivision/sculpt02.png) | 26x26x26 |       7,833 |          6,744 |                      1,762 |
+|   3   | ![sculpt03](subdivision/sculpt03.png) | 26x26x26 |       7,731 |          6,672 |                      1,630 |
+|   4   | ![sculpt04](subdivision/sculpt04.png) | 26x26x26 |       7,731 |          6,672 |                      1,600 |
+|   5   | ![sculpt05](subdivision/sculpt05.png) | 26x26x26 |       7,731 |          6,672 |                      1,596 |
+|   6   | ![sculpt06](subdivision/sculpt06.png) | 26x26x26 |       7,731 |          6,672 |                      1,595 |
+|   7   | ![sculpt07](subdivision/sculpt07.png) | 26x26x26 |       7,731 |          6,672 |                      1,595 |
+
 ## References
 
 * [Octa-Loop Subdivision Scheme (GitHub)](https://github.com/autotwin/mesh/blob/main/doc/octa_loop.md)
