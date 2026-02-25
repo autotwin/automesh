@@ -954,10 +954,8 @@ impl<const N: usize> From<Data<N>> for FiniteElements<N> {
 impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
     type Error = String;
     fn try_from((tessellation, size): (Tessellation, Size)) -> Result<Self, Self::Error> {
-        // Gracefully exit if the user forgets the size parameter.
-        let s = size.ok_or_else(|| {
-            "Error: Hex meshing requires an element size. Please provide '-s <VAL>'.".to_string()
-        })?;
+        let s =
+            size.expect("Error: Hex meshing requires an element size. Please provide '-s <VAL>'.");
         let buffer = s / 2.0;
         let mut triangular_finite_elements = TriangularFiniteElements::from(tessellation);
         triangular_finite_elements.node_element_connectivity()?;

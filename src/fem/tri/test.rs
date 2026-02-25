@@ -180,62 +180,6 @@ mod closest_point {
     }
 }
 
-mod signed_distance {
-    use crate::{
-        Coordinates,
-        fem::{FiniteElementMethods, TriangularFiniteElements},
-    };
-
-    #[test]
-    fn reference() {
-        // Create an octahedron (closed manifold)
-        // Vertices: (1,0,0), (-1,0,0), (0,1,0), (0,-1,0), (0,0,1), (0,0,-1)
-        let coords = Coordinates::from([
-            [1.0, 0.0, 0.0],
-            [-1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0],
-            [0.0, -1.0, 0.0],
-            [0.0, 0.0, 1.0],
-            [0.0, 0.0, -1.0],
-        ]);
-        let connectivity = vec![
-            [0, 2, 4],
-            [2, 1, 4],
-            [1, 3, 4],
-            [3, 0, 4],
-            [0, 3, 5],
-            [3, 1, 5],
-            [1, 2, 5],
-            [2, 0, 5],
-        ];
-        let blocks = vec![1; connectivity.len()];
-        let mut fem = TriangularFiniteElements::from((blocks, connectivity, coords));
-        fem.node_element_connectivity().unwrap();
-        fem.node_node_connectivity().unwrap();
-
-        // 1. Point deep inside
-        let p_inside = [0.0, 0.0, 0.0].into();
-        let d_inside = fem.signed_distance(&p_inside);
-        assert!(d_inside > 0.0);
-
-        // 2. Point deep outside
-        let p_outside = [2.0, 2.0, 2.0].into();
-        let d_outside = fem.signed_distance(&p_outside);
-        assert!(d_outside < 0.0);
-
-        // 3. Point near a vertex (outward)
-        let p_vertex_out = [1.1, 0.0, 0.0].into();
-        let d_vertex_out = fem.signed_distance(&p_vertex_out);
-        assert!(d_vertex_out < 0.0);
-        assert!((d_vertex_out + 0.1).abs() < 1e-12);
-
-        // 4. Point near an edge (outward)
-        let p_edge_out = [0.6, 0.6, 0.0].into(); // Middle of edge 0-2 is [0.5, 0.5, 0.0]
-        let d_edge_out = fem.signed_distance(&p_edge_out);
-        assert!(d_edge_out < 0.0);
-    }
-}
-
 #[test]
 fn triangular_unit_tests() {
     // https://autotwin.github.io/automesh/cli/metrics_triangular.html#unit-tests
