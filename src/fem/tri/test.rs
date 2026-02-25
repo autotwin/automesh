@@ -125,6 +125,61 @@ mod intersection {
     }
 }
 
+mod closest_point {
+    use crate::{Coordinates, fem::TriangularFiniteElements};
+    use conspire::math::assert_eq_within_tols;
+
+    #[test]
+    fn reference() {
+        let coordinates = Coordinates::from([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]]);
+        let connectivity = [0, 1, 2];
+
+        // 1. Closest to vertex 0
+        assert_eq_within_tols(
+            &TriangularFiniteElements::closest_point(
+                &[-0.5, -0.5, 1.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            &[0.0, 0.0, 0.0].into(),
+        )
+        .unwrap();
+
+        // 2. Closest to edge 0-1 (the x-axis)
+        assert_eq_within_tols(
+            &TriangularFiniteElements::closest_point(
+                &[0.5, -0.5, 1.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            &[0.5, 0.0, 0.0].into(),
+        )
+        .unwrap();
+
+        // 3. Closest to edge 1-2 (the hypotenuse)
+        assert_eq_within_tols(
+            &TriangularFiniteElements::closest_point(
+                &[0.8, 0.8, 0.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            &[0.5, 0.5, 0.0].into(),
+        )
+        .unwrap();
+
+        // 4. Closest to face interior
+        assert_eq_within_tols(
+            &TriangularFiniteElements::closest_point(
+                &[0.25, 0.25, 5.0].into(),
+                &coordinates,
+                connectivity,
+            ),
+            &[0.25, 0.25, 0.0].into(),
+        )
+        .unwrap();
+    }
+}
+
 #[test]
 fn triangular_unit_tests() {
     // https://autotwin.github.io/automesh/cli/metrics_triangular.html#unit-tests

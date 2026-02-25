@@ -269,48 +269,63 @@ impl TriangularFiniteElements {
         }
     }
     /// Computes and returns the closest point in the triangle to another point.
+    /// This implementation uses a non-iterative barycentric coordinate appraoch.
     pub fn closest_point(
         point: &Coordinate,
         coordinates: &Coordinates,
         [node_0, node_1, node_2]: [usize; TRI],
     ) -> Coordinate {
+        // Set up vertex coordinates
         let coordinates_0 = &coordinates[node_0];
         let coordinates_1 = &coordinates[node_1];
         let coordinates_2 = &coordinates[node_2];
-        let v_01 = coordinates_1 - coordinates_0;
-        let v_02 = coordinates_2 - coordinates_0;
-        let v_0p = point - coordinates_0;
-        let d1 = &v_01 * &v_0p;
-        let d2 = &v_02 * v_0p;
+        // Set up edge vectors
+        let v_01 = coordinates_1 - coordinates_0; // edge from v0 to v1
+        let v_02 = coordinates_2 - coordinates_0; // edge from v0 to v2
+        // Check if point is in the vertex region outside v0
+        let v_0p = point - coordinates_0; // vector from v0 to target point P
+        let d1 = &v_01 * &v_0p; // project P onto v_01
+        let d2 = &v_02 * v_0p; // project P onto v_02
         if d1 <= 0.0 && d2 <= 0.0 {
-            return coordinates_0.clone();
+            return coordinates_0.clone(); // v0 is the closest point
         }
-        let v_1p = point - coordinates_1;
+        // Check if point is in the vertex region outside v1
+        let v_1p = point - coordinates_1; // vector from v1 to target point P
         let d3 = &v_01 * &v_1p;
         let d4 = &v_02 * v_1p;
         if d3 >= 0.0 && d4 <= d3 {
-            return coordinates_1.clone();
+            return coordinates_1.clone(); // v1 is the closest point
         }
+        // Check if point is in the vertex region outside v2
         let v_2p = point - coordinates_2;
         let d5 = &v_01 * &v_2p;
         let d6 = &v_02 * v_2p;
         if d6 >= 0.0 && d5 <= d6 {
-            return coordinates_2.clone();
+            return coordinates_2.clone(); // v2 is the closest point
         }
-        let vc = d1 * d4 - d3 * d2;
+        // Check if point is in edge region of v_01
+        let vc = d1 * d4 - d3 * d2; // area-like calculation (barycentric weight)
         if vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0 {
-            return coordinates_0 + v_01 * (d1 / (d1 - d3));
+            let v = d1 / (d1 - d3); // barycentric parameter
+            return coordinates_0 + v_01 * v; // projection onto edge v_01
         }
+        // Check if point is in edge region of v_02
         let vb = d5 * d2 - d1 * d6;
         if vb <= 0.0 && d2 >= 0.0 && d6 <= 0.0 {
-            return coordinates_0 + v_02 * (d2 / (d2 - d6));
+            let w = d2 / (d2 - d6);
+            return coordinates_0 + v_02 * w; // projection onto edge v_02
         }
+        // Check if point is in edge region of v_12
         let va = d3 * d6 - d5 * d4;
         if va <= 0.0 && (d4 - d3) >= 0.0 && (d5 - d6) >= 0.0 {
+            // projection onto edge v_12
             return coordinates_1
                 + (coordinates_2 - coordinates_1) * ((d4 - d3) / ((d4 - d3) + (d5 - d6)));
         }
+        // Point is inside the face region
+        // Compute the closest point using all three barycentric coordinates (u, v, w)
         let denom = va + vb + vc;
+        // Result = v0 + v(v1 - v0) + w(v2 - v0)
         coordinates_0 + v_01 * (vb / denom) + v_02 * (vc / denom)
     }
     /// Calculates and returns the Gaussian curvature.
@@ -400,7 +415,8 @@ impl TriangularFiniteElements {
     /// Computes and returns the normal vectors for all triangles.
     pub fn normals(&self) -> Vectors {
         let coordinates = self.get_nodal_coordinates();
-        self.get_element_node_connectivity()
+        let connectivity = self.get_element_node_connectivity();
+        connectivity
             .iter()
             .map(|&connectivity| Self::normal(coordinates, connectivity))
             .collect()
