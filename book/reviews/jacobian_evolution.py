@@ -67,11 +67,18 @@ plt.axhline(0, color="black", linewidth=0.8, linestyle="-")
 # plt.axvline(0, color="gray", linewidth=0.8, linestyle="-")
 
 # Ideal target line (Green at y = +1)
-plt.axhline(1, color="green", linewidth=1.0, linestyle="--", zorder=0, label="Ideal ($y=1$)")
+plt.axhline(
+    1, color="green", linewidth=1.0, linestyle="--", zorder=0, label="Ideal ($y=1$)"
+)
 
 # Lower bound limit (Red at y = -1)
 plt.axhline(
-    -1, color="red", linewidth=1.0, linestyle="--", zorder=0, label="Inverted Limit ($y=-1$)"
+    -1,
+    color="red",
+    linewidth=1.0,
+    linestyle="--",
+    zorder=0,
+    label="Inverted Limit ($y=-1$)",
 )
 
 plt.xlabel("Displacement $t$ along arbitrary direction $\mathbf{d}$", fontsize=12)
