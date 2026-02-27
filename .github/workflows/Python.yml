@@ -62,7 +62,7 @@ jobs:
       - name: Check
         run: twine check dist/*
       - name: Dist
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist
@@ -91,7 +91,7 @@ jobs:
     - name: Check
       run: twine check target/wheels/*
     - name: Upload
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ matrix.os }}-${{ matrix.python-version }}-dist
         path: target/wheels
