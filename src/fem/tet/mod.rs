@@ -9,7 +9,7 @@ use super::{
     HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
 use conspire::{
-    fem::block::element::{FiniteElement, linear::Tetrahedron},
+    fem::block::element::{FiniteElementMetrics, linear::Tetrahedron},
     math::Tensor,
 };
 use ndarray::{Array2, s};

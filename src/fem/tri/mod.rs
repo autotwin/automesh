@@ -10,7 +10,7 @@ use super::{
     FiniteElements, Metrics, Size, Smoothing, Tessellation, VecConnectivity, Vector,
 };
 use conspire::{
-    fem::block::element::{FiniteElement, surface::linear::Triangle},
+    fem::block::element::{FiniteElementMetrics, surface::linear::Triangle},
     math::{Tensor, TensorArray, TensorVec, Vector as VectorConspire, assert_eq_within_tols},
     mechanics::Scalar,
 };
