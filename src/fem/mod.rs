@@ -19,6 +19,7 @@ use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
     fem::block::{
+        FiniteElementBlockImprovement,
         Block, FiniteElementBlock, FirstOrderMinimize,
         element::{FiniteElementImprovement, linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron}},
     },
@@ -639,88 +640,92 @@ where
                     nodes.sort();
                     nodes.dedup();
 
-                    let a = 8e-4;
+                    // let a = 8e-3;
                     let exponent = 5e2;
-                    let num_nodes = self.get_nodal_coordinates().len();
-                    let mut foo;
-                    for _ in 0..1000 {
-                        foo = Coordinates::zero(num_nodes);
-                        self
-                            .get_element_node_connectivity()
-                            .iter()
-                            .for_each(|nodes| {
-                                let bar = LinearHexahedron::scaled_jacobian_gradients(
-                                    exponent,
-                                    nodes
-                                        .iter()
-                                        .map(|&node| self.nodal_coordinates[node].clone())
-                                        .collect(),
-                                );
-                                nodes.iter().zip(bar).for_each(|(&node, force)|
-                                    if force.iter().all(|entry| !entry.is_nan()) {
-                                        foo[node] += force * a
-                                    }
-                                )
-                        });
-                        self.nodal_coordinates += foo;
-                    }
+                    // let num_nodes = self.get_nodal_coordinates().len();
+                    // let mut foo;
+                    // for _ in 0..1000 {
+                    //     foo = Coordinates::zero(num_nodes);
+                    //     self
+                    //         .get_element_node_connectivity()
+                    //         .iter()
+                    //         .for_each(|nodes| {
+                    //             let bar = LinearHexahedron::scaled_jacobian_gradients(
+                    //                 exponent,
+                    //                 nodes
+                    //                     .iter()
+                    //                     .map(|&node| self.nodal_coordinates[node].clone())
+                    //                     .collect(),
+                    //             );
+                    //             nodes.iter().zip(bar).for_each(|(&node, force)|
+                    //                 if force.iter().all(|entry| !entry.is_nan()) {
+                    //                     foo[node] -= force * a
+                    //                 }
+                    //             )
+                    //     });
+                    //     self.nodal_coordinates += foo;
+                    // }
 
-                    // let solver = GradientDescent {
-                    //     abs_tol: 1e-6,
-                    //     dual: false,
-                    //     line_search: LineSearch::Armijo {
-                    //         control: 1e-3,
-                    //         cut_back: 0.9,
-                    //         max_steps: 100,
-                    //     },
-                    //     max_steps: 1000,
-                    //     rel_tol: Some(1e-2),
-                    // };
-                    // let indices = nodes
-                    //     .into_iter()
-                    //     .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
-                    //     .collect();
-                    // self.nodal_coordinates = match N {
-                    //     HEX => {
-                    //         let connectivity = self
-                    //             .get_element_node_connectivity()
-                    //             .iter()
-                    //             .map(|entry| {
-                    //                 entry.iter().copied().collect::<Nodes>().try_into().unwrap()
-                    //             })
-                    //             .collect();
-                    //         let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
-                    //             NeoHookean {
-                    //                 bulk_modulus: 0.0,
-                    //                 shear_modulus: 1.0,
-                    //             },
-                    //             connectivity,
-                    //             self.get_nodal_coordinates().clone().into(),
-                    //         ));
-                    //         block.reset();
-                    //         block.minimize(EqualityConstraint::Fixed(indices), solver)?
-                    //     }
-                    //     TET => {
-                    //         let connectivity = self
-                    //             .get_element_node_connectivity()
-                    //             .iter()
-                    //             .map(|entry| {
-                    //                 entry.iter().copied().collect::<Nodes>().try_into().unwrap()
-                    //             })
-                    //             .collect();
-                    //         let mut block = Block::<_, LinearTetrahedron, _, _, _, _>::from((
-                    //             NeoHookean {
-                    //                 bulk_modulus: 0.0,
-                    //                 shear_modulus: 1.0,
-                    //             },
-                    //             connectivity,
-                    //             self.get_nodal_coordinates().clone().into(),
-                    //         ));
-                    //         block.reset();
-                    //         block.minimize(EqualityConstraint::Fixed(indices), solver)?
-                    //     }
-                    //     _ => panic!(),
-                    // };
+                    let solver = GradientDescent {
+                        abs_tol: 1e-6,
+                        dual: false,
+                        line_search: LineSearch::None,
+                        // line_search: LineSearch::Armijo {
+                        //     control: 1e-3,
+                        //     cut_back: 0.9,
+                        //     max_steps: 100,
+                        // },
+                        max_steps: 100,
+                        // rel_tol: Some(1e-2),
+                        rel_tol: Some(0.0),
+                    };
+                    let indices = nodes
+                        .into_iter()
+                        .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
+                        .collect();
+                    self.nodal_coordinates = match N {
+                        HEX => {
+                            let connectivity = self
+                                .get_element_node_connectivity()
+                                .iter()
+                                .map(|entry| {
+                                    entry.iter().copied().collect::<Nodes>().try_into().unwrap()
+                                })
+                                .collect();
+                            let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
+                                NeoHookean {
+                                    bulk_modulus: 0.0,
+                                    shear_modulus: 1.0,
+                                },
+                                connectivity,
+                                self.get_nodal_coordinates().clone().into(),
+                            ));
+                            // block.reset();
+                            // block.minimize(EqualityConstraint::Fixed(indices), solver)?
+                            // block.improve(exponent, EqualityConstraint::Fixed(indices), solver)?
+                            block.improve(exponent, EqualityConstraint::None, solver)?
+                        }
+                        TET => {
+                            let connectivity = self
+                                .get_element_node_connectivity()
+                                .iter()
+                                .map(|entry| {
+                                    entry.iter().copied().collect::<Nodes>().try_into().unwrap()
+                                })
+                                .collect();
+                            let mut block = Block::<_, LinearTetrahedron, _, _, _, _>::from((
+                                NeoHookean {
+                                    bulk_modulus: 0.0,
+                                    shear_modulus: 1.0,
+                                },
+                                connectivity,
+                                self.get_nodal_coordinates().clone().into(),
+                            ));
+                            block.reset();
+                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
+                        }
+                        _ => panic!(),
+                    };
                     return Ok(());
                 }
                 Smoothing::Laplacian(iterations, scale) => {
