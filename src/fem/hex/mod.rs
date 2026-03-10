@@ -30,7 +30,7 @@ const NUM_NODES_FACE: usize = 4;
 /// The element-to-node connectivity for hexahedral finite elements.
 pub type HexConnectivity = Connectivity<HEX>;
 
-/// The hexahedral finite elements type.d
+/// The hexahedral finite elements type.
 pub type HexahedralFiniteElements = FiniteElements<HEX>;
 
 impl FiniteElementSpecifics<NUM_NODES_FACE, O> for HexahedralFiniteElements {

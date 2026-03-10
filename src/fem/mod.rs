@@ -639,7 +639,7 @@ where
                     nodes.sort();
                     nodes.dedup();
 
-                    let a = 8e-3;
+                    let a = 8e-4;
                     let exponent = 5e2;
                     let num_nodes = self.get_nodal_coordinates().len();
                     let mut foo;
