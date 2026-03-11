@@ -702,8 +702,8 @@ where
                             ));
                             // block.reset();
                             // block.minimize(EqualityConstraint::Fixed(indices), solver)?
-                            // block.improve(exponent, EqualityConstraint::Fixed(indices), solver)?
-                            block.improve(exponent, EqualityConstraint::None, solver)?
+                            block.improve(exponent, EqualityConstraint::Fixed(indices), solver)?
+                            // block.improve(exponent, EqualityConstraint::None, solver)?
                         }
                         TET => {
                             let connectivity = self
@@ -1181,19 +1181,16 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             finite_elements.exterior_node_face_connectivity(&projected_face_nodes);
         let projected_node_nodes = finite_elements
             .exterior_node_node_connectivity(&projected_face_nodes, &projected_node_faces)?;
-        
-        // projected_node_nodes
-        //     .iter()
-        //     .enumerate()
-        //     .map(|(node, nodes)| {
-        //         nodes
-        //             .iter()
-        //             .map(|&neighbor| nodal_coordinates[neighbor].clone())
-        //             .sum::<Coordinate>()
-        //             / (connectivity.len() as f64)
-        //             - &nodal_coordinates[node]
-        //     })
-        //     .collect()
+
+        let mut laplacian;
+        let scale = 1e-1;
+        for _ in 0..100 {
+            laplacian = finite_elements.laplacian(&projected_node_nodes);
+            finite_elements.get_nodal_coordinates_mut()
+                .iter_mut()
+                .zip(laplacian.iter())
+                .for_each(|(coordinate, entry)| *coordinate += entry * scale);
+        }
 
         Ok(finite_elements)
     }
