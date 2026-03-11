@@ -641,7 +641,7 @@ where
                     nodes.dedup();
 
                     // let a = 8e-3;
-                    let exponent = 5e2;
+                    let exponent = 5e1;
                     // let num_nodes = self.get_nodal_coordinates().len();
                     // let mut foo;
                     // for _ in 0..1000 {
@@ -669,13 +669,13 @@ where
                     let solver = GradientDescent {
                         abs_tol: 1e-6,
                         dual: false,
-                        line_search: LineSearch::None,
-                        // line_search: LineSearch::Armijo {
-                        //     control: 1e-3,
-                        //     cut_back: 0.9,
-                        //     max_steps: 100,
-                        // },
-                        max_steps: 100,
+                        // line_search: LineSearch::None,
+                        line_search: LineSearch::Armijo {
+                            control: 1e-3,
+                            cut_back: 0.9,
+                            max_steps: 100,
+                        },
+                        max_steps: 1000,
                         // rel_tol: Some(1e-2),
                         rel_tol: Some(0.0),
                     };
