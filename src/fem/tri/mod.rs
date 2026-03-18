@@ -128,7 +128,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
             .iter()
             .map(|nodes| {
                 Triangle::minimum_scaled_jacobian(
-                    nodes
+                    &nodes
                         .iter()
                         .map(|&node| coordinates[node].clone())
                         .collect(),

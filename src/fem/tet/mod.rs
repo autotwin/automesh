@@ -109,7 +109,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TetrahedralFiniteElements {
             .iter()
             .map(|nodes| {
                 Tetrahedron::minimum_scaled_jacobian(
-                    nodes
+                    &nodes
                         .iter()
                         .map(|&node| coordinates[node].clone())
                         .collect(),
