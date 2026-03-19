@@ -19,7 +19,7 @@ use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
     fem::block::{
-        Block, FiniteElementBlock, FirstOrderMinimize, FirstOrderRoot,
+        Block, FiniteElementBlock,
         element::linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron},
     },
     math::{
@@ -629,6 +629,7 @@ where
         )))
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
+        use conspire::fem::block::FirstOrderMinimize;
         if !self.get_node_node_connectivity().is_empty() {
             let smoothing_iterations;
             let smoothing_scale_deflate;
@@ -1046,13 +1047,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
 
         #[cfg(feature = "profile")]
         let time = Instant::now();
-
-        // Maybe smart Laplacian smoothing will work fine for those elements?
-        // And can try to do the stencils in parallel? (Just need to agglomerate any that end up touching)
-        // Want to move nodes in the bad element, and include touching elements that will be affected, but FIX those other nodes.
-        // So stencils only really touch if these 0.258 elements touch, WHICH THEY DO NOT, so this should be pretty good!
-        // Unless want to increase stencil size...
-        // Nope, they can touch! Need to handle that!!!
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         let element_node_connectivity = finite_elements.get_element_node_connectivity();
@@ -1082,70 +1076,97 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 (nodes, stencil_elements, stencil_nodes, boundary_nodes)
             })
             .collect::<Vec<_>>();
-
-        // Need to check if any `nodes` are coincident between foo entries and combine
-
-        for index in [3, 4] {
-            let nodal_coordinates = finite_elements.get_nodal_coordinates();
-            let test = &info[info.len() - index];
-            let stencil_elements = &test.1;
-            let stencil_nodes = &test.2;
-            let boundary_nodes = &test.3;
-            let mut node_num = 0;
-            let mut node_map = vec![0; stencil_nodes.iter().max().unwrap() + 1];
-            let coordinates: Coordinates = stencil_nodes
-                .iter()
-                .map(|&node| {
-                    node_map[node] = node_num;
-                    node_num += 1;
-                    nodal_coordinates[node].clone()
+        // Need to check if any `nodes` are coincident between foo entries and combine.
+        // For now, skip those cases.
+        // Later, can have the option to increase the stencil size.
+        let overlap: Vec<bool> = info
+            .iter()
+            .map(|(nodes_a, _, _, _)| {
+                info.iter().any(|(nodes_b, _, _, _)| {
+                    nodes_b
+                        .iter()
+                        .any(|node_b| nodes_a.binary_search(node_b).is_ok())
+                        && nodes_a != nodes_b
                 })
-                .collect();
-            let connectivity: Connectivity<HEX> = stencil_elements
-                .iter()
-                .map(|&element| from_fn(|node| node_map[element_node_connectivity[element][node]]))
-                .collect();
-            let boundary: Nodes = boundary_nodes.iter().map(|&node| node_map[node]).collect();
-            let indices = boundary
-                .into_iter()
-                .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
-                .collect();
-
-            let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
-                NeoHookean {
-                    bulk_modulus: 0.0,
-                    shear_modulus: 1.0,
+            })
+            .collect();
+        // The setup above takes a non-trivial amount of time.
+        // Should try to improve it and/or parallelize it too.
+        use conspire::fem::block::SecondOrderMinimize;
+        let nodal_coordinates = finite_elements.get_nodal_coordinates();
+        info.into_par_iter()
+            .zip(overlap)
+            .filter(|(_, has_overlap)| !has_overlap)
+            .map(
+                |((nodes, stencil_elements, stencil_nodes, boundary_nodes), _)| {
+                    let mut node_num = 0;
+                    let mut node_map = vec![0; stencil_nodes.iter().max().unwrap() + 1];
+                    let coordinates: Coordinates = stencil_nodes
+                        .iter()
+                        .map(|&node| {
+                            node_map[node] = node_num;
+                            node_num += 1;
+                            // nodal_coordinates[node].into()
+                            nodal_coordinates[node].clone()
+                        })
+                        .collect();
+                    let connectivity = stencil_elements
+                        .iter()
+                        .map(|&element| {
+                            from_fn(|node| node_map[element_node_connectivity[element][node]])
+                        })
+                        .collect();
+                    let boundary: Nodes =
+                        boundary_nodes.iter().map(|&node| node_map[node]).collect();
+                    let indices = boundary
+                        .into_iter()
+                        .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
+                        .collect();
+                    let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
+                        NeoHookean {
+                            bulk_modulus: 0.0,
+                            shear_modulus: 1.0,
+                        },
+                        connectivity,
+                        coordinates.into(),
+                    ));
+                    block.reset();
+                    let solution = block.minimize(
+                        EqualityConstraint::Fixed(indices),
+                        NewtonRaphson {
+                            abs_tol: 1e-1,
+                            line_search: LineSearch::Error {
+                                cut_back: 0.5,
+                                max_steps: 10,
+                            },
+                            ..Default::default()
+                        },
+                    );
+                    if let Ok(new_coordinates) = solution {
+                        Some((nodes, node_map, new_coordinates))
+                    // } else if let Err(error) = solution {
+                    //     println!("{error}");
+                    //     None
+                    } else {
+                        None
+                    }
                 },
-                // connectivity,
-                connectivity.clone(),
-                coordinates.into(),
-            ));
-            block.reset();
-            let new_coordinates =
-                block.root(EqualityConstraint::Fixed(indices), NewtonRaphson::default())?;
-            for coord in new_coordinates {
-                println!(
-                    "create node location {} {} {}",
-                    coord[0], coord[1], coord[2]
-                )
-            }
-            for [n0, n1, n2, n3, n4, n5, n6, n7] in connectivity {
-                println!(
-                    "create hex node {} {} {} {} {} {} {} {}",
-                    n0 + 1,
-                    n1 + 1,
-                    n2 + 1,
-                    n3 + 1,
-                    n4 + 1,
-                    n5 + 1,
-                    n6 + 1,
-                    n7 + 1
-                )
-            }
-        }
-
+            )
+            .collect::<Vec<_>>()
+            .into_iter()
+            .for_each(|solution| {
+                if let Some((nodes, node_map, new_coordinates)) = solution {
+                    nodes.into_iter().for_each(|node| {
+                        finite_elements.nodal_coordinates[node] =
+                            new_coordinates[node_map[node]].clone()
+                    })
+                }
+            });
         #[cfg(feature = "profile")]
-        println!("             \x1b[1;93mfoo\x1b[0m {:?}", time.elapsed());
+        println!(
+            "             \x1b[1;93mSmoothing of interior\x1b[0m {:?}",
+            time.elapsed()
+        );
 
         // Want info to set up new small block for fem type analysis
         // Need coordinates/connectivity of stencil, and which nodes are fixed
