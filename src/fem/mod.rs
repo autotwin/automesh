@@ -1046,127 +1046,186 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             .remove_orphan_nodes()?;
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        finite_elements.node_element_connectivity()?;
-        let element_node_connectivity = finite_elements.get_element_node_connectivity();
-        let nodal_coordinates = finite_elements.get_nodal_coordinates();
-        let bad_elements: Connectivity<HEX> = finite_elements
+        use conspire::fem::block::SecondOrderMinimize;
+        let bad_elements: Vec<usize> = finite_elements
             .minimum_scaled_jacobians()
             .into_iter()
             .enumerate()
             .filter(|(_, msj)| *msj < 0.26)
-            .map(|(element, _)| element_node_connectivity[element])
+            .map(|(element, _)| element)
             .collect();
-        let n = bad_elements.len();
-        let mut node_map = vec![vec![]; nodal_coordinates.len()];
-        bad_elements
-            .iter()
-            .enumerate()
-            .for_each(|(stencil, nodes)| {
-                nodes.iter().for_each(|&node| node_map[node].push(stencil))
-            });
-        let mut dsu = Dsu::new(n);
-        node_map
-            .into_iter()
-            .filter(|v| v.len() >= 2)
-            .for_each(|stencils| {
-                let first = stencils[0];
-                stencils[1..].iter().for_each(|&s| dsu.union(first, s))
-            });
-        let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
-        (0..n).for_each(|s| groups.entry(dsu.find(s)).or_default().push(s));
-        let stencil_groups: Vec<Vec<usize>> = groups.into_values().collect();
-        let node_element_connectivity = finite_elements.get_node_element_connectivity();
-        let info = stencil_groups
-            .into_iter()
-            .map(|stencils| {
-                let mut nodes: Nodes = stencils
-                    .into_iter()
-                    .flat_map(|stencil| bad_elements[stencil])
-                    .collect();
-                nodes.sort_unstable();
-                nodes.dedup();
-                let mut stencil_elements = nodes
-                    .iter()
-                    .flat_map(|&node| node_element_connectivity[node].iter().copied())
-                    .collect::<Vec<_>>();
-                stencil_elements.sort_unstable();
-                stencil_elements.dedup();
-                let mut stencil_nodes = stencil_elements
-                    .iter()
-                    .flat_map(|&stencil_element| element_node_connectivity[stencil_element])
-                    .collect::<Vec<_>>();
-                stencil_nodes.sort_unstable();
-                stencil_nodes.dedup();
-                let mut boundary_nodes = stencil_nodes.clone();
-                boundary_nodes.retain(|node| nodes.binary_search(node).is_err());
-                (nodes, stencil_elements, stencil_nodes, boundary_nodes)
-            })
-            .collect::<Vec<_>>();
-        use conspire::fem::block::SecondOrderMinimize;
-        info.into_par_iter()
-            .map(|(nodes, stencil_elements, stencil_nodes, boundary_nodes)| {
-                let mut node_num = 0;
-                let mut node_map = vec![0; stencil_nodes.iter().max().unwrap() + 1];
-                let coordinates: Coordinates = stencil_nodes
-                    .iter()
-                    .map(|&node| {
-                        node_map[node] = node_num;
-                        node_num += 1;
-                        nodal_coordinates[node].clone()
-                    })
-                    .collect();
-                let connectivity = stencil_elements
-                    .iter()
-                    .map(|&element| {
-                        from_fn(|node| node_map[element_node_connectivity[element][node]])
-                    })
-                    .collect();
-                let boundary: Nodes = boundary_nodes.iter().map(|&node| node_map[node]).collect();
-                let indices = boundary
-                    .into_iter()
-                    .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
-                    .collect();
-                let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
-                    NeoHookean {
-                        bulk_modulus: 0.0,
-                        shear_modulus: 1.0,
-                    },
-                    connectivity,
-                    coordinates.into(),
-                ));
-                block.reset();
-                let solution = block.minimize(
-                    EqualityConstraint::Fixed(indices),
-                    NewtonRaphson {
-                        abs_tol: 1e-1,
-                        line_search: LineSearch::default(),
-                        ..Default::default()
-                    },
-                );
-                if let Ok(new_coordinates) = solution {
-                    Some((nodes, node_map, new_coordinates))
-                // } else if let Err(error) = solution {
-                //     println!("{error}");
-                //     None
-                } else {
+        Block::<_, LinearHexahedron, _, _, _, _>::from((
+            NeoHookean {
+                bulk_modulus: 0.0,
+                shear_modulus: 1.0,
+            },
+            finite_elements.get_element_node_connectivity().clone(),
+            finite_elements.get_nodal_coordinates().into(),
+        ))
+        .isolate(&bad_elements)
+        .into_par_iter()
+        .map(|(mut block, boundary_nodes, local_nodes, global_nodes)| {
+            let indices = boundary_nodes
+                .iter()
+                .flat_map(|&node| [NSD * node, NSD * node + 1, NSD * node + 2])
+                .collect();
+            block.reset();
+            match block.minimize(
+                EqualityConstraint::Fixed(indices),
+                NewtonRaphson {
+                    abs_tol: 1e-1,
+                    line_search: LineSearch::default(),
+                    ..Default::default()
+                },
+            ) {
+                Ok(new_coordinates) => {
+                    Some((new_coordinates, boundary_nodes, local_nodes, global_nodes))
+                }
+                Err(error) => {
+                    println!("{error}");
                     None
                 }
-            })
-            .collect::<Vec<_>>()
-            .into_iter()
-            .for_each(|solution| {
-                if let Some((nodes, node_map, new_coordinates)) = solution {
-                    nodes.into_iter().for_each(|node| {
-                        finite_elements.nodal_coordinates[node] =
-                            new_coordinates[node_map[node]].clone()
-                    })
-                }
-            });
+            }
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .for_each(|solution| {
+            if let Some((new_coordinates, boundary_nodes, local_nodes, global_nodes)) = solution {
+                global_nodes.into_iter().for_each(|global_node| {
+                    let local_node = local_nodes[global_node];
+                    if !boundary_nodes.contains(&local_node) {
+                        finite_elements.nodal_coordinates[global_node] =
+                            new_coordinates[local_node].clone()
+                    }
+                })
+            }
+        });
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mSmoothing of interior\x1b[0m {:?}",
+            "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
             time.elapsed()
         );
+
+        // finite_elements.node_element_connectivity()?;
+        // let element_node_connectivity = finite_elements.get_element_node_connectivity();
+        // let nodal_coordinates = finite_elements.get_nodal_coordinates();
+        // let bad_elements: Connectivity<HEX> = finite_elements
+        //     .minimum_scaled_jacobians()
+        //     .into_iter()
+        //     .enumerate()
+        //     .filter(|(_, msj)| *msj < 0.26)
+        //     .map(|(element, _)| element_node_connectivity[element])
+        //     .collect();
+        // let n = bad_elements.len();
+        // let mut node_map = vec![vec![]; nodal_coordinates.len()];
+        // bad_elements
+        //     .iter()
+        //     .enumerate()
+        //     .for_each(|(stencil, nodes)| {
+        //         nodes.iter().for_each(|&node| node_map[node].push(stencil))
+        //     });
+        // let mut dsu = Dsu::new(n);
+        // node_map
+        //     .into_iter()
+        //     .filter(|v| v.len() >= 2)
+        //     .for_each(|stencils| {
+        //         let first = stencils[0];
+        //         stencils[1..].iter().for_each(|&s| dsu.union(first, s))
+        //     });
+        // let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+        // (0..n).for_each(|s| groups.entry(dsu.find(s)).or_default().push(s));
+        // let node_element_connectivity = finite_elements.get_node_element_connectivity();
+        // let info = groups
+        //     .into_values()
+        //     .map(|stencils| {
+        //         let mut nodes: Nodes = stencils
+        //             .into_iter()
+        //             .flat_map(|stencil| bad_elements[stencil])
+        //             .collect();
+        //         nodes.sort_unstable();
+        //         nodes.dedup();
+        //         let mut stencil_elements = nodes
+        //             .iter()
+        //             .flat_map(|&node| node_element_connectivity[node].iter().copied())
+        //             .collect::<Vec<_>>();
+        //         stencil_elements.sort_unstable();
+        //         stencil_elements.dedup();
+        //         let mut stencil_nodes = stencil_elements
+        //             .iter()
+        //             .flat_map(|&stencil_element| element_node_connectivity[stencil_element])
+        //             .collect::<Vec<_>>();
+        //         stencil_nodes.sort_unstable();
+        //         stencil_nodes.dedup();
+        //         let mut boundary_nodes = stencil_nodes.clone();
+        //         boundary_nodes.retain(|node| nodes.binary_search(node).is_err());
+        //         (nodes, stencil_elements, stencil_nodes, boundary_nodes)
+        //     })
+        //     .collect::<Vec<_>>();
+        // info.into_par_iter()
+        //     .map(|(nodes, stencil_elements, stencil_nodes, boundary_nodes)| {
+        //         let mut node_num = 0;
+        //         let mut node_map = vec![0; stencil_nodes.iter().max().unwrap() + 1];
+        //         let coordinates = stencil_nodes
+        //             .iter()
+        //             .map(|&node| {
+        //                 node_map[node] = node_num;
+        //                 node_num += 1;
+        //                 (&nodal_coordinates[node]).into()
+        //             })
+        //             .collect();
+        //         let connectivity = stencil_elements
+        //             .iter()
+        //             .map(|&element| {
+        //                 from_fn(|node| node_map[element_node_connectivity[element][node]])
+        //             })
+        //             .collect();
+        //         let boundary: Nodes = boundary_nodes.iter().map(|&node| node_map[node]).collect();
+        //         let indices = boundary
+        //             .into_iter()
+        //             .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
+        //             .collect();
+        //         let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
+        //             NeoHookean {
+        //                 bulk_modulus: 0.0,
+        //                 shear_modulus: 1.0,
+        //             },
+        //             connectivity,
+        //             coordinates,
+        //         ));
+        //         block.reset();
+        //         let solution = block.minimize(
+        //             EqualityConstraint::Fixed(indices),
+        //             NewtonRaphson {
+        //                 abs_tol: 1e-1,
+        //                 line_search: LineSearch::default(),
+        //                 ..Default::default()
+        //             },
+        //         );
+        //         if let Ok(new_coordinates) = solution {
+        //             Some((nodes, node_map, new_coordinates))
+        //             // Some((stencil_nodes, node_map, new_coordinates))
+        //         // } else if let Err(error) = solution {
+        //         //     println!("{error}");
+        //         //     None
+        //         } else {
+        //             None
+        //         }
+        //     })
+        //     .collect::<Vec<_>>()
+        //     .into_iter()
+        //     .for_each(|solution| {
+        //         if let Some((nodes, node_map, new_coordinates)) = solution {
+        //             nodes.into_iter().for_each(|node| {
+        //                 finite_elements.nodal_coordinates[node] =
+        //                     new_coordinates[node_map[node]].clone()
+        //             })
+        //         }
+        //     });
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "             \x1b[1;93mSmoothing of interior\x1b[0m {:?}",
+        //     time.elapsed()
+        // );
         // let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
         // let exterior_node_faces =
         //     finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
