@@ -995,7 +995,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     .copied()
                     .collect();
                 assert!(!nearby_surface_nodes.is_empty());
-                nearby_surface_nodes.sort();
+                nearby_surface_nodes.sort_unstable();
                 nearby_surface_nodes.dedup();
                 let nearby_node_coordinates = &coordinates[nearby_node];
                 let closest_node = closest_surface_node(
@@ -1035,7 +1035,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             })
             .collect();
         removed_nodes.extend(buffer_nodes);
-        removed_nodes.sort();
+        removed_nodes.sort_unstable();
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mMarking further nodes\x1b[0m {:?}",
@@ -1044,114 +1044,114 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         let mut finite_elements = hexahedral_finite_elements
             .remove_nodes(removed_nodes)
             .remove_orphan_nodes()?;
-
         #[cfg(feature = "profile")]
         let time = Instant::now();
         finite_elements.node_element_connectivity()?;
-        finite_elements.node_node_connectivity()?;
         let element_node_connectivity = finite_elements.get_element_node_connectivity();
-        let node_element_connectivity = finite_elements.get_node_element_connectivity();
-        let info = finite_elements
+        let nodal_coordinates = finite_elements.get_nodal_coordinates();
+        let bad_elements: Connectivity<HEX> = finite_elements
             .minimum_scaled_jacobians()
             .into_iter()
             .enumerate()
             .filter(|(_, msj)| *msj < 0.26)
-            .map(|(element, _)| {
-                let mut nodes = element_node_connectivity[element];
-                nodes.sort();
+            .map(|(element, _)| element_node_connectivity[element])
+            .collect();
+        let n = bad_elements.len();
+        let mut node_map = vec![vec![]; nodal_coordinates.len()];
+        bad_elements
+            .iter()
+            .enumerate()
+            .for_each(|(stencil, nodes)| {
+                nodes.iter().for_each(|&node| node_map[node].push(stencil))
+            });
+        let mut dsu = Dsu::new(n);
+        node_map
+            .into_iter()
+            .filter(|v| v.len() >= 2)
+            .for_each(|stencils| {
+                let first = stencils[0];
+                stencils[1..].iter().for_each(|&s| dsu.union(first, s))
+            });
+        let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
+        (0..n).for_each(|s| groups.entry(dsu.find(s)).or_default().push(s));
+        let stencil_groups: Vec<Vec<usize>> = groups.into_values().collect();
+        let node_element_connectivity = finite_elements.get_node_element_connectivity();
+        let info = stencil_groups
+            .into_iter()
+            .map(|stencils| {
+                let mut nodes: Nodes = stencils
+                    .into_iter()
+                    .flat_map(|stencil| bad_elements[stencil])
+                    .collect();
+                nodes.sort_unstable();
+                nodes.dedup();
                 let mut stencil_elements = nodes
                     .iter()
-                    .flat_map(|&node| node_element_connectivity[node].clone())
+                    .flat_map(|&node| node_element_connectivity[node].iter().copied())
                     .collect::<Vec<_>>();
-                stencil_elements.sort();
+                stencil_elements.sort_unstable();
                 stencil_elements.dedup();
                 let mut stencil_nodes = stencil_elements
                     .iter()
                     .flat_map(|&stencil_element| element_node_connectivity[stencil_element])
                     .collect::<Vec<_>>();
-                stencil_nodes.sort();
+                stencil_nodes.sort_unstable();
                 stencil_nodes.dedup();
                 let mut boundary_nodes = stencil_nodes.clone();
                 boundary_nodes.retain(|node| nodes.binary_search(node).is_err());
                 (nodes, stencil_elements, stencil_nodes, boundary_nodes)
             })
             .collect::<Vec<_>>();
-        // Need to check if any `nodes` are coincident between foo entries and combine.
-        // For now, skip those cases.
-        // Later, can have the option to increase the stencil size.
-        let overlap: Vec<bool> = info
-            .iter()
-            .map(|(nodes_a, _, _, _)| {
-                info.iter().any(|(nodes_b, _, _, _)| {
-                    nodes_b
-                        .iter()
-                        .any(|node_b| nodes_a.binary_search(node_b).is_ok())
-                        && nodes_a != nodes_b
-                })
-            })
-            .collect();
-        // The setup above takes a non-trivial amount of time.
-        // Should try to improve it and/or parallelize it too.
         use conspire::fem::block::SecondOrderMinimize;
-        let nodal_coordinates = finite_elements.get_nodal_coordinates();
         info.into_par_iter()
-            .zip(overlap)
-            .filter(|(_, has_overlap)| !has_overlap)
-            .map(
-                |((nodes, stencil_elements, stencil_nodes, boundary_nodes), _)| {
-                    let mut node_num = 0;
-                    let mut node_map = vec![0; stencil_nodes.iter().max().unwrap() + 1];
-                    let coordinates: Coordinates = stencil_nodes
-                        .iter()
-                        .map(|&node| {
-                            node_map[node] = node_num;
-                            node_num += 1;
-                            // nodal_coordinates[node].into()
-                            nodal_coordinates[node].clone()
-                        })
-                        .collect();
-                    let connectivity = stencil_elements
-                        .iter()
-                        .map(|&element| {
-                            from_fn(|node| node_map[element_node_connectivity[element][node]])
-                        })
-                        .collect();
-                    let boundary: Nodes =
-                        boundary_nodes.iter().map(|&node| node_map[node]).collect();
-                    let indices = boundary
-                        .into_iter()
-                        .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
-                        .collect();
-                    let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
-                        NeoHookean {
-                            bulk_modulus: 0.0,
-                            shear_modulus: 1.0,
-                        },
-                        connectivity,
-                        coordinates.into(),
-                    ));
-                    block.reset();
-                    let solution = block.minimize(
-                        EqualityConstraint::Fixed(indices),
-                        NewtonRaphson {
-                            abs_tol: 1e-1,
-                            line_search: LineSearch::Error {
-                                cut_back: 0.5,
-                                max_steps: 10,
-                            },
-                            ..Default::default()
-                        },
-                    );
-                    if let Ok(new_coordinates) = solution {
-                        Some((nodes, node_map, new_coordinates))
-                    // } else if let Err(error) = solution {
-                    //     println!("{error}");
-                    //     None
-                    } else {
-                        None
-                    }
-                },
-            )
+            .map(|(nodes, stencil_elements, stencil_nodes, boundary_nodes)| {
+                let mut node_num = 0;
+                let mut node_map = vec![0; stencil_nodes.iter().max().unwrap() + 1];
+                let coordinates: Coordinates = stencil_nodes
+                    .iter()
+                    .map(|&node| {
+                        node_map[node] = node_num;
+                        node_num += 1;
+                        nodal_coordinates[node].clone()
+                    })
+                    .collect();
+                let connectivity = stencil_elements
+                    .iter()
+                    .map(|&element| {
+                        from_fn(|node| node_map[element_node_connectivity[element][node]])
+                    })
+                    .collect();
+                let boundary: Nodes = boundary_nodes.iter().map(|&node| node_map[node]).collect();
+                let indices = boundary
+                    .into_iter()
+                    .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
+                    .collect();
+                let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
+                    NeoHookean {
+                        bulk_modulus: 0.0,
+                        shear_modulus: 1.0,
+                    },
+                    connectivity,
+                    coordinates.into(),
+                ));
+                block.reset();
+                let solution = block.minimize(
+                    EqualityConstraint::Fixed(indices),
+                    NewtonRaphson {
+                        abs_tol: 1e-1,
+                        line_search: LineSearch::default(),
+                        ..Default::default()
+                    },
+                );
+                if let Ok(new_coordinates) = solution {
+                    Some((nodes, node_map, new_coordinates))
+                // } else if let Err(error) = solution {
+                //     println!("{error}");
+                //     None
+                } else {
+                    None
+                }
+            })
             .collect::<Vec<_>>()
             .into_iter()
             .for_each(|solution| {
@@ -1167,12 +1167,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mSmoothing of interior\x1b[0m {:?}",
             time.elapsed()
         );
-
-        // Want info to set up new small block for fem type analysis
-        // Need coordinates/connectivity of stencil, and which nodes are fixed
-        // Also need node numbers to be changed to be local to new small block.
-        // So, want vec of: (The 0.258 element index), (the element indices it touches), (the )
-
         // let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
         // let exterior_node_faces =
         //     finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
@@ -1271,6 +1265,43 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         //     time.elapsed()
         // );
         Ok(finite_elements)
+    }
+}
+
+use std::collections::HashMap;
+
+struct Dsu {
+    parent: Vec<usize>,
+    rank: Vec<u8>,
+}
+
+impl Dsu {
+    fn new(n: usize) -> Self {
+        Self {
+            parent: (0..n).collect(),
+            rank: vec![0; n],
+        }
+    }
+    fn find(&mut self, x: usize) -> usize {
+        if self.parent[x] != x {
+            let p = self.parent[x];
+            self.parent[x] = self.find(p);
+        }
+        self.parent[x]
+    }
+    fn union(&mut self, a: usize, b: usize) {
+        let mut ra = self.find(a);
+        let mut rb = self.find(b);
+        if ra == rb {
+            return;
+        }
+        if self.rank[ra] < self.rank[rb] {
+            std::mem::swap(&mut ra, &mut rb);
+        }
+        self.parent[rb] = ra;
+        if self.rank[ra] == self.rank[rb] {
+            self.rank[ra] += 1;
+        }
     }
 }
 
