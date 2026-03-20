@@ -19,12 +19,12 @@ use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
     fem::block::{
-        Block, FiniteElementBlock, FirstOrderMinimize,
+        Block, FiniteElementBlock,
         element::linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron},
     },
     math::{
         Scalar, Tensor, TensorArray, TensorRank1List, TensorVec,
-        optimize::{EqualityConstraint, GradientDescent, LineSearch},
+        optimize::{EqualityConstraint, GradientDescent, LineSearch, NewtonRaphson},
     },
 };
 use ndarray::{Array1, parallel::prelude::*};
@@ -629,6 +629,7 @@ where
         )))
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
+        use conspire::fem::block::FirstOrderMinimize;
         if !self.get_node_node_connectivity().is_empty() {
             let smoothing_iterations;
             let smoothing_scale_deflate;
@@ -994,7 +995,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     .copied()
                     .collect();
                 assert!(!nearby_surface_nodes.is_empty());
-                nearby_surface_nodes.sort();
+                nearby_surface_nodes.sort_unstable();
                 nearby_surface_nodes.dedup();
                 let nearby_node_coordinates = &coordinates[nearby_node];
                 let closest_node = closest_surface_node(
@@ -1034,7 +1035,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             })
             .collect();
         removed_nodes.extend(buffer_nodes);
-        removed_nodes.sort();
+        removed_nodes.sort_unstable();
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mMarking further nodes\x1b[0m {:?}",
@@ -1043,6 +1044,67 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         let mut finite_elements = hexahedral_finite_elements
             .remove_nodes(removed_nodes)
             .remove_orphan_nodes()?;
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+        use conspire::fem::block::SecondOrderMinimize;
+        let bad_elements: Vec<usize> = finite_elements
+            .minimum_scaled_jacobians()
+            .into_iter()
+            .enumerate()
+            .filter(|(_, msj)| *msj < 0.26)
+            .map(|(element, _)| element)
+            .collect();
+        Block::<_, LinearHexahedron, _, _, _, _>::from((
+            NeoHookean {
+                bulk_modulus: 0.0,
+                shear_modulus: 1.0,
+            },
+            finite_elements.get_element_node_connectivity().clone(),
+            finite_elements.get_nodal_coordinates().into(),
+        ))
+        .isolate(&bad_elements)
+        .into_par_iter()
+        .map(|(mut block, [boundary_nodes, local_nodes, global_nodes])| {
+            let indices = boundary_nodes
+                .iter()
+                .flat_map(|&node| [NSD * node, NSD * node + 1, NSD * node + 2])
+                .collect();
+            block.reset();
+            match block.minimize(
+                EqualityConstraint::Fixed(indices),
+                NewtonRaphson {
+                    abs_tol: 1e-1,
+                    line_search: LineSearch::default(),
+                    ..Default::default()
+                },
+            ) {
+                Ok(new_coordinates) => {
+                    Some((new_coordinates, boundary_nodes, local_nodes, global_nodes))
+                }
+                Err(error) => {
+                    println!("{error}");
+                    None
+                }
+            }
+        })
+        .collect::<Vec<_>>()
+        .into_iter()
+        .for_each(|solution| {
+            if let Some((new_coordinates, boundary_nodes, local_nodes, global_nodes)) = solution {
+                global_nodes.into_iter().for_each(|global_node| {
+                    let local_node = local_nodes[global_node];
+                    if !boundary_nodes.contains(&local_node) {
+                        finite_elements.nodal_coordinates[global_node] =
+                            new_coordinates[local_node].clone()
+                    }
+                })
+            }
+        });
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mSmoothing of interior\x1b[0m {:?}",
+            time.elapsed()
+        );
         let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
         // let exterior_node_faces =
         //     finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
