@@ -171,13 +171,15 @@ The local numbering scheme for nodes of a hexahedral element:
 node | connected nodes
 :---: | :---:
 0 | 1, 3, 4
-1 | 0, 2, 5
-2 | 1, 3, 6
+1 | 2, 0, 5
+2 | 3, 1, 6
 3 | 0, 2, 7
-4 | 0, 5, 7
-5 | 1, 4, 6
-6 | 2, 5, 7
-7 | 3, 4, 6
+4 | 7, 5, 0
+5 | 4, 6, 1
+6 | 5, 7, 2
+7 | 6, 4, 3
+
+Note that we **order** the connected nodes to preserve the right-hand rule convention.
 
 ### Faces
 
