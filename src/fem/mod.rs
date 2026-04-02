@@ -19,8 +19,11 @@ use chrono::Utc;
 use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
     fem::block::{
-        Block, FiniteElementBlock,
-        element::linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron},
+        Block, FiniteElementBlock, FiniteElementBlockImprovement,
+        element::{
+            FiniteElementMetrics, FiniteElementImprovement,
+            linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron}
+        },
     },
     math::{
         Scalar, Tensor, TensorArray, TensorRank1List, TensorVec,

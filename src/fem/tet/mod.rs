@@ -9,7 +9,7 @@ use super::{
     HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
 use conspire::{
-    fem::block::element::{FiniteElement, linear::Tetrahedron},
+    fem::block::element::{FiniteElementMetrics, linear::Tetrahedron},
     math::Tensor,
 };
 use ndarray::{Array2, s};
@@ -109,7 +109,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TetrahedralFiniteElements {
             .iter()
             .map(|nodes| {
                 Tetrahedron::minimum_scaled_jacobian(
-                    nodes
+                    &nodes
                         .iter()
                         .map(|&node| coordinates[node].clone())
                         .collect(),
