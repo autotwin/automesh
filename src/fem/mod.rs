@@ -1046,7 +1046,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             .remove_orphan_nodes()?;
         #[cfg(feature = "profile")]
         let time = Instant::now();
-        use conspire::fem::block::SecondOrderMinimize;
         let bad_elements: Vec<usize> = finite_elements
             .minimum_scaled_jacobians()
             .into_iter()
@@ -1081,23 +1080,32 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             match block.improve(
                 5e2,
                 EqualityConstraint::Fixed(indices),
-                GradientDescent {
-                    abs_tol: 1e-3,
-                    dual: false,
-                    // line_search: LineSearch::None,
+                NewtonRaphson {
+                    abs_tol: 1e-1,
+                    // line_search: LineSearch::default(),
                     line_search: LineSearch::Error {
                         cut_back: 0.8,
                         max_steps: 10,
                     },
-                    // line_search: LineSearch::Armijo {
-                    //     control: 1e-3,
-                    //     cut_back: 0.9,
-                    //     max_steps: 100,
-                    // },
-                    max_steps: 10000000,
-                    // rel_tol: Some(1e-2),
-                    rel_tol: Some(0.0),
+                    ..Default::default()
                 },
+                // GradientDescent {
+                //     abs_tol: 1e-3,
+                //     dual: false,
+                //     // line_search: LineSearch::None,
+                //     line_search: LineSearch::Error {
+                //         cut_back: 0.8,
+                //         max_steps: 10,
+                //     },
+                //     // line_search: LineSearch::Armijo {
+                //     //     control: 1e-3,
+                //     //     cut_back: 0.9,
+                //     //     max_steps: 100,
+                //     // },
+                //     max_steps: 10000000,
+                //     // rel_tol: Some(1e-2),
+                //     rel_tol: Some(0.0),
+                // },
             ) {
                 Ok(new_coordinates) => {
                     Some((new_coordinates, boundary_nodes, local_nodes, global_nodes))
