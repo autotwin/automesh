@@ -20,10 +20,7 @@ use conspire::{
     constitutive::solid::hyperelastic::NeoHookean,
     fem::block::{
         Block, FiniteElementBlock, FiniteElementBlockImprovement,
-        element::{
-            FiniteElementImprovement, FiniteElementMetrics,
-            linear::{Hexahedron, Tetrahedron},
-        },
+        element::linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron},
     },
     math::{
         Scalar, Tensor, TensorArray, TensorRank1List, TensorVec,
@@ -216,7 +213,7 @@ where
             .map(|nodes| {
                 nodes
                     .iter()
-                    .map(|&node| &coordinates[node])
+                    .map(|&node| coordinates[node].clone())
                     .sum::<Coordinate>()
                     / number_of_nodes
             })
@@ -229,7 +226,7 @@ where
             .iter()
             .map(|face| {
                 face.iter()
-                    .map(|&node| &coordinates[node])
+                    .map(|&node| coordinates[node].clone())
                     .sum::<Coordinate>()
                     / number_of_nodes
             })
@@ -332,16 +329,16 @@ where
         node_node_connectivity
             .iter()
             .enumerate()
-            .map(|(node, nodes)| {
-                if nodes.is_empty() {
+            .map(|(node_index_i, connectivity)| {
+                if connectivity.is_empty() {
                     Coordinate::zero()
                 } else {
-                    nodes
+                    connectivity
                         .iter()
-                        .map(|&neighbor| &nodal_coordinates[neighbor])
+                        .map(|&node_j| nodal_coordinates[node_j].clone())
                         .sum::<Coordinate>()
-                        / (nodes.len() as f64)
-                        - &nodal_coordinates[node]
+                        / (connectivity.len() as f64)
+                        - &nodal_coordinates[node_index_i]
                 }
             })
             .collect()
@@ -642,45 +639,16 @@ where
                     let mut nodes: Nodes = self.exterior_faces().into_iter().flatten().collect();
                     nodes.sort();
                     nodes.dedup();
-
-                    // let a = 8e-3;
-                    let exponent = 5e1;
-                    // let num_nodes = self.get_nodal_coordinates().len();
-                    // let mut foo;
-                    // for _ in 0..1000 {
-                    //     foo = Coordinates::zero(num_nodes);
-                    //     self
-                    //         .get_element_node_connectivity()
-                    //         .iter()
-                    //         .for_each(|nodes| {
-                    //             let bar = Hexahedron::scaled_jacobian_gradients(
-                    //                 exponent,
-                    //                 nodes
-                    //                     .iter()
-                    //                     .map(|&node| self.nodal_coordinates[node].clone())
-                    //                     .collect(),
-                    //             );
-                    //             nodes.iter().zip(bar).for_each(|(&node, force)|
-                    //                 if force.iter().all(|entry| !entry.is_nan()) {
-                    //                     foo[node] -= force * a
-                    //                 }
-                    //             )
-                    //     });
-                    //     self.nodal_coordinates += foo;
-                    // }
-
                     let solver = GradientDescent {
                         abs_tol: 1e-6,
                         dual: false,
-                        // line_search: LineSearch::None,
                         line_search: LineSearch::Armijo {
                             control: 1e-3,
                             cut_back: 0.9,
                             max_steps: 100,
                         },
                         max_steps: 1000,
-                        // rel_tol: Some(1e-2),
-                        rel_tol: Some(0.0),
+                        rel_tol: Some(1e-2),
                     };
                     let indices = nodes
                         .into_iter()
@@ -695,7 +663,7 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block = Block::<_, Hexahedron, _, _, _, _>::from((
+                            let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
                                 NeoHookean {
                                     bulk_modulus: 0.0,
                                     shear_modulus: 1.0,
@@ -703,10 +671,8 @@ where
                                 connectivity,
                                 self.get_nodal_coordinates().clone().into(),
                             ));
-                            // block.reset();
-                            // block.minimize(EqualityConstraint::Fixed(indices), solver)?
-                            block.improve(exponent, EqualityConstraint::Fixed(indices), solver)?
-                            // block.improve(exponent, EqualityConstraint::None, solver)?
+                            block.reset();
+                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
                         }
                         TET => {
                             let connectivity = self
@@ -716,7 +682,7 @@ where
                                     entry.iter().copied().collect::<Nodes>().try_into().unwrap()
                                 })
                                 .collect();
-                            let mut block = Block::<_, Tetrahedron, _, _, _, _>::from((
+                            let mut block = Block::<_, LinearTetrahedron, _, _, _, _>::from((
                                 NeoHookean {
                                     bulk_modulus: 0.0,
                                     shear_modulus: 1.0,
@@ -1088,7 +1054,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             .filter(|(_, msj)| *msj < 0.26)
             .map(|(element, _)| element)
             .collect();
-        Block::<_, Hexahedron, _, _, _, _>::from((
+        Block::<_, LinearHexahedron, _, _, _, _>::from((
             NeoHookean {
                 bulk_modulus: 0.0,
                 shear_modulus: 1.0,
@@ -1104,7 +1070,8 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 .flat_map(|&node| [NSD * node, NSD * node + 1, NSD * node + 2])
                 .collect();
             block.reset();
-            match block.minimize(
+            match block.improve(
+                1e-2,
                 EqualityConstraint::Fixed(indices),
                 NewtonRaphson {
                     abs_tol: 1e-1,
@@ -1139,228 +1106,105 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mSmoothing of interior\x1b[0m {:?}",
             time.elapsed()
         );
-        let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
-        // let exterior_node_faces =
-        //     finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
-        // let exterior_node_nodes = finite_elements
-        //     .exterior_node_node_connectivity(&exterior_face_nodes, &exterior_node_faces)?;
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let coordinates = finite_elements.get_nodal_coordinates();
-        let rounded_coordinates: Vec<_> = exterior_nodes
-            .iter()
-            .map(|&exterior_node| {
-                [
-                    ((coordinates[exterior_node][0] - tree.translate().x()) / tree.scale().x())
-                        .floor() as i16,
-                    ((coordinates[exterior_node][1] - tree.translate().y()) / tree.scale().y())
-                        .floor() as i16,
-                    ((coordinates[exterior_node][2] - tree.translate().z()) / tree.scale().z())
-                        .floor() as i16,
-                ]
-            })
-            .collect();
-        let new_coordinates: Coordinates = exterior_nodes
-            .iter()
-            .zip(rounded_coordinates)
-            .map(|(&exterior_node, [i, j, k])| {
-                let mut nearby_surface_nodes: Nodes = voxel_grid
-                    .iter()
-                    .filter_map(|[i0, j0, k0]| {
-                        bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
-                    })
-                    .flatten()
-                    .copied()
-                    .collect();
-                assert!(!nearby_surface_nodes.is_empty());
-                nearby_surface_nodes.sort();
-                nearby_surface_nodes.dedup();
-                let exterior_node_coordinates =
-                    &finite_elements.get_nodal_coordinates()[exterior_node];
-                let closest_node = closest_surface_node(
-                    exterior_node_coordinates,
-                    &surface_nodal_coordinates,
-                    &nearby_surface_nodes,
-                );
-                let (closest_point, _) =
-                    surface_node_element_connectivity[closest_node].iter().fold(
-                        ([f64::MAX; NSD].into(), f64::MAX),
-                        |(closest_point, minimum_distance_squared), &triangle| {
-                            let point = TriangularFiniteElements::closest_point(
-                                exterior_node_coordinates,
-                                &surface_nodal_coordinates,
-                                surface_element_node_connectivity[triangle],
-                            );
-                            let distance_squared =
-                                (exterior_node_coordinates - &point).norm_squared();
-                            if distance_squared < minimum_distance_squared {
-                                (point, distance_squared)
-                            } else {
-                                (closest_point, minimum_distance_squared)
-                            }
-                        },
-                    );
-                closest_point
-            })
-            .collect();
-        let numbering_offset = finite_elements.get_nodal_coordinates().len();
-        let mut surface_nodes_map = vec![0; exterior_nodes.iter().max().unwrap() + 1];
-        exterior_nodes
-            .into_iter()
-            .enumerate()
-            .for_each(|(surface_node, exterior_node)| {
-                surface_nodes_map[exterior_node] = surface_node + numbering_offset
-            });
-        finite_elements.nodal_coordinates.extend(new_coordinates);
-        let projected_face_nodes: Connectivity<_> = exterior_face_nodes
-            .iter()
-            .map(|&[node_0, node_1, node_2, node_3]| {
-                [
-                    surface_nodes_map[node_0],
-                    surface_nodes_map[node_1],
-                    surface_nodes_map[node_2],
-                    surface_nodes_map[node_3],
-                ]
-            })
-            .collect();
-        let new_hexes: Connectivity<_> = exterior_face_nodes
-            .into_iter()
-            .zip(projected_face_nodes.iter())
-            .map(
-                |([node_0, node_1, node_2, node_3], &[node_4, node_5, node_6, node_7])| {
-                    [
-                        node_0, node_1, node_2, node_3, node_4, node_5, node_6, node_7,
-                    ]
-                },
-            )
-            .collect();
-        finite_elements
-            .element_blocks
-            .extend(vec![finite_elements.element_blocks[0]; new_hexes.len()]);
-        finite_elements.element_node_connectivity.extend(new_hexes);
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
-            time.elapsed()
-        );
-        let projected_node_faces =
-            finite_elements.exterior_node_face_connectivity(&projected_face_nodes);
-        let projected_node_nodes = finite_elements
-            .exterior_node_node_connectivity(&projected_face_nodes, &projected_node_faces)?;
-
-        // This is empty for non-surface nodes and can be indexed by enumeration.
-        let mut special_connectivity = projected_node_nodes;
-
-        finite_elements.node_element_connectivity()?;
-        finite_elements.node_node_connectivity()?;
-        smart_laplacian_smoothing(
-            &mut finite_elements,
-            &mut special_connectivity,
-            10,
-            1e-1,
-            Some(1),
-        )?;
-        //
-        // "Smart" = checking if quality of elements involved improves or not.
-        //
-        // Move nodes back to the surface every so often, or move onto surface each time?
-        //
+        // let (exterior_face_nodes, exterior_nodes) = finite_elements.exterior_faces_and_nodes();
+        // // let exterior_node_faces =
+        // //     finite_elements.exterior_node_face_connectivity(&exterior_face_nodes);
+        // // let exterior_node_nodes = finite_elements
+        // //     .exterior_node_node_connectivity(&exterior_face_nodes, &exterior_node_faces)?;
+        // #[cfg(feature = "profile")]
+        // let time = Instant::now();
+        // let coordinates = finite_elements.get_nodal_coordinates();
+        // let rounded_coordinates: Vec<_> = exterior_nodes
+        //     .iter()
+        //     .map(|&exterior_node| {
+        //         [
+        //             ((coordinates[exterior_node][0] - tree.translate().x()) / tree.scale().x())
+        //                 .floor() as i16,
+        //             ((coordinates[exterior_node][1] - tree.translate().y()) / tree.scale().y())
+        //                 .floor() as i16,
+        //             ((coordinates[exterior_node][2] - tree.translate().z()) / tree.scale().z())
+        //                 .floor() as i16,
+        //         ]
+        //     })
+        //     .collect();
+        // let new_coordinates: Coordinates = exterior_nodes
+        //     .iter()
+        //     .zip(rounded_coordinates)
+        //     .map(|(&exterior_node, [i, j, k])| {
+        //         let mut nearby_surface_nodes: Nodes = voxel_grid
+        //             .iter()
+        //             .filter_map(|[i0, j0, k0]| {
+        //                 bins.get(&[(i + i0) as usize, (j + j0) as usize, (k + k0) as usize])
+        //             })
+        //             .flatten()
+        //             .copied()
+        //             .collect();
+        //         assert!(!nearby_surface_nodes.is_empty());
+        //         nearby_surface_nodes.sort();
+        //         nearby_surface_nodes.dedup();
+        //         let exterior_node_coordinates =
+        //             &finite_elements.get_nodal_coordinates()[exterior_node];
+        //         let closest_node = closest_surface_node(
+        //             exterior_node_coordinates,
+        //             &surface_nodal_coordinates,
+        //             &nearby_surface_nodes,
+        //         );
+        //         let (closest_point, _) =
+        //             surface_node_element_connectivity[closest_node].iter().fold(
+        //                 ([f64::MAX; NSD].into(), f64::MAX),
+        //                 |(closest_point, minimum_distance_squared), &triangle| {
+        //                     let point = TriangularFiniteElements::closest_point(
+        //                         exterior_node_coordinates,
+        //                         &surface_nodal_coordinates,
+        //                         surface_element_node_connectivity[triangle],
+        //                     );
+        //                     let distance_squared =
+        //                         (exterior_node_coordinates - &point).norm_squared();
+        //                     if distance_squared < minimum_distance_squared {
+        //                         (point, distance_squared)
+        //                     } else {
+        //                         (closest_point, minimum_distance_squared)
+        //                     }
+        //                 },
+        //             );
+        //         closest_point
+        //     })
+        //     .collect();
+        // let numbering_offset = finite_elements.get_nodal_coordinates().len();
+        // let mut surface_nodes_map = vec![0; exterior_nodes.iter().max().unwrap() + 1];
+        // exterior_nodes
+        //     .into_iter()
+        //     .enumerate()
+        //     .for_each(|(surface_node, exterior_node)| {
+        //         surface_nodes_map[exterior_node] = surface_node + numbering_offset
+        //     });
+        // finite_elements.nodal_coordinates.extend(new_coordinates);
+        // let new_hexes: Connectivity<HEX> = exterior_face_nodes
+        //     .into_iter()
+        //     .map(|[node_0, node_1, node_2, node_3]| {
+        //         [
+        //             node_0,
+        //             node_1,
+        //             node_2,
+        //             node_3,
+        //             surface_nodes_map[node_0],
+        //             surface_nodes_map[node_1],
+        //             surface_nodes_map[node_2],
+        //             surface_nodes_map[node_3],
+        //         ]
+        //     })
+        //     .collect();
+        // finite_elements
+        //     .element_blocks
+        //     .extend(vec![finite_elements.element_blocks[0]; new_hexes.len()]);
+        // finite_elements.element_node_connectivity.extend(new_hexes);
+        // #[cfg(feature = "profile")]
+        // println!(
+        //     "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
+        //     time.elapsed()
+        // );
         Ok(finite_elements)
     }
-}
-
-fn smart_laplacian_smoothing<'a>(
-    finite_elements: &'a mut HexahedralFiniteElements,
-    special_connectivity: &'a mut VecConnectivity,
-    smoothing_iterations: usize,
-    smoothing_scale: Scalar,
-    stencil_size: Option<usize>,
-) -> Result<(), &'a str> {
-    #[cfg(feature = "profile")]
-    let time = Instant::now();
-    let node_node_connectivity = finite_elements.get_node_node_connectivity();
-    if let Some(size) = stencil_size {
-        (0..size).for_each(|_| {
-            node_node_connectivity
-                .iter()
-                .zip(special_connectivity.clone())
-                .for_each(|(nodes, special)| {
-                    if !special.is_empty() {
-                        nodes.iter().for_each(|&node| {
-                            if special_connectivity[node].is_empty() {
-                                special_connectivity[node] = node_node_connectivity[node].clone()
-                            }
-                        })
-                    }
-                });
-        })
-    } else {
-        special_connectivity
-            .iter_mut()
-            .enumerate()
-            .for_each(|(node, nodes)| {
-                if nodes.is_empty() {
-                    *nodes = node_node_connectivity[node].clone()
-                }
-            })
-    }
-    for _ in 0..smoothing_iterations {
-        special_connectivity
-            .iter()
-            .enumerate()
-            .for_each(|(node, nodes)| {
-                let coordinates = finite_elements.get_nodal_coordinates();
-                if !nodes.is_empty() {
-                    let node_elements = &finite_elements.get_node_element_connectivity()[node];
-                    let increment = (nodes
-                        .iter()
-                        .map(|&neighbor| &coordinates[neighbor])
-                        .sum::<Coordinate>()
-                        / (nodes.len() as f64)
-                        - &coordinates[node])
-                        * smoothing_scale;
-                    let msj_0 = node_elements
-                        .iter()
-                        .map(|&element| {
-                            Hexahedron::minimum_scaled_jacobian(
-                                &finite_elements.get_element_node_connectivity()[element]
-                                    .iter()
-                                    .map(|&edon| coordinates[edon].clone())
-                                    .collect(),
-                            )
-                        })
-                        .reduce(f64::min)
-                        .unwrap();
-                    let msj_p = node_elements
-                        .iter()
-                        .map(|&element| {
-                            Hexahedron::minimum_scaled_jacobian(
-                                &finite_elements.get_element_node_connectivity()[element]
-                                    .iter()
-                                    .map(|&edon| {
-                                        if node == edon {
-                                            coordinates[edon].clone() + &increment
-                                        } else {
-                                            coordinates[edon].clone()
-                                        }
-                                    })
-                                    .collect(),
-                            )
-                        })
-                        .reduce(f64::min)
-                        .unwrap();
-                    if msj_p >= msj_0 {
-                        finite_elements.get_nodal_coordinates_mut()[node] += increment
-                    }
-                }
-            });
-    }
-    #[cfg(feature = "profile")]
-    println!(
-        "             \x1b[1;93mSmart nodal smoothing\x1b[0m {:?}",
-        time.elapsed()
-    );
-    Ok(())
 }
 
 fn closest_surface_node(
