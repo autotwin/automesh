@@ -1064,57 +1064,141 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         .isolate(&bad_elements)
         .into_par_iter()
         .map(|(mut block, [boundary_nodes, local_nodes, global_nodes])| {
-            let indices = boundary_nodes
-                .iter()
-                .flat_map(|&node| [NSD * node, NSD * node + 1, NSD * node + 2])
-                .collect();
-            block.reset();
-            // match block.minimize(
+
+            let scale = 0.1;
+            let iterations = 10;
+            let boundary_set: std::collections::HashSet<usize> =
+                boundary_nodes.iter().copied().collect();
+            use conspire::math::InverseSets;
+            use conspire::fem::block::element::FiniteElementMetrics;
+            use conspire::mechanics::ReferenceCoordinate;
+            let (graph, map) = block.connectivity.inverse();
+            let (_, node_elements) = graph.into();
+            for _ in 0..iterations {
+                let num_nodes = block.coordinates.len();
+
+                // Build node->node connectivity from local element_nodes
+                let mut node_neighbors = vec![vec![]; num_nodes];
+                block.connectivity().iter().for_each(|elem| {
+                    elem.iter().for_each(|&a| {
+                        elem.iter().for_each(|&b| {
+                            if a != b {
+                                node_neighbors[a].push(b);
+                            }
+                        })
+                    })
+                });
+                node_neighbors.iter_mut().for_each(|v| {
+                    v.sort_unstable();
+                    v.dedup();
+                });
+
+                (0..num_nodes)
+                    .filter(|node| !boundary_set.contains(node))
+                    .for_each(|node| {
+                        let neighbors = &node_neighbors[node];
+                        if neighbors.is_empty() {
+                            return;
+                        }
+
+                        let increment = (neighbors
+                            .iter()
+                            .map(|&nb| block.coordinates[nb].clone())
+                            .sum::<ReferenceCoordinate>()
+                            / neighbors.len() as f64
+                            - &block.coordinates[node])
+                            * scale;
+
+                        let msj_before = node_elements[node]
+                            .iter()
+                            .map(|&elem| {
+                                Hexahedron::minimum_scaled_jacobian(
+                                    &block.connectivity()[elem]
+                                        .iter()
+                                        .map(|&n| block.coordinates[n].clone())
+                                        .collect(),
+                                )
+                            })
+                            .reduce(f64::min)
+                            .unwrap();
+
+                        let msj_after = node_elements[node]
+                            .iter()
+                            .map(|&elem| {
+                                Hexahedron::minimum_scaled_jacobian(
+                                    &block.connectivity()[elem]
+                                        .iter()
+                                        .map(|&n| {
+                                            if n == node {
+                                                block.coordinates[n].clone() + &increment
+                                            } else {
+                                                block.coordinates[n].clone()
+                                            }
+                                        })
+                                        .collect(),
+                                )
+                            })
+                            .reduce(f64::min)
+                            .unwrap();
+
+                        if msj_after >= msj_before {
+                            block.coordinates[node] += increment;
+                        }
+                    });
+            }
+            Some((block.coordinates, boundary_nodes, local_nodes, global_nodes))
+
+            // let indices = boundary_nodes
+            //     .iter()
+            //     .flat_map(|&node| [NSD * node, NSD * node + 1, NSD * node + 2])
+            //     .collect();
+            // block.reset();
+            // // match block.minimize(
+            // //     EqualityConstraint::Fixed(indices),
+            // //     NewtonRaphson {
+            // //         abs_tol: 1e-1,
+            // //         line_search: LineSearch::default(),
+            // //         ..Default::default()
+            // //     },
+            // // )
+            // match block.improve(
+            //     5e2,
             //     EqualityConstraint::Fixed(indices),
             //     NewtonRaphson {
             //         abs_tol: 1e-1,
-            //         line_search: LineSearch::default(),
+            //         // line_search: LineSearch::default(),
+            //         line_search: LineSearch::Error {
+            //             cut_back: 0.8,
+            //             max_steps: 10,
+            //         },
             //         ..Default::default()
             //     },
-            // )
-            match block.improve(
-                5e2,
-                EqualityConstraint::Fixed(indices),
-                NewtonRaphson {
-                    abs_tol: 1e-1,
-                    // line_search: LineSearch::default(),
-                    line_search: LineSearch::Error {
-                        cut_back: 0.8,
-                        max_steps: 10,
-                    },
-                    ..Default::default()
-                },
-                // GradientDescent {
-                //     abs_tol: 1e-3,
-                //     dual: false,
-                //     // line_search: LineSearch::None,
-                //     line_search: LineSearch::Error {
-                //         cut_back: 0.8,
-                //         max_steps: 10,
-                //     },
-                //     // line_search: LineSearch::Armijo {
-                //     //     control: 1e-3,
-                //     //     cut_back: 0.9,
-                //     //     max_steps: 100,
-                //     // },
-                //     max_steps: 10000000,
-                //     // rel_tol: Some(1e-2),
-                //     rel_tol: Some(0.0),
-                // },
-            ) {
-                Ok(new_coordinates) => {
-                    Some((new_coordinates, boundary_nodes, local_nodes, global_nodes))
-                }
-                Err(error) => {
-                    println!("{error}");
-                    None
-                }
-            }
+            //     // GradientDescent {
+            //     //     abs_tol: 1e-3,
+            //     //     dual: false,
+            //     //     // line_search: LineSearch::None,
+            //     //     line_search: LineSearch::Error {
+            //     //         cut_back: 0.8,
+            //     //         max_steps: 10,
+            //     //     },
+            //     //     // line_search: LineSearch::Armijo {
+            //     //     //     control: 1e-3,
+            //     //     //     cut_back: 0.9,
+            //     //     //     max_steps: 100,
+            //     //     // },
+            //     //     max_steps: 10000000,
+            //     //     // rel_tol: Some(1e-2),
+            //     //     rel_tol: Some(0.0),
+            //     // },
+            // ) {
+            //     Ok(new_coordinates) => {
+            //         Some((new_coordinates, boundary_nodes, local_nodes, global_nodes))
+            //     }
+            //     Err(error) => {
+            //         println!("{error}");
+            //         None
+            //     }
+            // }
         })
         .collect::<Vec<_>>()
         .into_iter()
@@ -1124,7 +1208,8 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     let local_node = local_nodes[global_node];
                     if !boundary_nodes.contains(&local_node) {
                         finite_elements.nodal_coordinates[global_node] =
-                            new_coordinates[local_node].clone()
+                            new_coordinates[local_node].clone().into()
+                            // new_coordinates[local_node].clone()
                     }
                 })
             }
