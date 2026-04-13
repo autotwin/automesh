@@ -70,8 +70,10 @@ The model has 12 blocks composing the various anatomy of the head and brain, sho
 With this conforming mesh, we create segmented meshes with the `segment` command, for example,
 
 ```sh
-automesh segment hex --input All_Hex_Dec.exo --output test_3_0p8.exo --grid 3 --size 0.8
+automesh segment hex --input All_Hex_Dec.exo --output test_3_0p8.exo --grid 3 --size 0.8e-3
 ```
+
+Because `All_Hex_Dec.exo` and `All_Hex_Dec.inp` are in units of meters, we specify `--size 0.8e-3` to obtain a voxel side length size of `0.8 mm`.
 
 The output files have the naming convention `test_x_y.exo` where 
 
