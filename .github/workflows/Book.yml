@@ -43,7 +43,7 @@ jobs:
       - name: Move
         run: mkdir -p _site/ && cp -r book/build/* _site/
       - name: Upload
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
   Deploy:
     if: github.event_name != 'pull_request'
     environment:
