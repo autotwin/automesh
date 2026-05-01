@@ -1116,8 +1116,9 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             .for_each(|(surface_node, exterior_node)| {
                 surface_nodes_map[exterior_node] = surface_node + numbering_offset
             });
+        let num_new_nodes = new_coordinates.len();
         finite_elements.nodal_coordinates.extend(new_coordinates);
-        let new_hexes: Connectivity<HEX> = exterior_face_nodes
+        let exterior_element_node_connectivity: Connectivity<HEX> = exterior_face_nodes
             .into_iter()
             .map(|[node_0, node_1, node_2, node_3]| {
                 [
@@ -1132,13 +1133,181 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 ]
             })
             .collect();
+
+        let number_of_nodes = finite_elements.nodal_coordinates.len();
+        let mut exterior_node_element_connectivity = vec![vec![]; number_of_nodes];
+        exterior_element_node_connectivity
+            .iter()
+            .enumerate()
+            .for_each(|(element, connectivity)| {
+                connectivity
+                    .iter()
+                    .for_each(|&node| exterior_node_element_connectivity[node].push(element))
+            });
+        let mut element_connectivity = [0; HEX];
+        let mut exterior_node_node_connectivity: VecConnectivity = vec![vec![]; number_of_nodes];
+        exterior_node_node_connectivity
+            .iter_mut()
+            .zip(exterior_node_element_connectivity.iter().enumerate())
+            .try_for_each(|(connectivity, (node, node_connectivity))| {
+                node_connectivity.iter().try_for_each(|&element| {
+                    element_connectivity.clone_from(&exterior_element_node_connectivity[element]);
+                    if let Some(neighbors) = element_connectivity.iter().position(|n| n == &node) {
+                        Self::connected_nodes(&neighbors)
+                            .into_iter()
+                            .for_each(|neighbor| connectivity.push(element_connectivity[neighbor]));
+                        Ok(())
+                    } else {
+                        Err("The element-to-node connectivity has been incorrectly calculated")
+                    }
+                })
+            })?;
+        exterior_node_node_connectivity
+            .iter_mut()
+            .for_each(|connectivity| {
+                connectivity.sort();
+                connectivity.dedup();
+            });
+
+        // let num_interior_elements = finite_elements.element_node_connectivity.len();
+        let num_exterior_elements = exterior_element_node_connectivity.len();
+        finite_elements.element_blocks.extend(vec![
+            finite_elements.element_blocks[0];
+            num_exterior_elements
+        ]);
         finite_elements
-            .element_blocks
-            .extend(vec![finite_elements.element_blocks[0]; new_hexes.len()]);
-        finite_elements.element_node_connectivity.extend(new_hexes);
+            .element_node_connectivity
+            .extend(exterior_element_node_connectivity);
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
+            time.elapsed()
+        );
+        #[cfg(feature = "profile")]
+        let time = Instant::now();
+
+        let new_nodes: Nodes = (number_of_nodes - num_new_nodes..number_of_nodes).collect();
+        println!(
+            "{} {} {}",
+            new_nodes.len(),
+            new_nodes[0],
+            new_nodes[num_new_nodes - 1]
+        );
+
+        let iterations = 0;
+        let scale = 0.6307;
+        let pass_band = 0.1;
+        let smoothing_scale_deflate = scale;
+        let smoothing_scale_inflate = scale / (pass_band * scale - 1.0);
+
+        // paper does smart Laplace with both surface AND volume
+
+        // try (smart)surface? use Taubin since works well on surfaces? can that even be made to be smart?
+        // try surface with volume iterative?
+
+        // let new_faces: Vec<[usize; 4]> = finite_elements
+        //     .element_node_connectivity
+        //     .iter()
+        //     .skip(number_of_nodes - num_new_nodes)
+        //     .map(|&[_, _, _, _, node_4, node_5, node_6, node_7]| [node_4, node_5, node_6, node_7])
+        //     .collect();
+        // let mut surface_node_node_connectivity: Vec<Vec<usize>> =
+        //     vec![vec![]; finite_elements.nodal_coordinates.len()];
+        // for neighbors in &mut surface_node_node_connectivity {
+        //     neighbors.sort_unstable();
+        //     neighbors.dedup();
+        // }
+        // for &[n0, n1, n2, n3] in &new_faces {
+        //     let edges = [(n0, n1), (n1, n2), (n2, n3), (n3, n0)];
+
+        //     for (a, b) in edges {
+        //         surface_node_node_connectivity[a].push(b);
+        //         surface_node_node_connectivity[b].push(a);
+        //     }
+        // }
+        // let mut the_scale;
+        // let mut laplacian: Coordinates;
+        // for iteration in 0..iterations {
+        //     the_scale = if smoothing_scale_inflate < 0.0 && iteration % 2 == 1 {
+        //         smoothing_scale_inflate
+        //     } else {
+        //         smoothing_scale_deflate
+        //     };
+        //     laplacian = new_nodes
+        //         .iter()
+        //         .map(|&node_i| {
+        //             let neighbors = &surface_node_node_connectivity[node_i];
+        //             if neighbors.is_empty() {
+        //                 Coordinate::zero()
+        //             } else {
+        //                 neighbors
+        //                     .iter()
+        //                     .map(|&node_j| finite_elements.nodal_coordinates[node_j].clone())
+        //                     .sum::<Coordinate>()
+        //                     / (neighbors.len() as f64)
+        //                     - &finite_elements.nodal_coordinates[node_i]
+        //             }
+        //         })
+        //         .collect();
+
+        //     for (&node_i, delta) in new_nodes.iter().zip(laplacian.iter()) {
+        //         finite_elements.nodal_coordinates[node_i] += delta * the_scale;
+        //     }
+        // }
+
+        println!(
+            "deflate {smoothing_scale_deflate} inflate {smoothing_scale_inflate} iterations {iterations}"
+        );
+        let mut the_scale;
+        let mut laplacian: Coordinates;
+        for iteration in 0..iterations {
+            the_scale = if smoothing_scale_inflate < 0.0 && iteration % 2 == 1 {
+                smoothing_scale_inflate
+            } else {
+                smoothing_scale_deflate
+            };
+
+            laplacian = exterior_node_node_connectivity
+                .iter()
+                .enumerate()
+                .map(|(node_index_i, connectivity)| {
+                    if connectivity.is_empty() {
+                        Coordinate::zero()
+                    } else {
+                        connectivity
+                            .iter()
+                            .map(|&node_j| finite_elements.nodal_coordinates[node_j].clone())
+                            .sum::<Coordinate>()
+                            / (connectivity.len() as f64)
+                            - &finite_elements.nodal_coordinates[node_index_i]
+                    }
+                })
+                .collect();
+            finite_elements
+                .nodal_coordinates
+                .iter_mut()
+                .zip(laplacian.iter())
+                .for_each(|(coordinate, entry)| *coordinate += entry * the_scale);
+        }
+
+        // let mut my_nodes: Nodes = finite_elements
+        //     .element_node_connectivity
+        //     .iter()
+        //     .skip(num_interior_elements)
+        //     .flat_map(|nodes| nodes.iter().copied())
+        //     .collect();
+        // my_nodes.sort();
+        // my_nodes.dedup();
+
+        // println!("{} {}", num_exterior_hexes, finite_elements.element_node_connectivity.iter().skip(num_interior_hexes).count());
+        //
+        // stencil of elements including surface and 1-hop neighbors (generalize?)
+        //
+        // try smart Laplace (or simply Laplace) on just those to get started?
+        //
+        #[cfg(feature = "profile")]
+        println!(
+            "             \x1b[1;93mImproving the surface\x1b[0m {:?}",
             time.elapsed()
         );
         Ok(finite_elements)
