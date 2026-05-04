@@ -49,14 +49,14 @@ The refinement below was created with MeshLab 2022.02, *Subdivision Surfaces LS3
 
 | name                                                                                                       | image                                                                     | file size |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | --------: |
-| [`octa_loop0.stl`](subdivision/octa_loop00.stl)                        | ![loop0](subdivision/octa_loop00.png) |     2.1kB |
-| [`octa_loop1.stl`](subdivision/octa_loop01.stl)                        | ![loop1](subdivision/octa_loop01.png) |     8.3kB |
-| [`octa_loop2.stl`](subdivision/octa_loop02.stl)                        | ![loop2](subdivision/octa_loop02.png) |      33kB |
-| [`octa_loop3.stl`](subdivision/octa_loop03.stl)                        | ![loop3](subdivision/octa_loop03.png) |     132kB |
-| [`octa_loop4.stl`](subdivision/octa_loop04.stl)                        | ![loop4](subdivision/octa_loop04.png) |     526kB |
-| [`octa_loop5.stl`](https://drive.google.com/file/d/1EtlgQH40alzRsy5u-mcUiKF1UjI4uTux/view?usp=sharing) `G` | ![loop5](subdivision/octa_loop05.png) |     2.1MB |
-| [`octa_loop6.stl`](https://drive.google.com/file/d/1oUuHunLHgbF2BIY2qkEKzQXsBh0RZqc0/view?usp=sharing) `G` | ![loop6](subdivision/octa_loop06.png) |     8.6MB |
-| [`octa_loop7.stl`](https://drive.google.com/file/d/15z9_C09LAXwFgarI-HPwSQpgPYKk1oAM/view?usp=sharing) `G` | ![loop7](subdivision/octa_loop07.png) |      33MB |
+| [`octa_loop00.stl`](subdivision/octa_loop00.stl)                        | ![loop0](subdivision/octa_loop00.png) |     2.1kB |
+| [`octa_loop01.stl`](subdivision/octa_loop01.stl)                        | ![loop1](subdivision/octa_loop01.png) |     8.3kB |
+| [`octa_loop02.stl`](subdivision/octa_loop02.stl)                        | ![loop2](subdivision/octa_loop02.png) |      33kB |
+| [`octa_loop03.stl`](subdivision/octa_loop03.stl)                        | ![loop3](subdivision/octa_loop03.png) |     132kB |
+| [`octa_loop04.stl`](subdivision/octa_loop04.stl)                        | ![loop4](subdivision/octa_loop04.png) |     526kB |
+| [`octa_loop05.stl`](https://drive.google.com/file/d/1EtlgQH40alzRsy5u-mcUiKF1UjI4uTux/view?usp=sharing) `G` | ![loop5](subdivision/octa_loop05.png) |     2.1MB |
+| [`octa_loop06.stl`](https://drive.google.com/file/d/1oUuHunLHgbF2BIY2qkEKzQXsBh0RZqc0/view?usp=sharing) `G` | ![loop6](subdivision/octa_loop06.png) |     8.6MB |
+| [`octa_loop07.stl`](https://drive.google.com/file/d/15z9_C09LAXwFgarI-HPwSQpgPYKk1oAM/view?usp=sharing) `G` | ![loop7](subdivision/octa_loop07.png) |      33MB |
 
 > Items with `G` are not on the repository; they are on Google Drive because of their large file size.  
 
