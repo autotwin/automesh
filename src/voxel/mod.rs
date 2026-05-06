@@ -578,31 +578,34 @@ fn diff_voxels(data_1: &VoxelData, data_2: &VoxelData) -> VoxelData {
 fn filter_voxel_data(data: VoxelData, remove: Remove) -> (Indices, Blocks) {
     #[cfg(feature = "profile")]
     let time = Instant::now();
-    let mut removed_data = match remove {
-        Remove::Some(blocks) => blocks,
+    let removed_data = match remove {
+        Remove::Some(mut blocks) => {
+            blocks.sort_unstable();
+            blocks.dedup();
+            blocks
+        }
         Remove::None => Vec::new(),
     };
-    removed_data.sort();
-    removed_data.dedup();
-    let (filtered_voxel_data, element_blocks) = data
-        .axis_iter(Axis(2))
-        .into_par_iter()
-        .enumerate()
-        .flat_map(|(k, data_k)| {
-            data_k
-                .axis_iter(Axis(1))
-                .enumerate()
-                .flat_map(|(j, data_kj)| {
-                    data_kj
-                        .iter()
-                        .enumerate()
-                        .filter(|&(_, &data_kji)| removed_data.binary_search(&data_kji).is_err())
-                        .map(|(i, data_kji)| ([i, j, k], *data_kji))
-                        .collect::<Vec<([usize; NSD], u8)>>()
-                })
-                .collect::<Vec<([usize; NSD], u8)>>()
-        })
-        .unzip();
+    let mut remove_table = [false; u8::MAX as usize + 1];
+    removed_data
+        .into_iter()
+        .for_each(|entry| remove_table[entry as usize] = true);
+    let mut filtered_voxel_data = Vec::with_capacity(data.len());
+    let mut element_blocks = Vec::with_capacity(data.len());
+    let (ni, nj, nk) = data.dim();
+    for i in 0..ni {
+        for j in 0..nj {
+            for k in 0..nk {
+                let block = data[[i, j, k]];
+                if !remove_table[block as usize] {
+                    filtered_voxel_data.push([i, j, k]);
+                    element_blocks.push(block);
+                }
+            }
+        }
+    }
+    filtered_voxel_data.shrink_to_fit();
+    element_blocks.shrink_to_fit();
     #[cfg(feature = "profile")]
     println!(
         "             \x1b[1;93mRemoved voxels\x1b[0m {:?}",
