@@ -8,12 +8,13 @@ pub mod test;
 use std::time::Instant;
 
 use super::{
-    Coordinate, Coordinates, NSD, Octree, Vector,
+    Coordinates, NSD, Octree, Vector,
     fem::{
         Blocks, Connectivity, FiniteElementMethods, HEX, HexahedralFiniteElements,
         TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
+use conspire::math::{Tensor, TensorVec};
 use ndarray::{Array3, Axis, parallel::prelude::*, s};
 use ndarray_npy::{ReadNpyError, ReadNpyExt, WriteNpyError, WriteNpyExt};
 use std::{
@@ -21,7 +22,6 @@ use std::{
     io::{BufRead, BufReader, BufWriter, Error, Write},
 };
 
-type InitialNodalCoordinates = Vec<Option<Coordinate>>;
 type VoxelDataFlattened = Blocks;
 type Indices = Vec<[usize; NSD]>;
 
@@ -648,87 +648,46 @@ fn initial_element_node_connectivity(
     element_node_connectivity
 }
 
-fn initial_nodal_coordinates(
-    element_node_connectivity: &Connectivity<HEX>,
-    filtered_voxel_data: &Indices,
+fn build_nodal_coordinates_and_renumber(
+    element_node_connectivity: &mut Connectivity<HEX>,
     number_of_nodes_unfiltered: usize,
+    nelxplus1: usize,
+    nelyplus1: usize,
     scale: Scale,
     translate: Translate,
-) -> InitialNodalCoordinates {
+) -> Coordinates {
     #[cfg(feature = "profile")]
     let time = Instant::now();
-    let mut nodal_coordinates: InitialNodalCoordinates = vec![None; number_of_nodes_unfiltered];
+    let mut used = vec![false; number_of_nodes_unfiltered];
+    element_node_connectivity
+        .iter()
+        .for_each(|nodes| nodes.iter().for_each(|&node| used[node] = true));
     let sx = scale.x();
     let sy = scale.y();
     let sz = scale.z();
     let tx = translate.x();
     let ty = translate.y();
     let tz = translate.z();
-    let offsets = [
-        [0, 0, 0],
-        [1, 0, 0],
-        [1, 1, 0],
-        [0, 1, 0],
-        [0, 0, 1],
-        [1, 0, 1],
-        [1, 1, 1],
-        [0, 1, 1],
-    ];
-    filtered_voxel_data
-        .iter()
-        .zip(element_node_connectivity.iter())
-        .for_each(|(&[x, y, z], connectivity)| {
-            offsets.iter().enumerate().for_each(|(node, [cx, cy, cz])| {
-                if nodal_coordinates[connectivity[node]].is_none() {
-                    nodal_coordinates[connectivity[node]] = Some(
-                        [
-                            (x + cx) as f64 * sx + tx,
-                            (y + cy) as f64 * sy + ty,
-                            (z + cz) as f64 * sz + tz,
-                        ]
-                        .into(),
-                    )
-                }
-            })
-        });
-    #[cfg(feature = "profile")]
-    println!(
-        "             \x1b[1;93mNodal coordinates\x1b[0m {:?}",
-        time.elapsed()
-    );
-    nodal_coordinates
-}
-
-fn renumber_nodes(
-    element_node_connectivity: &mut Connectivity<HEX>,
-    mut initial_nodal_coordinates: InitialNodalCoordinates,
-    number_of_nodes_unfiltered: usize,
-) -> Coordinates {
-    #[cfg(feature = "profile")]
-    let time = Instant::now();
     let mut mapping = vec![0; number_of_nodes_unfiltered];
-    initial_nodal_coordinates
-        .iter()
-        .enumerate()
-        .filter(|&(_, coordinate)| coordinate.is_some())
-        .enumerate()
-        .for_each(|(node, (index, _))| mapping[index] = node);
+    let mut nodal_coordinates = Coordinates::new();
+    nodal_coordinates.reserve(used.iter().filter(|&&u| u).count());
+    (0..number_of_nodes_unfiltered)
+        .filter(|&old_nid| used[old_nid])
+        .for_each(|old_nid| {
+            mapping[old_nid] = nodal_coordinates.len();
+            let i = old_nid % nelxplus1;
+            let tmp = old_nid / nelxplus1;
+            let j = tmp % nelyplus1;
+            let k = tmp / nelyplus1;
+            nodal_coordinates
+                .push([i as f64 * sx + tx, j as f64 * sy + ty, k as f64 * sz + tz].into());
+        });
     element_node_connectivity
         .par_iter_mut()
-        .for_each(|connectivity| {
-            connectivity
-                .iter_mut()
-                .for_each(|node| *node = mapping[*node])
-        });
-    initial_nodal_coordinates.retain(|coordinate| coordinate.is_some());
-    #[allow(clippy::filter_map_identity)]
-    let nodal_coordinates = initial_nodal_coordinates
-        .into_iter()
-        .filter_map(|entry| entry)
-        .collect();
+        .for_each(|nodes| nodes.iter_mut().for_each(|node| *node = mapping[*node]));
     #[cfg(feature = "profile")]
     println!(
-        "             \x1b[1;93mRenumbered nodes\x1b[0m {:?}",
+        "             \x1b[1;93mBuilt nodal coordinates + renumbered nodes\x1b[0m {:?}",
         time.elapsed()
     );
     nodal_coordinates
@@ -748,17 +707,25 @@ fn finite_element_data_from_data(
     let (filtered_voxel_data, element_blocks) = filter_voxel_data(data, remove);
     let mut element_node_connectivity =
         initial_element_node_connectivity(&filtered_voxel_data, &nelxplus1, &nelyplus1);
-    let initial_nodal_coordinates = initial_nodal_coordinates(
-        &element_node_connectivity,
-        &filtered_voxel_data,
+    // let initial_nodal_coordinates = initial_nodal_coordinates(
+    //     &element_node_connectivity,
+    //     &filtered_voxel_data,
+    //     number_of_nodes_unfiltered,
+    //     scale,
+    //     translate,
+    // );
+    // let nodal_coordinates = renumber_nodes(
+    //     &mut element_node_connectivity,
+    //     initial_nodal_coordinates,
+    //     number_of_nodes_unfiltered,
+    // );
+    let nodal_coordinates = build_nodal_coordinates_and_renumber(
+        &mut element_node_connectivity,
         number_of_nodes_unfiltered,
+        nelxplus1,
+        nelyplus1,
         scale,
         translate,
-    );
-    let nodal_coordinates = renumber_nodes(
-        &mut element_node_connectivity,
-        initial_nodal_coordinates,
-        number_of_nodes_unfiltered,
     );
     (element_blocks, element_node_connectivity, nodal_coordinates)
 }
