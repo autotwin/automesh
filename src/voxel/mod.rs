@@ -621,19 +621,22 @@ fn initial_element_node_connectivity(
 ) -> Connectivity<HEX> {
     #[cfg(feature = "profile")]
     let time = Instant::now();
-    let nelxplus1_mul_nelyplus1 = nelxplus1 * nelyplus1;
+    let nx = *nelxplus1;
+    let nxy = nx * nelyplus1;
     let element_node_connectivity: Connectivity<HEX> = filtered_voxel_data
         .par_iter()
         .map(|&[i, j, k]| {
+            let base = i + j * nx + k * nxy;
+            let top = base + nxy;
             [
-                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1,
-                i + j * nelxplus1 + k * nelxplus1_mul_nelyplus1 + 1,
-                i + (j + 1) * nelxplus1 + k * nelxplus1_mul_nelyplus1 + 1,
-                i + (j + 1) * nelxplus1 + k * nelxplus1_mul_nelyplus1,
-                i + j * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1,
-                i + j * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + 1,
-                i + (j + 1) * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1 + 1,
-                i + (j + 1) * nelxplus1 + (k + 1) * nelxplus1_mul_nelyplus1,
+                base,
+                base + 1,
+                base + nx + 1,
+                base + nx,
+                top,
+                top + 1,
+                top + nx + 1,
+                top + nx,
             ]
         })
         .collect();
