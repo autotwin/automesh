@@ -707,18 +707,6 @@ fn finite_element_data_from_data(
     let (filtered_voxel_data, element_blocks) = filter_voxel_data(data, remove);
     let mut element_node_connectivity =
         initial_element_node_connectivity(&filtered_voxel_data, &nelxplus1, &nelyplus1);
-    // let initial_nodal_coordinates = initial_nodal_coordinates(
-    //     &element_node_connectivity,
-    //     &filtered_voxel_data,
-    //     number_of_nodes_unfiltered,
-    //     scale,
-    //     translate,
-    // );
-    // let nodal_coordinates = renumber_nodes(
-    //     &mut element_node_connectivity,
-    //     initial_nodal_coordinates,
-    //     number_of_nodes_unfiltered,
-    // );
     let nodal_coordinates = build_nodal_coordinates_and_renumber(
         &mut element_node_connectivity,
         number_of_nodes_unfiltered,
