@@ -1171,8 +1171,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 connectivity.sort();
                 connectivity.dedup();
             });
-
-        // let num_interior_elements = finite_elements.element_node_connectivity.len();
         let num_exterior_elements = exterior_element_node_connectivity.len();
         finite_elements.element_blocks.extend(vec![
             finite_elements.element_blocks[0];
@@ -1186,14 +1184,11 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             "             \x1b[1;93mConforming to surface\x1b[0m {:?}",
             time.elapsed()
         );
-
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
         finite_elements.nodal_influencers();
-
         #[cfg(feature = "profile")]
         let time = Instant::now();
-
         let num_old_nodes = number_of_nodes - num_new_nodes;
         let new_nodes: Nodes = (num_old_nodes..number_of_nodes).collect();
         let coordinates = finite_elements.get_nodal_coordinates();
@@ -1210,7 +1205,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 ]
             })
             .collect();
-
         for _ in 0..5 {
             finite_elements.smooth(&Smoothing::Laplacian(20, 0.1))?;
             let new_coordinates: Coordinates = new_nodes
@@ -1256,147 +1250,24 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                     closest_point
                 })
                 .collect();
-
             finite_elements
                 .nodal_coordinates
                 .iter_mut()
                 .skip(num_old_nodes)
                 .zip(new_coordinates)
-                .for_each(|(a, b)| *a = b);
+                .for_each(|(coord, coord_on_surf)| *coord = coord_on_surf);
         }
-
         finite_elements
             .nodal_influencers
             .iter_mut()
             .skip(num_old_nodes)
             .for_each(|nodes| nodes.clear());
-        smart_laplace(&mut finite_elements, 100, 0.1, 0.2);
-
-        // let new_nodes: Nodes = (number_of_nodes - num_new_nodes..number_of_nodes).collect();
-        // println!(
-        //     "{} {} {}",
-        //     new_nodes.len(),
-        //     new_nodes[0],
-        //     new_nodes[num_new_nodes - 1]
-        // );
-
-        // let iterations = 20;
-        // let scale = 0.6307;
-        // let pass_band = 0.1;
-        // let smoothing_scale_deflate = scale;
-        // let smoothing_scale_inflate = scale / (pass_band * scale - 1.0);
-
-        // // paper does smart Laplace with both surface AND volume
-
-        // // try (smart)surface? use Taubin since works well on surfaces? can that even be made to be smart?
-        // // try surface with volume iterative?
-
-        // // let new_faces: Vec<[usize; 4]> = finite_elements
-        // //     .element_node_connectivity
-        // //     .iter()
-        // //     .skip(number_of_nodes - num_new_nodes)
-        // //     .map(|&[_, _, _, _, node_4, node_5, node_6, node_7]| [node_4, node_5, node_6, node_7])
-        // //     .collect();
-        // // let mut surface_node_node_connectivity: Vec<Vec<usize>> =
-        // //     vec![vec![]; finite_elements.nodal_coordinates.len()];
-        // // for neighbors in &mut surface_node_node_connectivity {
-        // //     neighbors.sort_unstable();
-        // //     neighbors.dedup();
-        // // }
-        // // for &[n0, n1, n2, n3] in &new_faces {
-        // //     let edges = [(n0, n1), (n1, n2), (n2, n3), (n3, n0)];
-
-        // //     for (a, b) in edges {
-        // //         surface_node_node_connectivity[a].push(b);
-        // //         surface_node_node_connectivity[b].push(a);
-        // //     }
-        // // }
-        // // let mut the_scale;
-        // // let mut laplacian: Coordinates;
-        // // for iteration in 0..iterations {
-        // //     the_scale = if smoothing_scale_inflate < 0.0 && iteration % 2 == 1 {
-        // //         smoothing_scale_inflate
-        // //     } else {
-        // //         smoothing_scale_deflate
-        // //     };
-        // //     laplacian = new_nodes
-        // //         .iter()
-        // //         .map(|&node_i| {
-        // //             let neighbors = &surface_node_node_connectivity[node_i];
-        // //             if neighbors.is_empty() {
-        // //                 Coordinate::zero()
-        // //             } else {
-        // //                 neighbors
-        // //                     .iter()
-        // //                     .map(|&node_j| finite_elements.nodal_coordinates[node_j].clone())
-        // //                     .sum::<Coordinate>()
-        // //                     / (neighbors.len() as f64)
-        // //                     - &finite_elements.nodal_coordinates[node_i]
-        // //             }
-        // //         })
-        // //         .collect();
-
-        // //     for (&node_i, delta) in new_nodes.iter().zip(laplacian.iter()) {
-        // //         finite_elements.nodal_coordinates[node_i] += delta * the_scale;
-        // //     }
-        // // }
-
-        // println!(
-        //     "deflate {smoothing_scale_deflate} inflate {smoothing_scale_inflate} iterations {iterations}"
-        // );
-        // let mut the_scale;
-        // let mut laplacian: Coordinates;
-        // for iteration in 0..iterations {
-        //     the_scale = if smoothing_scale_inflate < 0.0 && iteration % 2 == 1 {
-        //         smoothing_scale_inflate
-        //     } else {
-        //         smoothing_scale_deflate
-        //     };
-
-        //     laplacian = exterior_node_node_connectivity
-        //         .iter()
-        //         .enumerate()
-        //         .map(|(node_index_i, connectivity)| {
-        //             if connectivity.is_empty() {
-        //                 Coordinate::zero()
-        //             } else {
-        //                 connectivity
-        //                     .iter()
-        //                     .map(|&node_j| finite_elements.nodal_coordinates[node_j].clone())
-        //                     .sum::<Coordinate>()
-        //                     / (connectivity.len() as f64)
-        //                     - &finite_elements.nodal_coordinates[node_index_i]
-        //             }
-        //         })
-        //         .collect();
-        //     finite_elements
-        //         .nodal_coordinates
-        //         .iter_mut()
-        //         .zip(laplacian.iter())
-        //         .for_each(|(coordinate, entry)| *coordinate += entry * the_scale);
-        // }
-
-        // // let mut my_nodes: Nodes = finite_elements
-        // //     .element_node_connectivity
-        // //     .iter()
-        // //     .skip(num_interior_elements)
-        // //     .flat_map(|nodes| nodes.iter().copied())
-        // //     .collect();
-        // // my_nodes.sort();
-        // // my_nodes.dedup();
-
-        // // println!("{} {}", num_exterior_hexes, finite_elements.element_node_connectivity.iter().skip(num_interior_hexes).count());
-        // //
-        // // stencil of elements including surface and 1-hop neighbors (generalize?)
-        // //
-        // // try smart Laplace (or simply Laplace) on just those to get started?
-        // //
+        smart_laplace(&mut finite_elements, 1, 0.1, 0.2);
         #[cfg(feature = "profile")]
         println!(
-            "             \x1b[1;93mImproving the surface\x1b[0m {:?}",
+            "             \x1b[1;93mImproving hex quality\x1b[0m {:?}",
             time.elapsed()
         );
-
         Ok(finite_elements)
     }
 }
@@ -1426,7 +1297,6 @@ fn smart_laplace(
                     / (neighbors.len() as f64)
                     - &coordinates[node];
                 trial_coordinate = &coordinates[node] + &laplacian * scale;
-
                 let msj_0 = node_elements[node]
                     .iter()
                     .map(|&node_element| {
@@ -1439,7 +1309,6 @@ fn smart_laplace(
                     })
                     .reduce(f64::min)
                     .unwrap();
-
                 let msj = node_elements[node]
                     .iter()
                     .map(|&node_element| {
@@ -1458,7 +1327,6 @@ fn smart_laplace(
                     })
                     .reduce(f64::min)
                     .unwrap();
-
                 if msj > msj_0 || msj > threshold {
                     coordinates[node] = trial_coordinate.clone()
                 }
