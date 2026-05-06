@@ -658,6 +658,12 @@ fn initial_nodal_coordinates(
     #[cfg(feature = "profile")]
     let time = Instant::now();
     let mut nodal_coordinates: InitialNodalCoordinates = vec![None; number_of_nodes_unfiltered];
+    let sx = scale.x();
+    let sy = scale.y();
+    let sz = scale.z();
+    let tx = translate.x();
+    let ty = translate.y();
+    let tz = translate.z();
     let offsets = [
         [0, 0, 0],
         [1, 0, 0],
@@ -676,9 +682,9 @@ fn initial_nodal_coordinates(
                 if nodal_coordinates[connectivity[node]].is_none() {
                     nodal_coordinates[connectivity[node]] = Some(
                         [
-                            (x + cx) as f64 * scale.x() + translate.x(),
-                            (y + cy) as f64 * scale.y() + translate.y(),
-                            (z + cz) as f64 * scale.z() + translate.z(),
+                            (x + cx) as f64 * sx + tx,
+                            (y + cy) as f64 * sy + ty,
+                            (z + cz) as f64 * sz + tz,
                         ]
                         .into(),
                     )
