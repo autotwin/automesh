@@ -37,42 +37,41 @@ pub fn remesh(
     edges.dedup();
     let mut average_length = 0.0;
     let mut lengths = Lengths::zero(edges.len());
-    // edges
-    //     .iter()
-    //     .zip(lengths.iter_mut())
-    //     .for_each(|(&[node_a, node_b], length)| {
-    //         *length =
-    //             (&fem.get_nodal_coordinates()[node_a] - &fem.get_nodal_coordinates()[node_b]).norm()
-    //     });
+    edges
+        .iter()
+        .zip(lengths.iter_mut())
+        .for_each(|(&[node_a, node_b], length)| {
+            *length =
+                (&fem.get_nodal_coordinates()[node_a] - &fem.get_nodal_coordinates()[node_b]).norm()
+        });
     fem.boundary_nodes = vec![];
     fem.exterior_nodes = vec![];
     fem.interface_nodes = vec![];
     fem.interior_nodes = vec![];
     (0..iterations).for_each(|_| {
-        edges
-            .iter()
-            .zip(lengths.iter_mut())
-            .for_each(|(&[node_a, node_b], length)| {
-                *length = (&fem.get_nodal_coordinates()[node_a]
-                    - &fem.get_nodal_coordinates()[node_b])
-                    .norm()
-            });
         average_length = if let Some(size) = size {
             size / FOUR_THIRDS
         } else {
             lengths.iter().sum::<Scalar>() / (lengths.len() as Scalar)
         };
         split_edges(fem, &mut edges, &mut lengths, average_length);
-
-        //
-        // should try to handle degenerate tris etc. only when hit them in edge info
-        // and then clean up everything else once at the end
-        //
         // collapse_edges(fem, &mut edges, &mut lengths, average_length);
-
-        flip_edges(fem, &mut edges);
+        flip_edges(fem, &mut edges, &mut lengths);
         fem.nodal_influencers();
-        fem.smooth(smoothing_method).unwrap();
+        match smoothing_method {
+            Smoothing::None => {}
+            _ => {
+                fem.smooth(smoothing_method).unwrap();
+                edges
+                    .iter()
+                    .zip(lengths.iter_mut())
+                    .for_each(|(&[node_a, node_b], length)| {
+                        *length = (&fem.get_nodal_coordinates()[node_a]
+                            - &fem.get_nodal_coordinates()[node_b])
+                            .norm()
+                    });
+            }
+        }
     });
     #[cfg(feature = "profile")]
     println!(
@@ -195,7 +194,37 @@ pub fn split_edges(
     lengths.append(&mut new_lengths);
 }
 
-fn flip_edges(fem: &mut TriangularFiniteElements, edges: &mut Edges) {
+// fn collapse_edges(
+//     fem: &mut TriangularFiniteElements,
+//     edges: &mut Edges,
+//     lengths: &mut Lengths,
+//     average_length: Scalar,
+// ) {
+//     //
+//     // should try to handle degenerate tris etc. only when hit them in edge info
+//     // and then clean up everything else once at the end
+//     //
+//     let mut element_index_1 = 0;
+//     let mut element_index_2 = 0;
+//     let mut node_c = 0;
+//     let mut node_d = 0;
+//     let element_node_connectivity = &mut fem.element_node_connectivity;
+//     let node_element_connectivity = &mut fem.node_element_connectivity;
+//     edges
+//         .iter()
+//         .zip(lengths.iter())
+//         .filter(|&(_, &mut length)| length < FOUR_FIFTHS * average_length)
+//         .for_each(|([node_a, node_b], length)| {
+//             [element_index_1, element_index_2, node_c, node_d] = edge_info(
+//                 *node_a,
+//                 *node_b,
+//                 element_node_connectivity,
+//                 node_element_connectivity,
+//             );
+//         })
+// }
+
+fn flip_edges(fem: &mut TriangularFiniteElements, edges: &mut Edges, lengths: &mut Lengths) {
     let mut before = 0;
     let mut after = 0;
     let mut element_index_1 = 0;
@@ -207,62 +236,67 @@ fn flip_edges(fem: &mut TriangularFiniteElements, edges: &mut Edges) {
     let element_node_connectivity = &mut fem.element_node_connectivity;
     let node_element_connectivity = &mut fem.node_element_connectivity;
     let node_node_connectivity = &mut fem.node_node_connectivity;
-    edges.iter_mut().for_each(|[node_a, node_b]| {
-        [element_index_1, element_index_2, node_c, node_d] = edge_info(
-            *node_a,
-            *node_b,
-            element_node_connectivity,
-            node_element_connectivity,
-        );
-        before = [*node_a, *node_b, node_c, node_d]
-            .iter()
-            .map(|&node| (node_node_connectivity[node].len() as i8 - REGULAR_DEGREE).abs())
-            .sum();
-        after = [*node_a, *node_b, node_c, node_d]
-            .iter()
-            .zip([-1, -1, 1, 1].iter())
-            .map(|(&node, change)| {
-                (node_node_connectivity[node].len() as i8 - REGULAR_DEGREE + change).abs()
-            })
-            .sum();
-        if before > after {
-            spot_a = element_node_connectivity[element_index_1]
+    let nodal_coordinates = &fem.nodal_coordinates;
+    edges
+        .iter_mut()
+        .zip(lengths.iter_mut())
+        .for_each(|([node_a, node_b], length)| {
+            [element_index_1, element_index_2, node_c, node_d] = edge_info(
+                *node_a,
+                *node_b,
+                element_node_connectivity,
+                node_element_connectivity,
+            );
+            before = [*node_a, *node_b, node_c, node_d]
                 .iter()
-                .position(|node| node == node_a)
-                .unwrap();
-            spot_b = element_node_connectivity[element_index_1]
+                .map(|&node| (node_node_connectivity[node].len() as i8 - REGULAR_DEGREE).abs())
+                .sum();
+            after = [*node_a, *node_b, node_c, node_d]
                 .iter()
-                .position(|node| node == node_b)
-                .unwrap();
-            if (spot_a == 0 && spot_b == 1)
-                || (spot_a == 1 && spot_b == 2)
-                || (spot_a == 2 && spot_b == 0)
-            {
-                element_node_connectivity[element_index_1] = [*node_b, node_c, node_d];
-                element_node_connectivity[element_index_2] = [*node_a, node_d, node_c];
-            } else {
-                element_node_connectivity[element_index_1] = [node_c, *node_b, node_d];
-                element_node_connectivity[element_index_2] = [node_d, *node_a, node_c];
+                .zip([-1, -1, 1, 1].iter())
+                .map(|(&node, change)| {
+                    (node_node_connectivity[node].len() as i8 - REGULAR_DEGREE + change).abs()
+                })
+                .sum();
+            if before > after {
+                spot_a = element_node_connectivity[element_index_1]
+                    .iter()
+                    .position(|node| node == node_a)
+                    .unwrap();
+                spot_b = element_node_connectivity[element_index_1]
+                    .iter()
+                    .position(|node| node == node_b)
+                    .unwrap();
+                if (spot_a == 0 && spot_b == 1)
+                    || (spot_a == 1 && spot_b == 2)
+                    || (spot_a == 2 && spot_b == 0)
+                {
+                    element_node_connectivity[element_index_1] = [*node_b, node_c, node_d];
+                    element_node_connectivity[element_index_2] = [*node_a, node_d, node_c];
+                } else {
+                    element_node_connectivity[element_index_1] = [node_c, *node_b, node_d];
+                    element_node_connectivity[element_index_2] = [node_d, *node_a, node_c];
+                }
+                node_element_connectivity[*node_a].retain(|element| element != &element_index_1);
+                node_element_connectivity[*node_b].retain(|element| element != &element_index_2);
+                node_element_connectivity[node_c].push(element_index_2);
+                node_element_connectivity[node_d].push(element_index_1);
+                node_node_connectivity[*node_a].retain(|node| node != node_b);
+                node_node_connectivity[*node_b].retain(|node| node != node_a);
+                node_node_connectivity[node_c].push(node_d);
+                node_node_connectivity[node_c].sort();
+                node_node_connectivity[node_d].push(node_c);
+                node_node_connectivity[node_d].sort();
+                if node_c < node_d {
+                    *node_a = node_c;
+                    *node_b = node_d;
+                } else {
+                    *node_a = node_d;
+                    *node_b = node_c;
+                }
+                *length = (&nodal_coordinates[*node_a] - &nodal_coordinates[*node_b]).norm();
             }
-            node_element_connectivity[*node_a].retain(|element| element != &element_index_1);
-            node_element_connectivity[*node_b].retain(|element| element != &element_index_2);
-            node_element_connectivity[node_c].push(element_index_2);
-            node_element_connectivity[node_d].push(element_index_1);
-            node_node_connectivity[*node_a].retain(|node| node != node_b);
-            node_node_connectivity[*node_b].retain(|node| node != node_a);
-            node_node_connectivity[node_c].push(node_d);
-            node_node_connectivity[node_c].sort();
-            node_node_connectivity[node_d].push(node_c);
-            node_node_connectivity[node_d].sort();
-            if node_c < node_d {
-                *node_a = node_c;
-                *node_b = node_d;
-            } else {
-                *node_a = node_d;
-                *node_b = node_c;
-            }
-        }
-    });
+        });
 }
 
 // fn edge_info(
