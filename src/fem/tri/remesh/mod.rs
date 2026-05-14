@@ -300,24 +300,25 @@ fn collapse_edges(
 
             collapse_edge_compacting(fem, node_0, node_1);
 
-            fem.node_element_connectivity().unwrap();
+            // Incremental node-element update already done
             fem.node_node_connectivity().unwrap();
 
-            let mut changed = true;
-            while changed {
-                changed = false;
+            let mut removed_extra = false;
 
-                if remove_degenerate_triangles_local(fem, survivor) {
-                    fem.node_element_connectivity().unwrap();
-                    fem.node_node_connectivity().unwrap();
-                    changed = true;
-                }
+            if remove_degenerate_triangles_local(fem, survivor) {
+                removed_extra = true;
+                fem.node_element_connectivity().unwrap();
+                fem.node_node_connectivity().unwrap();
+            }
 
-                if remove_duplicate_triangles_local(fem, survivor) {
-                    fem.node_element_connectivity().unwrap();
-                    fem.node_node_connectivity().unwrap();
-                    changed = true;
-                }
+            if remove_duplicate_triangles_local(fem, survivor) {
+                removed_extra = true;
+                fem.node_element_connectivity().unwrap();
+                fem.node_node_connectivity().unwrap();
+            }
+
+            if removed_extra {
+                // Optional: if one removal can expose another, you can loop later
             }
 
             rebuild_edges_from_elements(fem, edges, lengths);
@@ -384,6 +385,10 @@ fn collapse_edge_compacting(
         &fem.node_element_connectivity,
     );
 
+    // NEW: save the two removed triangles before mutating anything
+    let tri1 = fem.element_node_connectivity[element_index_1];
+    let tri2 = fem.element_node_connectivity[element_index_2];
+
     // Merge coordinates into survivor
     let coord_b = fem.nodal_coordinates[node_b].clone();
     fem.nodal_coordinates[node_a] = (&fem.nodal_coordinates[node_a] + coord_b) * 0.5;
@@ -413,6 +418,87 @@ fn collapse_edge_compacting(
             }
         });
     });
+
+    // NEW: incrementally update node-element connectivity
+    update_node_element_connectivity_after_collapse(
+        &mut fem.node_element_connectivity,
+        node_a,
+        node_b,
+        element_index_1,
+        element_index_2,
+        tri1,
+        tri2,
+    );
+}
+
+fn sorted_insert_unique(v: &mut Vec<usize>, x: usize) {
+    match v.binary_search(&x) {
+        Ok(_) => {}
+        Err(pos) => v.insert(pos, x),
+    }
+}
+
+fn sorted_remove(v: &mut Vec<usize>, x: usize) {
+    if let Ok(pos) = v.binary_search(&x) {
+        v.remove(pos);
+    }
+}
+
+fn update_node_element_connectivity_after_collapse(
+    node_element_connectivity: &mut Vec<Vec<usize>>,
+    mut node_a: usize,
+    mut node_b: usize,
+    element_index_1: usize,
+    element_index_2: usize,
+    tri1: [usize; 3],
+    tri2: [usize; 3],
+) {
+    if node_b < node_a {
+        std::mem::swap(&mut node_a, &mut node_b);
+    }
+
+    let (hi, lo) = if element_index_1 > element_index_2 {
+        (element_index_1, element_index_2)
+    } else {
+        (element_index_2, element_index_1)
+    };
+
+    // Elements formerly incident to b
+    let elems_b = node_element_connectivity[node_b].clone();
+
+    // 1) remove deleted elements from nodes in the two removed triangles
+    for &n in tri1.iter().chain(tri2.iter()) {
+        if n < node_element_connectivity.len() {
+            sorted_remove(&mut node_element_connectivity[n], element_index_1);
+            sorted_remove(&mut node_element_connectivity[n], element_index_2);
+        }
+    }
+
+    // 2) surviving elements of b now belong to a
+    for elem in elems_b {
+        if elem != element_index_1 && elem != element_index_2 {
+            sorted_insert_unique(&mut node_element_connectivity[node_a], elem);
+        }
+    }
+
+    // 3) remove node_b entry entirely
+    node_element_connectivity.remove(node_b);
+
+    // 4) global renumber element indices after removing hi, lo
+    for elems in node_element_connectivity.iter_mut() {
+        elems.retain(|&e| e != lo && e != hi);
+
+        for e in elems.iter_mut() {
+            if *e > hi {
+                *e -= 2;
+            } else if *e > lo {
+                *e -= 1;
+            }
+        }
+
+        elems.sort_unstable();
+        elems.dedup();
+    }
 }
 
 fn remove_degenerate_triangles_local(
