@@ -1,3 +1,7 @@
+mod sdf;
+
+use sdf::shape_diameter_function;
+
 use super::{
     Vector,
     fem::{
@@ -5,11 +9,15 @@ use super::{
         TetrahedralFiniteElements, TriangularFiniteElements,
     },
 };
-use conspire::math::TensorArray;
+use conspire::math::{Scalar, TensorArray};
+use std::f64::consts::PI;
 use std::fmt::{self, Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Error as ErrorIO};
 use stl_io::{IndexedMesh, IndexedTriangle, Normal, Triangle, Vertex, read_stl, write_stl};
+
+const SDF_CONE_HALF_ANGLE: Scalar = PI / 3.0;
+const SDF_NUMBER_OF_RAYS: usize = 30;
 
 /// The tessellation type.
 #[derive(Debug, PartialEq)]
@@ -84,6 +92,10 @@ impl Tessellation {
         let mut finite_elements = TriangularFiniteElements::from(self);
         finite_elements.remesh(iterations, smoothing_method, size);
         finite_elements.into()
+    }
+    /// Calculates and returns the shape diameter function.
+    pub fn shape_diameter_function(&self) -> Vec<Scalar> {
+        shape_diameter_function(self, SDF_CONE_HALF_ANGLE, SDF_NUMBER_OF_RAYS)
     }
     /// Writes the tessellation data to a new STL file.
     pub fn write_stl(&self, file_path: &str) -> Result<(), ErrorIO> {
