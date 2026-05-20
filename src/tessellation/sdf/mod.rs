@@ -2,6 +2,7 @@ use crate::{
     Coordinate, Coordinates, fem::tri::TriangularFiniteElements, tessellation::Tessellation,
 };
 use conspire::math::{Scalar, Tensor};
+use ndarray::parallel::prelude::*;
 use std::f64::consts::TAU;
 
 // TODO: ignore false intersections where normals are 90deg or less.
@@ -16,6 +17,8 @@ use std::f64::consts::TAU;
 
 // TODO: parallelize.
 
+// TODO: reconsider flood fill strategy for inside/outside if spatial acceleration pays off big here.
+
 pub fn shape_diameter_function(
     tessellation: &Tessellation,
     half_angle: Scalar,
@@ -24,7 +27,7 @@ pub fn shape_diameter_function(
     let face_sdf = shape_diameter_function_faces(tessellation, half_angle, number_of_rays);
 
     let mut sums = vec![0.0; tessellation.data.vertices.len()];
-    let mut counts = vec![0usize; tessellation.data.vertices.len()];
+    let mut counts = vec![0; tessellation.data.vertices.len()];
 
     for (face_index, face) in tessellation.data.faces.iter().enumerate() {
         if let Some(value) = face_sdf[face_index] {
@@ -64,7 +67,7 @@ fn shape_diameter_function_faces(
     tessellation
         .data
         .faces
-        .iter()
+        .par_iter()
         .enumerate()
         .map(|(triangle_i, face_i)| {
             let apex = face_i
@@ -186,7 +189,7 @@ fn conical_directions(
     half_angle: Scalar,
     number_of_directions: usize,
 ) -> Vec<Coordinate> {
-    let (u, v) = orthonormal_basis(axis);
+    let [n, u, v] = axis.orthonormal_basis().into();
     let cos_max = half_angle.cos();
     let golden = (5.0_f64.sqrt() - 1.0) / 2.0;
     (0..number_of_directions)
@@ -198,21 +201,9 @@ fn conical_directions(
             let r = (1.0 - z * z).sqrt();
             let x = r * phi.cos();
             let y = r * phi.sin();
-            (&u * x + &v * y + axis * z).normalized()
+            (&u * x + &v * y + &n * z).normalized()
         })
         .collect()
-}
-
-// This should be in conspire.
-fn orthonormal_basis(axis: &Coordinate) -> (Coordinate, Coordinate) {
-    let helper = if axis[2].abs() < 0.9 {
-        Coordinate::const_from([0.0, 0.0, 1.0])
-    } else {
-        Coordinate::const_from([1.0, 0.0, 0.0])
-    };
-    let u = helper.cross(axis).normalized();
-    let v = axis.cross(&u);
-    (u, v)
 }
 
 // Is possible but maybe not that important that triangle could intersect cone while none of its vertices do?
