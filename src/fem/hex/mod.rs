@@ -10,7 +10,7 @@ use super::{
 };
 use conspire::{
     fem::block::element::{FiniteElement, linear::Hexahedron},
-    math::{Tensor, TensorArray, TensorVec},
+    math::{CrossProduct, Tensor, TensorArray, TensorVec},
 };
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
@@ -407,14 +407,11 @@ impl HexahedralFiniteElements {
         (x1, x2, x3)
     }
     fn volumes(&self) -> Metrics {
-        let mut x1 = Vector::zero();
-        let mut x2 = Vector::zero();
-        let mut x3 = Vector::zero();
         self.get_element_node_connectivity()
             .iter()
             .map(|connectivity| {
-                (x1, x2, x3) = self.principal_axes(connectivity);
-                &x2.cross(&x3) * &x1 / 64.0
+                let (x1, x2, x3) = self.principal_axes(connectivity);
+                x2.cross(x3) * x1 / 64.0
             })
             .collect()
     }

@@ -10,7 +10,7 @@ use super::{
 };
 use conspire::{
     fem::block::element::{FiniteElement, linear::Tetrahedron},
-    math::Tensor,
+    math::{CrossProduct, Tensor},
 };
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
@@ -225,7 +225,7 @@ impl TetrahedralFiniteElements {
         let v1 = &nodal_coordinates[node_1];
         let v2 = &nodal_coordinates[node_2];
         let v3 = &nodal_coordinates[node_3];
-        ((v1 - v0).cross(&(v2 - v0)) * (v3 - v0)) / 6.0
+        ((v1 - v0).cross(v2 - v0) * (v3 - v0)) / 6.0
     }
 
     // Calculates the volumes for all tetrahedral elements in the mesh.

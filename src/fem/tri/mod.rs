@@ -14,7 +14,7 @@ use super::{
 };
 use conspire::{
     fem::block::element::{FiniteElement, surface::linear::Triangle},
-    math::{Tensor, TensorArray, Vector as VectorConspire, assert_eq_within_tols},
+    math::{CrossProduct, Tensor, TensorArray, Vector as VectorConspire, assert_eq_within_tols},
     mechanics::Scalar,
 };
 use ndarray::{Array2, s};
@@ -223,7 +223,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
 impl TriangularFiniteElements {
     fn area(coordinates: &Coordinates, &[node_0, node_1, node_2]: &[usize; TRI]) -> f64 {
         0.5 * ((&coordinates[node_2] - &coordinates[node_1])
-            .cross(&(&coordinates[node_0] - &coordinates[node_2])))
+            .cross(&coordinates[node_0] - &coordinates[node_2]))
         .norm()
     }
     fn areas(&self) -> Metrics {
@@ -244,8 +244,8 @@ impl TriangularFiniteElements {
         let v_1 = &coordinates[node_1] - point;
         let v_2 = &coordinates[node_2] - point;
         let area_01 = v_1.cross(&v_0).norm();
-        let area_12 = v_2.cross(&v_1).norm();
-        let area_20 = v_0.cross(&v_2).norm();
+        let area_12 = v_2.cross(v_1).norm();
+        let area_20 = v_0.cross(v_2).norm();
         assert_eq_within_tols(&(2.0 * area), &(area_01 + area_12 + area_20)).is_ok()
     }
     /// Determines whether the triangle is intersected by the vector and returns the point of intersection.
@@ -362,12 +362,10 @@ impl TriangularFiniteElements {
                             edge_norm = edge.norm();
                             edges_weight += edge_norm;
                             ((&nodal_coordinates[node_c] - &nodal_coordinates[node_a])
-                                .cross(&(&nodal_coordinates[node_b] - &nodal_coordinates[node_c]))
+                                .cross(&nodal_coordinates[node_b] - &nodal_coordinates[node_c])
                                 .normalized()
                                 * (&nodal_coordinates[node_d] - &nodal_coordinates[node_b])
-                                    .cross(
-                                        &(&nodal_coordinates[node_a] - &nodal_coordinates[node_d]),
-                                    )
+                                    .cross(&nodal_coordinates[node_a] - &nodal_coordinates[node_d])
                                     .normalized())
                             .acos()
                                 / PI
@@ -410,7 +408,7 @@ impl TriangularFiniteElements {
     /// Computes and returns the normal vector for a triangle.
     pub fn normal(coordinates: &Coordinates, [node_0, node_1, node_2]: [usize; TRI]) -> Vector {
         (&coordinates[node_1] - &coordinates[node_0])
-            .cross(&(&coordinates[node_2] - &coordinates[node_0]))
+            .cross(&coordinates[node_2] - &coordinates[node_0])
             .normalized()
     }
     /// Computes and returns the normal vectors for all triangles.
