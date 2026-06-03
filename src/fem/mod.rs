@@ -36,14 +36,6 @@ use std::{
     array::from_fn,
     fs::File,
     io::{BufRead, BufReader, BufWriter, Error as ErrorIO, Write},
-    path::PathBuf,
-};
-use vtkio::{
-    Error as ErrorVtk,
-    model::{
-        Attributes, ByteOrder, CellType, Cells, DataSet, IOBuffer, UnstructuredGridPiece, Version,
-        VertexNumbers, Vtk,
-    },
 };
 
 const ELEMENT_NUMBERING_OFFSET: usize = 1;
@@ -138,8 +130,6 @@ where
     fn write_inp(&self, file_path: &str) -> Result<(), ErrorIO>;
     /// Writes the finite elements data to a new Mesh file.
     fn write_mesh(&self, file_path: &str) -> Result<(), ErrorIO>;
-    /// Writes the finite elements data to a new VTK file.
-    fn write_vtk(&self, file_path: &str) -> Result<(), ErrorVtk>;
     /// Returns a reference to the boundary nodes.
     fn get_boundary_nodes(&self) -> &Nodes;
     /// Returns a reference to the element blocks.
@@ -822,14 +812,6 @@ where
     }
     fn write_mesh(&self, file_path: &str) -> Result<(), ErrorIO> {
         write_finite_elements_to_mesh(
-            file_path,
-            self.get_element_blocks(),
-            self.get_element_node_connectivity(),
-            self.get_nodal_coordinates(),
-        )
-    }
-    fn write_vtk(&self, file_path: &str) -> Result<(), ErrorVtk> {
-        write_finite_elements_to_vtk(
             file_path,
             self.get_element_blocks(),
             self.get_element_node_connectivity(),
@@ -1914,52 +1896,4 @@ fn write_finite_elements_to_mesh<const N: usize>(
         })?;
     file.write_all(b"End")?;
     file.flush()
-}
-
-fn write_finite_elements_to_vtk<const N: usize>(
-    file_path: &str,
-    element_blocks: &Blocks,
-    element_node_connectivity: &Connectivity<N>,
-    nodal_coordinates: &Coordinates,
-) -> Result<(), ErrorVtk> {
-    let connectivity = element_node_connectivity
-        .iter()
-        .flatten()
-        .map(|&node| node as u64)
-        .collect();
-    let nodal_coordinates_flattened = nodal_coordinates
-        .iter()
-        .flat_map(|entry| entry.iter())
-        .copied()
-        .collect();
-    let number_of_cells = element_blocks.len();
-    let offsets = (0..number_of_cells)
-        .map(|cell| ((cell + 1) * N) as u64)
-        .collect();
-    let types = match N {
-        HEX => vec![CellType::Hexahedron; number_of_cells],
-        TRI => vec![CellType::Triangle; number_of_cells],
-        _ => panic!(),
-    };
-    let file = PathBuf::from(file_path);
-    Vtk {
-        version: Version { major: 4, minor: 2 },
-        title: automesh_header(),
-        byte_order: ByteOrder::BigEndian,
-        file_path: None,
-        data: DataSet::inline(UnstructuredGridPiece {
-            points: IOBuffer::F64(nodal_coordinates_flattened),
-            cells: Cells {
-                cell_verts: VertexNumbers::XML {
-                    connectivity,
-                    offsets,
-                },
-                types,
-            },
-            data: Attributes {
-                ..Default::default()
-            },
-        }),
-    }
-    .export_be(&file)
 }

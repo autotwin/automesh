@@ -1,7 +1,4 @@
-use super::fem::{
-    HexahedralFiniteElements, TetrahedralFiniteElements,
-    TriangularFiniteElements,
-};
+use super::fem::{HexahedralFiniteElements, TetrahedralFiniteElements, TriangularFiniteElements};
 use conspire::{
     geometry::{
         Coordinate, Coordinates,

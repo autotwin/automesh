@@ -16,7 +16,6 @@ use std::{
     fmt::{self, Debug, Formatter},
     io::Error as ErrorIO,
 };
-use vtkio::Error as ErrorVtk;
 
 pub struct ErrorWrapper {
     message: String,
@@ -38,14 +37,6 @@ impl From<ErrorIO> for ErrorWrapper {
 
 impl From<ErrorNetCDF> for ErrorWrapper {
     fn from(error: ErrorNetCDF) -> ErrorWrapper {
-        ErrorWrapper {
-            message: error.to_string(),
-        }
-    }
-}
-
-impl From<ErrorVtk> for ErrorWrapper {
-    fn from(error: ErrorVtk) -> ErrorWrapper {
         ErrorWrapper {
             message: error.to_string(),
         }

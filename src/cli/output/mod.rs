@@ -17,7 +17,7 @@ pub fn validate_output(command: &str, file: &str) -> Result<(), ErrorWrapper> {
     let extension = Path::new(file).extension().and_then(|ext| ext.to_str());
     match command {
         "mesh" => match extension {
-            Some("inp") | Some("exo") | Some("mesh") | Some("stl") | Some("vtk") => Ok(()),
+            Some("inp") | Some("exo") | Some("mesh") | Some("stl") => Ok(()),
             _ => Err(invalid_output(file, extension)),
         },
         _ => panic!(),
@@ -43,7 +43,6 @@ where
         Some("exo") => finite_elements.write_exo(&file)?,
         Some("mesh") => finite_elements.write_mesh(&file)?,
         Some("stl") => Tessellation::from(finite_elements).write(&file)?,
-        Some("vtk") => finite_elements.write_vtk(&file)?,
         _ => return Err(invalid_output(&file, extension)),
     }
     if !quiet {

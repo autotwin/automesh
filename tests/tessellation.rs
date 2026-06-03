@@ -1,46 +1,46 @@
-// use automesh::{Tessellation, NSD};
 use automesh::Tessellation;
-use std::fs::OpenOptions;
-use stl_io::{IndexedMesh, IndexedTriangle, Normal, Triangle, Vertex};
+use conspire::{
+    geometry::mesh::{Connectivity, Mesh},
+    io::Write,
+    math::Tensor,
+};
+use std::path::Path;
 
-fn tessellation_one_facet() -> Tessellation {
-    let vertices = vec![
-        Vertex::new([0.0, 0.0, 1.0]),
-        Vertex::new([0.0, 0.0, 0.0]),
-        Vertex::new([1.0, 0.0, 0.0]),
-    ];
-    let normal = Normal::new([0.0, -1.0, 0.0]);
-    let indexed_triangle = IndexedTriangle {
-        normal,
-        vertices: [0, 1, 2],
-    };
-
-    let indexed_mesh = IndexedMesh {
-        vertices,
-        faces: vec![indexed_triangle],
-    };
-    Tessellation::new(indexed_mesh)
+fn vertices_and_faces(tessellation: Tessellation) -> (Vec<[f64; 3]>, Vec<[usize; 3]>) {
+    let mesh = Mesh::from(tessellation);
+    let vertices = mesh
+        .coordinates()
+        .iter()
+        .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+        .collect();
+    let faces = mesh
+        .connectivities()
+        .iter()
+        .flat_map(|connectivity| match connectivity {
+            Connectivity::Triangular(triangles) => triangles.iter().copied().collect::<Vec<_>>(),
+            _ => panic!("expected triangular connectivity"),
+        })
+        .collect();
+    (vertices, faces)
 }
 
-fn tessellation_two_facet() -> Tessellation {
-    let vertices = vec![
-        Vertex::new([0.0, 0.0, 1.0]),
-        Vertex::new([0.0, 0.0, 0.0]),
-        Vertex::new([1.0, 0.0, 0.0]),
-        Vertex::new([1.0, 0.0, 1.0]),
-    ];
-    let faces = vec![
-        IndexedTriangle {
-            normal: Normal::new([0.0, -1.0, 0.0]),
-            vertices: [0, 1, 2],
-        },
-        IndexedTriangle {
-            normal: Normal::new([0.0, -1.0, 0.0]),
-            vertices: [2, 3, 0],
-        },
-    ];
-    let indexed_mesh = IndexedMesh { vertices, faces };
-    Tessellation::new(indexed_mesh)
+fn one_facet() -> (Vec<[f64; 3]>, Vec<[usize; 3]>) {
+    (
+        vec![[0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [1.0, 0.0, 0.0]],
+        vec![[0, 1, 2]],
+    )
+}
+
+fn two_facet() -> (Vec<[f64; 3]>, Vec<[usize; 3]>) {
+    (
+        vec![
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 0.0, 1.0],
+        ],
+        vec![[0, 1, 2], [2, 3, 0]],
+    )
 }
 
 mod try_from {
@@ -49,110 +49,58 @@ mod try_from {
     #[cfg(not(target_os = "windows"))]
     #[should_panic(expected = "No such file or directory")]
     fn file_nonexistent() {
-        Tessellation::try_from("tests/input/f_file_nonexistent.stl").unwrap();
+        Tessellation::try_from(Path::new("tests/input/f_file_nonexistent.stl")).unwrap();
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_one_facet() {
-        let tess = Tessellation::try_from("tests/input/one_facet.stl").unwrap();
-        println!("{tess:?}");
-        assert_eq!(tess, tessellation_one_facet());
+        let tess = Tessellation::try_from(Path::new("tests/input/one_facet.stl")).unwrap();
+        assert_eq!(vertices_and_faces(tess), one_facet());
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_two_facet() {
-        let tess = Tessellation::try_from("tests/input/two_facet.stl").unwrap();
-        // println!("{:?}", tess);
-        assert_eq!(tess, tessellation_two_facet());
+        let tess = Tessellation::try_from(Path::new("tests/input/two_facet.stl")).unwrap();
+        assert_eq!(vertices_and_faces(tess), two_facet());
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_single() {
-        let _tess = Tessellation::try_from("tests/input/single.stl");
-        // println!("{:?}", _tess);
+        let _tess = Tessellation::try_from(Path::new("tests/input/single.stl"));
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_double() {
-        let _tess = Tessellation::try_from("tests/input/double.stl");
-        // println!("{:?}", _tess);
+        let _tess = Tessellation::try_from(Path::new("tests/input/double.stl"));
     }
     #[test]
     #[cfg(not(target_os = "windows"))]
     fn file_single_valence_04_noise2() {
-        let _tess = Tessellation::try_from("tests/input/single_valence_04_noise2.stl");
-        // println!("{:?}", _tess);
-        println!("{_tess:#?}"); // pretty-print
+        let _tess = Tessellation::try_from(Path::new("tests/input/single_valence_04_noise2.stl"));
     }
 }
 
-mod write_stl {
+mod write {
     use super::*;
     use std::fs::remove_file;
     #[test]
     fn one_facet_write_read() {
-        // Write a binary stl from a gold standard.
-        let file_gold = "tests/input/one_facet.stl";
+        let file_gold = Path::new("tests/input/one_facet.stl");
         let tess_gold = Tessellation::try_from(file_gold).unwrap();
-        println!("gold: {tess_gold:?}");
         let file_test = "tests/input/one_facet_test.stl";
-        let mesh_iter = tess_gold.get_data().faces.iter().map(|face| Triangle {
-            normal: face.normal,
-            vertices: face
-                .vertices
-                .iter()
-                .map(|&vertex| tess_gold.get_data().vertices[vertex])
-                .collect::<Vec<Vertex>>()
-                .try_into()
-                .unwrap(),
-        });
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(file_test)
-            .unwrap();
-        stl_io::write_stl(&mut file, mesh_iter).unwrap();
-        println!("tess -> stl(binary), wrote temporary test file: {file_test}",);
-        // Read the binary data back in and assure it equals the gold standard.
-        let tess_test = Tessellation::try_from(file_test).unwrap();
-        assert_eq!(tess_test, tessellation_one_facet());
-        // Delete the temporary test stl.
-        match remove_file(file_test) {
-            Ok(_) => println!("Successfully deleted temporary test file: {file_test}"),
-            Err(e) => eprintln!("Error deleting temporary test file: {file_test} {e}"),
-        }
+        tess_gold.write(file_test).unwrap();
+        let tess_test = Tessellation::try_from(Path::new(file_test)).unwrap();
+        assert_eq!(vertices_and_faces(tess_test), one_facet());
+        remove_file(file_test).unwrap();
     }
     #[test]
     fn two_facet_write_read() {
-        // Write a binary stl from a gold standard.
-        let file_gold = "tests/input/two_facet.stl";
+        let file_gold = Path::new("tests/input/two_facet.stl");
         let tess_gold = Tessellation::try_from(file_gold).unwrap();
-        println!("{tess_gold:?}");
         let file_test = "tests/input/two_facet_test.stl";
-        let mesh_iter = tess_gold.get_data().faces.iter().map(|face| Triangle {
-            normal: face.normal,
-            vertices: face
-                .vertices
-                .iter()
-                .map(|&vertex| tess_gold.get_data().vertices[vertex])
-                .collect::<Vec<Vertex>>()
-                .try_into()
-                .unwrap(),
-        });
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(file_test)
-            .unwrap();
-        stl_io::write_stl(&mut file, mesh_iter).unwrap();
-        println!("tess -> stl(binary), wrote test file: {file_test}");
-        // Read the binary data back in and assure it equals the gold standard.
-        let tess_test = Tessellation::try_from(file_test).unwrap();
-        assert_eq!(tess_test, tessellation_two_facet());
-        // Delete the temporary test stl.
-        match remove_file(file_test) {
-            Ok(_) => println!("Successfully deleted temporary test file: {file_test}"),
-            Err(e) => eprintln!("Error deleting temporary test file: {file_test} {e}"),
-        }
+        tess_gold.write(file_test).unwrap();
+        let tess_test = Tessellation::try_from(Path::new(file_test)).unwrap();
+        assert_eq!(vertices_and_faces(tess_test), two_facet());
+        remove_file(file_test).unwrap();
     }
 }
