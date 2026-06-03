@@ -41,12 +41,7 @@ where
         Some("inp") => finite_elements.write_inp(&file)?,
         Some("exo") => finite_elements.write_exo(&file)?,
         Some("mesh") => finite_elements.write_mesh(&file)?,
-        // Some("stl") => Tessellation::from(finite_elements).write_stl(&file)?,
-        Some("stl") => {
-            let foo = Tessellation::from(finite_elements);
-            println!("{:?}", foo.shape_diameter_function());
-            foo.write_stl(&file)?
-        }
+        Some("stl") => Tessellation::from(finite_elements).write_stl(&file)?,
         Some("vtk") => finite_elements.write_vtk(&file)?,
         _ => return Err(invalid_output(&file, extension)),
     }
