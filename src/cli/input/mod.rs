@@ -35,7 +35,7 @@ where
         match extension {
             Some("exo") => Ok(Self(T::from_exo(file)?)),
             Some("inp") => Ok(Self(T::from_inp(file)?)),
-            Some("stl") => Ok(Self(T::from(Tessellation::try_from(file)?))),
+            Some("stl") => Ok(Self(T::from(Tessellation::try_from(Path::new(file))?))),
             _ => Err(invalid_input(file, extension)),
         }
     }
@@ -168,7 +168,7 @@ pub fn read_tessellation(
         }
         print!("     \x1b[1;96mReading\x1b[0m {file}");
     }
-    let tessellation = Tessellation::try_from(file)?;
+    let tessellation = Tessellation::try_from(Path::new(file))?;
     if !quiet {
         println!(
             "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",

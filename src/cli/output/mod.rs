@@ -1,5 +1,6 @@
 use super::ErrorWrapper;
 use automesh::{FiniteElementMethods, Tessellation, Voxels};
+use conspire::io::Write;
 use std::{path::Path, time::Instant};
 
 pub fn invalid_output(file: &str, extension: Option<&str>) -> ErrorWrapper {
@@ -41,7 +42,7 @@ where
         Some("inp") => finite_elements.write_inp(&file)?,
         Some("exo") => finite_elements.write_exo(&file)?,
         Some("mesh") => finite_elements.write_mesh(&file)?,
-        Some("stl") => Tessellation::from(finite_elements).write_stl(&file)?,
+        Some("stl") => Tessellation::from(finite_elements).write(&file)?,
         Some("vtk") => finite_elements.write_vtk(&file)?,
         _ => return Err(invalid_output(&file, extension)),
     }
