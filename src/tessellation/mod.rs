@@ -7,7 +7,6 @@ use conspire::{
     math::Tensor,
 };
 
-/// Re-export of conspire's tessellation type.
 pub use conspire::geometry::mesh::Tessellation;
 
 const D: usize = 3;
