@@ -47,14 +47,8 @@ impl From<Tessellation> for TriangularFiniteElements {
         let (connectivity, coordinates, _) = tessellation.into();
         let element_node_connectivity: Connectivity<TRI> = connectivity
             .into_members()
-            .into_iter()
-            .flat_map(|connectivity| {
-                connectivity
-                    .into_iter()
-                    .map(|connectivity| connectivity.try_into().unwrap())
-                    .collect::<Connectivity<TRI>>()
-                    .into_iter()
-            })
+            .iter()
+            .flat_map(|block| block.into_iter().map(|nodes| nodes.try_into().unwrap()))
             .collect();
         let element_blocks = vec![1; element_node_connectivity.len()];
         let triangular_finite_elements = TriangularFiniteElements::from((
