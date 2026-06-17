@@ -1,3 +1,6 @@
+# Don't check in all the large .pdf files
+Literature/
+
 # Distribution / packaging
 .Python
 build/
