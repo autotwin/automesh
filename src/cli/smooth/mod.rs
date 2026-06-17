@@ -19,10 +19,6 @@ pub enum MeshSmoothCommands {
         #[command(subcommand)]
         remeshing: Option<MeshRemeshCommands>,
 
-        /// Pass to enable hierarchical control
-        #[arg(action, long, short = 'c')]
-        hierarchical: bool,
-
         /// Number of smoothing iterations
         #[arg(default_value_t = TAUBIN_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
@@ -56,15 +52,11 @@ pub struct SmoothElementArgs {
     #[command(subcommand)]
     pub remeshing: Option<MeshRemeshCommands>,
 
-    /// Pass to enable hierarchical control
-    #[arg(action, long, short = 'c')]
-    pub hierarchical: bool,
-
     /// Mesh input file (exo | inp)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Smoothed mesh output file (exo | inp | mesh | vtk)
+    /// Smoothed mesh output file (exo | inp | mesh)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -98,15 +90,11 @@ pub struct SmoothTriArgs {
     #[command(subcommand)]
     pub remeshing: Option<MeshRemeshCommands>,
 
-    /// Pass to enable hierarchical control
-    #[arg(action, long, short = 'c')]
-    pub hierarchical: bool,
-
     /// Mesh input file (exo | inp | stl)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Smoothed mesh output file (exo | inp | mesh | stl | vtk)
+    /// Smoothed mesh output file (exo | inp | mesh | stl)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -141,7 +129,6 @@ pub fn smooth<const M: usize, const N: usize, const O: usize, T>(
     output: String,
     iterations: usize,
     method: Option<String>,
-    hierarchical: bool,
     pass_band: f64,
     scale: f64,
     remeshing: Option<MeshRemeshCommands>,
@@ -157,7 +144,6 @@ where
         &mut finite_elements,
         iterations,
         method,
-        hierarchical,
         pass_band,
         scale,
         quiet,
@@ -180,7 +166,6 @@ pub fn apply_smoothing_method<const M: usize, const N: usize, const O: usize, T>
     output_type: &mut T,
     iterations: usize,
     method: Option<String>,
-    hierarchical: bool,
     pass_band: f64,
     scale: f64,
     quiet: bool,
@@ -208,10 +193,6 @@ where
         }
         output_type.node_element_connectivity()?;
         output_type.node_node_connectivity()?;
-        if hierarchical {
-            output_type.nodal_hierarchy()?;
-        }
-        output_type.nodal_influencers();
         match smoothing_method.as_str() {
             "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                 output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;

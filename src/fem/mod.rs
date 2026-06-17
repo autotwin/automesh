@@ -56,20 +56,11 @@ pub enum Smoothing {
 
 /// The finite elements type.
 pub struct FiniteElements<const N: usize> {
-    boundary_nodes: Nodes,
     element_blocks: Blocks,
     element_node_connectivity: Connectivity<N>,
-    exterior_nodes: Nodes,
-    interface_nodes: Nodes,
-    interior_nodes: Nodes,
     nodal_coordinates: Coordinates,
-    nodal_influencers: VecConnectivity,
     node_element_connectivity: VecConnectivity,
     node_node_connectivity: VecConnectivity,
-    prescribed_nodes: Nodes,
-    prescribed_nodes_homogeneous: Nodes,
-    prescribed_nodes_inhomogeneous: Nodes,
-    prescribed_nodes_inhomogeneous_coordinates: Coordinates,
 }
 
 /// Methods common to all finite element types.
@@ -99,10 +90,6 @@ where
     fn from_inp(file_path: &str) -> Result<Self, ErrorIO>;
     /// Calculates and returns the discrete Laplacian for the given node-to-node connectivity.
     fn laplacian(&self, node_node_connectivity: &VecConnectivity) -> Coordinates;
-    /// Calculates and sets the nodal influencers.
-    fn nodal_influencers(&mut self);
-    /// Calculates and sets the nodal hierarchy.
-    fn nodal_hierarchy(&mut self) -> Result<(), &str>;
     /// Calculates and sets the node-to-element connectivity.
     fn node_element_connectivity(&mut self) -> Result<(), &str>;
     /// Calculates and sets the node-to-node connectivity.
@@ -119,42 +106,18 @@ where
     fn write_inp(&self, file_path: &str) -> Result<(), ErrorIO>;
     /// Writes the finite elements data to a new Mesh file.
     fn write_mesh(&self, file_path: &str) -> Result<(), ErrorIO>;
-    /// Returns a reference to the boundary nodes.
-    fn get_boundary_nodes(&self) -> &Nodes;
     /// Returns a reference to the element blocks.
     fn get_element_blocks(&self) -> &Blocks;
     /// Returns a reference to element-to-node connectivity.
     fn get_element_node_connectivity(&self) -> &Connectivity<N>;
-    /// Returns a reference to the exterior nodes.
-    fn get_exterior_nodes(&self) -> &Nodes;
-    /// Returns a reference to the interface nodes.
-    fn get_interface_nodes(&self) -> &Nodes;
-    /// Returns a reference to the interior nodes.
-    fn get_interior_nodes(&self) -> &Nodes;
     /// Returns a reference to the nodal coordinates.
     fn get_nodal_coordinates(&self) -> &Coordinates;
     /// Returns a mutable reference to the nodal coordinates.
     fn get_nodal_coordinates_mut(&mut self) -> &mut Coordinates;
-    /// Returns a reference to the nodal influencers.
-    fn get_nodal_influencers(&self) -> &VecConnectivity;
     /// Returns a reference to the node-to-element connectivity.
     fn get_node_element_connectivity(&self) -> &VecConnectivity;
     /// Returns a reference to the node-to-node connectivity.
     fn get_node_node_connectivity(&self) -> &VecConnectivity;
-    /// Returns a reference to the prescribed nodes.
-    fn get_prescribed_nodes(&self) -> &Nodes;
-    /// Returns a reference to the homogeneously-prescribed nodes.
-    fn get_prescribed_nodes_homogeneous(&self) -> &Nodes;
-    /// Returns a reference to the inhomogeneously-prescribed nodes.
-    fn get_prescribed_nodes_inhomogeneous(&self) -> &Nodes;
-    /// Returns a reference to the coordinates of the inhomogeneously-prescribed nodes.
-    fn get_prescribed_nodes_inhomogeneous_coordinates(&self) -> &Coordinates;
-    /// Sets the prescribed nodes if opted to do so.
-    fn set_prescribed_nodes(
-        &mut self,
-        homogeneous: Option<Nodes>,
-        inhomogeneous: Option<(Coordinates, Nodes)>,
-    ) -> Result<(), &str>;
 }
 
 impl<const M: usize, const N: usize, const O: usize> FiniteElementMethods<M, N, O>
@@ -324,97 +287,6 @@ where
                 }
             })
             .collect()
-    }
-    fn nodal_influencers(&mut self) {
-        #[cfg(feature = "profile")]
-        let time = Instant::now();
-        let mut nodal_influencers: VecConnectivity = self.get_node_node_connectivity().clone();
-        let prescribed_nodes = self.get_prescribed_nodes();
-        if !self.get_exterior_nodes().is_empty() {
-            let mut boundary_nodes = self.get_boundary_nodes().clone();
-            boundary_nodes
-                .retain(|boundary_node| prescribed_nodes.binary_search(boundary_node).is_err());
-            boundary_nodes.iter().for_each(|&boundary_node| {
-                nodal_influencers[boundary_node].retain(|node| {
-                    boundary_nodes.binary_search(node).is_ok()
-                        || prescribed_nodes.binary_search(node).is_ok()
-                })
-            });
-        }
-        prescribed_nodes
-            .iter()
-            .for_each(|&prescribed_node| nodal_influencers[prescribed_node].clear());
-        self.nodal_influencers = nodal_influencers;
-        #[cfg(feature = "profile")]
-        println!(
-            "             \x1b[1;93mNodal influencers\x1b[0m {:?} ",
-            time.elapsed()
-        );
-    }
-    fn nodal_hierarchy(&mut self) -> Result<(), &str> {
-        if N != HEX {
-            return Err("Only implemented nodal_hierarchy method for hexes.");
-        }
-        let node_element_connectivity = self.get_node_element_connectivity();
-        if !node_element_connectivity.is_empty() {
-            #[cfg(feature = "profile")]
-            let time = Instant::now();
-            let element_blocks = self.get_element_blocks();
-            let mut connected_blocks: Blocks = vec![];
-            let mut exterior_nodes = vec![];
-            let mut interface_nodes = vec![];
-            let mut interior_nodes = vec![];
-            let mut number_of_connected_blocks = 0;
-            let mut number_of_connected_elements = 0;
-            node_element_connectivity
-                .iter()
-                .enumerate()
-                .for_each(|(node, connected_elements)| {
-                    connected_blocks = connected_elements
-                        .iter()
-                        .map(|&element| element_blocks[element])
-                        .collect();
-                    connected_blocks.sort();
-                    connected_blocks.dedup();
-                    number_of_connected_blocks = connected_blocks.len();
-                    number_of_connected_elements = connected_elements.len();
-                    if number_of_connected_blocks > 1 {
-                        interface_nodes.push(node);
-                        //
-                        // THIS IS WHERE IT IS ASSUMED THAT THE MESH IS PERFECTLY STRUCTURED
-                        // ONLY AFFECTS HIERARCHICAL SMOOTHING
-                        //
-                        if number_of_connected_elements < HEX {
-                            exterior_nodes.push(node);
-                        }
-                    } else if number_of_connected_elements < HEX {
-                        exterior_nodes.push(node);
-                    } else {
-                        interior_nodes.push(node);
-                    }
-                });
-            exterior_nodes.sort();
-            interior_nodes.sort();
-            interface_nodes.sort();
-            self.boundary_nodes = exterior_nodes
-                .clone()
-                .into_iter()
-                .chain(interface_nodes.clone())
-                .collect();
-            self.boundary_nodes.sort();
-            self.boundary_nodes.dedup();
-            self.exterior_nodes = exterior_nodes;
-            self.interface_nodes = interface_nodes;
-            self.interior_nodes = interior_nodes;
-            #[cfg(feature = "profile")]
-            println!(
-                "             \x1b[1;93mNodal hierarchy\x1b[0m {:?} ",
-                time.elapsed()
-            );
-            Ok(())
-        } else {
-            Err("Need to calculate the node-to-element connectivity first")
-        }
     }
     fn node_element_connectivity(&mut self) -> Result<(), &str> {
         #[cfg(feature = "profile")]
@@ -642,17 +514,6 @@ where
                 }
                 Smoothing::None => return Ok(()),
             }
-            let prescribed_nodes_inhomogeneous = self.get_prescribed_nodes_inhomogeneous().clone();
-            let prescribed_nodes_inhomogeneous_coordinates: Coordinates = self
-                .get_prescribed_nodes_inhomogeneous_coordinates()
-                .iter()
-                .cloned()
-                .collect();
-            let nodal_coordinates_mut = self.get_nodal_coordinates_mut();
-            prescribed_nodes_inhomogeneous
-                .iter()
-                .zip(prescribed_nodes_inhomogeneous_coordinates.iter())
-                .for_each(|(&node, coordinates)| nodal_coordinates_mut[node] = coordinates.clone());
             let mut iteration = 1;
             let mut laplacian;
             let mut scale;
@@ -674,7 +535,7 @@ where
                 } else {
                     smoothing_scale_deflate
                 };
-                laplacian = self.laplacian(self.get_nodal_influencers());
+                laplacian = self.laplacian(self.get_node_node_connectivity());
                 self.get_nodal_coordinates_mut()
                     .iter_mut()
                     .zip(laplacian.iter())
@@ -744,23 +605,11 @@ where
             self.get_nodal_coordinates(),
         )
     }
-    fn get_boundary_nodes(&self) -> &Nodes {
-        &self.boundary_nodes
-    }
     fn get_element_blocks(&self) -> &Blocks {
         &self.element_blocks
     }
     fn get_element_node_connectivity(&self) -> &Connectivity<N> {
         &self.element_node_connectivity
-    }
-    fn get_exterior_nodes(&self) -> &Nodes {
-        &self.exterior_nodes
-    }
-    fn get_interface_nodes(&self) -> &Nodes {
-        &self.interface_nodes
-    }
-    fn get_interior_nodes(&self) -> &Nodes {
-        &self.interior_nodes
     }
     fn get_nodal_coordinates(&self) -> &Coordinates {
         &self.nodal_coordinates
@@ -768,54 +617,11 @@ where
     fn get_nodal_coordinates_mut(&mut self) -> &mut Coordinates {
         &mut self.nodal_coordinates
     }
-    fn get_nodal_influencers(&self) -> &VecConnectivity {
-        &self.nodal_influencers
-    }
     fn get_node_element_connectivity(&self) -> &VecConnectivity {
         &self.node_element_connectivity
     }
     fn get_node_node_connectivity(&self) -> &VecConnectivity {
         &self.node_node_connectivity
-    }
-    fn get_prescribed_nodes(&self) -> &Nodes {
-        &self.prescribed_nodes
-    }
-    fn get_prescribed_nodes_homogeneous(&self) -> &Nodes {
-        &self.prescribed_nodes_homogeneous
-    }
-    fn get_prescribed_nodes_inhomogeneous(&self) -> &Nodes {
-        &self.prescribed_nodes_inhomogeneous
-    }
-    fn get_prescribed_nodes_inhomogeneous_coordinates(&self) -> &Coordinates {
-        &self.prescribed_nodes_inhomogeneous_coordinates
-    }
-    fn set_prescribed_nodes(
-        &mut self,
-        homogeneous: Option<Nodes>,
-        inhomogeneous: Option<(Coordinates, Nodes)>,
-    ) -> Result<(), &str> {
-        if let Some(homogeneous_nodes) = homogeneous {
-            self.prescribed_nodes_homogeneous = homogeneous_nodes;
-            self.prescribed_nodes_homogeneous.sort();
-            self.prescribed_nodes_homogeneous.dedup();
-        }
-        if let Some(inhomogeneous_nodes) = inhomogeneous {
-            self.prescribed_nodes_inhomogeneous = inhomogeneous_nodes.1;
-            self.prescribed_nodes_inhomogeneous_coordinates = inhomogeneous_nodes.0;
-            let mut sorted_unique = self.prescribed_nodes_inhomogeneous.clone();
-            sorted_unique.sort();
-            sorted_unique.dedup();
-            if sorted_unique != self.prescribed_nodes_inhomogeneous {
-                return Err("Inhomogeneously-prescribed nodes must be sorted and unique.");
-            }
-        }
-        self.prescribed_nodes = self
-            .prescribed_nodes_homogeneous
-            .clone()
-            .into_iter()
-            .chain(self.prescribed_nodes_inhomogeneous.clone())
-            .collect();
-        Ok(())
     }
 }
 
@@ -845,20 +651,11 @@ impl<const N: usize> From<FiniteElements<N>>
 impl<const N: usize> From<Data<N>> for FiniteElements<N> {
     fn from((element_blocks, element_node_connectivity, nodal_coordinates): Data<N>) -> Self {
         Self {
-            boundary_nodes: vec![],
             element_blocks,
             element_node_connectivity,
-            exterior_nodes: vec![],
-            interface_nodes: vec![],
-            interior_nodes: vec![],
             nodal_coordinates,
-            nodal_influencers: vec![],
             node_element_connectivity: vec![],
             node_node_connectivity: vec![],
-            prescribed_nodes: vec![],
-            prescribed_nodes_homogeneous: vec![],
-            prescribed_nodes_inhomogeneous: vec![],
-            prescribed_nodes_inhomogeneous_coordinates: Coordinates::zero(0),
         }
     }
 }
@@ -1094,7 +891,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
         );
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
-        finite_elements.nodal_influencers();
         #[cfg(feature = "profile")]
         let time = Instant::now();
         let num_old_nodes = number_of_nodes - num_new_nodes;
@@ -1165,11 +961,6 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
                 .zip(new_coordinates)
                 .for_each(|(coord, coord_on_surf)| *coord = coord_on_surf);
         }
-        finite_elements
-            .nodal_influencers
-            .iter_mut()
-            .skip(num_old_nodes)
-            .for_each(|nodes| nodes.clear());
         smart_laplace(&mut finite_elements, 1, 0.1);
         #[cfg(feature = "profile")]
         println!(

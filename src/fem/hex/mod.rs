@@ -6,11 +6,11 @@ use std::time::Instant;
 
 use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements,
-    Metrics, Size, Smoothing, Tessellation, Vector,
+    Metrics, Size, Smoothing, Tessellation,
 };
 use conspire::{
     geometry::mesh::{Connectivity as MeshConnectivity, Mesh, Verdict},
-    math::{CrossProduct, Tensor, TensorArray, TensorVec},
+    math::{Tensor, TensorVec},
 };
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
@@ -225,87 +225,18 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for HexahedralFiniteElements {
         }
     }
     fn maximum_edge_ratios(&self) -> Metrics {
-        let nodal_coordinates = self.get_nodal_coordinates();
-        let mut l1 = 0.0;
-        let mut l2 = 0.0;
-        let mut l3 = 0.0;
-        self.get_element_node_connectivity()
-            .iter()
-            .map(
-                |&[
-                    node_0,
-                    node_1,
-                    node_2,
-                    node_3,
-                    node_4,
-                    node_5,
-                    node_6,
-                    node_7,
-                ]| {
-                    l1 = (&nodal_coordinates[node_1] - &nodal_coordinates[node_0]
-                        + &nodal_coordinates[node_2]
-                        - &nodal_coordinates[node_3]
-                        + &nodal_coordinates[node_5]
-                        - &nodal_coordinates[node_4]
-                        + &nodal_coordinates[node_6]
-                        - &nodal_coordinates[node_7])
-                        .norm();
-                    l2 = (&nodal_coordinates[node_3] - &nodal_coordinates[node_0]
-                        + &nodal_coordinates[node_2]
-                        - &nodal_coordinates[node_1]
-                        + &nodal_coordinates[node_7]
-                        - &nodal_coordinates[node_4]
-                        + &nodal_coordinates[node_6]
-                        - &nodal_coordinates[node_5])
-                        .norm();
-                    l3 = (&nodal_coordinates[node_4] - &nodal_coordinates[node_0]
-                        + &nodal_coordinates[node_5]
-                        - &nodal_coordinates[node_1]
-                        + &nodal_coordinates[node_6]
-                        - &nodal_coordinates[node_2]
-                        + &nodal_coordinates[node_7]
-                        - &nodal_coordinates[node_3])
-                        .norm();
-                    [l1, l2, l3].into_iter().reduce(f64::max).unwrap()
-                        / [l1, l2, l3].into_iter().reduce(f64::min).unwrap()
-                },
-            )
+        self.as_mesh()
+            .maximum_edge_ratios()
+            .into_iter()
+            .flatten()
             .collect()
     }
     fn maximum_skews(&self) -> Metrics {
-        let mut x1 = Vector::zero();
-        let mut x2 = Vector::zero();
-        let mut x3 = Vector::zero();
-        self.get_element_node_connectivity()
-            .iter()
-            .map(|connectivity| {
-                (x1, x2, x3) = self.principal_axes(connectivity);
-                x1.normalize();
-                x2.normalize();
-                x3.normalize();
-                [(&x1 * &x2).abs(), (&x1 * &x3).abs(), (&x2 * &x3).abs()]
-                    .into_iter()
-                    .reduce(f64::max)
-                    .unwrap()
-            })
-            .collect()
+        self.as_mesh().maximum_skews().into_iter().flatten().collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let connectivity = self
-            .get_element_node_connectivity()
-            .clone()
-            .into_iter()
-            .collect::<Vec<[usize; HEX]>>();
-        let coordinates = self
-            .get_nodal_coordinates()
-            .iter()
-            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
-            .collect::<Vec<[f64; 3]>>();
-        let mesh = Mesh::<3>::from((
-            vec![MeshConnectivity::Hexahedral(connectivity.into())],
-            coordinates.into(),
-        ));
-        mesh.minimum_scaled_jacobians()
+        self.as_mesh()
+            .minimum_scaled_jacobians()
             .into_iter()
             .flatten()
             .collect()
@@ -387,39 +318,24 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for HexahedralFiniteElements {
 }
 
 impl HexahedralFiniteElements {
-    fn principal_axes(&self, connectivity: &[usize; HEX]) -> (Vector, Vector, Vector) {
-        let nodal_coordinates = self.get_nodal_coordinates();
-        let x1 = &nodal_coordinates[connectivity[1]] - &nodal_coordinates[connectivity[0]]
-            + &nodal_coordinates[connectivity[2]]
-            - &nodal_coordinates[connectivity[3]]
-            + &nodal_coordinates[connectivity[5]]
-            - &nodal_coordinates[connectivity[4]]
-            + &nodal_coordinates[connectivity[6]]
-            - &nodal_coordinates[connectivity[7]];
-        let x2 = &nodal_coordinates[connectivity[3]] - &nodal_coordinates[connectivity[0]]
-            + &nodal_coordinates[connectivity[2]]
-            - &nodal_coordinates[connectivity[1]]
-            + &nodal_coordinates[connectivity[7]]
-            - &nodal_coordinates[connectivity[4]]
-            + &nodal_coordinates[connectivity[6]]
-            - &nodal_coordinates[connectivity[5]];
-        let x3 = &nodal_coordinates[connectivity[4]] - &nodal_coordinates[connectivity[0]]
-            + &nodal_coordinates[connectivity[5]]
-            - &nodal_coordinates[connectivity[1]]
-            + &nodal_coordinates[connectivity[6]]
-            - &nodal_coordinates[connectivity[2]]
-            + &nodal_coordinates[connectivity[7]]
-            - &nodal_coordinates[connectivity[3]];
-        (x1, x2, x3)
+    fn as_mesh(&self) -> Mesh<3> {
+        let connectivity = self
+            .get_element_node_connectivity()
+            .clone()
+            .into_iter()
+            .collect::<Vec<[usize; HEX]>>();
+        let coordinates = self
+            .get_nodal_coordinates()
+            .iter()
+            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+            .collect::<Vec<[f64; 3]>>();
+        Mesh::<3>::from((
+            vec![MeshConnectivity::Hexahedral(connectivity.into())],
+            coordinates.into(),
+        ))
     }
     fn volumes(&self) -> Metrics {
-        self.get_element_node_connectivity()
-            .iter()
-            .map(|connectivity| {
-                let (x1, x2, x3) = self.principal_axes(connectivity);
-                x2.cross(x3) * x1 / 64.0
-            })
-            .collect()
+        self.as_mesh().volumes().into_iter().flatten().collect()
     }
 }
 

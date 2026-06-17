@@ -11,7 +11,7 @@ use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum ConvertSubcommand {
-    /// Converts mesh file types (exo | inp | stl) -> (exo | mesh | stl | vtk)
+    /// Converts mesh file types (exo | inp | stl) -> (exo | mesh | stl)
     Mesh(ConvertMeshArgs),
     /// Converts segmentation file types (npy | spn) -> (npy | spn)
     Segmentation(ConvertSegmentationArgs),
@@ -49,7 +49,7 @@ pub struct ConvertMeshSubcommandArgs {
     #[arg(long, short, value_name = "FILE")]
     input: String,
 
-    /// Mesh output file (exo | mesh | stl | vtk)
+    /// Mesh output file (exo | mesh | stl)
     #[arg(long, short, value_name = "FILE")]
     output: String,
 

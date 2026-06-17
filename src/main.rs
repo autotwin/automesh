@@ -194,7 +194,7 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         input: String,
 
-        /// Octree output file (exo | inp | mesh | vtk)
+        /// Octree output file (exo | inp | mesh)
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
@@ -272,7 +272,7 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         input: String,
 
-        /// Mesh output file (exo | mesh | stl | vtk)
+        /// Mesh output file (exo | mesh | stl)
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
@@ -543,7 +543,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.output,
                     args.iterations,
                     args.method,
-                    args.hierarchical,
                     args.pass_band,
                     args.scale,
                     args.remeshing,
@@ -558,7 +557,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.output,
                     args.iterations,
                     args.method,
-                    args.hierarchical,
                     args.pass_band,
                     args.scale,
                     args.remeshing,
@@ -573,7 +571,6 @@ fn main() -> Result<(), ErrorWrapper> {
                     args.output,
                     args.iterations,
                     args.method,
-                    args.hierarchical,
                     args.pass_band,
                     args.scale,
                     args.remeshing,

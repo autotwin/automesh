@@ -2,7 +2,7 @@ use super::{
     super::py::{IntoFoo, PyCoordinates, PyIntermediateError},
     Blocks, Connectivity, FiniteElementMethods, FiniteElementSpecifics, HEX, Smoothing, TRI,
     finite_element_data_from_exo, finite_element_data_from_inp, write_finite_elements_to_abaqus,
-    write_finite_elements_to_exodus, write_finite_elements_to_mesh, write_finite_elements_to_vtk,
+    write_finite_elements_to_exodus, write_finite_elements_to_mesh,
 };
 use pyo3::prelude::*;
 
@@ -74,11 +74,10 @@ impl HexahedralFiniteElements {
         ))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
-    #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
+    #[pyo3(signature = (method="Taubin", iterations=10, pass_band=0.1, scale=0.6307))]
     pub fn smooth(
         &mut self,
         method: &str,
-        hierarchical: bool,
         iterations: usize,
         pass_band: f64,
         scale: f64,
@@ -90,10 +89,6 @@ impl HexahedralFiniteElements {
         ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
-        if hierarchical {
-            finite_elements.nodal_hierarchy()?;
-        }
-        finite_elements.nodal_influencers();
         match method {
             "Gauss" | "gauss" | "Gaussian" | "gaussian" | "Laplacian" | "Laplace" | "laplacian"
             | "laplace" => {
@@ -144,15 +139,6 @@ impl HexahedralFiniteElements {
             self.nodal_coordinates.as_foo(),
         ))
         .write_metrics(file_path)?)
-    }
-    /// Writes the finite elements data to a new VTK file.
-    pub fn write_vtk(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(write_finite_elements_to_vtk(
-            file_path,
-            &self.element_blocks,
-            &self.element_node_connectivity,
-            &self.nodal_coordinates.as_foo(),
-        )?)
     }
 }
 
@@ -194,11 +180,10 @@ impl TetrahedralFiniteElements {
         ))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
-    #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
+    #[pyo3(signature = (method="Taubin", iterations=10, pass_band=0.1, scale=0.6307))]
     pub fn smooth(
         &mut self,
         method: &str,
-        hierarchical: bool,
         iterations: usize,
         pass_band: f64,
         scale: f64,
@@ -210,10 +195,6 @@ impl TetrahedralFiniteElements {
         ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
-        if hierarchical {
-            finite_elements.nodal_hierarchy()?;
-        }
-        finite_elements.nodal_influencers();
         match method {
             "Gauss" | "gauss" | "Gaussian" | "gaussian" | "Laplacian" | "Laplace" | "laplacian"
             | "laplace" => {
@@ -265,15 +246,6 @@ impl TetrahedralFiniteElements {
         ))
         .write_metrics(file_path)?)
     }
-    /// Writes the finite elements data to a new VTK file.
-    pub fn write_vtk(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(write_finite_elements_to_vtk(
-            file_path,
-            &self.element_blocks,
-            &self.element_node_connectivity,
-            &self.nodal_coordinates.as_foo(),
-        )?)
-    }
 }
 
 #[pymethods]
@@ -314,11 +286,10 @@ impl TriangularFiniteElements {
         ))
     }
     /// Smooths the nodal coordinates according to the provided smoothing method.
-    #[pyo3(signature = (method="Taubin", hierarchical=false, iterations=10, pass_band=0.1, scale=0.6307))]
+    #[pyo3(signature = (method="Taubin", iterations=10, pass_band=0.1, scale=0.6307))]
     pub fn smooth(
         &mut self,
         method: &str,
-        hierarchical: bool,
         iterations: usize,
         pass_band: f64,
         scale: f64,
@@ -330,10 +301,6 @@ impl TriangularFiniteElements {
         ));
         finite_elements.node_element_connectivity()?;
         finite_elements.node_node_connectivity()?;
-        if hierarchical {
-            finite_elements.nodal_hierarchy()?;
-        }
-        finite_elements.nodal_influencers();
         match method {
             "Gauss" | "gauss" | "Gaussian" | "gaussian" | "Laplacian" | "Laplace" | "laplacian"
             | "laplace" => {
@@ -384,14 +351,5 @@ impl TriangularFiniteElements {
             self.nodal_coordinates.as_foo(),
         ))
         .write_metrics(file_path)?)
-    }
-    /// Writes the finite elements data to a new VTK file.
-    pub fn write_vtk(&self, file_path: &str) -> Result<(), PyIntermediateError> {
-        Ok(write_finite_elements_to_vtk(
-            file_path,
-            &self.element_blocks,
-            &self.element_node_connectivity,
-            &self.nodal_coordinates.as_foo(),
-        )?)
     }
 }

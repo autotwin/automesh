@@ -44,10 +44,6 @@ pub fn remesh(
             *length =
                 (&fem.get_nodal_coordinates()[node_a] - &fem.get_nodal_coordinates()[node_b]).norm()
         });
-    fem.boundary_nodes = vec![];
-    fem.exterior_nodes = vec![];
-    fem.interface_nodes = vec![];
-    fem.interior_nodes = vec![];
     (0..iterations).for_each(|_| {
         average_length = if let Some(size) = size {
             size / FOUR_THIRDS
@@ -57,7 +53,6 @@ pub fn remesh(
         split_edges(fem, &mut edges, &mut lengths, average_length);
         // collapse_edges(fem, &mut edges, &mut lengths, average_length);
         flip_edges(fem, &mut edges, &mut lengths);
-        fem.nodal_influencers();
         match smoothing_method {
             Smoothing::None => {}
             _ => {

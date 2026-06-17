@@ -6,28 +6,30 @@ use std::time::Instant;
 
 use super::{
     Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, FiniteElements, HEX,
-    HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
+    HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation,
 };
+#[cfg(test)]
+use super::Vector;
 use conspire::{
     geometry::mesh::{Connectivity as MeshConnectivity, Mesh, Verdict},
-    math::{CrossProduct, Tensor},
+    math::Tensor,
 };
+#[cfg(test)]
+use conspire::math::CrossProduct;
 use ndarray::{Array2, s};
 use ndarray_npy::WriteNpyExt;
 use std::{
-    f64::consts::PI,
     fs::File,
     io::{BufWriter, Error as ErrorIO, Write},
     iter::repeat_n,
     path::Path,
 };
 
-const TOLERANCE: f64 = 1e-9;
-
 /// The number of nodes in a tetrahedral finite element.
 pub const TET: usize = 4;
 
 const O: usize = 3;
+#[cfg(test)]
 const NUM_EDGES: usize = 6;
 const NUM_NODES_FACE: usize = 3;
 
@@ -69,56 +71,18 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TetrahedralFiniteElements {
         todo!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
-        self.get_element_node_connectivity()
-            .iter()
-            .map(|connectivity| {
-                let (min_length, max_length) = self.edge_vectors(connectivity).into_iter().fold(
-                    (f64::INFINITY, f64::NEG_INFINITY),
-                    |(mut minimum, mut maximum), edge_vector| {
-                        let length = edge_vector.norm();
-                        minimum = minimum.min(length);
-                        maximum = maximum.max(length);
-                        (minimum, maximum)
-                    },
-                );
-                max_length / min_length
-            })
+        self.as_mesh()
+            .maximum_edge_ratios()
+            .into_iter()
+            .flatten()
             .collect()
     }
     fn maximum_skews(&self) -> Metrics {
-        self.get_element_node_connectivity()
-            .iter()
-            .map(|&[n0, n1, n2, n3]| {
-                // A tetrahedron has four faces, so calculate the skew for each and
-                // then take the maximum
-                [
-                    self.face_maximum_skew(n0, n1, n2),
-                    self.face_maximum_skew(n0, n1, n3),
-                    self.face_maximum_skew(n0, n2, n3),
-                    self.face_maximum_skew(n1, n2, n3),
-                ]
-                .into_iter()
-                .reduce(f64::max)
-                .unwrap()
-            })
-            .collect()
+        self.as_mesh().maximum_skews().into_iter().flatten().collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let connectivity = self
-            .get_element_node_connectivity()
-            .clone()
-            .into_iter()
-            .collect::<Vec<[usize; TET]>>();
-        let coordinates = self
-            .get_nodal_coordinates()
-            .iter()
-            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
-            .collect::<Vec<[f64; 3]>>();
-        let mesh = Mesh::<3>::from((
-            vec![MeshConnectivity::Tetrahedral(connectivity.into())],
-            coordinates.into(),
-        ));
-        mesh.minimum_scaled_jacobians()
+        self.as_mesh()
+            .minimum_scaled_jacobians()
             .into_iter()
             .flatten()
             .collect()
@@ -204,6 +168,7 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TetrahedralFiniteElements {
 }
 
 impl TetrahedralFiniteElements {
+    #[cfg(test)]
     fn edge_vectors(
         &self,
         &[node_0, node_1, node_2, node_3]: &[usize; TET],
@@ -225,6 +190,7 @@ impl TetrahedralFiniteElements {
     }
 
     // Helper function to calculate the signed volume of a single tetrahedron.
+    #[cfg(test)]
     fn signed_element_volume(&self, &[node_0, node_1, node_2, node_3]: &[usize; TET]) -> f64 {
         let nodal_coordinates = self.get_nodal_coordinates();
         let v0 = &nodal_coordinates[node_0];
@@ -234,50 +200,26 @@ impl TetrahedralFiniteElements {
         ((v1 - v0).cross(v2 - v0) * (v3 - v0)) / 6.0
     }
 
-    // Calculates the volumes for all tetrahedral elements in the mesh.
-    // This is the public method that iterates over all elements.
-    pub fn volumes(&self) -> Metrics {
-        self.element_node_connectivity
+    fn as_mesh(&self) -> Mesh<3> {
+        let connectivity = self
+            .get_element_node_connectivity()
+            .clone()
+            .into_iter()
+            .collect::<Vec<[usize; TET]>>();
+        let coordinates = self
+            .get_nodal_coordinates()
             .iter()
-            .map(|connectivity| {
-                // Calls the private helper for each element.
-                self.signed_element_volume(connectivity)
-            })
-            .collect()
+            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+            .collect::<Vec<[f64; 3]>>();
+        Mesh::<3>::from((
+            vec![MeshConnectivity::Tetrahedral(connectivity.into())],
+            coordinates.into(),
+        ))
     }
 
-    /// Calculates the minimum angle of a triangular face defined by three node indices.
-    fn face_minimum_angle(&self, n0_idx: usize, n1_idx: usize, n2_idx: usize) -> f64 {
-        let nodal_coordinates = self.get_nodal_coordinates();
-        let v0 = &nodal_coordinates[n0_idx];
-        let v1 = &nodal_coordinates[n1_idx];
-        let v2 = &nodal_coordinates[n2_idx];
-
-        let l0 = (v2 - v1).normalized();
-        let l1 = (v0 - v2).normalized();
-        let l2 = (v1 - v0).normalized();
-
-        [
-            (-(&l0 * &l1)).acos(),
-            (-(&l1 * &l2)).acos(),
-            (-(&l2 * &l0)).acos(),
-        ]
-        .into_iter()
-        .reduce(f64::min)
-        .unwrap()
-    }
-
-    /// Calculates the maximum skew for a single triangular face.
-    fn face_maximum_skew(&self, n0_idx: usize, n1_idx: usize, n2_idx: usize) -> f64 {
-        let deg_to_rad = PI / 180.0;
-        let equilateral_rad = 60.0 * deg_to_rad;
-        let minimum_angle = self.face_minimum_angle(n0_idx, n1_idx, n2_idx);
-
-        if (equilateral_rad - minimum_angle).abs() < TOLERANCE {
-            0.0
-        } else {
-            (equilateral_rad - minimum_angle) / equilateral_rad
-        }
+    // Calculates the signed volumes for all tetrahedral elements in the mesh.
+    pub fn volumes(&self) -> Metrics {
+        self.as_mesh().volumes().into_iter().flatten().collect()
     }
 
     pub fn hex_to_tet(

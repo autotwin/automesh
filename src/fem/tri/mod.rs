@@ -90,52 +90,18 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
         todo!()
     }
     fn maximum_edge_ratios(&self) -> Metrics {
-        // Knupp 2006
-        // https://www.osti.gov/servlets/purl/901967
-        // page 19 and 26
-        let nodal_coordinates = self.get_nodal_coordinates();
-        let mut l0 = 0.0;
-        let mut l1 = 0.0;
-        let mut l2 = 0.0;
-        self.get_element_node_connectivity()
-            .iter()
-            .map(|connectivity| {
-                l0 = (&nodal_coordinates[connectivity[2]] - &nodal_coordinates[connectivity[1]])
-                    .norm();
-                l1 = (&nodal_coordinates[connectivity[0]] - &nodal_coordinates[connectivity[2]])
-                    .norm();
-                l2 = (&nodal_coordinates[connectivity[1]] - &nodal_coordinates[connectivity[0]])
-                    .norm();
-                [l0, l1, l2].into_iter().reduce(f64::max).unwrap()
-                    / [l0, l1, l2].into_iter().reduce(f64::min).unwrap()
-            })
+        self.as_mesh()
+            .maximum_edge_ratios()
+            .into_iter()
+            .flatten()
             .collect()
     }
     fn maximum_skews(&self) -> Metrics {
-        let deg_to_rad = PI / 180.0;
-        let equilateral_rad = 60.0 * deg_to_rad;
-        let minimum_angles = self.minimum_angles();
-        minimum_angles
-            .iter()
-            .map(|angle| (equilateral_rad - angle) / (equilateral_rad))
-            .collect()
+        self.as_mesh().maximum_skews().into_iter().flatten().collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let connectivity = self
-            .get_element_node_connectivity()
-            .clone()
-            .into_iter()
-            .collect::<Vec<[usize; TRI]>>();
-        let coordinates = self
-            .get_nodal_coordinates()
-            .iter()
-            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
-            .collect::<Vec<[f64; 3]>>();
-        let mesh = Mesh::<3>::from((
-            vec![MeshConnectivity::Triangular(connectivity.into())],
-            coordinates.into(),
-        ));
-        mesh.minimum_scaled_jacobians()
+        self.as_mesh()
+            .minimum_scaled_jacobians()
             .into_iter()
             .flatten()
             .collect()
@@ -229,12 +195,24 @@ impl TriangularFiniteElements {
             .cross(&coordinates[node_0] - &coordinates[node_2]))
         .norm()
     }
-    fn areas(&self) -> Metrics {
-        let coordinates = self.get_nodal_coordinates();
-        self.get_element_node_connectivity()
+    fn as_mesh(&self) -> Mesh<3> {
+        let connectivity = self
+            .get_element_node_connectivity()
+            .clone()
+            .into_iter()
+            .collect::<Vec<[usize; TRI]>>();
+        let coordinates = self
+            .get_nodal_coordinates()
             .iter()
-            .map(|connectivity| Self::area(coordinates, connectivity))
-            .collect()
+            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+            .collect::<Vec<[f64; 3]>>();
+        Mesh::<3>::from((
+            vec![MeshConnectivity::Triangular(connectivity.into())],
+            coordinates.into(),
+        ))
+    }
+    fn areas(&self) -> Metrics {
+        self.as_mesh().volumes().into_iter().flatten().collect()
     }
     /// Determines whether the triangle contains the point or not.
     pub fn contains(
@@ -445,10 +423,6 @@ impl TriangularFiniteElements {
             .for_each(|(&[node_a, node_b], length)| {
                 *length = (&nodal_coordinates[node_a] - &nodal_coordinates[node_b]).norm()
             });
-        self.boundary_nodes = vec![];
-        self.exterior_nodes = vec![];
-        self.interface_nodes = vec![];
-        self.interior_nodes = vec![];
         loop {
             if lengths.iter().any(|length| length > &size) {
                 split_edges(self, &mut edges, &mut lengths, size / FOUR_THIRDS)

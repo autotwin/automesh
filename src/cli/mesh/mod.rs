@@ -32,7 +32,7 @@ pub struct MeshArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Mesh output file (exo | inp | mesh | stl | vtk)
+    /// Mesh output file (exo | inp | mesh | stl)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -222,7 +222,6 @@ pub fn mesh_segmentation<const N: usize>(
                         remeshing: _,
                         iterations,
                         method,
-                        hierarchical,
                         pass_band,
                         scale,
                     } => {
@@ -230,7 +229,6 @@ pub fn mesh_segmentation<const N: usize>(
                             &mut finite_elements,
                             iterations,
                             method,
-                            hierarchical,
                             pass_band,
                             scale,
                             quiet,
@@ -281,7 +279,6 @@ pub fn mesh_segmentation<const N: usize>(
                         remeshing: _,
                         iterations,
                         method,
-                        hierarchical,
                         pass_band,
                         scale,
                     } => {
@@ -289,7 +286,6 @@ pub fn mesh_segmentation<const N: usize>(
                             &mut finite_elements,
                             iterations,
                             method,
-                            hierarchical,
                             pass_band,
                             scale,
                             quiet,
@@ -341,7 +337,6 @@ pub fn mesh_segmentation<const N: usize>(
                         remeshing,
                         iterations,
                         method,
-                        hierarchical,
                         pass_band,
                         scale,
                     } => {
@@ -349,7 +344,6 @@ pub fn mesh_segmentation<const N: usize>(
                             &mut finite_elements,
                             iterations,
                             method,
-                            hierarchical,
                             pass_band,
                             scale,
                             quiet,
@@ -428,7 +422,6 @@ where
                 remeshing: _,
                 iterations,
                 method,
-                hierarchical,
                 pass_band,
                 scale,
             } => {
@@ -436,7 +429,6 @@ where
                     &mut finite_elements,
                     iterations,
                     method,
-                    hierarchical,
                     pass_band,
                     scale,
                     quiet,

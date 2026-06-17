@@ -1,8 +1,6 @@
 use automesh::{
-    FiniteElementMethods, HexahedralFiniteElements, NSD, Remove, Scale, Smoothing, Translate,
-    Voxels,
+    FiniteElementMethods, HexahedralFiniteElements, NSD, Remove, Scale, Translate, Voxels,
 };
-use conspire::math::TestError;
 use std::{
     fs::File,
     io::{BufRead, BufReader, Read},
@@ -151,30 +149,3 @@ mod write_mesh {
     }
 }
 
-mod write_vtk {
-    use super::*;
-    #[test]
-    fn letter_f_3d() {
-        let voxels = Voxels::from_spn(
-            "tests/input/letter_f_3d.spn",
-            [4, 5, 3].into(),
-            Remove::from(Some(vec![0_u8])),
-            Scale::default(),
-            Translate::default(),
-        )
-        .unwrap();
-        let fem = HexahedralFiniteElements::from(voxels);
-        fem.write_vtk("target/letter_f_3d.vtk").unwrap();
-    }
-}
-
-#[test]
-fn smooth_energetic() -> Result<(), TestError> {
-    let mut finite_elements =
-        HexahedralFiniteElements::from_exo("tests/input/cube_1_10.exo").unwrap();
-    finite_elements.node_element_connectivity()?;
-    finite_elements.node_node_connectivity()?;
-    finite_elements.smooth(&Smoothing::Energetic)?;
-    finite_elements.write_exo("target/cube_1_10.exo").unwrap();
-    Ok(())
-}

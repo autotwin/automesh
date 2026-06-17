@@ -1,19 +1,13 @@
 use super::{
     super::{
-        Blocks, Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics, Nodes,
-        Smoothing, VecConnectivity,
+        Blocks, Connectivity, Coordinates, FiniteElementMethods, FiniteElementSpecifics,
+        VecConnectivity,
     },
     HEX, HexahedralFiniteElements,
 };
 use conspire::math::Tensor;
 
 const EPSILON: f64 = 1.0e-14;
-const SMOOTHING_SCALE: f64 = 0.3;
-
-const ZERO: f64 = 0.0;
-const ONE_FIFTH: f64 = 1.0 / 5.0;
-const ONE_FOURTH: f64 = 1.0 / 4.0;
-const ONE_THIRD: f64 = 1.0 / 3.0;
 
 trait FooClone {
     fn clone_foo(&self) -> Self;
@@ -32,12 +26,6 @@ fn test_finite_elements(
     nodal_coordinates: Coordinates,
     node_element_connectivity_gold: VecConnectivity,
     node_node_connectivity_gold: VecConnectivity,
-    exterior_nodes_gold: Nodes,
-    interface_nodes_gold: Nodes,
-    interior_nodes_gold: Nodes,
-    laplacian_gold: Option<Coordinates>,
-    smoothed_coordinates_gold: Option<Vec<Coordinates>>,
-    nodal_influencers_gold: VecConnectivity,
 ) {
     let mut finite_elements = HexahedralFiniteElements::from((
         element_blocks.clone(),
@@ -48,18 +36,8 @@ fn test_finite_elements(
         finite_elements.node_node_connectivity(),
         Err("Need to calculate the node-to-element connectivity first")
     );
-    assert_eq!(
-        finite_elements.nodal_hierarchy(),
-        Err("Need to calculate the node-to-element connectivity first")
-    );
     finite_elements.node_element_connectivity().unwrap();
     finite_elements.node_node_connectivity().unwrap();
-    finite_elements.nodal_hierarchy().unwrap();
-    finite_elements.nodal_influencers();
-    assert_eq!(
-        finite_elements.get_nodal_influencers(),
-        &nodal_influencers_gold
-    );
     assert_eq!(
         finite_elements.get_node_element_connectivity(),
         &node_element_connectivity_gold
@@ -68,71 +46,6 @@ fn test_finite_elements(
         finite_elements.get_node_node_connectivity(),
         &node_node_connectivity_gold
     );
-    assert_eq!(finite_elements.get_exterior_nodes(), &exterior_nodes_gold);
-    assert_eq!(finite_elements.get_interface_nodes(), &interface_nodes_gold);
-    assert_eq!(finite_elements.get_interior_nodes(), &interior_nodes_gold);
-    if let Some(gold) = laplacian_gold {
-        let laplacian = finite_elements.laplacian(finite_elements.get_node_node_connectivity());
-        assert!(laplacian.len() == gold.len());
-        laplacian
-            .iter()
-            .zip(gold.iter())
-            .for_each(|(coordinates, gold_coordinates)| {
-                coordinates.iter().zip(gold_coordinates.iter()).for_each(
-                    |(coordinate, gold_coordinate)| {
-                        assert!((coordinate - gold_coordinate).abs() < EPSILON)
-                    },
-                )
-            });
-    }
-    if let Some(gold_set) = smoothed_coordinates_gold {
-        gold_set.iter().enumerate().for_each(|(index, gold)| {
-            let iterations = index + 1;
-            let mut finite_elements = HexahedralFiniteElements::from((
-                element_blocks.clone(),
-                element_node_connectivity.clone(),
-                nodal_coordinates.clone_foo(),
-            ));
-            finite_elements.node_element_connectivity().unwrap();
-            finite_elements.node_node_connectivity().unwrap();
-            finite_elements.nodal_hierarchy().unwrap();
-            finite_elements.nodal_influencers();
-            finite_elements
-                .smooth(&Smoothing::Laplacian(iterations, SMOOTHING_SCALE))
-                .unwrap();
-            let smoothed_nodal_coordinates = finite_elements.get_nodal_coordinates();
-            assert!(smoothed_nodal_coordinates.len() == gold.len());
-            smoothed_nodal_coordinates.iter().zip(gold.iter()).for_each(
-                |(coordinates, gold_coordinates)| {
-                    coordinates.iter().zip(gold_coordinates.iter()).for_each(
-                        |(coordinate, gold_coordinate)| {
-                            assert!((coordinate - gold_coordinate).abs() < EPSILON)
-                        },
-                    )
-                },
-            );
-        });
-        let mut finite_elements = HexahedralFiniteElements::from((
-            element_blocks.clone(),
-            element_node_connectivity.clone(),
-            nodal_coordinates.clone_foo(),
-        ));
-        finite_elements.node_element_connectivity().unwrap();
-        finite_elements.node_node_connectivity().unwrap();
-        finite_elements.nodal_hierarchy().unwrap();
-        let prescribed_nodes = finite_elements.get_boundary_nodes().clone();
-        finite_elements
-            .set_prescribed_nodes(Some(prescribed_nodes), None)
-            .unwrap();
-        finite_elements
-            .smooth(&Smoothing::Laplacian(1, SMOOTHING_SCALE))
-            .unwrap();
-        finite_elements
-            .get_nodal_coordinates()
-            .iter()
-            .zip(nodal_coordinates.iter())
-            .for_each(|(a, b)| assert_eq!(a, b));
-    }
 }
 
 #[test]
@@ -160,32 +73,12 @@ fn single() {
         vec![2, 4, 7],
         vec![3, 5, 6],
     ];
-    let exterior_nodes_gold = (0..8).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let laplacian_gold = Coordinates::from([
-        [ONE_THIRD, ONE_THIRD, ONE_THIRD],
-        [-ONE_THIRD, ONE_THIRD, ONE_THIRD],
-        [ONE_THIRD, -ONE_THIRD, ONE_THIRD],
-        [-ONE_THIRD, -ONE_THIRD, ONE_THIRD],
-        [ONE_THIRD, ONE_THIRD, -ONE_THIRD],
-        [-ONE_THIRD, ONE_THIRD, -ONE_THIRD],
-        [ONE_THIRD, -ONE_THIRD, -ONE_THIRD],
-        [-ONE_THIRD, -ONE_THIRD, -ONE_THIRD],
-    ]);
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        Some(laplacian_gold),
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -235,66 +128,12 @@ fn double_x() {
         vec![4, 7, 9, 11],
         vec![5, 8, 10],
     ];
-    let exterior_nodes_gold = (0..12).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let laplacian_gold = Coordinates::from([
-        [ONE_THIRD, ONE_THIRD, ONE_THIRD],
-        [ZERO, ONE_FOURTH, ONE_FOURTH],
-        [-ONE_THIRD, ONE_THIRD, ONE_THIRD],
-        [ONE_THIRD, -ONE_THIRD, ONE_THIRD],
-        [ZERO, -ONE_FOURTH, ONE_FOURTH],
-        [-ONE_THIRD, -ONE_THIRD, ONE_THIRD],
-        [ONE_THIRD, ONE_THIRD, -ONE_THIRD],
-        [ZERO, ONE_FOURTH, -ONE_FOURTH],
-        [-ONE_THIRD, ONE_THIRD, -ONE_THIRD],
-        [ONE_THIRD, -ONE_THIRD, -ONE_THIRD],
-        [ZERO, -ONE_FOURTH, -ONE_FOURTH],
-        [-ONE_THIRD, -ONE_THIRD, -ONE_THIRD],
-    ]);
-    let smoothed_coordinates_gold = vec![
-        Coordinates::from([
-            [0.1, 0.100, 0.100],
-            [1.0, 0.075, 0.075],
-            [1.9, 0.100, 0.100],
-            [0.1, 0.900, 0.100],
-            [1.0, 0.925, 0.075],
-            [1.9, 0.900, 0.100],
-            [0.1, 0.100, 0.900],
-            [1.0, 0.075, 0.925],
-            [1.9, 0.100, 0.900],
-            [0.1, 0.900, 0.900],
-            [1.0, 0.925, 0.925],
-            [1.9, 0.900, 0.900],
-        ]),
-        Coordinates::from([
-            [0.19, 0.1775, 0.1775],
-            [1.00, 0.1425, 0.1425],
-            [1.81, 0.1775, 0.1775],
-            [0.19, 0.8225, 0.1775],
-            [1.00, 0.8575, 0.1425],
-            [1.81, 0.8225, 0.1775],
-            [0.19, 0.1775, 0.8225],
-            [1.00, 0.1425, 0.8575],
-            [1.81, 0.1775, 0.8225],
-            [0.19, 0.8225, 0.8225],
-            [1.00, 0.8575, 0.8575],
-            [1.81, 0.8225, 0.8225],
-        ]),
-    ];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        Some(laplacian_gold),
-        Some(smoothed_coordinates_gold),
-        nodal_influencers_gold,
     );
 }
 
@@ -344,22 +183,12 @@ fn double_y() {
         vec![4, 8, 11],
         vec![5, 9, 10],
     ];
-    let exterior_nodes_gold = (0..12).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -425,22 +254,12 @@ fn triple() {
         vec![6, 10, 13, 15],
         vec![7, 11, 14],
     ];
-    let exterior_nodes_gold = (0..16).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -519,22 +338,12 @@ fn quadruple() {
         vec![8, 13, 17, 19],
         vec![9, 14, 18],
     ];
-    let exterior_nodes_gold = (0..20).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -596,22 +405,12 @@ fn quadruple_2_voids() {
         vec![6, 10, 15],
         vec![7, 11, 14],
     ];
-    let exterior_nodes_gold = (0..16).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -690,22 +489,12 @@ fn quadruple_2_blocks() {
         vec![8, 13, 17, 19],
         vec![9, 14, 18],
     ];
-    let exterior_nodes_gold = (0..20).collect();
-    let interface_nodes_gold = vec![1, 3, 6, 8, 11, 13, 16, 18];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -783,22 +572,12 @@ fn quadruple_2_blocks_void() {
         vec![8, 13, 19],
         vec![9, 14, 18],
     ];
-    let exterior_nodes_gold = (0..20).collect();
-    let interface_nodes_gold = vec![1, 6, 11, 16];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -902,51 +681,12 @@ fn cube() {
         vec![16, 22, 24, 26],
         vec![17, 23, 25],
     ];
-    let mut exterior_nodes_gold = (0..27).collect::<Nodes>();
-    exterior_nodes_gold.remove(13);
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![13];
-    let nodal_influencers_gold = vec![
-        vec![1, 3, 9],
-        vec![0, 2, 4, 10],
-        vec![1, 5, 11],
-        vec![0, 4, 6, 12],
-        vec![1, 3, 5, 7],
-        vec![2, 4, 8, 14],
-        vec![3, 7, 15],
-        vec![4, 6, 8, 16],
-        vec![5, 7, 17],
-        vec![0, 10, 12, 18],
-        vec![1, 9, 11, 19],
-        vec![2, 10, 14, 20],
-        vec![3, 9, 15, 21],
-        vec![4, 10, 12, 14, 16, 22],
-        vec![5, 11, 17, 23],
-        vec![6, 12, 16, 24],
-        vec![7, 15, 17, 25],
-        vec![8, 14, 16, 26],
-        vec![9, 19, 21],
-        vec![10, 18, 20, 22],
-        vec![11, 19, 23],
-        vec![12, 18, 22, 24],
-        vec![19, 21, 23, 25],
-        vec![14, 20, 22, 26],
-        vec![15, 21, 25],
-        vec![16, 22, 24, 26],
-        vec![17, 23, 25],
-    ];
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -1039,22 +779,12 @@ fn cube_multi() {
         vec![16, 20, 23],
         vec![17, 21, 22],
     ];
-    let exterior_nodes_gold = (0..24).collect();
-    let interface_nodes_gold = vec![1, 3, 4, 10, 11, 12, 13, 14, 16, 17, 20, 21];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -1289,24 +1019,12 @@ fn cube_with_inclusion() {
         vec![46, 58, 61, 63],
         vec![47, 59, 62],
     ];
-    let interface_nodes_gold = vec![21, 22, 25, 26, 37, 38, 41, 42];
-    let exterior_nodes_gold = (0..64)
-        .filter(|node| !interface_nodes_gold.contains(node))
-        .collect();
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -1459,251 +1177,13 @@ fn bracket() {
         vec![19, 37, 39, 41],
         vec![20, 38, 40],
     ];
-    let exterior_nodes_gold = (0..42).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
-    let laplacian_gold = Coordinates::from([
-        [ONE_THIRD, ONE_THIRD, ONE_THIRD],
-        [ZERO, ONE_FOURTH, ONE_FOURTH],
-        [ZERO, ONE_FOURTH, ONE_FOURTH],
-        [ZERO, ONE_FOURTH, ONE_FOURTH],
-        [-ONE_THIRD, ONE_THIRD, ONE_THIRD],
-        [ONE_FOURTH, ZERO, ONE_FOURTH],
-        [ZERO, ZERO, ONE_FIFTH],
-        [ZERO, ZERO, ONE_FIFTH],
-        [ZERO, ZERO, ONE_FIFTH],
-        [-ONE_FOURTH, ZERO, ONE_FOURTH],
-        [ONE_FOURTH, ZERO, ONE_FOURTH],
-        [ZERO, ZERO, ONE_FIFTH],
-        [ZERO, ZERO, ONE_FIFTH],
-        [ZERO, -ONE_FOURTH, ONE_FOURTH],
-        [-ONE_THIRD, -ONE_THIRD, ONE_THIRD],
-        [ONE_FOURTH, ZERO, ONE_FOURTH],
-        [ZERO, ZERO, ONE_FIFTH],
-        [-ONE_FOURTH, ZERO, ONE_FOURTH],
-        [ONE_THIRD, -ONE_THIRD, ONE_THIRD],
-        [ZERO, -ONE_FOURTH, ONE_FOURTH],
-        [-ONE_THIRD, -ONE_THIRD, ONE_THIRD],
-        [ONE_THIRD, ONE_THIRD, -ONE_THIRD],
-        [ZERO, ONE_FOURTH, -ONE_FOURTH],
-        [ZERO, ONE_FOURTH, -ONE_FOURTH],
-        [ZERO, ONE_FOURTH, -ONE_FOURTH],
-        [-ONE_THIRD, ONE_THIRD, -ONE_THIRD],
-        [ONE_FOURTH, ZERO, -ONE_FOURTH],
-        [ZERO, ZERO, -ONE_FIFTH],
-        [ZERO, ZERO, -ONE_FIFTH],
-        [ZERO, ZERO, -ONE_FIFTH],
-        [-ONE_FOURTH, ZERO, -ONE_FOURTH],
-        [ONE_FOURTH, ZERO, -ONE_FOURTH],
-        [ZERO, ZERO, -ONE_FIFTH],
-        [ZERO, ZERO, -ONE_FIFTH],
-        [ZERO, -ONE_FOURTH, -ONE_FOURTH],
-        [-ONE_THIRD, -ONE_THIRD, -ONE_THIRD],
-        [ONE_FOURTH, ZERO, -ONE_FOURTH],
-        [ZERO, ZERO, -ONE_FIFTH],
-        [-ONE_FOURTH, ZERO, -ONE_FOURTH],
-        [ONE_THIRD, -ONE_THIRD, -ONE_THIRD],
-        [ZERO, -ONE_FOURTH, -ONE_FOURTH],
-        [-ONE_THIRD, -ONE_THIRD, -ONE_THIRD],
-    ]);
-    let smoothed_coordinates_gold = vec![
-        Coordinates::from([
-            [0.1, 0.1, 0.1],
-            [1.0, 0.075, 0.075],
-            [2.0, 0.075, 0.075],
-            [3.0, 0.075, 0.075],
-            [3.9, 0.1, 0.1],
-            [0.075, 1.0, 0.075],
-            [1.0, 1.0, 0.06],
-            [2.0, 1.0, 0.06],
-            [3.0, 1.0, 0.06],
-            [3.925, 1.0, 0.075],
-            [0.075, 2.0, 0.075],
-            [1.0, 2.0, 0.06],
-            [2.0, 2.0, 0.06],
-            [3.0, 1.925, 0.075],
-            [3.9, 1.9, 0.1],
-            [0.075, 3.0, 0.075],
-            [1.0, 3.0, 0.06],
-            [1.925, 3.0, 0.075],
-            [0.1, 3.9, 0.1],
-            [1.0, 3.925, 0.075],
-            [1.9, 3.9, 0.1],
-            [0.1, 0.1, 0.9],
-            [1.0, 0.075, 0.925],
-            [2.0, 0.075, 0.925],
-            [3.0, 0.075, 0.925],
-            [3.9, 0.1, 0.9],
-            [0.075, 1.0, 0.925],
-            [1.0, 1.0, 0.94],
-            [2.0, 1.0, 0.94],
-            [3.0, 1.0, 0.94],
-            [3.925, 1.0, 0.925],
-            [0.075, 2.0, 0.925],
-            [1.0, 2.0, 0.94],
-            [2.0, 2.0, 0.94],
-            [3.0, 1.925, 0.925],
-            [3.9, 1.9, 0.9],
-            [0.075, 3.0, 0.925],
-            [1.0, 3.0, 0.94],
-            [1.925, 3.0, 0.925],
-            [0.1, 3.9, 0.9],
-            [1.0, 3.925, 0.925],
-            [1.9, 3.9, 0.9],
-        ]),
-        Coordinates::from([
-            [0.1875, 0.1875, 0.175],
-            [1.0075, 0.14625, 0.1395],
-            [2.0, 0.144375, 0.137625],
-            [2.9925, 0.14625, 0.1395],
-            [3.8125, 0.1875, 0.175],
-            [0.14625, 1.0075, 0.1395],
-            [1.0045, 1.0045, 0.1146],
-            [2.0, 1.0045, 0.1137],
-            [2.9955, 1.0, 0.1155],
-            [3.851875, 1.0, 0.141375],
-            [0.144375, 2.0, 0.137625],
-            [1.0045, 2.0, 0.1137],
-            [1.9955, 1.9955, 0.1146],
-            [2.9925, 1.859375, 0.138375],
-            [3.8125, 1.8125, 0.175],
-            [0.14625, 2.9925, 0.1395],
-            [1.0, 2.9955, 0.1155],
-            [1.859375, 2.9925, 0.138375],
-            [0.1875, 3.8125, 0.175],
-            [1.0, 3.851875, 0.141375],
-            [1.8125, 3.8125, 0.175],
-            [0.1875, 0.1875, 0.8250],
-            [1.0075, 0.14625, 0.8605],
-            [2.0, 0.144375, 0.862375],
-            [2.9925, 0.14625, 0.8605],
-            [3.8125, 0.1875, 0.8250],
-            [0.14625, 1.0075, 0.8605],
-            [1.0045, 1.0045, 0.8854],
-            [2.0, 1.0045, 0.8863],
-            [2.9955, 1.0, 0.8845],
-            [3.851875, 1.0, 0.858625],
-            [0.144375, 2.0, 0.862375],
-            [1.0045, 2.0, 0.8863],
-            [1.9955, 1.9955, 0.8854],
-            [2.9925, 1.859375, 0.861625],
-            [3.8125, 1.8125, 0.8250],
-            [0.14625, 2.9925, 0.8605],
-            [1.0, 2.9955, 0.8845],
-            [1.859375, 2.9925, 0.861625],
-            [0.1875, 3.8125, 0.8250],
-            [1.0, 3.851875, 0.858625],
-            [1.8125, 3.8125, 0.8250],
-        ]),
-    ];
     test_finite_elements(
         element_blocks.clone(),
         element_node_connectivity.clone(),
         nodal_coordinates.clone_foo(),
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        Some(laplacian_gold),
-        Some(smoothed_coordinates_gold),
-        nodal_influencers_gold,
     );
-    let cos_15 = 15.0_f64.to_radians().cos();
-    let cos_30 = 30.0_f64.to_radians().cos();
-    let sin_15 = 15.0_f64.to_radians().sin();
-    let sin_30 = 30.0_f64.to_radians().sin();
-    let prescribed_nodes_homogeneous = vec![
-        0, 1, 2, 3, 4, 5, 10, 15, 18, 21, 22, 23, 24, 25, 26, 31, 36, 39,
-    ];
-    let prescribed_nodes_inhomogeneous = vec![9, 14, 19, 20, 30, 35, 40, 41];
-    let prescribed_nodes_inhomogeneous_coordinates = Coordinates::from([
-        [4.5 * cos_15, 4.5 * sin_15, 0.0],
-        [4.5 * cos_30, 4.5 * sin_30, 0.0],
-        [1.5, 4.0, 0.0],
-        [3.5, 4.0, 0.0],
-        [4.5 * cos_15, 4.5 * sin_15, 1.0],
-        [4.5 * cos_30, 4.5 * sin_30, 1.0],
-        [1.5, 4.0, 1.0],
-        [3.5, 4.0, 1.0],
-    ]);
-    let mut finite_elements = HexahedralFiniteElements::from((
-        element_blocks,
-        element_node_connectivity,
-        nodal_coordinates,
-    ));
-    finite_elements.node_element_connectivity().unwrap();
-    finite_elements.node_node_connectivity().unwrap();
-    finite_elements.nodal_hierarchy().unwrap();
-    finite_elements
-        .set_prescribed_nodes(
-            Some(prescribed_nodes_homogeneous),
-            Some((
-                prescribed_nodes_inhomogeneous_coordinates,
-                prescribed_nodes_inhomogeneous,
-            )),
-        )
-        .unwrap();
-    finite_elements.nodal_influencers();
-    finite_elements
-        .smooth(&Smoothing::Laplacian(10, SMOOTHING_SCALE))
-        .unwrap();
-    finite_elements
-        .get_nodal_coordinates()
-        .iter()
-        .zip(
-            vec![
-                vec![0.0, 0.0, 0.0],
-                vec![1.0, 0.0, 0.0],
-                vec![2.0, 0.0, 0.0],
-                vec![3.0, 0.0, 0.0],
-                vec![4.0, 0.0, 0.0],
-                vec![0.0, 1.0, 0.0],
-                vec![1.0076218690550747, 0.9988829259123082, 0.24593434133370803],
-                vec![2.0218051968023, 0.993985105791881, 0.2837944855813176],
-                vec![3.0816593568068398, 0.9931227966186256, 0.24898414051620496],
-                vec![4.346666218300808, 1.1646857029613433, 0.0],
-                vec![0.0, 2.0, 0.0],
-                vec![1.0346002406957664, 1.992982526945126, 0.2837944855813176],
-                vec![2.0408618916639916, 1.9528647520642073, 0.3332231502067546],
-                vec![2.9955771790244468, 1.7619821132207711, 0.29909606343914835],
-                vec![3.897114317029974, 2.2499999999999996, 0.0],
-                vec![0.0, 3.0, 0.0],
-                vec![1.157261281731803, 2.9982665159532105, 0.24898414051620493],
-                vec![2.1973691292662734, 2.991054895165017, 0.29909606343914835],
-                vec![0.0, 4.0, 0.0],
-                vec![1.5, 4.0, 0.0],
-                vec![3.5, 4.0, 0.0],
-                vec![0.0, 0.0, 1.0],
-                vec![1.0, 0.0, 1.0],
-                vec![2.0, 0.0, 1.0],
-                vec![3.0, 0.0, 1.0],
-                vec![4.0, 0.0, 1.0],
-                vec![0.0, 1.0, 1.0],
-                vec![1.0076218690550747, 0.9988829259123082, 0.7540656586662919],
-                vec![2.0218051968023, 0.993985105791881, 0.7162055144186824],
-                vec![3.0816593568068398, 0.9931227966186257, 0.7510158594837951],
-                vec![4.346666218300808, 1.1646857029613433, 1.0],
-                vec![0.0, 2.0, 1.0],
-                vec![1.0346002406957664, 1.9929825269451262, 0.7162055144186824],
-                vec![2.0408618916639916, 1.9528647520642073, 0.6667768497932453],
-                vec![2.9955771790244468, 1.7619821132207711, 0.7009039365608517],
-                vec![3.897114317029974, 2.2499999999999996, 1.0],
-                vec![0.0, 3.0, 1.0],
-                vec![1.157261281731803, 2.9982665159532105, 0.751015859483795],
-                vec![2.1973691292662734, 2.991054895165017, 0.7009039365608516],
-                vec![0.0, 4.0, 1.0],
-                vec![1.5, 4.0, 1.0],
-                vec![3.5, 4.0, 1.0],
-            ]
-            .iter(),
-        )
-        .for_each(|(data, gold)| {
-            data.iter()
-                .zip(gold.iter())
-                .for_each(|(data_entry, gold_entry)| assert_eq!(data_entry, gold_entry))
-        });
 }
 
 #[test]
@@ -1833,22 +1313,12 @@ fn letter_f() {
         vec![16, 30, 33, 35],
         vec![17, 31, 34],
     ];
-    let exterior_nodes_gold = (0..36).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -2208,22 +1678,12 @@ fn letter_f_3d() {
         vec![82, 95, 99, 101],
         vec![83, 96, 100],
     ];
-    let exterior_nodes_gold = (0..102).collect();
-    let interface_nodes_gold = vec![];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -2875,28 +2335,12 @@ fn sparse() {
         vec![159, 185, 191],
         vec![160, 186, 190],
     ];
-    let exterior_nodes_gold = (0..192).collect();
-    let interface_nodes_gold = vec![
-        2, 3, 5, 8, 9, 10, 11, 14, 15, 16, 17, 20, 21, 23, 26, 34, 35, 36, 37, 39, 40, 41, 42, 43,
-        45, 46, 47, 48, 49, 52, 53, 54, 55, 58, 59, 62, 63, 64, 67, 68, 69, 70, 72, 73, 74, 76, 78,
-        79, 80, 81, 82, 85, 86, 91, 96, 97, 98, 101, 102, 103, 107, 108, 112, 113, 114, 117, 119,
-        120, 122, 124, 125, 129, 130, 134, 135, 136, 140, 141, 142, 146, 147, 149, 150, 151, 153,
-        154, 156, 157, 159, 160, 169, 170, 175, 176, 178, 179, 182, 183, 188,
-    ];
-    let interior_nodes_gold = vec![];
-    let nodal_influencers_gold = node_node_connectivity_gold.clone();
     test_finite_elements(
         element_blocks,
         element_node_connectivity,
         nodal_coordinates,
         node_element_connectivity_gold,
         node_node_connectivity_gold,
-        exterior_nodes_gold,
-        interface_nodes_gold,
-        interior_nodes_gold,
-        None,
-        None,
-        nodal_influencers_gold,
     );
 }
 
@@ -2906,7 +2350,7 @@ fn valence_3_and_4_noised() {
     // We test both of the noised elements, valence_03' (noised)
     // valence_04' (noised)
 
-    let maximum_edge_ratios_gold = [1.2922598186116965, 1.167883631481492];
+    let maximum_edge_ratios_gold = [2.325136303957366, 1.7268044571053187];
     let mininum_scaled_jacobians_gold = [0.19173666980464177, 0.3743932367172326];
     let maximum_skews_gold = [0.6797482929789989, 0.4864935739781938];
     let element_volumes_gold = [1.24779970625, 0.9844007500000004];
