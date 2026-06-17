@@ -13,7 +13,7 @@ use super::{
     FiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
 use conspire::{
-    fem::block::element::{FiniteElement, surface::linear::Triangle},
+    geometry::mesh::{Connectivity as MeshConnectivity, Mesh, Verdict},
     math::{CrossProduct, Tensor, TensorArray, Vector as VectorConspire, assert_eq_within_tols},
     mechanics::Scalar,
 };
@@ -121,17 +121,23 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TriangularFiniteElements {
             .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let coordinates = self.get_nodal_coordinates();
-        self.get_element_node_connectivity()
+        let connectivity = self
+            .get_element_node_connectivity()
+            .clone()
+            .into_iter()
+            .collect::<Vec<[usize; TRI]>>();
+        let coordinates = self
+            .get_nodal_coordinates()
             .iter()
-            .map(|nodes| {
-                Triangle::minimum_scaled_jacobian(
-                    nodes
-                        .iter()
-                        .map(|&node| coordinates[node].clone())
-                        .collect(),
-                )
-            })
+            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+            .collect::<Vec<[f64; 3]>>();
+        let mesh = Mesh::<3>::from((
+            vec![MeshConnectivity::Triangular(connectivity.into())],
+            coordinates.into(),
+        ));
+        mesh.minimum_scaled_jacobians()
+            .into_iter()
+            .flatten()
             .collect()
     }
     fn remesh(&mut self, iterations: usize, smoothing_method: &Smoothing, size: Size) {

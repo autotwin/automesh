@@ -1,5 +1,6 @@
 use super::ErrorWrapper;
 use automesh::{FiniteElementMethods, Nel, Remove, Scale, Tessellation, Translate, Voxels};
+use conspire::geometry::grid::{Input as GridInput, Voxels as GridVoxels};
 use std::{path::Path, time::Instant};
 
 pub fn invalid_input(file: &str, extension: Option<&str>) -> ErrorWrapper {
@@ -142,6 +143,51 @@ pub fn read_segmentation(
         data.iter()
             .for_each(|&voxel| materials[voxel as usize] = true);
         let num_voxels = data.iter().count();
+        let num_materials = materials.iter().filter(|&&entry| entry).count();
+        print!(
+            "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",
+            time.elapsed()
+        );
+        println!(" \x1b[2m[{num_materials} materials, {num_voxels} voxels]\x1b[0m",);
+    }
+    Ok(voxels)
+}
+
+pub fn read_voxels(
+    file: &str,
+    nelx: Option<usize>,
+    nely: Option<usize>,
+    nelz: Option<usize>,
+    quiet: bool,
+    title: bool,
+) -> Result<GridVoxels<u8>, ErrorWrapper> {
+    let time = Instant::now();
+    if !quiet {
+        if title {
+            println!(
+                "\x1b[1m    {} {}\x1b[0m",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION")
+            );
+        }
+        print!("     \x1b[1;96mReading\x1b[0m {file}");
+    }
+    let extension = Path::new(file).extension().and_then(|ext| ext.to_str());
+    let voxels = match extension {
+        Some("npy") => GridVoxels::<u8>::try_from(GridInput::Npy(file))?,
+        Some("spn") => {
+            let nel = Nel::from_input([nelx, nely, nelz])?;
+            GridVoxels::<u8>::try_from(GridInput::Spn(file, nel.iter().copied().collect()))?
+        }
+        _ => return Err(invalid_input(file, extension)),
+    };
+    if !quiet {
+        let mut materials = vec![false; u8::MAX as usize + 1];
+        voxels
+            .data()
+            .iter()
+            .for_each(|&voxel| materials[voxel as usize] = true);
+        let num_voxels = voxels.len();
         let num_materials = materials.iter().filter(|&&entry| entry).count();
         print!(
             "\x1b[0m\n        \x1b[1;92mDone\x1b[0m {:?}",

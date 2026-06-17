@@ -192,21 +192,11 @@ where
     let smoothing_method = method.unwrap_or("Taubin".to_string());
     if matches!(
         smoothing_method.as_str(),
-        "Energetic"
-            | "energetic"
-            | "Laplacian"
-            | "Laplace"
-            | "laplacian"
-            | "laplace"
-            | "Taubin"
-            | "taubin"
+        "Laplacian" | "Laplace" | "laplacian" | "laplace" | "Taubin" | "taubin"
     ) {
         if !quiet {
             print!("   \x1b[1;96mSmoothing\x1b[0m ");
             match smoothing_method.as_str() {
-                "Energetic" | "energetic" => {
-                    println!("with energetic smoothing")
-                }
                 "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                     println!("with {iterations} iterations of Laplace")
                 }
@@ -223,9 +213,6 @@ where
         }
         output_type.nodal_influencers();
         match smoothing_method.as_str() {
-            "Energetic" | "energetic" => {
-                output_type.smooth(&Smoothing::Energetic)?;
-            }
             "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
                 output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;
             }

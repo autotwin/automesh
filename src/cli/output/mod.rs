@@ -1,5 +1,6 @@
 use super::ErrorWrapper;
 use automesh::{FiniteElementMethods, Tessellation, Voxels};
+use conspire::geometry::grid::{Output as GridOutput, Voxels as GridVoxels};
 use conspire::io::Write;
 use std::{path::Path, time::Instant};
 
@@ -64,6 +65,27 @@ where
         println!("     \x1b[1;96mMetrics\x1b[0m {output}");
     }
     fem.write_metrics(&output)?;
+    if !quiet {
+        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    }
+    Ok(())
+}
+
+pub fn write_voxels(
+    file: &str,
+    voxels: &GridVoxels<u8>,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    let time = Instant::now();
+    if !quiet {
+        println!("     \x1b[1;96mWriting\x1b[0m {file}");
+    }
+    let extension = Path::new(file).extension().and_then(|ext| ext.to_str());
+    match extension {
+        Some("npy") => voxels.write(GridOutput::Npy(file))?,
+        Some("spn") => voxels.write(GridOutput::Spn(file))?,
+        _ => return Err(invalid_output(file, extension)),
+    }
     if !quiet {
         println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }

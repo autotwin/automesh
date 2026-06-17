@@ -17,18 +17,8 @@ use crate::{
 };
 use chrono::Utc;
 use conspire::{
-    constitutive::solid::hyperelastic::NeoHookean,
-    fem::block::{
-        Block, FiniteElementBlock,
-        element::{
-            FiniteElement,
-            linear::{Hexahedron as LinearHexahedron, Tetrahedron as LinearTetrahedron},
-        },
-    },
-    math::{
-        Scalar, Tensor, TensorArray, TensorRank1List, TensorVec,
-        optimize::{EqualityConstraint, GradientDescent, LineSearch},
-    },
+    geometry::mesh::{Connectivity as MeshConnectivity, Mesh},
+    math::{Scalar, Tensor, TensorArray, TensorRank1List, TensorVec},
 };
 use ndarray::{Array1, parallel::prelude::*};
 use netcdf::{Error as ErrorNetCDF, create, open};
@@ -59,7 +49,6 @@ pub type VecConnectivity = Vec<Vec<usize>>;
 
 /// Possible smoothing methods.
 pub enum Smoothing {
-    Energetic,
     Laplacian(usize, Scalar),
     Taubin(usize, Scalar, Scalar),
     None,
@@ -622,74 +611,11 @@ where
         )))
     }
     fn smooth(&mut self, method: &Smoothing) -> Result<(), String> {
-        use conspire::fem::block::FirstOrderMinimize;
         if !self.get_node_node_connectivity().is_empty() {
             let smoothing_iterations;
             let smoothing_scale_deflate;
             let mut smoothing_scale_inflate = 0.0;
             match *method {
-                Smoothing::Energetic => {
-                    let mut nodes: Nodes = self.exterior_faces().into_iter().flatten().collect();
-                    nodes.sort();
-                    nodes.dedup();
-                    let solver = GradientDescent {
-                        abs_tol: 1e-6,
-                        dual: false,
-                        line_search: LineSearch::Armijo {
-                            control: 1e-3,
-                            cut_back: 0.9,
-                            max_steps: 100,
-                        },
-                        max_steps: 1000,
-                        rel_tol: Some(1e-2),
-                    };
-                    let indices = nodes
-                        .into_iter()
-                        .flat_map(|node: usize| [NSD * node, NSD * node + 1, NSD * node + 2])
-                        .collect();
-                    self.nodal_coordinates = match N {
-                        HEX => {
-                            let connectivity = self
-                                .get_element_node_connectivity()
-                                .iter()
-                                .map(|entry| {
-                                    entry.iter().copied().collect::<Nodes>().try_into().unwrap()
-                                })
-                                .collect();
-                            let mut block = Block::<_, LinearHexahedron, _, _, _, _>::from((
-                                NeoHookean {
-                                    bulk_modulus: 0.0,
-                                    shear_modulus: 1.0,
-                                },
-                                connectivity,
-                                self.get_nodal_coordinates().clone().into(),
-                            ));
-                            block.reset();
-                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
-                        }
-                        TET => {
-                            let connectivity = self
-                                .get_element_node_connectivity()
-                                .iter()
-                                .map(|entry| {
-                                    entry.iter().copied().collect::<Nodes>().try_into().unwrap()
-                                })
-                                .collect();
-                            let mut block = Block::<_, LinearTetrahedron, _, _, _, _>::from((
-                                NeoHookean {
-                                    bulk_modulus: 0.0,
-                                    shear_modulus: 1.0,
-                                },
-                                connectivity,
-                                self.get_nodal_coordinates().clone().into(),
-                            ));
-                            block.reset();
-                            block.minimize(EqualityConstraint::Fixed(indices), solver)?
-                        }
-                        _ => panic!(),
-                    };
-                    return Ok(());
-                }
                 Smoothing::Laplacian(iterations, scale) => {
                     if scale <= 0.0 || scale >= 1.0 {
                         return Err("Need to specify 0.0 < scale < 1.0".to_string());
@@ -1244,7 +1170,7 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
             .iter_mut()
             .skip(num_old_nodes)
             .for_each(|nodes| nodes.clear());
-        smart_laplace(&mut finite_elements, 1, 0.1, 0.2);
+        smart_laplace(&mut finite_elements, 1, 0.1);
         #[cfg(feature = "profile")]
         println!(
             "             \x1b[1;93mImproving hex quality\x1b[0m {:?}",
@@ -1254,66 +1180,28 @@ impl TryFrom<(Tessellation, Size)> for HexahedralFiniteElements {
     }
 }
 
-fn smart_laplace(
-    finite_elements: &mut HexahedralFiniteElements,
-    iterations: usize,
-    scale: Scalar,
-    threshold: Scalar,
-) {
-    let mut laplacian = Coordinate::zero();
-    let mut trial_coordinate = Coordinate::zero();
-    let coordinates = &mut finite_elements.nodal_coordinates;
-    let element_nodes = &finite_elements.element_node_connectivity;
-    let node_elements = &finite_elements.node_element_connectivity;
-    for _ in 0..iterations {
-        finite_elements
-            .nodal_influencers
-            .iter()
-            .enumerate()
-            .filter(|(_, neighbors)| !neighbors.is_empty())
-            .for_each(|(node, neighbors)| {
-                laplacian = neighbors
-                    .iter()
-                    .map(|&neighbor| &coordinates[neighbor])
-                    .sum::<Coordinate>()
-                    / (neighbors.len() as f64)
-                    - &coordinates[node];
-                trial_coordinate = &coordinates[node] + &laplacian * scale;
-                let msj_0 = node_elements[node]
-                    .iter()
-                    .map(|&node_element| {
-                        LinearHexahedron::minimum_scaled_jacobian(
-                            element_nodes[node_element]
-                                .iter()
-                                .map(|&element_node| coordinates[element_node].clone())
-                                .collect(),
-                        )
-                    })
-                    .reduce(f64::min)
-                    .unwrap();
-                let msj = node_elements[node]
-                    .iter()
-                    .map(|&node_element| {
-                        LinearHexahedron::minimum_scaled_jacobian(
-                            element_nodes[node_element]
-                                .iter()
-                                .map(|&element_node| {
-                                    if node == element_node {
-                                        trial_coordinate.clone()
-                                    } else {
-                                        coordinates[element_node].clone()
-                                    }
-                                })
-                                .collect(),
-                        )
-                    })
-                    .reduce(f64::min)
-                    .unwrap();
-                if msj > msj_0 || msj > threshold {
-                    coordinates[node] = trial_coordinate.clone()
-                }
-            })
-    }
+fn smart_laplace(finite_elements: &mut HexahedralFiniteElements, iterations: usize, scale: Scalar) {
+    let connectivity = finite_elements
+        .element_node_connectivity
+        .clone()
+        .into_iter()
+        .collect::<Vec<[usize; HEX]>>();
+    let coordinates = finite_elements
+        .nodal_coordinates
+        .iter()
+        .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+        .collect::<Vec<[f64; NSD]>>();
+    let mut mesh = Mesh::<NSD>::from((
+        vec![MeshConnectivity::Hexahedral(connectivity.into())],
+        coordinates.into(),
+    ));
+    mesh.smart_laplace_smooth(iterations, scale);
+    let (_, coordinates) = mesh.into();
+    finite_elements.nodal_coordinates = coordinates
+        .iter()
+        .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+        .collect::<Vec<[f64; NSD]>>()
+        .into();
 }
 
 fn closest_surface_node(

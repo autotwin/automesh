@@ -1,5 +1,4 @@
-use super::{ErrorWrapper, input::read_segmentation, output::write_segmentation};
-use automesh::{Remove, Scale, Translate};
+use super::{ErrorWrapper, input::read_voxels, output::write_voxels};
 
 pub fn diff(
     input: Vec<String>,
@@ -9,27 +8,7 @@ pub fn diff(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let voxels_1 = read_segmentation(
-        input[0].clone(),
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        true,
-    )?;
-    let voxels_2 = read_segmentation(
-        input[1].clone(),
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        false,
-    )?;
-    write_segmentation(output, voxels_1.diff(&voxels_2), quiet)
+    let voxels_1 = read_voxels(&input[0], nelx, nely, nelz, quiet, true)?;
+    let voxels_2 = read_voxels(&input[1], nelx, nely, nelz, quiet, false)?;
+    write_voxels(&output, &voxels_1.diff(&voxels_2), quiet)
 }

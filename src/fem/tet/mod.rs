@@ -9,7 +9,7 @@ use super::{
     HexahedralFiniteElements, Metrics, Size, Smoothing, Tessellation, Vector,
 };
 use conspire::{
-    fem::block::element::{FiniteElement, linear::Tetrahedron},
+    geometry::mesh::{Connectivity as MeshConnectivity, Mesh, Verdict},
     math::{CrossProduct, Tensor},
 };
 use ndarray::{Array2, s};
@@ -104,17 +104,23 @@ impl FiniteElementSpecifics<NUM_NODES_FACE, O> for TetrahedralFiniteElements {
             .collect()
     }
     fn minimum_scaled_jacobians(&self) -> Metrics {
-        let coordinates = self.get_nodal_coordinates();
-        self.get_element_node_connectivity()
+        let connectivity = self
+            .get_element_node_connectivity()
+            .clone()
+            .into_iter()
+            .collect::<Vec<[usize; TET]>>();
+        let coordinates = self
+            .get_nodal_coordinates()
             .iter()
-            .map(|nodes| {
-                Tetrahedron::minimum_scaled_jacobian(
-                    nodes
-                        .iter()
-                        .map(|&node| coordinates[node].clone())
-                        .collect(),
-                )
-            })
+            .map(|coordinate| [coordinate[0], coordinate[1], coordinate[2]])
+            .collect::<Vec<[f64; 3]>>();
+        let mesh = Mesh::<3>::from((
+            vec![MeshConnectivity::Tetrahedral(connectivity.into())],
+            coordinates.into(),
+        ));
+        mesh.minimum_scaled_jacobians()
+            .into_iter()
+            .flatten()
             .collect()
     }
     fn remesh(&mut self, _iterations: usize, _smoothing_method: &Smoothing, _size: Size) {
