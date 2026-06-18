@@ -12,10 +12,10 @@ use cli::{
     diff::diff,
     extract::extract,
     mesh::{Element, MeshSubcommand},
-    metrics::{MetricsSubcommand, metrics},
+    metrics::{MetricsArgs, metrics},
     remesh::{REMESH_DEFAULT_ITERS, remesh},
-    segment::{SegmentSubcommand, segment},
-    smooth::{SmoothSubcommand, smooth},
+    segment::{SegmentArgs, segment},
+    smooth::{SmoothArgs, smooth},
 };
 
 macro_rules! about {
@@ -177,10 +177,7 @@ enum Commands {
     },
 
     /// Quality metrics for an existing finite element mesh
-    Metrics {
-        #[command(subcommand)]
-        subcommand: MetricsSubcommand,
-    },
+    Metrics(MetricsArgs),
 
     /// Applies isotropic remeshing to an existing mesh
     Remesh {
@@ -202,16 +199,10 @@ enum Commands {
     },
 
     /// Creates a segmentation or voxelized mesh from an existing mesh
-    Segment {
-        #[command(subcommand)]
-        subcommand: SegmentSubcommand,
-    },
+    Segment(SegmentArgs),
 
     /// Applies smoothing to an existing mesh
-    Smooth {
-        #[command(subcommand)]
-        subcommand: SmoothSubcommand,
-    },
+    Smooth(SmoothArgs),
 }
 
 fn main() -> Result<(), ErrorWrapper> {
@@ -221,8 +212,8 @@ fn main() -> Result<(), ErrorWrapper> {
     let result = match args.command {
         Some(Commands::Convert { subcommand }) => match subcommand {
             ConvertSubcommand::Mesh(args) => {
-                is_quiet = args.subcommand.is_quiet();
-                convert_mesh(args.subcommand)
+                is_quiet = args.quiet;
+                convert_mesh(args)
             }
             ConvertSubcommand::Segmentation(args) => {
                 is_quiet = args.quiet;
@@ -288,14 +279,10 @@ fn main() -> Result<(), ErrorWrapper> {
                 cli::mesh::mesh(Element::Triangles, args)
             }
         },
-        Some(Commands::Metrics { subcommand }) => match subcommand {
-            MetricsSubcommand::Hex(args)
-            | MetricsSubcommand::Tet(args)
-            | MetricsSubcommand::Tri(args) => {
-                is_quiet = args.quiet;
-                metrics(args)
-            }
-        },
+        Some(Commands::Metrics(args)) => {
+            is_quiet = args.quiet;
+            metrics(args)
+        }
         Some(Commands::Remesh {
             input,
             output,
@@ -305,22 +292,14 @@ fn main() -> Result<(), ErrorWrapper> {
             is_quiet = quiet;
             remesh(input, output, iterations, quiet)
         }
-        Some(Commands::Segment { subcommand }) => match subcommand {
-            SegmentSubcommand::Hex(args)
-            | SegmentSubcommand::Tet(args)
-            | SegmentSubcommand::Tri(args) => {
-                is_quiet = args.quiet;
-                segment(args)
-            }
-        },
-        Some(Commands::Smooth { subcommand }) => match subcommand {
-            SmoothSubcommand::Hex(args)
-            | SmoothSubcommand::Tet(args)
-            | SmoothSubcommand::Tri(args) => {
-                is_quiet = args.quiet;
-                smooth(args)
-            }
-        },
+        Some(Commands::Segment(args)) => {
+            is_quiet = args.quiet;
+            segment(args)
+        }
+        Some(Commands::Smooth(args)) => {
+            is_quiet = args.quiet;
+            smooth(args)
+        }
         None => return Ok(()),
     };
     if !is_quiet {

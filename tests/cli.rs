@@ -83,7 +83,6 @@ fn convert_mesh_exo_to_inp() {
     run(&[
         "convert",
         "mesh",
-        "hex",
         "-i",
         exo.to_str().unwrap(),
         "-o",
@@ -121,7 +120,6 @@ fn metrics_csv_and_npy() {
         let metrics = out(extension);
         run(&[
             "metrics",
-            "hex",
             "-i",
             exo.to_str().unwrap(),
             "-o",
@@ -145,7 +143,6 @@ fn smooth_taubin() {
     let output = out("inp");
     run(&[
         "smooth",
-        "hex",
         "-i",
         inp.to_str().unwrap(),
         "-o",
@@ -194,7 +191,6 @@ fn segment_mesh_to_segmentation() {
     let output = out("npy");
     run(&[
         "segment",
-        "hex",
         "-i",
         exo.to_str().unwrap(),
         "-o",

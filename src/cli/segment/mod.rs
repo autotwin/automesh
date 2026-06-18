@@ -2,19 +2,8 @@ use super::{
     ErrorWrapper,
     io::{extension, invalid_output, read_mesh, write_mesh, write_segmentation},
 };
-use clap::Subcommand;
 use conspire::geometry::{grid::Voxels, mesh::Mesh};
 use std::time::Instant;
-
-#[derive(Subcommand)]
-pub enum SegmentSubcommand {
-    /// Segments an all-hexahedral mesh
-    Hex(SegmentArgs),
-    /// Segments an all-tetrahedral mesh
-    Tet(SegmentArgs),
-    /// Segments an all-triangular mesh
-    Tri(SegmentArgs),
-}
 
 #[derive(clap::Args)]
 pub struct SegmentArgs {

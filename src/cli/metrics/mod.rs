@@ -1,5 +1,4 @@
 use super::{ErrorWrapper, io::read_mesh};
-use clap::Subcommand;
 use conspire::{
     geometry::mesh::{Mesh, Verdict},
     io::{Npy, Write},
@@ -9,16 +8,6 @@ use std::{
     io::{BufWriter, Write as WriteIO},
     time::Instant,
 };
-
-#[derive(Subcommand)]
-pub enum MetricsSubcommand {
-    /// Quality metrics for an all-hexahedral finite element mesh
-    Hex(MetricsArgs),
-    /// Quality metrics for an all-tetrahedral finite element mesh
-    Tet(MetricsArgs),
-    /// Quality metrics for an all-triangular finite element mesh
-    Tri(MetricsArgs),
-}
 
 #[derive(clap::Args)]
 pub struct MetricsArgs {

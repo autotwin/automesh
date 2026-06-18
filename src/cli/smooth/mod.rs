@@ -37,16 +37,6 @@ pub enum MeshSmoothCommands {
     },
 }
 
-#[derive(Subcommand)]
-pub enum SmoothSubcommand {
-    /// Smooths an all-hexahedral mesh
-    Hex(SmoothArgs),
-    /// Smooths an all-tetrahedral mesh
-    Tet(SmoothArgs),
-    /// Smooths an all-triangular mesh
-    Tri(SmoothArgs),
-}
-
 #[derive(clap::Args)]
 pub struct SmoothArgs {
     #[command(subcommand)]

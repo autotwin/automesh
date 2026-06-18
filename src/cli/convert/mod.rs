@@ -14,43 +14,17 @@ pub enum ConvertSubcommand {
 
 #[derive(clap::Args)]
 pub struct ConvertMeshArgs {
-    #[command(subcommand)]
-    pub subcommand: ConvertMeshSubcommand,
-}
-
-#[derive(Subcommand)]
-pub enum ConvertMeshSubcommand {
-    /// Converts an all-hexahedral mesh
-    Hex(ConvertMeshSubcommandArgs),
-    /// Converts an all-tetrahedral mesh
-    Tet(ConvertMeshSubcommandArgs),
-    /// Converts an all-triangular mesh
-    Tri(ConvertMeshSubcommandArgs),
-}
-
-impl ConvertMeshSubcommand {
-    pub fn is_quiet(&self) -> bool {
-        match self {
-            ConvertMeshSubcommand::Hex(args) => args.quiet,
-            ConvertMeshSubcommand::Tet(args) => args.quiet,
-            ConvertMeshSubcommand::Tri(args) => args.quiet,
-        }
-    }
-}
-
-#[derive(clap::Args)]
-pub struct ConvertMeshSubcommandArgs {
     /// Mesh input file (exo | inp | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
-    input: String,
+    pub input: String,
 
     /// Mesh output file (exo | inp | mesh | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
-    output: String,
+    pub output: String,
 
     /// Pass to quiet the terminal output
     #[arg(action, long, short)]
-    quiet: bool,
+    pub quiet: bool,
 }
 
 #[derive(clap::Args)]
@@ -80,12 +54,7 @@ pub struct ConvertSegmentationArgs {
     pub quiet: bool,
 }
 
-pub fn convert_mesh(subcommand: ConvertMeshSubcommand) -> Result<(), ErrorWrapper> {
-    let args = match subcommand {
-        ConvertMeshSubcommand::Hex(args)
-        | ConvertMeshSubcommand::Tet(args)
-        | ConvertMeshSubcommand::Tri(args) => args,
-    };
+pub fn convert_mesh(args: ConvertMeshArgs) -> Result<(), ErrorWrapper> {
     let mesh = read_mesh(&args.input, args.quiet, true)?;
     write_mesh(&args.output, mesh, args.quiet)
 }
