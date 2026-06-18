@@ -1,14 +1,3 @@
-pub mod convert;
-pub mod defeature;
-pub mod diff;
-pub mod extract;
-pub mod io;
-pub mod mesh;
-pub mod metrics;
-pub mod remesh;
-pub mod segment;
-pub mod smooth;
-
 use std::{
     fmt::{self, Debug, Formatter},
     io::Error as ErrorIO,
@@ -39,9 +28,9 @@ impl From<String> for ErrorWrapper {
 }
 
 impl From<&str> for ErrorWrapper {
-    fn from(message: &str) -> ErrorWrapper {
+    fn from(error: &str) -> ErrorWrapper {
         ErrorWrapper {
-            message: message.to_string(),
+            message: error.to_string(),
         }
     }
 }

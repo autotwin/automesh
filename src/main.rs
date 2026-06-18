@@ -4,19 +4,28 @@ use std::{
     time::Instant,
 };
 
-mod cli;
-use cli::{
-    ErrorWrapper,
-    convert::{ConvertSubcommand, convert_mesh, convert_segmentation},
-    defeature::defeature,
-    diff::diff,
-    extract::extract,
-    mesh::{Element, MeshSubcommand},
-    metrics::{MetricsArgs, metrics},
-    remesh::{REMESH_DEFAULT_ITERS, remesh},
-    segment::{SegmentArgs, segment},
-    smooth::{SmoothArgs, smooth},
-};
+mod convert;
+mod defeature;
+mod diff;
+mod error;
+mod extract;
+mod io;
+mod mesh;
+mod metrics;
+mod remesh;
+mod segment;
+mod smooth;
+
+use convert::{ConvertSubcommand, convert_mesh, convert_segmentation};
+use defeature::defeature;
+use diff::diff;
+use error::ErrorWrapper;
+use extract::extract;
+use mesh::{Element, MeshSubcommand};
+use metrics::{MetricsArgs, metrics};
+use remesh::{REMESH_DEFAULT_ITERS, remesh};
+use segment::{SegmentArgs, segment};
+use smooth::{SmoothArgs, smooth};
 
 macro_rules! about {
     () => {
@@ -272,11 +281,11 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => {
                 is_quiet = args.quiet;
-                cli::mesh::mesh(Element::Hexahedra, args)
+                mesh::mesh(Element::Hexahedra, args)
             }
             MeshSubcommand::Tri(args) => {
                 is_quiet = args.quiet;
-                cli::mesh::mesh(Element::Triangles, args)
+                mesh::mesh(Element::Triangles, args)
             }
         },
         Some(Commands::Metrics(args)) => {
