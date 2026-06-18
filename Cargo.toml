@@ -4,7 +4,7 @@ categories = ["mathematics", "science"]
 description = "Automatic mesh generation."
 documentation = "https://docs.rs/automesh"
 edition = "2024"
-exclude = [".github/", "benches/", "book*", "pubs/", "sandbox/", "tests/"]
+exclude = [".github/", "book*", "pubs/", "sandbox/", "tests/"]
 homepage = "https://autotwin.github.io/automesh"
 keywords = ["mesh"]
 license = "GPL-3.0"
@@ -12,22 +12,10 @@ name = "automesh"
 repository = "https://github.com/autotwin/automesh"
 version = "0.3.10"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
-
 [dependencies]
 clap = { version = "=4.6.1", features = ["derive"] }
-chrono = "=0.4.44"
-# conspire = { version = "=0.6.2", features = ["geometry, netcdf"] }
-conspire = { path = "../../mrbuche/conspire.rs", features = ["fem", "geometry", "netcdf"] }
-ndarray = { version = "=0.17.2", features = ["rayon"] }
-ndarray-npy = "=0.10.0"
-netcdf = { version = "=0.12.0", features = ["ndarray", "static"] }
-pyo3 = { version = "=0.28.3", features = ["extension-module"], optional = true }
-
-[features]
-profile = []
-python = ["dep:pyo3"]
+# conspire = { version = "=0.6.3", features = ["geometry", "netcdf"] }
+conspire = { path = "../../mrbuche/conspire.rs", features = ["geometry", "netcdf"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]

@@ -1,25 +1,27 @@
 use super::{
     ErrorWrapper,
-    input::{invalid_input, read_segmentation, read_tessellation},
-    output::{validate_output, write_finite_elements, write_metrics},
+    io::{extension, invalid_input, read_segmentation, write_mesh},
+    metrics::write_metrics,
     remesh::{MeshRemeshCommands, apply_remeshing},
     smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
-use automesh::{
-    FiniteElementMethods, HEX, HexahedralFiniteElements, Octree, Remove, Scale, Size, TET, TRI,
-    Tessellation, TetrahedralFiniteElements, Translate, TriangularFiniteElements,
-};
 use clap::Subcommand;
-use conspire::math::Tensor;
-use std::{path::Path, time::Instant};
+use conspire::{
+    geometry::{
+        Coordinate, Coordinates,
+        grid::Voxels,
+        mesh::{Mesh, Tessellation},
+        segmentation::Segmentation,
+    },
+    math::Tensor,
+};
+use std::time::Instant;
 
 #[derive(Subcommand)]
 pub enum MeshSubcommand {
-    /// Creates an all-hexahedral mesh from a tessellation or segmentation
+    /// Creates an all-hexahedral mesh from a segmentation
     Hex(MeshArgs),
-    /// Creates an all-tetrahedral mesh from a tessellation or segmentation
-    Tet(MeshArgs),
-    /// Creates all-triangular isosurface(s) from a tessellation or segmentation
+    /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshArgs),
 }
 
@@ -28,11 +30,11 @@ pub struct MeshArgs {
     #[command(subcommand)]
     pub smoothing: Option<MeshSmoothCommands>,
 
-    /// Tessellation (stl) or segmentation (npy | spn) input file
+    /// Segmentation (npy | spn) input file
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Mesh output file (exo | inp | mesh | stl)
+    /// Mesh output file (exo | inp | mesh | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -55,10 +57,6 @@ pub struct MeshArgs {
     /// Voxel IDs to remove from the mesh
     #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
     pub remove: Option<Vec<usize>>,
-
-    /// Desired element size on the surface
-    #[arg(long, short = 's', value_name = "VAL")]
-    pub size: Option<f64>,
 
     /// Scaling (> 0.0) in the x-direction, applied before translation
     #[arg(default_value_t = 1.0, long, value_name = "SCALE")]
@@ -107,373 +105,137 @@ pub struct MeshArgs {
     #[arg(action, long, short)]
     pub quiet: bool,
 }
-pub enum MeshBasis {
-    Leaves,
-    Surfaces,
-    Voxels,
+
+pub enum Element {
+    Hexahedra,
+    Triangles,
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn mesh<const M: usize, const N: usize, const O: usize, T>(
-    smoothing: Option<MeshSmoothCommands>,
-    input: String,
-    output: String,
-    defeature: Option<usize>,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    remove: Option<Vec<usize>>,
-    size: Option<f64>,
-    xscale: f64,
-    yscale: f64,
-    zscale: f64,
-    xtranslate: f64,
-    ytranslate: f64,
-    ztranslate: f64,
-    metrics: Option<String>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<M, N, O>
-        + From<Tessellation>
-        + TryFrom<(Tessellation, Size), Error = String>,
-    Tessellation: From<T>,
-{
-    let scale = Scale::from([xscale, yscale, zscale]);
-    let translate = Translate::from([xtranslate, ytranslate, ztranslate]);
-    let input_extension = Path::new(&input).extension().and_then(|ext| ext.to_str());
-    match input_extension {
-        Some("npy") | Some("spn") => mesh_segmentation::<N>(
-            smoothing, input, output, defeature, nelx, nely, nelz, remove, scale, translate,
-            metrics, quiet,
-        ),
-        Some("stl") => mesh_tessellation::<M, N, O, T>(
-            smoothing, input, output, size, scale, translate, metrics, quiet,
-        ),
-        _ => Err(invalid_input(&input, input_extension)),
-    }
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn mesh_segmentation<const N: usize>(
-    smoothing: Option<MeshSmoothCommands>,
-    input: String,
-    output: String,
-    defeature: Option<usize>,
-    nelx: Option<usize>,
-    nely: Option<usize>,
-    nelz: Option<usize>,
-    remove: Option<Vec<usize>>,
-    scale: Scale,
-    translate: Translate,
-    metrics: Option<String>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    let mut time = Instant::now();
-    let remove: Remove = Remove::from(remove);
-    let mut input_type = read_segmentation(
-        input,
-        nelx,
-        nely,
-        nelz,
-        remove,
-        scale.clone(),
-        translate.clone(),
-        quiet,
-        true,
-    )?;
-    validate_output("mesh", &output)?;
-    match N {
-        HEX => {
-            if let Some(min_num_voxels) = defeature {
-                if !quiet {
-                    time = Instant::now();
-                    println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {min_num_voxels} voxels or less",
-                    );
+fn read_voxels(args: &MeshArgs) -> Result<Voxels<u8>, ErrorWrapper> {
+    match extension(&args.input) {
+        Some("npy") | Some("spn") => {
+            let mut voxels = read_segmentation(
+                &args.input,
+                args.nelx,
+                args.nely,
+                args.nelz,
+                args.quiet,
+                true,
+            )?;
+            if let Some(min) = args.defeature {
+                let time = Instant::now();
+                if !args.quiet {
+                    println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less");
                 }
-                input_type = input_type.defeature(min_num_voxels);
-                if !quiet {
+                voxels = voxels.defeature(min);
+                if !args.quiet {
                     println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
                 }
             }
-            if !quiet {
-                time = Instant::now();
-                print!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
-                mesh_print_info(MeshBasis::Voxels, &scale, &translate)
-            }
-            let mut finite_elements: HexahedralFiniteElements = input_type.into();
-            if !quiet {
-                let mut blocks = finite_elements.get_element_blocks().clone();
-                let elements = blocks.len();
-                blocks.sort();
-                blocks.dedup();
-                println!(
-                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
-                    time.elapsed(),
-                    blocks.len(),
-                    elements,
-                    finite_elements.get_nodal_coordinates().len()
-                );
-            }
-            if let Some(options) = smoothing {
-                match options {
-                    MeshSmoothCommands::Smooth {
-                        remeshing: _,
-                        iterations,
-                        method,
-                        pass_band,
-                        scale,
-                    } => {
-                        apply_smoothing_method(
-                            &mut finite_elements,
-                            iterations,
-                            method,
-                            pass_band,
-                            scale,
-                            quiet,
-                        )?;
-                    }
-                }
-            }
-            if let Some(file) = metrics {
-                write_metrics(&finite_elements, file, quiet)?
-            }
-            write_finite_elements(output, finite_elements, quiet)?;
+            Ok(voxels)
         }
-        TET => {
-            if let Some(min_num_voxels) = defeature {
-                if !quiet {
-                    time = Instant::now();
-                    println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {min_num_voxels} voxels or less"
-                    );
-                }
-                input_type = input_type.defeature(min_num_voxels);
-                if !quiet {
-                    println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-                }
-            }
-            if !quiet {
-                time = Instant::now();
-                print!("     \x1b[1;96mMeshing\x1b[0m voxels into tetrahedra");
-                mesh_print_info(MeshBasis::Voxels, &scale, &translate)
-            }
-            let mut finite_elements: TetrahedralFiniteElements = input_type.into();
-            if !quiet {
-                let mut blocks = finite_elements.get_element_blocks().clone();
-                let elements = blocks.len();
-                blocks.sort();
-                blocks.dedup();
-                println!(
-                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
-                    time.elapsed(),
-                    blocks.len(),
-                    elements,
-                    finite_elements.get_nodal_coordinates().len()
-                );
-            }
-            if let Some(options) = smoothing {
-                match options {
-                    MeshSmoothCommands::Smooth {
-                        remeshing: _,
-                        iterations,
-                        method,
-                        pass_band,
-                        scale,
-                    } => {
-                        apply_smoothing_method(
-                            &mut finite_elements,
-                            iterations,
-                            method,
-                            pass_band,
-                            scale,
-                            quiet,
-                        )?;
-                    }
-                }
-            }
-            if let Some(file) = metrics {
-                write_metrics(&finite_elements, file, quiet)?
-            }
-            write_finite_elements(output, finite_elements, quiet)?;
-        }
-        TRI => {
-            if !quiet {
-                time = Instant::now();
-                if let Some(min_num_voxels) = defeature {
-                    println!(
-                        " \x1b[1;96mDefeaturing\x1b[0m clusters of {min_num_voxels} voxels or less",
-                    );
-                } else {
-                    mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
-                }
-            }
-            let mut tree = Octree::from(input_type);
-            tree.balance(true);
-            if let Some(min_num_voxels) = defeature {
-                tree.defeature(min_num_voxels);
-                println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-                time = Instant::now();
-                mesh_print_info(MeshBasis::Surfaces, &scale, &translate)
-            }
-            let mut finite_elements = TriangularFiniteElements::from(tree);
-            if !quiet {
-                let mut blocks = finite_elements.get_element_blocks().clone();
-                let elements = blocks.len();
-                blocks.sort();
-                blocks.dedup();
-                println!(
-                    "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
-                    time.elapsed(),
-                    blocks.len(),
-                    elements,
-                    finite_elements.get_nodal_coordinates().len()
-                );
-            }
-            if let Some(options) = smoothing {
-                match options {
-                    MeshSmoothCommands::Smooth {
-                        remeshing,
-                        iterations,
-                        method,
-                        pass_band,
-                        scale,
-                    } => {
-                        apply_smoothing_method(
-                            &mut finite_elements,
-                            iterations,
-                            method,
-                            pass_band,
-                            scale,
-                            quiet,
-                        )?;
-                        if let Some(MeshRemeshCommands::Remesh {
-                            iterations,
-                            quiet: _,
-                        }) = remeshing
-                        {
-                            apply_remeshing(&mut finite_elements, iterations, quiet, true)?;
-                        }
-                    }
-                }
-            }
-            if let Some(file) = metrics {
-                write_metrics(&finite_elements, file, quiet)?
-            }
-            write_finite_elements(output, finite_elements, quiet)?;
-        }
-        _ => panic!(),
+        extension => Err(invalid_input(&args.input, extension)),
     }
-    Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn mesh_tessellation<const M: usize, const N: usize, const O: usize, T>(
-    smoothing: Option<MeshSmoothCommands>,
-    input: String,
-    output: String,
-    size: Option<f64>,
-    scale: Scale,
-    translate: Translate,
-    metrics: Option<String>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<M, N, O> + TryFrom<(Tessellation, Size), Error = String>,
-    Tessellation: From<T>,
-{
-    let mut time = Instant::now();
-    let tessellation = read_tessellation(&input, quiet, true)?;
-    if !quiet {
-        time = Instant::now();
-        match N {
-            HEX => print!("     \x1b[1;96mMeshing\x1b[0m adaptive hexahedra"),
-            TET => print!("     \x1b[1;96mMeshing\x1b[0m adaptive tetrahedra"),
-            TRI => print!("     \x1b[1;96mMeshing\x1b[0m adaptive triangles"),
-            _ => panic!(),
+fn finish(mut mesh: Mesh<3>, args: MeshArgs) -> Result<(), ErrorWrapper> {
+    if let Some(MeshSmoothCommands::Smooth {
+        remeshing,
+        iterations,
+        method,
+        pass_band,
+        scale,
+    }) = args.smoothing
+    {
+        apply_smoothing_method(&mut mesh, iterations, method, pass_band, scale, args.quiet)?;
+        if let Some(MeshRemeshCommands::Remesh { iterations, .. }) = remeshing {
+            mesh = apply_remeshing(mesh, iterations, args.quiet)?;
         }
-        mesh_print_info(MeshBasis::Voxels, &scale, &translate)
     }
-    let mut finite_elements = T::try_from((tessellation, size))?;
-    if !quiet {
-        #[cfg(feature = "profile")]
-        let other_time = Instant::now();
-        let mut blocks = finite_elements.get_element_blocks().clone();
-        let elements = blocks.len();
-        blocks.sort();
-        blocks.dedup();
-        #[cfg(feature = "profile")]
+    if let Some(file) = &args.metrics {
+        write_metrics(&mesh, file, args.quiet)?;
+    }
+    write_mesh(&args.output, mesh, args.quiet)
+}
+
+pub fn mesh(element: Element, args: MeshArgs) -> Result<(), ErrorWrapper> {
+    let voxels = read_voxels(&args)?;
+    let time = Instant::now();
+    let mesh = match element {
+        Element::Hexahedra => {
+            if !args.quiet {
+                println!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
+            }
+            let remove: Option<Vec<u8>> = args
+                .remove
+                .as_ref()
+                .map(|ids| ids.iter().map(|&id| id as u8).collect());
+            let scale = Coordinate::from([args.xscale, args.yscale, args.zscale]);
+            let translate = Coordinate::from([args.xtranslate, args.ytranslate, args.ztranslate]);
+            let segmentation = Segmentation::new(voxels, scale, translate);
+            Mesh::from_segmentation(segmentation, remove.as_deref())
+        }
+        Element::Triangles => {
+            if !args.quiet {
+                println!("     \x1b[1;96mMeshing\x1b[0m voxels into triangles");
+            }
+            let voxels = remove_materials(voxels, args.remove.as_deref());
+            let mesh = Mesh::from(Tessellation::from(voxels));
+            scaled(
+                mesh,
+                [args.xscale, args.yscale, args.zscale],
+                [args.xtranslate, args.ytranslate, args.ztranslate],
+            )
+        }
+    };
+    if !args.quiet {
         println!(
-            "             \x1b[1;93mShow number of blocks\x1b[0m {:?}",
-            other_time.elapsed()
-        );
-        println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
             time.elapsed(),
-            blocks.len(),
-            elements,
-            finite_elements.get_nodal_coordinates().len()
+            mesh.number_of_elements(),
+            mesh.number_of_nodes()
         );
     }
-    if let Some(options) = smoothing {
-        match options {
-            MeshSmoothCommands::Smooth {
-                remeshing: _,
-                iterations,
-                method,
-                pass_band,
-                scale,
-            } => {
-                apply_smoothing_method(
-                    &mut finite_elements,
-                    iterations,
-                    method,
-                    pass_band,
-                    scale,
-                    quiet,
-                )?;
-            }
-        }
-    }
-    if let Some(file) = metrics {
-        write_metrics(&finite_elements, file, quiet)?
-    }
-    write_finite_elements(output, finite_elements, quiet)
+    finish(mesh, args)
 }
 
-pub fn mesh_print_info(basis: MeshBasis, scale: &Scale, translate: &Translate) {
-    match basis {
-        MeshBasis::Leaves => {
-            print!("     \x1b[1;96mMeshing\x1b[0m leaves into hexahedra")
+/// Zeroes out (treats as void) any voxels whose material is in `remove`.
+fn remove_materials(voxels: Voxels<u8>, remove: Option<&[usize]>) -> Voxels<u8> {
+    match remove {
+        Some(remove) if !remove.is_empty() => {
+            let nel = *voxels.nel();
+            let data = voxels
+                .data()
+                .iter()
+                .map(|&block| {
+                    if remove.contains(&(block as usize)) {
+                        0
+                    } else {
+                        block
+                    }
+                })
+                .collect();
+            Voxels::new(data, nel)
         }
-        MeshBasis::Surfaces => {
-            print!("     \x1b[1;96mMeshing\x1b[0m internal surfaces")
-        }
-        MeshBasis::Voxels => {}
+        _ => voxels,
     }
-    if scale != &Default::default() || translate != &Default::default() {
-        print!(" \x1b[2m[");
-        if scale.x() != &1.0 {
-            print!("xscale: {}, ", scale.x())
-        }
-        if scale.y() != &1.0 {
-            print!("yscale: {}, ", scale.y())
-        }
-        if scale.z() != &1.0 {
-            print!("zscale: {}, ", scale.z())
-        }
-        if translate.x() != &0.0 {
-            print!("xtranslate: {}, ", translate.x())
-        }
-        if translate.y() != &0.0 {
-            print!("ytranslate: {}, ", translate.y())
-        }
-        if translate.z() != &0.0 {
-            print!("ztranslate: {}, ", translate.z())
-        }
-        println!("\x1b[2D]\x1b[0m")
-    } else {
-        println!()
+}
+
+/// Applies per-axis scaling (before translation) to the mesh coordinates.
+fn scaled(mesh: Mesh<3>, scale: [f64; 3], translate: [f64; 3]) -> Mesh<3> {
+    if scale == [1.0, 1.0, 1.0] && translate == [0.0, 0.0, 0.0] {
+        return mesh;
     }
+    let (connectivities, coordinates) = mesh.into();
+    let coordinates: Coordinates<3> = coordinates
+        .iter()
+        .map(|coordinate| {
+            Coordinate::from([
+                coordinate[0] * scale[0] + translate[0],
+                coordinate[1] * scale[1] + translate[1],
+                coordinate[2] * scale[2] + translate[2],
+            ])
+        })
+        .collect();
+    Mesh::from((connectivities.into_members(), coordinates))
 }

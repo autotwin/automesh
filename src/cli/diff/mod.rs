@@ -1,4 +1,7 @@
-use super::{ErrorWrapper, input::read_voxels, output::write_voxels};
+use super::{
+    ErrorWrapper,
+    io::{read_segmentation, write_segmentation},
+};
 
 pub fn diff(
     input: Vec<String>,
@@ -8,7 +11,7 @@ pub fn diff(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let voxels_1 = read_voxels(&input[0], nelx, nely, nelz, quiet, true)?;
-    let voxels_2 = read_voxels(&input[1], nelx, nely, nelz, quiet, false)?;
-    write_voxels(&output, &voxels_1.diff(&voxels_2), quiet)
+    let voxels_1 = read_segmentation(&input[0], nelx, nely, nelz, quiet, true)?;
+    let voxels_2 = read_segmentation(&input[1], nelx, nely, nelz, quiet, false)?;
+    write_segmentation(&output, &voxels_1.diff(&voxels_2), quiet)
 }

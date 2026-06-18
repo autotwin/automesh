@@ -1,19 +1,14 @@
 use super::{
-    super::{
-        HexahedralFiniteElements, Remove, Scale, TetrahedralFiniteElements, Translate,
-        TriangularFiniteElements,
-    },
     ErrorWrapper,
-    input::{read_finite_elements, read_segmentation},
-    output::{write_finite_elements, write_segmentation},
+    io::{read_mesh, read_segmentation, write_mesh, write_segmentation},
 };
 use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum ConvertSubcommand {
-    /// Converts mesh file types (exo | inp | stl) -> (exo | mesh | stl)
+    /// Converts mesh file types (exo | inp | stl | vtu) -> (exo | inp | mesh | stl | vtu)
     Mesh(ConvertMeshArgs),
-    /// Converts segmentation file types (npy | spn) -> (npy | spn)
+    /// Converts segmentation file types (npy | spn) -> (npy | spn | vti)
     Segmentation(ConvertSegmentationArgs),
 }
 
@@ -45,11 +40,11 @@ impl ConvertMeshSubcommand {
 
 #[derive(clap::Args)]
 pub struct ConvertMeshSubcommandArgs {
-    /// Mesh input file (exo | inp | stl)
+    /// Mesh input file (exo | inp | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     input: String,
 
-    /// Mesh output file (exo | mesh | stl)
+    /// Mesh output file (exo | inp | mesh | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     output: String,
 
@@ -64,7 +59,7 @@ pub struct ConvertSegmentationArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Segmentation output file (npy | spn)
+    /// Segmentation output file (npy | spn | vti)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -86,35 +81,13 @@ pub struct ConvertSegmentationArgs {
 }
 
 pub fn convert_mesh(subcommand: ConvertMeshSubcommand) -> Result<(), ErrorWrapper> {
-    match subcommand {
-        ConvertMeshSubcommand::Hex(args) => write_finite_elements(
-            args.output,
-            read_finite_elements::<_, _, _, HexahedralFiniteElements>(
-                &args.input,
-                args.quiet,
-                true,
-            )?,
-            args.quiet,
-        ),
-        ConvertMeshSubcommand::Tet(args) => write_finite_elements(
-            args.output,
-            read_finite_elements::<_, _, _, TetrahedralFiniteElements>(
-                &args.input,
-                args.quiet,
-                true,
-            )?,
-            args.quiet,
-        ),
-        ConvertMeshSubcommand::Tri(args) => write_finite_elements(
-            args.output,
-            read_finite_elements::<_, _, _, TriangularFiniteElements>(
-                &args.input,
-                args.quiet,
-                true,
-            )?,
-            args.quiet,
-        ),
-    }
+    let args = match subcommand {
+        ConvertMeshSubcommand::Hex(args)
+        | ConvertMeshSubcommand::Tet(args)
+        | ConvertMeshSubcommand::Tri(args) => args,
+    };
+    let mesh = read_mesh(&args.input, args.quiet, true)?;
+    write_mesh(&args.output, mesh, args.quiet)
 }
 
 pub fn convert_segmentation(
@@ -125,19 +98,6 @@ pub fn convert_segmentation(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    write_segmentation(
-        output,
-        read_segmentation(
-            input,
-            nelx,
-            nely,
-            nelz,
-            Remove::default(),
-            Scale::default(),
-            Translate::default(),
-            quiet,
-            true,
-        )?,
-        quiet,
-    )
+    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet, true)?;
+    write_segmentation(&output, &voxels, quiet)
 }

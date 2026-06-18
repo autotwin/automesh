@@ -1,11 +1,11 @@
 use super::{
     ErrorWrapper,
-    input::read_finite_elements,
-    output::{write_finite_elements, write_metrics},
+    io::{read_mesh, write_mesh},
+    metrics::write_metrics,
     remesh::{MeshRemeshCommands, apply_remeshing},
 };
-use automesh::{FiniteElementMethods, Smoothing, Tessellation};
 use clap::Subcommand;
+use conspire::geometry::mesh::{Mesh, Smoothing, Weighting};
 use std::time::Instant;
 
 pub const TAUBIN_DEFAULT_ITERS: usize = 20;
@@ -40,28 +40,28 @@ pub enum MeshSmoothCommands {
 #[derive(Subcommand)]
 pub enum SmoothSubcommand {
     /// Smooths an all-hexahedral mesh
-    Hex(SmoothElementArgs),
+    Hex(SmoothArgs),
     /// Smooths an all-tetrahedral mesh
-    Tet(SmoothElementArgs),
+    Tet(SmoothArgs),
     /// Smooths an all-triangular mesh
-    Tri(SmoothTriArgs),
+    Tri(SmoothArgs),
 }
 
 #[derive(clap::Args)]
-pub struct SmoothElementArgs {
+pub struct SmoothArgs {
     #[command(subcommand)]
     pub remeshing: Option<MeshRemeshCommands>,
 
-    /// Mesh input file (exo | inp)
+    /// Mesh input file (exo | inp | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Smoothed mesh output file (exo | inp | mesh)
+    /// Smoothed mesh output file (exo | inp | mesh | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
     /// Number of smoothing iterations
-    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
+    #[arg(default_value_t = TAUBIN_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
     pub iterations: usize,
 
     /// Smoothing method (Laplace | Taubin) [default: Taubin]
@@ -69,11 +69,11 @@ pub struct SmoothElementArgs {
     pub method: Option<String>,
 
     /// Pass-band frequency (for Taubin only)
-    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
+    #[arg(default_value_t = TAUBIN_DEFAULT_BAND, long, short = 'k', value_name = "FREQ")]
     pub pass_band: f64,
 
     /// Scaling parameter for all smoothing methods
-    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
+    #[arg(default_value_t = TAUBIN_DEFAULT_SCALE, long, short, value_name = "SCALE")]
     pub scale: f64,
 
     /// Quality metrics output file (csv | npy)
@@ -85,130 +85,66 @@ pub struct SmoothElementArgs {
     pub quiet: bool,
 }
 
-#[derive(clap::Args)]
-pub struct SmoothTriArgs {
-    #[command(subcommand)]
-    pub remeshing: Option<MeshRemeshCommands>,
-
-    /// Mesh input file (exo | inp | stl)
-    #[arg(long, short, value_name = "FILE")]
-    pub input: String,
-
-    /// Smoothed mesh output file (exo | inp | mesh | stl)
-    #[arg(long, short, value_name = "FILE")]
-    pub output: String,
-
-    /// Number of smoothing iterations
-    #[arg(default_value_t = 20, long, short = 'n', value_name = "NUM")]
-    pub iterations: usize,
-
-    /// Smoothing method (Laplace | Taubin) [default: Taubin]
-    #[arg(long, short, value_name = "NAME")]
-    pub method: Option<String>,
-
-    /// Pass-band frequency (for Taubin only)
-    #[arg(default_value_t = 0.1, long, short = 'k', value_name = "FREQ")]
-    pub pass_band: f64,
-
-    /// Scaling parameter for all smoothing methods
-    #[arg(default_value_t = 0.6307, long, short, value_name = "SCALE")]
-    pub scale: f64,
-
-    /// Quality metrics output file (csv | npy)
-    #[arg(long, value_name = "FILE")]
-    pub metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
-}
-
-#[allow(clippy::too_many_arguments)]
-pub fn smooth<const M: usize, const N: usize, const O: usize, T>(
-    input: String,
-    output: String,
-    iterations: usize,
-    method: Option<String>,
-    pass_band: f64,
-    scale: f64,
-    remeshing: Option<MeshRemeshCommands>,
-    metrics: Option<String>,
-    quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<M, N, O> + From<Tessellation>,
-    Tessellation: From<T>,
-{
-    let mut finite_elements: T = read_finite_elements(&input, quiet, true)?;
+pub fn smooth(args: SmoothArgs) -> Result<(), ErrorWrapper> {
+    let mut mesh = read_mesh(&args.input, args.quiet, true)?;
     apply_smoothing_method(
-        &mut finite_elements,
-        iterations,
-        method,
-        pass_band,
-        scale,
-        quiet,
+        &mut mesh,
+        args.iterations,
+        args.method,
+        args.pass_band,
+        args.scale,
+        args.quiet,
     )?;
-    if let Some(MeshRemeshCommands::Remesh {
-        iterations,
-        quiet: _,
-    }) = remeshing
-    {
-        apply_remeshing(&mut finite_elements, iterations, quiet, true)?;
+    if let Some(MeshRemeshCommands::Remesh { iterations, .. }) = args.remeshing {
+        mesh = apply_remeshing(mesh, iterations, args.quiet)?;
     }
-    if let Some(file) = metrics {
-        write_metrics(&finite_elements, file, quiet)?
+    if let Some(file) = args.metrics {
+        write_metrics(&mesh, &file, args.quiet)?;
     }
-    write_finite_elements(output, finite_elements, quiet)
+    write_mesh(&args.output, mesh, args.quiet)
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn apply_smoothing_method<const M: usize, const N: usize, const O: usize, T>(
-    output_type: &mut T,
+pub fn apply_smoothing_method(
+    mesh: &mut Mesh<3>,
     iterations: usize,
     method: Option<String>,
     pass_band: f64,
     scale: f64,
     quiet: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<M, N, O>,
-{
+) -> Result<(), ErrorWrapper> {
     let time = Instant::now();
-    let smoothing_method = method.unwrap_or("Taubin".to_string());
-    if matches!(
-        smoothing_method.as_str(),
-        "Laplacian" | "Laplace" | "laplacian" | "laplace" | "Taubin" | "taubin"
-    ) {
-        if !quiet {
-            print!("   \x1b[1;96mSmoothing\x1b[0m ");
-            match smoothing_method.as_str() {
-                "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-                    println!("with {iterations} iterations of Laplace")
-                }
-                "Taubin" | "taubin" => {
-                    println!("with {iterations} iterations of Taubin")
-                }
-                _ => panic!(),
+    let method = method.unwrap_or_else(|| "Taubin".to_string());
+    let smoothing = match method.as_str() {
+        "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
+            if !quiet {
+                println!("   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Laplace");
+            }
+            Smoothing::Laplace {
+                iterations,
+                scale,
+                weighting: Weighting::Uniform,
             }
         }
-        output_type.node_element_connectivity()?;
-        output_type.node_node_connectivity()?;
-        match smoothing_method.as_str() {
-            "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-                output_type.smooth(&Smoothing::Laplacian(iterations, scale))?;
+        "Taubin" | "taubin" => {
+            if !quiet {
+                println!("   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Taubin");
             }
-            "Taubin" | "taubin" => {
-                output_type.smooth(&Smoothing::Taubin(iterations, pass_band, scale))?;
+            Smoothing::Taubin {
+                iterations,
+                pass_band,
+                scale,
+                weighting: Weighting::Uniform,
             }
-            _ => panic!(),
         }
-        if !quiet {
-            println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+        _ => {
+            return Err(ErrorWrapper::from(format!(
+                "Invalid smoothing method {method} specified"
+            )));
         }
-        Ok(())
-    } else {
-        Err(format!(
-            "Invalid smoothing method {smoothing_method} specified",
-        ))?
+    };
+    mesh.smooth(smoothing);
+    if !quiet {
+        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     }
+    Ok(())
 }

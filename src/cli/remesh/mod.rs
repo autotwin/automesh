@@ -1,12 +1,9 @@
 use super::{
     ErrorWrapper,
-    input::read_finite_elements,
-    output::write_finite_elements,
-    smooth::{TAUBIN_DEFAULT_BAND, TAUBIN_DEFAULT_ITERS, TAUBIN_DEFAULT_SCALE},
+    io::{read_mesh, write_mesh},
 };
-use automesh::{FiniteElementMethods, Smoothing, TriangularFiniteElements};
 use clap::Subcommand;
-use conspire::math::Tensor;
+use conspire::geometry::mesh::{Mesh, Remeshing};
 use std::time::Instant;
 
 pub const REMESH_DEFAULT_ITERS: usize = 5;
@@ -31,51 +28,31 @@ pub fn remesh(
     iterations: usize,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let mut finite_elements =
-        read_finite_elements::<_, _, _, TriangularFiniteElements>(&input, quiet, true)?;
-    apply_remeshing(&mut finite_elements, iterations, quiet, false)?;
-    write_finite_elements(output, finite_elements, quiet)
+    let mesh = read_mesh(&input, quiet, true)?;
+    let mesh = apply_remeshing(mesh, iterations, quiet)?;
+    write_mesh(&output, mesh, quiet)
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn apply_remeshing<const M: usize, const N: usize, const O: usize, T>(
-    finite_elements: &mut T,
+pub fn apply_remeshing(
+    mesh: Mesh<3>,
     iterations: usize,
     quiet: bool,
-    smoothed: bool,
-) -> Result<(), ErrorWrapper>
-where
-    T: FiniteElementMethods<M, N, O>,
-{
+) -> Result<Mesh<3>, ErrorWrapper> {
     let time = Instant::now();
     if !quiet {
-        println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations")
+        println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations");
     }
-    if !smoothed {
-        finite_elements.node_element_connectivity()?;
-        finite_elements.node_node_connectivity()?;
-    }
-    finite_elements.remesh(
+    let mesh = mesh.remesh(Remeshing::Isotropic {
         iterations,
-        &Smoothing::Taubin(
-            TAUBIN_DEFAULT_ITERS,
-            TAUBIN_DEFAULT_BAND,
-            TAUBIN_DEFAULT_SCALE,
-        ),
-        None,
-    );
+        length: None,
+    })?;
     if !quiet {
-        let mut blocks = finite_elements.get_element_blocks().clone();
-        let elements = blocks.len();
-        blocks.sort();
-        blocks.dedup();
         println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} blocks, {} elements, {} nodes]\x1b[0m",
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
             time.elapsed(),
-            blocks.len(),
-            elements,
-            finite_elements.get_nodal_coordinates().len()
+            mesh.number_of_elements(),
+            mesh.number_of_nodes()
         );
     }
-    Ok(())
+    Ok(mesh)
 }

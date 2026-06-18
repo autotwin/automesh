@@ -1,5 +1,7 @@
-use super::{ErrorWrapper, input::read_segmentation, output::write_segmentation};
-use automesh::{Extraction, Remove, Scale, Translate};
+use super::{
+    ErrorWrapper,
+    io::{read_segmentation, write_segmentation},
+};
 
 #[allow(clippy::too_many_arguments)]
 pub fn extract(
@@ -16,19 +18,7 @@ pub fn extract(
     zmax: usize,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let mut voxels = read_segmentation(
-        input,
-        nelx,
-        nely,
-        nelz,
-        Remove::default(),
-        Scale::default(),
-        Translate::default(),
-        quiet,
-        true,
-    )?;
-    voxels.extract(Extraction::from_input([
-        xmin, xmax, ymin, ymax, zmin, zmax,
-    ])?);
-    write_segmentation(output, voxels, quiet)
+    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet, true)?;
+    let extracted = voxels.extract([xmin..xmax + 1, ymin..ymax + 1, zmin..zmax + 1]);
+    write_segmentation(&output, &extracted, quiet)
 }
