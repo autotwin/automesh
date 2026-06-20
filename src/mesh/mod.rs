@@ -145,9 +145,18 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs) -> Result<(), ErrorWrapper> {
         method,
         pass_band,
         scale,
+        hierarchical,
     }) = args.smoothing
     {
-        apply_smoothing_method(&mut mesh, iterations, method, pass_band, scale, args.quiet)?;
+        apply_smoothing_method(
+            &mut mesh,
+            iterations,
+            method,
+            pass_band,
+            scale,
+            hierarchical,
+            args.quiet,
+        )?;
         if let Some(MeshRemeshCommands::Remesh { iterations, .. }) = remeshing {
             mesh = apply_remeshing(mesh, iterations, args.quiet)?;
         }

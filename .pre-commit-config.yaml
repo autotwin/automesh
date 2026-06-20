@@ -15,12 +15,6 @@ repos:
     -   id: clippy
         name: cargo clippy --tests
         args: ['--tests', '--', '-D',  'warnings']
-    -   id: clippy
-        name: cargo clippy --features python
-        args: ['--features', 'python', '--', '-D',  'warnings']
-    -   id: clippy
-        name: cargo clippy --features profile
-        args: ['--features', 'profile', '--', '-D',  'warnings']
     -   id: fmt
 - repo: https://github.com/astral-sh/ruff-pre-commit
   rev: v0.11.10

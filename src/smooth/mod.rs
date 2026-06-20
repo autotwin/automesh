@@ -34,6 +34,10 @@ pub enum MeshSmoothCommands {
         /// Scaling parameter for all smoothing methods
         #[arg(default_value_t = TAUBIN_DEFAULT_SCALE, long, short, value_name = "SCALE")]
         scale: f64,
+
+        /// Hierarchical smoothing (constrain boundary nodes to slide along the surface)
+        #[arg(action, long, short = 'b')]
+        hierarchical: bool,
     },
 }
 
@@ -66,6 +70,10 @@ pub struct SmoothArgs {
     #[arg(default_value_t = TAUBIN_DEFAULT_SCALE, long, short, value_name = "SCALE")]
     pub scale: f64,
 
+    /// Hierarchical smoothing (constrain boundary nodes to slide along the surface)
+    #[arg(action, long, short = 'b')]
+    pub hierarchical: bool,
+
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
@@ -83,6 +91,7 @@ pub fn smooth(args: SmoothArgs) -> Result<(), ErrorWrapper> {
         args.method,
         args.pass_band,
         args.scale,
+        args.hierarchical,
         args.quiet,
     )?;
     if let Some(MeshRemeshCommands::Remesh { iterations, .. }) = args.remeshing {
@@ -100,6 +109,7 @@ pub fn apply_smoothing_method(
     method: Option<String>,
     pass_band: f64,
     scale: f64,
+    hierarchical: bool,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
     let time = Instant::now();
@@ -113,6 +123,7 @@ pub fn apply_smoothing_method(
                 iterations,
                 scale,
                 weighting: Weighting::Uniform,
+                preserve_boundary: hierarchical,
             }
         }
         "Taubin" | "taubin" => {
@@ -124,6 +135,7 @@ pub fn apply_smoothing_method(
                 pass_band,
                 scale,
                 weighting: Weighting::Uniform,
+                preserve_boundary: hierarchical,
             }
         }
         _ => {
