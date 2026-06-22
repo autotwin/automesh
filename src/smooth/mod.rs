@@ -124,6 +124,7 @@ pub fn apply_smoothing_method(
                 scale,
                 weighting: Weighting::Uniform,
                 preserve_boundary: hierarchical,
+                preserve_interfaces: hierarchical,
             }
         }
         "Taubin" | "taubin" => {
@@ -136,6 +137,7 @@ pub fn apply_smoothing_method(
                 scale,
                 weighting: Weighting::Uniform,
                 preserve_boundary: hierarchical,
+                preserve_interfaces: hierarchical,
             }
         }
         _ => {
