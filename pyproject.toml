@@ -46,7 +46,7 @@ testpaths = [
 [build-system]
 build-backend = "maturin"
 requires = [
-  "maturin==1.14.0"
+  "maturin==1.14.1"
 ]
 
 [tool.maturin]
