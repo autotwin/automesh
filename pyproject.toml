@@ -1,3 +1,7 @@
+[build-system]
+build-backend = "maturin"
+requires = ["maturin>=1.0,<2.0"]
+
 [project]
 authors = [
   {name = "Chad B. Hovey", email = "chovey@sandia.gov"},
@@ -39,10 +43,6 @@ python_files = [
 testpaths = [
   "tests/"
 ]
-
-[build-system]
-build-backend = "maturin"
-requires = ["maturin>=1.0,<2.0"]
 
 [tool.maturin]
 bindings = "bin"
