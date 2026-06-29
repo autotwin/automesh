@@ -15,9 +15,7 @@ fn main() {
         }
         println!("cargo:rustc-env=GIT_COMMIT_HASH={}", commit_info);
     }
-    if let Ok(date_output) = Command::new("date")
-        .arg("+%Y-%m-%dT%H:%M:%S%z")
-        .output()
+    if let Ok(date_output) = Command::new("date").arg("+%Y-%m-%dT%H:%M:%S%z").output()
         && let Ok(time) = String::from_utf8(date_output.stdout)
     {
         println!("cargo:rustc-env=BUILD_TIME={}", time.trim());

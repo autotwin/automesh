@@ -157,8 +157,11 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs) -> Result<(), ErrorWrapper> {
             hierarchical,
             args.quiet,
         )?;
-        if let Some(MeshRemeshCommands::Remesh { iterations, .. }) = remeshing {
-            mesh = apply_remeshing(mesh, iterations, args.quiet)?;
+        if let Some(MeshRemeshCommands::Remesh {
+            iterations, size, ..
+        }) = remeshing
+        {
+            mesh = apply_remeshing(mesh, iterations, size, args.quiet)?;
         }
     }
     if let Some(file) = &args.metrics {

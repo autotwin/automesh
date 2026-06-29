@@ -202,6 +202,10 @@ enum Commands {
         #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
 
+        /// Target edge length [default: mean edge length of the input mesh]
+        #[arg(long, short = 's', value_name = "SIZE")]
+        size: Option<f64>,
+
         /// Pass to quiet the terminal output
         #[arg(action, long, short)]
         quiet: bool,
@@ -296,10 +300,11 @@ fn main() -> Result<(), ErrorWrapper> {
             input,
             output,
             iterations,
+            size,
             quiet,
         }) => {
             is_quiet = quiet;
-            remesh(input, output, iterations, quiet)
+            remesh(input, output, iterations, size, quiet)
         }
         Some(Commands::Segment(args)) => {
             is_quiet = args.quiet;
