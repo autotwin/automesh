@@ -23,7 +23,7 @@ use error::ErrorWrapper;
 use extract::extract;
 use mesh::{Element, MeshSubcommand};
 use metrics::{MetricsArgs, metrics};
-use remesh::{REMESH_DEFAULT_ITERS, remesh};
+use remesh::{MeshRemeshCommands, remesh};
 use segment::{SegmentArgs, segment};
 use smooth::{SmoothArgs, smooth};
 
@@ -188,7 +188,7 @@ enum Commands {
     /// Quality metrics for an existing finite element mesh
     Metrics(MetricsArgs),
 
-    /// Applies isotropic remeshing to an existing mesh
+    /// Applies remeshing to an existing mesh [default mode: isotropic]
     Remesh {
         /// Mesh input file (exo | inp | stl | vtu)
         #[arg(long, short, value_name = "FILE")]
@@ -198,17 +198,13 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
-        /// Number of remeshing iterations
-        #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
-        iterations: usize,
-
-        /// Target edge length [default: mean edge length of the input mesh]
-        #[arg(long, short = 's', value_name = "SIZE")]
-        size: Option<f64>,
-
         /// Pass to quiet the terminal output
         #[arg(action, long, short)]
         quiet: bool,
+
+        /// Remeshing mode [default: isotropic]
+        #[command(subcommand)]
+        mode: Option<MeshRemeshCommands>,
     },
 
     /// Creates a segmentation or voxelized mesh from an existing mesh
@@ -299,12 +295,11 @@ fn main() -> Result<(), ErrorWrapper> {
         Some(Commands::Remesh {
             input,
             output,
-            iterations,
-            size,
             quiet,
+            mode,
         }) => {
             is_quiet = quiet;
-            remesh(input, output, iterations, size, quiet)
+            remesh(input, output, mode, quiet)
         }
         Some(Commands::Segment(args)) => {
             is_quiet = args.quiet;

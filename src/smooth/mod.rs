@@ -94,11 +94,8 @@ pub fn smooth(args: SmoothArgs) -> Result<(), ErrorWrapper> {
         args.hierarchical,
         args.quiet,
     )?;
-    if let Some(MeshRemeshCommands::Remesh {
-        iterations, size, ..
-    }) = args.remeshing
-    {
-        mesh = apply_remeshing(mesh, iterations, size, args.quiet)?;
+    if let Some(mode) = args.remeshing {
+        mesh = apply_remeshing(mesh, mode, args.quiet)?;
     }
     if let Some(file) = args.metrics {
         write_metrics(&mesh, &file, args.quiet)?;

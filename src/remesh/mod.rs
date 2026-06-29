@@ -7,11 +7,13 @@ use conspire::geometry::mesh::{Mesh, Remeshing};
 use std::time::Instant;
 
 pub const REMESH_DEFAULT_ITERS: usize = 5;
+pub const ADAPTIVE_DEFAULT_TOLERANCE: f64 = 0.1;
+pub const ADAPTIVE_DEFAULT_GRADATION: f64 = 0.5;
 
 #[derive(Subcommand, Debug)]
 pub enum MeshRemeshCommands {
-    /// Applies isotropic remeshing to the mesh before output
-    Remesh {
+    /// Isotropic remeshing toward a uniform target edge length
+    Isotropic {
         /// Number of remeshing iterations
         #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
@@ -19,47 +21,94 @@ pub enum MeshRemeshCommands {
         /// Target edge length [default: mean edge length]
         #[arg(long, short = 's', value_name = "SIZE")]
         size: Option<f64>,
+    },
 
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
+    /// Adaptive (curvature-based) remeshing
+    Adaptive {
+        /// Number of remeshing iterations
+        #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
+        iterations: usize,
+
+        /// Minimum edge length
+        #[arg(long, value_name = "MIN")]
+        minimum: f64,
+
+        /// Maximum edge length
+        #[arg(long, value_name = "MAX")]
+        maximum: f64,
+
+        /// Curvature tolerance
+        #[arg(default_value_t = ADAPTIVE_DEFAULT_TOLERANCE, long, short = 't', value_name = "TOL")]
+        tolerance: f64,
+
+        /// Size gradation factor
+        #[arg(default_value_t = ADAPTIVE_DEFAULT_GRADATION, long, short = 'g', value_name = "GRAD")]
+        gradation: f64,
     },
 }
 
 pub fn remesh(
     input: String,
     output: String,
-    iterations: usize,
-    size: Option<f64>,
+    mode: Option<MeshRemeshCommands>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
     let mesh = read_mesh(&input, quiet, true)?;
-    let mesh = apply_remeshing(mesh, iterations, size, quiet)?;
+    let mode = mode.unwrap_or(MeshRemeshCommands::Isotropic {
+        iterations: REMESH_DEFAULT_ITERS,
+        size: None,
+    });
+    let mesh = apply_remeshing(mesh, mode, quiet)?;
     write_mesh(&output, mesh, quiet)
 }
 
 pub fn apply_remeshing(
     mesh: Mesh<3>,
-    iterations: usize,
-    size: Option<f64>,
+    mode: MeshRemeshCommands,
     quiet: bool,
 ) -> Result<Mesh<3>, ErrorWrapper> {
     let time = Instant::now();
-    if !quiet {
-        match size {
-            Some(length) => println!(
-                "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations \
-                (target edge length {length})"
-            ),
-            None => {
-                println!("   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations")
+    let remeshing = match mode {
+        MeshRemeshCommands::Isotropic { iterations, size } => {
+            if !quiet {
+                match size {
+                    Some(length) => println!(
+                        "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations \
+                        (target edge length {length})"
+                    ),
+                    None => println!(
+                        "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations"
+                    ),
+                }
+            }
+            Remeshing::Isotropic {
+                iterations,
+                length: size,
             }
         }
-    }
-    let mesh = mesh.remesh(Remeshing::Isotropic {
-        iterations,
-        length: size,
-    })?;
+        MeshRemeshCommands::Adaptive {
+            iterations,
+            minimum,
+            maximum,
+            tolerance,
+            gradation,
+        } => {
+            if !quiet {
+                println!(
+                    "   \x1b[1;96mRemeshing\x1b[0m adaptively with {iterations} iterations \
+                    (edge length {minimum}\u{2013}{maximum}, tolerance {tolerance}, gradation {gradation})"
+                );
+            }
+            Remeshing::Adaptive {
+                iterations,
+                tolerance,
+                minimum,
+                maximum,
+                gradation,
+            }
+        }
+    };
+    let mesh = mesh.remesh(remeshing)?;
     if !quiet {
         println!(
             "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
