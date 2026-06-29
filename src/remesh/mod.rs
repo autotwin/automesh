@@ -3,7 +3,7 @@ use super::{
     io::{read_mesh, write_mesh},
 };
 use clap::Subcommand;
-use conspire::geometry::mesh::{Mesh, Remeshing};
+use conspire::geometry::mesh::{IsotropicSizing, Mesh, Remeshing, RemeshingKind};
 use std::time::Instant;
 
 pub const REMESH_DEFAULT_ITERS: usize = 5;
@@ -81,9 +81,9 @@ pub fn apply_remeshing(
                     ),
                 }
             }
-            Remeshing::Uniform {
+            Remeshing {
                 iterations,
-                length: size,
+                kind: RemeshingKind::Isotropic(IsotropicSizing::Uniform { length: size }),
             }
         }
         MeshRemeshCommands::Adaptive {
@@ -99,12 +99,14 @@ pub fn apply_remeshing(
                     (edge length {minimum}\u{2013}{maximum}, tolerance {tolerance}, gradation {gradation})"
                 );
             }
-            Remeshing::Adaptive {
+            Remeshing {
                 iterations,
-                tolerance,
-                minimum,
-                maximum,
-                gradation,
+                kind: RemeshingKind::Isotropic(IsotropicSizing::Adaptive {
+                    tolerance,
+                    minimum,
+                    maximum,
+                    gradation,
+                }),
             }
         }
     };
