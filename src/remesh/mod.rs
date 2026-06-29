@@ -16,7 +16,7 @@ pub enum MeshRemeshCommands {
         #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
 
-        /// Target edge length [default: mean edge length of the input mesh]
+        /// Target edge length [default: mean edge length]
         #[arg(long, short = 's', value_name = "SIZE")]
         size: Option<f64>,
 

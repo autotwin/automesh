@@ -35,7 +35,7 @@ pub enum MeshSmoothCommands {
         #[arg(default_value_t = TAUBIN_DEFAULT_SCALE, long, short, value_name = "SCALE")]
         scale: f64,
 
-        /// Hierarchical smoothing (constrain boundary nodes to slide along the surface)
+        /// Enables hierarchical smoothing
         #[arg(action, long, short = 'b')]
         hierarchical: bool,
     },
@@ -70,7 +70,7 @@ pub struct SmoothArgs {
     #[arg(default_value_t = TAUBIN_DEFAULT_SCALE, long, short, value_name = "SCALE")]
     pub scale: f64,
 
-    /// Hierarchical smoothing (constrain boundary nodes to slide along the surface)
+    /// Enables hierarchical smoothing
     #[arg(action, long, short = 'b')]
     pub hierarchical: bool,
 
