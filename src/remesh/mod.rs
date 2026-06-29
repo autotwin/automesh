@@ -12,8 +12,8 @@ pub const ADAPTIVE_DEFAULT_GRADATION: f64 = 0.5;
 
 #[derive(Subcommand, Debug)]
 pub enum MeshRemeshCommands {
-    /// Isotropic remeshing toward a uniform target edge length
-    Isotropic {
+    /// Uniform target edge length over the whole mesh
+    Uniform {
         /// Number of remeshing iterations
         #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
@@ -23,7 +23,7 @@ pub enum MeshRemeshCommands {
         size: Option<f64>,
     },
 
-    /// Adaptive (curvature-based) remeshing
+    /// Curvature-adaptive target edge length
     Adaptive {
         /// Number of remeshing iterations
         #[arg(default_value_t = REMESH_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
@@ -54,7 +54,7 @@ pub fn remesh(
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
     let mesh = read_mesh(&input, quiet, true)?;
-    let mode = mode.unwrap_or(MeshRemeshCommands::Isotropic {
+    let mode = mode.unwrap_or(MeshRemeshCommands::Uniform {
         iterations: REMESH_DEFAULT_ITERS,
         size: None,
     });
@@ -69,19 +69,19 @@ pub fn apply_remeshing(
 ) -> Result<Mesh<3>, ErrorWrapper> {
     let time = Instant::now();
     let remeshing = match mode {
-        MeshRemeshCommands::Isotropic { iterations, size } => {
+        MeshRemeshCommands::Uniform { iterations, size } => {
             if !quiet {
                 match size {
                     Some(length) => println!(
-                        "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations \
+                        "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of uniform sizing \
                         (target edge length {length})"
                     ),
                     None => println!(
-                        "   \x1b[1;96mRemeshing\x1b[0m isotropically with {iterations} iterations"
+                        "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of uniform sizing"
                     ),
                 }
             }
-            Remeshing::Isotropic {
+            Remeshing::Uniform {
                 iterations,
                 length: size,
             }
@@ -95,7 +95,7 @@ pub fn apply_remeshing(
         } => {
             if !quiet {
                 println!(
-                    "   \x1b[1;96mRemeshing\x1b[0m adaptively with {iterations} iterations \
+                    "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of adaptive sizing \
                     (edge length {minimum}\u{2013}{maximum}, tolerance {tolerance}, gradation {gradation})"
                 );
             }

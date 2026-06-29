@@ -188,7 +188,7 @@ enum Commands {
     /// Quality metrics for an existing finite element mesh
     Metrics(MetricsArgs),
 
-    /// Applies remeshing to an existing mesh [default mode: isotropic]
+    /// Applies isotropic remeshing to an existing mesh [default mode: uniform]
     Remesh {
         /// Mesh input file (exo | inp | stl | vtu)
         #[arg(long, short, value_name = "FILE")]
@@ -202,7 +202,7 @@ enum Commands {
         #[arg(action, long, short)]
         quiet: bool,
 
-        /// Remeshing mode [default: isotropic]
+        /// Sizing mode [default: uniform]
         #[command(subcommand)]
         mode: Option<MeshRemeshCommands>,
     },
