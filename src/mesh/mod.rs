@@ -11,15 +11,16 @@ use conspire::{
         Coordinate, Coordinates,
         grid::Voxels,
         mesh::{Mesh, Tessellation},
+        ntree::Balancing,
         segmentation::Segmentation,
     },
     math::Tensor,
 };
-use std::time::Instant;
+use std::{path::Path, time::Instant};
 
 #[derive(Subcommand)]
 pub enum MeshSubcommand {
-    /// Creates an all-hexahedral mesh from a segmentation
+    /// Creates an all-hexahedral mesh from a segmentation or tessellation
     Hex(MeshArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshArgs),
@@ -30,7 +31,7 @@ pub struct MeshArgs {
     #[command(subcommand)]
     pub smoothing: Option<MeshSmoothCommands>,
 
-    /// Segmentation (npy | spn) input file
+    /// Segmentation (npy | spn) or tessellation (stl) input file
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
@@ -97,6 +98,10 @@ pub struct MeshArgs {
     )]
     pub ztranslate: f64,
 
+    /// Octree refinement scale for dualizing a tessellation (stl) input
+    #[arg(long, default_value_t = 3.0, value_name = "SCALE")]
+    pub scale: f64,
+
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
@@ -157,6 +162,11 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
 }
 
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    // A tessellation (stl) input is dualized into hexahedra; a segmentation
+    // (npy | spn) input is meshed directly into hexahedra or triangles.
+    if let (Element::Hexahedra, Some("stl")) = (&element, extension(&args.input)) {
+        return dualize(args, quiet);
+    }
     let voxels = read_voxels(&args, quiet)?;
     let time = Instant::now();
     let mesh = match element {
@@ -182,6 +192,33 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
             )
         }
     };
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+    finish(mesh, args, quiet)
+}
+
+/// Dualizes a tessellation (stl) input into an all-hexahedral mesh.
+fn dualize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
+    let mut time = Instant::now();
+    let tessellation = Tessellation::try_from(Path::new(&args.input))?;
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    crate::echo!(
+        quiet,
+        "   \x1b[1;96mDualizing\x1b[0m tessellation into hexahedra"
+    );
+    time = Instant::now();
+    let mesh = tessellation.dualize(Balancing::Strong, args.scale)?;
+    let mesh = scaled(
+        mesh,
+        [args.xscale, args.yscale, args.zscale],
+        [args.xtranslate, args.ytranslate, args.ztranslate],
+    );
     crate::echo!(
         quiet,
         "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
