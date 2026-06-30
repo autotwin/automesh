@@ -2,7 +2,7 @@ use super::{
     ErrorWrapper,
     io::{read_mesh, write_mesh},
     metrics::write_metrics,
-    remesh::{MeshRemeshCommands, apply_remeshing},
+    remesh::{MeshRemeshSubcommand, apply_remesh_subcommand},
 };
 use clap::Subcommand;
 use conspire::geometry::mesh::{Mesh, Smoothing, Weighting};
@@ -17,7 +17,7 @@ pub enum MeshSmoothCommands {
     /// Applies smoothing to the mesh before output
     Smooth {
         #[command(subcommand)]
-        remeshing: Option<MeshRemeshCommands>,
+        remeshing: Option<MeshRemeshSubcommand>,
 
         /// Number of smoothing iterations
         #[arg(default_value_t = TAUBIN_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
@@ -44,7 +44,7 @@ pub enum MeshSmoothCommands {
 #[derive(clap::Args)]
 pub struct SmoothArgs {
     #[command(subcommand)]
-    pub remeshing: Option<MeshRemeshCommands>,
+    pub remeshing: Option<MeshRemeshSubcommand>,
 
     /// Mesh input file (exo | inp | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
@@ -94,8 +94,8 @@ pub fn smooth(args: SmoothArgs) -> Result<(), ErrorWrapper> {
         args.hierarchical,
         args.quiet,
     )?;
-    if let Some(mode) = args.remeshing {
-        mesh = apply_remeshing(mesh, mode, args.quiet)?;
+    if let Some(subcommand) = args.remeshing {
+        mesh = apply_remesh_subcommand(mesh, subcommand, args.quiet)?;
     }
     if let Some(file) = args.metrics {
         write_metrics(&mesh, &file, args.quiet)?;

@@ -11,6 +11,16 @@ pub const ADAPTIVE_DEFAULT_TOLERANCE: f64 = 0.1;
 pub const ADAPTIVE_DEFAULT_GRADATION: f64 = 0.5;
 
 #[derive(Subcommand, Debug)]
+pub enum MeshRemeshSubcommand {
+    /// Applies remeshing to the mesh before output [default mode: uniform]
+    Remesh {
+        /// Sizing mode [default: uniform]
+        #[command(subcommand)]
+        mode: Option<MeshRemeshCommands>,
+    },
+}
+
+#[derive(Subcommand, Debug)]
 pub enum MeshRemeshCommands {
     /// Uniform target edge length over the whole mesh
     Uniform {
@@ -54,12 +64,24 @@ pub fn remesh(
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
     let mesh = read_mesh(&input, quiet, true)?;
-    let mode = mode.unwrap_or(MeshRemeshCommands::Uniform {
+    let mesh = apply_remeshing(mesh, mode_or_default(mode), quiet)?;
+    write_mesh(&output, mesh, quiet)
+}
+
+fn mode_or_default(mode: Option<MeshRemeshCommands>) -> MeshRemeshCommands {
+    mode.unwrap_or(MeshRemeshCommands::Uniform {
         iterations: REMESH_DEFAULT_ITERS,
         size: None,
-    });
-    let mesh = apply_remeshing(mesh, mode, quiet)?;
-    write_mesh(&output, mesh, quiet)
+    })
+}
+
+pub fn apply_remesh_subcommand(
+    mesh: Mesh<3>,
+    subcommand: MeshRemeshSubcommand,
+    quiet: bool,
+) -> Result<Mesh<3>, ErrorWrapper> {
+    let MeshRemeshSubcommand::Remesh { mode } = subcommand;
+    apply_remeshing(mesh, mode_or_default(mode), quiet)
 }
 
 pub fn apply_remeshing(

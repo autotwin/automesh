@@ -2,7 +2,7 @@ use super::{
     ErrorWrapper,
     io::{extension, invalid_input, read_segmentation, write_mesh},
     metrics::write_metrics,
-    remesh::apply_remeshing,
+    remesh::apply_remesh_subcommand,
     smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
 use clap::Subcommand;
@@ -157,8 +157,8 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs) -> Result<(), ErrorWrapper> {
             hierarchical,
             args.quiet,
         )?;
-        if let Some(mode) = remeshing {
-            mesh = apply_remeshing(mesh, mode, args.quiet)?;
+        if let Some(subcommand) = remeshing {
+            mesh = apply_remesh_subcommand(mesh, subcommand, args.quiet)?;
         }
     }
     if let Some(file) = &args.metrics {
