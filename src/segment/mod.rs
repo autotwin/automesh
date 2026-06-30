@@ -26,18 +26,12 @@ pub struct SegmentArgs {
     /// Block IDs to remove from the segmentation
     #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
     pub remove: Option<Vec<usize>>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
 }
 
-pub fn segment(args: SegmentArgs) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&args.input, args.quiet, true)?;
+pub fn segment(args: SegmentArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    let mesh = read_mesh(&args.input, quiet, true)?;
     let time = Instant::now();
-    if !args.quiet {
-        println!("  \x1b[1;96mSegmenting\x1b[0m from finite elements");
-    }
+    crate::echo!(quiet, "  \x1b[1;96mSegmenting\x1b[0m from finite elements");
     let voxels = Voxels::<usize>::from_finite_elements(&mesh, args.size);
     let nel = *voxels.nel();
     let remove = args.remove.unwrap_or_default();
@@ -53,16 +47,12 @@ pub fn segment(args: SegmentArgs) -> Result<(), ErrorWrapper> {
         })
         .collect();
     let voxels = Voxels::<u8>::new(data, nel);
-    if !args.quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     match extension(&args.output) {
-        Some("npy") | Some("spn") | Some("vti") => {
-            write_segmentation(&args.output, &voxels, args.quiet)
-        }
+        Some("npy") | Some("spn") | Some("vti") => write_segmentation(&args.output, &voxels, quiet),
         Some("exo") | Some("inp") | Some("mesh") | Some("vtu") => {
             let mesh = Mesh::from_voxels(voxels, Some(&[0u8]));
-            write_mesh(&args.output, mesh, args.quiet)
+            write_mesh(&args.output, mesh, quiet)
         }
         extension => Err(invalid_output(&args.output, extension)),
     }

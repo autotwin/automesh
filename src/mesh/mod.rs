@@ -100,10 +100,6 @@ pub struct MeshArgs {
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
 }
 
 pub enum Element {
@@ -111,26 +107,19 @@ pub enum Element {
     Triangles,
 }
 
-fn read_voxels(args: &MeshArgs) -> Result<Voxels<u8>, ErrorWrapper> {
+fn read_voxels(args: &MeshArgs, quiet: bool) -> Result<Voxels<u8>, ErrorWrapper> {
     match extension(&args.input) {
         Some("npy") | Some("spn") => {
-            let mut voxels = read_segmentation(
-                &args.input,
-                args.nelx,
-                args.nely,
-                args.nelz,
-                args.quiet,
-                true,
-            )?;
+            let mut voxels =
+                read_segmentation(&args.input, args.nelx, args.nely, args.nelz, quiet, true)?;
             if let Some(min) = args.defeature {
                 let time = Instant::now();
-                if !args.quiet {
-                    println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less");
-                }
+                crate::echo!(
+                    quiet,
+                    " \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less"
+                );
                 voxels = voxels.defeature(min);
-                if !args.quiet {
-                    println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-                }
+                crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
             }
             Ok(voxels)
         }
@@ -138,7 +127,7 @@ fn read_voxels(args: &MeshArgs) -> Result<Voxels<u8>, ErrorWrapper> {
     }
 }
 
-fn finish(mut mesh: Mesh<3>, args: MeshArgs) -> Result<(), ErrorWrapper> {
+fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     if let Some(MeshSmoothCommands::Smooth {
         remeshing,
         iterations,
@@ -155,26 +144,24 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs) -> Result<(), ErrorWrapper> {
             pass_band,
             scale,
             hierarchical,
-            args.quiet,
+            quiet,
         )?;
         if let Some(subcommand) = remeshing {
-            mesh = apply_remesh_subcommand(mesh, subcommand, args.quiet)?;
+            mesh = apply_remesh_subcommand(mesh, subcommand, quiet)?;
         }
     }
     if let Some(file) = &args.metrics {
-        write_metrics(&mesh, file, args.quiet)?;
+        write_metrics(&mesh, file, quiet)?;
     }
-    write_mesh(&args.output, mesh, args.quiet)
+    write_mesh(&args.output, mesh, quiet)
 }
 
-pub fn mesh(element: Element, args: MeshArgs) -> Result<(), ErrorWrapper> {
-    let voxels = read_voxels(&args)?;
+pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    let voxels = read_voxels(&args, quiet)?;
     let time = Instant::now();
     let mesh = match element {
         Element::Hexahedra => {
-            if !args.quiet {
-                println!("     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
-            }
+            crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m voxels into hexahedra");
             let remove: Option<Vec<u8>> = args
                 .remove
                 .as_ref()
@@ -185,9 +172,7 @@ pub fn mesh(element: Element, args: MeshArgs) -> Result<(), ErrorWrapper> {
             Mesh::from_segmentation(segmentation, remove.as_deref())
         }
         Element::Triangles => {
-            if !args.quiet {
-                println!("     \x1b[1;96mMeshing\x1b[0m voxels into triangles");
-            }
+            crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m voxels into triangles");
             let voxels = remove_materials(voxels, args.remove.as_deref());
             let mesh = Mesh::from(Tessellation::from(voxels));
             scaled(
@@ -197,15 +182,14 @@ pub fn mesh(element: Element, args: MeshArgs) -> Result<(), ErrorWrapper> {
             )
         }
     };
-    if !args.quiet {
-        println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
-            time.elapsed(),
-            mesh.number_of_elements(),
-            mesh.number_of_nodes()
-        );
-    }
-    finish(mesh, args)
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+    finish(mesh, args, quiet)
 }
 
 /// Zeroes out (treats as void) any voxels whose material is in `remove`.

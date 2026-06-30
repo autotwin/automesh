@@ -10,6 +10,7 @@ mod diff;
 mod error;
 mod extract;
 mod io;
+mod log;
 mod mesh;
 mod metrics;
 mod remesh;
@@ -60,6 +61,14 @@ macro_rules! about {
 struct Args {
     #[command(subcommand)]
     command: Option<Commands>,
+
+    /// Mirror terminal output to a log file
+    #[arg(global = true, long, value_name = "FILE")]
+    log: Option<String>,
+
+    /// Pass to quiet the terminal output
+    #[arg(action, global = true, long, short)]
+    quiet: bool,
 }
 
 #[derive(Subcommand)]
@@ -95,10 +104,6 @@ enum Commands {
         /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
-
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
     },
 
     /// Show the difference between two segmentations
@@ -122,10 +127,6 @@ enum Commands {
         /// Number of voxels in the z-direction (spn)
         #[arg(long, short = 'z', value_name = "NEL")]
         nelz: Option<usize>,
-
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
     },
 
     /// Extracts a specified range of voxels from a segmentation
@@ -173,10 +174,6 @@ enum Commands {
         /// Maximum voxel in the z-direction
         #[arg(long, value_name = "MAX")]
         zmax: usize,
-
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
     },
 
     /// Creates a finite element mesh from a segmentation
@@ -198,10 +195,6 @@ enum Commands {
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
-        /// Pass to quiet the terminal output
-        #[arg(action, long, short)]
-        quiet: bool,
-
         /// Sizing mode [default: uniform]
         #[command(subcommand)]
         mode: Option<MeshRemeshCommands>,
@@ -216,25 +209,22 @@ enum Commands {
 
 fn main() -> Result<(), ErrorWrapper> {
     let time = Instant::now();
-    let is_quiet;
     let args = Args::parse();
+    if let Some(path) = &args.log {
+        log::set_logfile(path)?;
+    }
+    let quiet = args.quiet;
     let result = match args.command {
         Some(Commands::Convert { subcommand }) => match subcommand {
-            ConvertSubcommand::Mesh(args) => {
-                is_quiet = args.quiet;
-                convert_mesh(args)
-            }
-            ConvertSubcommand::Segmentation(args) => {
-                is_quiet = args.quiet;
-                convert_segmentation(
-                    args.input,
-                    args.output,
-                    args.nelx,
-                    args.nely,
-                    args.nelz,
-                    args.quiet,
-                )
-            }
+            ConvertSubcommand::Mesh(args) => convert_mesh(args, quiet),
+            ConvertSubcommand::Segmentation(args) => convert_segmentation(
+                args.input,
+                args.output,
+                args.nelx,
+                args.nely,
+                args.nelz,
+                quiet,
+            ),
         },
         Some(Commands::Defeature {
             input,
@@ -243,22 +233,14 @@ fn main() -> Result<(), ErrorWrapper> {
             nelx,
             nely,
             nelz,
-            quiet,
-        }) => {
-            is_quiet = quiet;
-            defeature(input, output, min, nelx, nely, nelz, quiet)
-        }
+        }) => defeature(input, output, min, nelx, nely, nelz, quiet),
         Some(Commands::Diff {
             input,
             output,
             nelx,
             nely,
             nelz,
-            quiet,
-        }) => {
-            is_quiet = quiet;
-            diff(input, output, nelx, nely, nelz, quiet)
-        }
+        }) => diff(input, output, nelx, nely, nelz, quiet),
         Some(Commands::Extract {
             input,
             output,
@@ -271,48 +253,23 @@ fn main() -> Result<(), ErrorWrapper> {
             ymax,
             zmin,
             zmax,
-            quiet,
-        }) => {
-            is_quiet = quiet;
-            extract(
-                input, output, nelx, nely, nelz, xmin, xmax, ymin, ymax, zmin, zmax, quiet,
-            )
-        }
+        }) => extract(
+            input, output, nelx, nely, nelz, xmin, xmax, ymin, ymax, zmin, zmax, quiet,
+        ),
         Some(Commands::Mesh { subcommand }) => match subcommand {
-            MeshSubcommand::Hex(args) => {
-                is_quiet = args.quiet;
-                mesh::mesh(Element::Hexahedra, args)
-            }
-            MeshSubcommand::Tri(args) => {
-                is_quiet = args.quiet;
-                mesh::mesh(Element::Triangles, args)
-            }
+            MeshSubcommand::Hex(args) => mesh::mesh(Element::Hexahedra, args, quiet),
+            MeshSubcommand::Tri(args) => mesh::mesh(Element::Triangles, args, quiet),
         },
-        Some(Commands::Metrics(args)) => {
-            is_quiet = args.quiet;
-            metrics(args)
-        }
+        Some(Commands::Metrics(args)) => metrics(args, quiet),
         Some(Commands::Remesh {
             input,
             output,
-            quiet,
             mode,
-        }) => {
-            is_quiet = quiet;
-            remesh(input, output, mode, quiet)
-        }
-        Some(Commands::Segment(args)) => {
-            is_quiet = args.quiet;
-            segment(args)
-        }
-        Some(Commands::Smooth(args)) => {
-            is_quiet = args.quiet;
-            smooth(args)
-        }
+        }) => remesh(input, output, mode, quiet),
+        Some(Commands::Segment(args)) => segment(args, quiet),
+        Some(Commands::Smooth(args)) => smooth(args, quiet),
         None => return Ok(()),
     };
-    if !is_quiet {
-        println!("       \x1b[1;98mTotal\x1b[0m {:?}", time.elapsed());
-    }
+    crate::echo!(quiet, "       \x1b[1;98mTotal\x1b[0m {:?}", time.elapsed());
     result
 }

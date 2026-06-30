@@ -171,6 +171,7 @@ fn remesh_triangles() {
         stl.to_str().unwrap(),
         "-o",
         output.to_str().unwrap(),
+        "uniform",
         "-n",
         "2",
     ]);

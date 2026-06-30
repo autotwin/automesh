@@ -77,14 +77,10 @@ pub struct SmoothArgs {
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
 }
 
-pub fn smooth(args: SmoothArgs) -> Result<(), ErrorWrapper> {
-    let mut mesh = read_mesh(&args.input, args.quiet, true)?;
+pub fn smooth(args: SmoothArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    let mut mesh = read_mesh(&args.input, quiet, true)?;
     apply_smoothing_method(
         &mut mesh,
         args.iterations,
@@ -92,15 +88,15 @@ pub fn smooth(args: SmoothArgs) -> Result<(), ErrorWrapper> {
         args.pass_band,
         args.scale,
         args.hierarchical,
-        args.quiet,
+        quiet,
     )?;
     if let Some(subcommand) = args.remeshing {
-        mesh = apply_remesh_subcommand(mesh, subcommand, args.quiet)?;
+        mesh = apply_remesh_subcommand(mesh, subcommand, quiet)?;
     }
     if let Some(file) = args.metrics {
-        write_metrics(&mesh, &file, args.quiet)?;
+        write_metrics(&mesh, &file, quiet)?;
     }
-    write_mesh(&args.output, mesh, args.quiet)
+    write_mesh(&args.output, mesh, quiet)
 }
 
 pub fn apply_smoothing_method(
@@ -116,9 +112,10 @@ pub fn apply_smoothing_method(
     let method = method.unwrap_or_else(|| "Taubin".to_string());
     let smoothing = match method.as_str() {
         "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
-            if !quiet {
-                println!("   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Laplace");
-            }
+            crate::echo!(
+                quiet,
+                "   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Laplace"
+            );
             Smoothing::Laplace {
                 iterations,
                 scale,
@@ -128,9 +125,10 @@ pub fn apply_smoothing_method(
             }
         }
         "Taubin" | "taubin" => {
-            if !quiet {
-                println!("   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Taubin");
-            }
+            crate::echo!(
+                quiet,
+                "   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Taubin"
+            );
             Smoothing::Taubin {
                 iterations,
                 pass_band,
@@ -147,8 +145,6 @@ pub fn apply_smoothing_method(
         }
     };
     mesh.smooth(smoothing);
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     Ok(())
 }

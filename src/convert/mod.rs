@@ -21,10 +21,6 @@ pub struct ConvertMeshArgs {
     /// Mesh output file (exo | inp | mesh | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
 }
 
 #[derive(clap::Args)]
@@ -48,15 +44,11 @@ pub struct ConvertSegmentationArgs {
     /// Number of voxels in the z-direction (spn)
     #[arg(long, short = 'z', value_name = "NEL")]
     pub nelz: Option<usize>,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
 }
 
-pub fn convert_mesh(args: ConvertMeshArgs) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&args.input, args.quiet, true)?;
-    write_mesh(&args.output, mesh, args.quiet)
+pub fn convert_mesh(args: ConvertMeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    let mesh = read_mesh(&args.input, quiet, true)?;
+    write_mesh(&args.output, mesh, quiet)
 }
 
 pub fn convert_segmentation(

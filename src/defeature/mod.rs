@@ -16,12 +16,11 @@ pub fn defeature(
 ) -> Result<(), ErrorWrapper> {
     let voxels = read_segmentation(&input, nelx, nely, nelz, quiet, true)?;
     let time = Instant::now();
-    if !quiet {
-        println!(" \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less");
-    }
+    crate::echo!(
+        quiet,
+        " \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less"
+    );
     let voxels = voxels.defeature(min);
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     write_segmentation(&output, &voxels, quiet)
 }

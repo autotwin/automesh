@@ -18,15 +18,11 @@ pub struct MetricsArgs {
     /// Quality metrics output file (csv | npy)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
-
-    /// Pass to quiet the terminal output
-    #[arg(action, long, short)]
-    pub quiet: bool,
 }
 
-pub fn metrics(args: MetricsArgs) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&args.input, args.quiet, true)?;
-    write_metrics(&mesh, &args.output, args.quiet)
+pub fn metrics(args: MetricsArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    let mesh = read_mesh(&args.input, quiet, true)?;
+    write_metrics(&mesh, &args.output, quiet)
 }
 
 fn flatten(metric: Vec<Vec<f64>>) -> Vec<f64> {
@@ -34,9 +30,7 @@ fn flatten(metric: Vec<Vec<f64>>) -> Vec<f64> {
 }
 
 pub fn write_metrics(mesh: &Mesh<3>, file: &str, quiet: bool) -> Result<(), ErrorWrapper> {
-    if !quiet {
-        println!("     \x1b[1;96mMetrics\x1b[0m {file}");
-    }
+    crate::echo!(quiet, "     \x1b[1;96mMetrics\x1b[0m {file}");
     let time = Instant::now();
     let maximum_edge_ratios = flatten(mesh.maximum_edge_ratios());
     let minimum_scaled_jacobians = flatten(mesh.minimum_scaled_jacobians());
@@ -90,8 +84,6 @@ pub fn write_metrics(mesh: &Mesh<3>, file: &str, quiet: bool) -> Result<(), Erro
             )));
         }
     }
-    if !quiet {
-        println!("        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    }
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     Ok(())
 }

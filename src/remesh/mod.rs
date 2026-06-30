@@ -92,16 +92,16 @@ pub fn apply_remeshing(
     let time = Instant::now();
     let remeshing = match mode {
         MeshRemeshCommands::Uniform { iterations, size } => {
-            if !quiet {
-                match size {
-                    Some(length) => println!(
-                        "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of uniform sizing \
-                        (target edge length {length})"
-                    ),
-                    None => println!(
-                        "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of uniform sizing"
-                    ),
-                }
+            match size {
+                Some(length) => crate::echo!(
+                    quiet,
+                    "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of uniform sizing \
+                    (target edge length {length})"
+                ),
+                None => crate::echo!(
+                    quiet,
+                    "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of uniform sizing"
+                ),
             }
             Remeshing {
                 iterations,
@@ -115,12 +115,11 @@ pub fn apply_remeshing(
             tolerance,
             gradation,
         } => {
-            if !quiet {
-                println!(
-                    "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of adaptive sizing \
-                    (edge length {minimum}\u{2013}{maximum}, tolerance {tolerance}, gradation {gradation})"
-                );
-            }
+            crate::echo!(
+                quiet,
+                "   \x1b[1;96mRemeshing\x1b[0m with {iterations} iterations of adaptive sizing \
+                (edge length {minimum}\u{2013}{maximum}, tolerance {tolerance}, gradation {gradation})"
+            );
             Remeshing {
                 iterations,
                 metric: RemeshingMetric::Isotropic(IsotropicSizing::Adaptive {
@@ -133,13 +132,12 @@ pub fn apply_remeshing(
         }
     };
     let mesh = mesh.remesh(remeshing)?;
-    if !quiet {
-        println!(
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
-            time.elapsed(),
-            mesh.number_of_elements(),
-            mesh.number_of_nodes()
-        );
-    }
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
     Ok(mesh)
 }
