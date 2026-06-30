@@ -29,12 +29,13 @@ pub fn invalid_output(file: &str, extension: Option<&str>) -> ErrorWrapper {
 }
 
 pub fn title(quiet: bool) {
-    crate::echo!(
-        quiet,
-        "\x1b[1m    {} {}\x1b[0m",
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION")
-    );
+    if !quiet {
+        println!(
+            "\x1b[1m    {} {}\x1b[0m",
+            env!("CARGO_PKG_NAME"),
+            env!("CARGO_PKG_VERSION")
+        );
+    }
 }
 
 fn begin(verb: &str, file: &str, quiet: bool) -> Instant {
