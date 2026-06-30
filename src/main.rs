@@ -213,6 +213,7 @@ fn main() -> Result<(), ErrorWrapper> {
     if let Some(path) = &args.log {
         log::set_logfile(path)?;
         log::write_log(&about!());
+        log::write_log("");
     }
     let quiet = args.quiet;
     let result = match args.command {
