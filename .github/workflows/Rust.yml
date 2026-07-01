@@ -11,29 +11,6 @@ on:
     types: published
 permissions: {}
 jobs:
-  Bench:
-    if: github.event_name != 'release'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Toolchain
-        uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
-        with:
-          toolchain: nightly
-      - name: netCDF
-        run: sudo apt-get update && sudo apt-get install -y libnetcdf-dev
-      - name: Python
-        uses: actions/setup-python@v6
-        with:
-          check-latest: true
-          python-version: 3.14
-      - name: Dependencies
-        run: pip install numpy pillow
-      - name: Block
-        run: ./benches/block.sh
-      - name: Bench
-        run: rustup run nightly cargo bench
   Coverage:
     if: github.event_name != 'release'
     runs-on: ubuntu-latest
