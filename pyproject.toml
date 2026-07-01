@@ -21,28 +21,10 @@ name = "automesh"
 requires-python = ">=3.10,<3.15"
 readme = "README.md"
 
-[project.optional-dependencies]
-dev = [
-  "black",
-  "pdoc",
-  "pre-commit",
-  "pytest",
-  "pytest-cov",
-  "ruff",
-]
-
 [project.urls]
 Documentation = "https://automesh.readthedocs.io"
 Homepage = "https://autotwin.github.io/automesh"
 Repository = "https://github.com/autotwin/automesh"
-
-[tool.pytest.ini_options]
-python_files = [
-  "*.py"
-]
-testpaths = [
-  "tests/"
-]
 
 [tool.maturin]
 bindings = "bin"
