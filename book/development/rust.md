@@ -41,11 +41,3 @@ cargo clippy
 ```sh
 cargo rustdoc --open -- --html-in-header docs/katex.html
 ```
-
-## Run the Benchmarks
-
-Execute `benches/block.sh` once, and subsequently run
-
-```sh
-rustup run nightly cargo bench
-```

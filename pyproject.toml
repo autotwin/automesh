@@ -1,3 +1,7 @@
+[build-system]
+build-backend = "maturin"
+requires = ["maturin>=1.0,<2.0"]
+
 [project]
 authors = [
   {name = "Chad B. Hovey", email = "chovey@sandia.gov"},
@@ -12,46 +16,16 @@ classifiers = [
   "Topic :: Scientific/Engineering",
 ]
 description = "automesh"
-dependencies = [
-  "numpy",
-]
 dynamic = ["version"]
 name = "automesh"
 requires-python = ">=3.10,<3.15"
 readme = "README.md"
-
-[project.optional-dependencies]
-dev = [
-  "black",
-  "pdoc",
-  "pre-commit",
-  "pytest",
-  "pytest-cov",
-  "ruff",
-]
 
 [project.urls]
 Documentation = "https://automesh.readthedocs.io"
 Homepage = "https://autotwin.github.io/automesh"
 Repository = "https://github.com/autotwin/automesh"
 
-[tool.pytest.ini_options]
-python_files = [
-  "*.py"
-]
-testpaths = [
-  "tests/"
-]
-
-[build-system]
-build-backend = "maturin"
-requires = [
-  "maturin==1.14.1"
-]
-
 [tool.maturin]
-features = [
-  "pyo3/extension-module",
-  "python",
-]
+bindings = "bin"
 profile = "release"

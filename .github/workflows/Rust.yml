@@ -11,27 +11,6 @@ on:
     types: published
 permissions: {}
 jobs:
-  Bench:
-    if: github.event_name != 'release'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-      - name: Toolchain
-        uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
-        with:
-          toolchain: nightly
-      - name: Python
-        uses: actions/setup-python@v6
-        with:
-          check-latest: true
-          python-version: 3.14
-      - name: Dependencies
-        run: pip install numpy pillow
-      - name: Block
-        run: ./benches/block.sh
-      - name: Bench
-        run: rustup run nightly cargo bench
   Coverage:
     if: github.event_name != 'release'
     runs-on: ubuntu-latest
@@ -42,6 +21,8 @@ jobs:
         uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
         with:
           toolchain: nightly
+      - name: netCDF
+        run: sudo apt-get update && sudo apt-get install -y libnetcdf-dev
       - name: Install
         run: cargo install cargo-llvm-cov
       - name: Coverage
@@ -51,6 +32,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+      - name: netCDF
+        run: sudo apt-get update && sudo apt-get install -y libnetcdf-dev
       - name: Info
         run: sed -i "s/option_env!(\"GIT_COMMIT_HASH\").unwrap(),/\"$(git rev-parse --short HEAD)\".to_string(),/" src/main.rs
       - name: Package
@@ -77,6 +60,17 @@ jobs:
         with:
           components: clippy, rustfmt
           toolchain: ${{ matrix.toolchain }}
+      - name: netCDF
+        shell: bash
+        run: |
+          case "${{ runner.os }}" in
+            Linux) sudo apt-get update && sudo apt-get install -y libnetcdf-dev ;;
+            macOS) brew install netcdf ;;
+            Windows)
+              vcpkg install netcdf-c:x64-windows
+              echo "C:/vcpkg/installed/x64-windows/bin" >> "$GITHUB_PATH"
+              ;;
+          esac
       - name: Build
         run: cargo build --release
       - name: Clippy

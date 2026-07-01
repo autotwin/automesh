@@ -11,37 +11,6 @@ on:
     types: published
 permissions: {}
 jobs:
-  Test:
-    if: github.event_name != 'release'
-    strategy:
-      fail-fast: true
-      matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
-        toolchain: [beta, stable]
-    runs-on: ${{ matrix.os }}
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v7
-    - name: Toolchain
-      uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
-      with:
-        components: clippy
-        toolchain: ${{ matrix.toolchain }}
-    - name: Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Clippy
-      run: cargo clippy --features python -- -D warnings
-    - name: Install
-      run: pip install .[dev]
-    - name: Check
-      run: ruff check
-    - name: Format
-      run: ruff format --check
-    - name: Test
-      run: pytest --verbose
   Source:
     runs-on: ubuntu-latest
     steps:
@@ -51,6 +20,8 @@ jobs:
         uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
         with:
           toolchain: stable
+      - name: netCDF
+        run: sudo apt-get update && sudo apt-get install -y libnetcdf-dev
       - name: Python
         uses: actions/setup-python@v6
         with:
@@ -72,7 +43,6 @@ jobs:
       fail-fast: true
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ['3.10', '3.11', '3.12', '3.13', '3.14']
     steps:
     - name: Checkout
       uses: actions/checkout@v7
@@ -80,20 +50,31 @@ jobs:
       uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
       with:
         toolchain: stable
+    - name: netCDF
+      shell: bash
+      run: |
+        case "${{ runner.os }}" in
+          Linux) sudo apt-get update && sudo apt-get install -y libnetcdf-dev ;;
+          macOS) brew install netcdf ;;
+          Windows)
+            vcpkg install netcdf-c:x64-windows
+            echo "C:/vcpkg/installed/x64-windows/bin" >> "$GITHUB_PATH"
+            ;;
+        esac
     - name: Python
       uses: actions/setup-python@v6
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: 3.14
     - name: Dependencies
       run: pip install build maturin twine
     - name: Wheel
-      run: maturin build --release --features python
+      run: maturin build --release
     - name: Check
       run: twine check target/wheels/*
     - name: Upload
       uses: actions/upload-artifact@v7
       with:
-        name: ${{ matrix.os }}-${{ matrix.python-version }}-dist
+        name: ${{ matrix.os }}-dist
         path: target/wheels
   Twine:
     needs: [Source, Wheel]
