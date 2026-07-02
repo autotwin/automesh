@@ -15,11 +15,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Toolchain
         uses: actions-rs/toolchain@88dc2356392166efad76775c878094f4e83ff746
         with:
           toolchain: stable
+      - name: netCDF
+        run: sudo apt-get update && sudo apt-get install -y libnetcdf-dev
       - name: Ansifilter
         run: sudo apt-get install -y ansifilter
       - name: mdBook

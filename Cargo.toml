@@ -4,31 +4,17 @@ categories = ["mathematics", "science"]
 description = "Automatic mesh generation."
 documentation = "https://docs.rs/automesh"
 edition = "2024"
-exclude = [".github/", "benches/", "book*", "pubs/", "sandbox/", "tests/"]
+exclude = [".github/", "book*", "pubs/", "sandbox/", "tests/"]
 homepage = "https://autotwin.github.io/automesh"
 keywords = ["mesh"]
 license = "GPL-3.0"
 name = "automesh"
 repository = "https://github.com/autotwin/automesh"
-version = "0.3.10"
-
-[lib]
-crate-type = ["cdylib", "rlib"]
+version = "0.4.1"
 
 [dependencies]
 clap = { version = "=4.6.1", features = ["derive"] }
-chrono = "=0.4.45"
-conspire = { version = "=0.6.3", features = ["fem"] }
-ndarray = { version = "=0.17.2", features = ["rayon"] }
-ndarray-npy = "=0.10.0"
-netcdf = { version = "=0.12.0", features = ["ndarray", "static"] }
-pyo3 = { version = "=0.29.0", features = ["extension-module"], optional = true }
-stl_io = "=0.11.0"
-vtkio = "=0.6.3"
-
-[features]
-profile = []
-python = ["dep:pyo3"]
+conspire = { version = "=0.7.0", features = ["geometry", "netcdf"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]

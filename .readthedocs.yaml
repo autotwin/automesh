@@ -3,11 +3,7 @@ build:
   os: ubuntu-lts-latest
   tools:
     python: "latest"
-    rust: "latest"
   commands:
-    - pip install cmake maturin[patchelf] pdoc
-    - maturin build --features python --release
-    - pip install --find-links=target/wheels/ automesh
+    - pip install markdown
     - mkdir -p $READTHEDOCS_OUTPUT/html/
-    - pdoc automesh --logo "https://github.com/autotwin/automesh/blob/main/docs/logo.png?raw=true" --math --no-show-source --output-dir $READTHEDOCS_OUTPUT/html/ --template-directory docs/
-    - VERSION=$(cargo tree | grep automesh | cut -d " " -f 2 | cut -d "v" -f 2) && sed -i "s/automesh latest/automesh $VERSION/" $READTHEDOCS_OUTPUT/html/automesh.html
+    - python -m markdown README.md > $READTHEDOCS_OUTPUT/html/index.html
