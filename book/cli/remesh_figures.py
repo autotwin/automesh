@@ -153,6 +153,7 @@ def main() -> None:
     here = Path(__file__).resolve().parent
     figures = {
         "sphere_radius_1": "input sphere",
+        "sphere_default": "default (uniform, mean edge length)",
         "sphere_uniform_coarse": "uniform, target 0.35",
         "sphere_uniform_fine": "uniform, target 0.08",
         "sphere_uniform": "uniform, target 0.18",
@@ -165,15 +166,20 @@ def main() -> None:
         else:
             print(f"skipping {stl.name} (not found)")
 
-    # Edge-length histogram and topology summary for the example model.
-    base = here / "sphere_radius_1.stl"
-    if base.exists():
-        render_histogram(base, "sphere_edge_histogram.png")
-        faces, edges, vertices = topology(read_stl(base))
-        print(
-            f"sphere_radius_1.stl: F={faces} E={edges} V={vertices} "
-            f"(V - E + F = {vertices - edges + faces})"
-        )
+    # Edge-length histograms and topology summary for the base and default meshes.
+    histograms = {
+        "sphere_radius_1": "sphere_edge_histogram.png",
+        "sphere_default": "sphere_default_histogram.png",
+    }
+    for stem, out_name in histograms.items():
+        stl = here / f"{stem}.stl"
+        if stl.exists():
+            render_histogram(stl, out_name)
+            faces, edges, vertices = topology(read_stl(stl))
+            print(
+                f"{stl.name}: F={faces} E={edges} V={vertices} "
+                f"(V - E + F = {vertices - edges + faces})"
+            )
 
 
 if __name__ == "__main__":

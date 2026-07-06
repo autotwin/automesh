@@ -23,6 +23,7 @@ end of this page for a short script.
 The examples below use a unit sphere (radius ≈ 1).
 
 [⬇ Download the example mesh: `sphere_radius_1.stl`](sphere_radius_1.stl)
+(binary format, 54 kB)
 
 ![sphere_radius_1.png](sphere_radius_1.png)
 
@@ -33,11 +34,9 @@ The examples below use a unit sphere (radius ≈ 1).
 | facets (triangles) | $f$ | 1,088 |
 | points (vertices) | $v$ | 546 |
 | edges | $e$ | 1,632 |
-| mean triangle edge length | | 0.178 |
 
-Most edges cluster tightly around the mean, as the edge-length histogram shows:
-
-![sphere_edge_histogram.png](sphere_edge_histogram.png)
+The mean triangle edge length is 0.178, and most edges cluster near it (see the
+[edge-length histogram](#default-remesh) in the next section).
 
 ### Relationship to triangular subdivision
 
@@ -55,15 +54,7 @@ both of which the example sphere satisfies:
 - **Euler characteristic**, $v - e + f = 2$ for a genus-0 (sphere-like)
   surface: $546 - 1{,}632 + 1{,}088 = 2$. ✓
 
-Applying one subdivision step to the example sphere's counts confirms the
-invariants carry forward:
-
-$$ f_{i+1} = 4(1088) = 4352, \qquad e_{i+1} = 2(1632) + 3(1088) = 6528, \qquad v_{i+1} = 546 + 1632 = 2178, $$
-
-for which $e = \tfrac{3}{2} f$ still holds ($\tfrac{3}{2} \times 4352 = 6528$)
-and $v - e + f = 2178 - 6528 + 4352 = 2$.
-
-The statistics and histogram above are produced by the
+These statistics, and the histograms below, are produced by the
 [figure script](#figure-script) at the end of this page.
 
 ## Choosing a mode
@@ -76,6 +67,25 @@ The statistics and histogram above are produced by the
 
 If no mode is given, `uniform` is used with the mean edge length of the input
 mesh as the target.
+
+### Default remesh
+
+Running `remesh` with no mode or size regularizes the surface at its existing
+resolution: the triangles become more uniform in size and shape while the facet
+count stays close to the input.
+
+```sh
+automesh remesh -i sphere_radius_1.stl -o sphere_default.stl
+```
+
+| base (1,088 facets) | default (948 facets) |
+| :---: | :---: |
+| ![sphere_radius_1.png](sphere_radius_1.png) | ![sphere_default.png](sphere_default.png) |
+| ![sphere_edge_histogram.png](sphere_edge_histogram.png) | ![sphere_default_histogram.png](sphere_default_histogram.png) |
+
+The histograms show the effect of remeshing on triangle edge lengths: the base
+mesh has an irregular, spiky distribution, while the default remesh produces a
+tighter, bell-shaped distribution centered near the mean edge length.
 
 ## Remesh Uniform
 
@@ -103,6 +113,45 @@ edge length produces many more, smaller triangles.
 | base (1,088 facets) | coarse, `-s 0.35` (440 facets) | fine, `-s 0.08` (4,744 facets) |
 | :---: | :---: | :---: |
 | ![sphere_radius_1.png](sphere_radius_1.png) | ![sphere_uniform_coarse.png](sphere_uniform_coarse.png) | ![sphere_uniform_fine.png](sphere_uniform_fine.png) |
+
+### Effect of the number of iterations
+
+More iterations make the triangles more uniform, but with strongly diminishing
+returns.  The sphere is remeshed at the default target edge length for a range of
+`--iterations` values, one output per value:
+
+```sh
+automesh remesh -i sphere_radius_1.stl -o sphere_n1.stl   uniform -n 1
+automesh remesh -i sphere_radius_1.stl -o sphere_n5.stl   uniform -n 5
+automesh remesh -i sphere_radius_1.stl -o sphere_n10.stl  uniform -n 10
+automesh remesh -i sphere_radius_1.stl -o sphere_n20.stl  uniform -n 20
+automesh remesh -i sphere_radius_1.stl -o sphere_n50.stl  uniform -n 50
+automesh remesh -i sphere_radius_1.stl -o sphere_n100.stl uniform -n 100
+```
+
+Measuring the edge-length *coefficient of variation* of each result
+(CoV $= \text{std} / \text{mean}$, smaller is more uniform) gives:
+
+| iterations `-n` | facets | mean edge | CoV |
+| ---: | ---: | ---: | ---: |
+| 1 | 1,380 | 0.154 | 26.6% |
+| 5 *(default)* | 948 | 0.175 | 13.4% |
+| 10 | 856 | 0.183 | 9.8% |
+| 20 | 846 | 0.184 | 9.7% |
+| 50 | 838 | 0.185 | 9.6% |
+| 100 | 830 | 0.186 | 9.6% |
+
+![sphere_iterations.png](sphere_iterations.png)
+
+Most of the improvement happens within the first ~10 passes; beyond that the CoV
+plateaus at an irreducible floor (≈ 9.6% here — a sphere cannot be tiled with
+perfectly equal edges), so additional iterations cost time without making the
+triangles measurably more uniform.  For this mesh, `-n 10` to `-n 20` is a
+practical sweet spot.
+
+This study is produced by the
+[`remesh_iterations.py` script](#iteration-study-script) shown at the end of the
+page.
 
 ## Remesh Adaptive
 
@@ -144,6 +193,16 @@ STL surface and renders it with a matched camera.
 
 ```python
 <!-- cmdrun cat remesh_figures.py -->
+```
+
+## Iteration study script
+
+The [effect-of-iterations](#effect-of-the-number-of-iterations) table and plot
+are produced by the following script, which remeshes the sphere at several
+`--iterations` values and measures the edge-length coefficient of variation:
+
+```python
+<!-- cmdrun cat remesh_iterations.py -->
 ```
 
 ## Converting ASCII STL to binary STL
