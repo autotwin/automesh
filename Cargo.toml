@@ -10,11 +10,11 @@ keywords = ["mesh"]
 license = "GPL-3.0"
 name = "automesh"
 repository = "https://github.com/autotwin/automesh"
-version = "0.4.1"
+version = "0.4.2"
 
 [dependencies]
 clap = { version = "=4.6.1", features = ["derive"] }
-conspire = { version = "=0.7.0", features = ["geometry", "netcdf"] }
+conspire = { version = "=0.7.1", features = ["geometry", "netcdf"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]

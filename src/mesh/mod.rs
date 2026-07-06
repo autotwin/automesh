@@ -102,6 +102,10 @@ pub struct MeshArgs {
     #[arg(long, default_value_t = 3.0, value_name = "SCALE")]
     pub scale: f64,
 
+    /// Uses strong balancing instead of the default weak balancing
+    #[arg(action, long)]
+    pub strong: bool,
+
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
@@ -162,8 +166,6 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
 }
 
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    // A tessellation (stl) input is dualized into hexahedra; a segmentation
-    // (npy | spn) input is meshed directly into hexahedra or triangles.
     if let (Element::Hexahedra, Some("stl")) = (&element, extension(&args.input)) {
         return dualize(args, quiet);
     }
@@ -213,7 +215,11 @@ fn dualize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         "   \x1b[1;96mDualizing\x1b[0m tessellation into hexahedra"
     );
     time = Instant::now();
-    let mesh = tessellation.dualize(Balancing::Strong, args.scale)?;
+    let mesh = if args.strong {
+        tessellation.dualize(Balancing::Strong, args.scale)
+    } else {
+        tessellation.dualize(Balancing::Weak, args.scale)
+    }?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],
