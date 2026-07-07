@@ -153,6 +153,9 @@ def main() -> None:
     here = Path(__file__).resolve().parent
     figures = {
         "sphere_radius_1": "input sphere",
+        "sphere_n1": "1 iteration",
+        "sphere_n5": "5 iterations",
+        "sphere_n10": "10 iterations",
         "sphere_default": "default (uniform, mean edge length)",
         "sphere_uniform_coarse": "uniform, target 0.35",
         "sphere_uniform_fine": "uniform, target 0.08",
