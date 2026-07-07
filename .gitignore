@@ -1,5 +1,5 @@
 # Don't check in all the large .pdf files
-Literature/
+[Ll]iterature/
 
 # Distribution / packaging
 .Python
@@ -33,6 +33,11 @@ MANIFEST
 *.spn
 *.stl
 *.vtk
+
+# but keep the one downloadable example mesh the book links to.  All other
+# .stl under book/ are regenerable figure inputs, linked externally, or already
+# tracked, so they stay ignored (bunny meshes, sphere_* remesh outputs, etc.)
+!book/cli/sphere_radius_1.stl
 
 # ignore build binaries
 *.so

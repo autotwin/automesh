@@ -32,6 +32,8 @@
     - [Tetrahedral metrics](cli/metrics_tetrahedral.md)
     - [Triangular metrics](cli/metrics_triangular.md)
   - [Remesh](cli/remesh.md)
+    - [Unit sphere](cli/remesh_sphere.md)
+    - [Stanford bunny](cli/remesh_bunny.md)
   - [Segment](cli/segment.md)
   - [Smooth](cli/smooth.md)
 - [Analysis](analysis.md)
