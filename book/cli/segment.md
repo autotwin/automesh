@@ -1,5 +1,8 @@
 # Segment
 
+`segment` is the inverse of `mesh`: it samples an existing mesh (hex, tet, or
+tri) back into a voxelized segmentation or mesh, at a chosen element size.
+
 ```sh
 automesh segment --help
 <!-- cmdrun automesh segment --help -->

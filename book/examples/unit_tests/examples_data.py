@@ -1046,7 +1046,7 @@ class LetterF3D(Example):
 
 
 class Sparse(Example):
-    """A radomized 5x5x5 segmentation."""
+    """A randomized 5x5x5 segmentation."""
 
     figure_title: str = COMMON_TITLE + "Sparse"
     file_stem: str = "sparse"

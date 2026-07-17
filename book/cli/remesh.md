@@ -1,10 +1,10 @@
 # Remesh
 
-The `remesh` command applies *isotropic surface remeshing* to an existing
-triangular surface mesh.  Starting from the input triangulation, `automesh`
-iteratively splits, collapses, flips, and smooths edges to drive every edge
-toward a target edge length.  The result is a surface mesh with more uniform,
-better-quality triangles, either coarsened or refined relative to the input.
+`remesh` applies *isotropic surface remeshing* to an existing triangular
+surface mesh.  Starting from the input triangulation, it iteratively splits,
+collapses, flips, and smooths edges to drive every edge toward a target edge
+length.  The result is a surface mesh with more uniform, better-quality
+triangles, either coarsened or refined relative to the input.
 
 ```sh
 automesh remesh --help
@@ -57,9 +57,9 @@ automesh remesh adaptive --help
 
 Two worked examples apply these options and illustrate the results:
 
-* [Unit sphere](remesh_sphere.md) — an analytic unit sphere: mesh statistics,
-  closed-surface relationships, uniform vs. adaptive sizing, and the effect of the
-  number of iterations.
-* [Stanford bunny](remesh_bunny.md) — a real scanned surface with varying
-  curvature, where uniform and adaptive sizing differ visibly, with a walkthrough
-  of every `remesh` parameter.
+* [Unit sphere](../examples/remesh/sphere.md) — an analytic unit sphere: mesh
+  statistics, closed-surface relationships, uniform vs. adaptive sizing, and
+  the effect of the number of iterations.
+* [Stanford bunny](../examples/remesh/bunny.md) — a real scanned surface with
+  varying curvature, where uniform and adaptive sizing differ visibly, with a
+  walkthrough of every `remesh` parameter.

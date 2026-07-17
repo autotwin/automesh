@@ -9,7 +9,7 @@ pip install matplotlib
 cd ~/autotwin/automesh/book/examples/unit_tests
 python examples_figures.py
 
-Ouputk
+Output
 -----
 The `output_npy` segmentation data files
 The `output_png` visualization files
@@ -20,7 +20,7 @@ import datetime
 from pathlib import Path
 from typing import Final
 
-# third-party libary
+# third-party library
 import matplotlib.pyplot as plt
 from matplotlib.colors import LightSource
 import numpy as np
@@ -109,7 +109,7 @@ def mesh_lattice_connectivity(
 
     # Create a list of finite elements from the lattice elements.  If the
     # lattice element has a segmentation id that is not in the included_ids,
-    # exlude the voxel element from the collected list to create the finite
+    # exclude the voxel element from the collected list to create the finite
     # element list
     blocks = ()  # empty tuple
     # breakpoint()
@@ -166,7 +166,7 @@ def mesh_element_connectivity(mesh_with_lattice_connectivity: tuple):
     ln_set = set(ln)  # sets are not necessarily ordered
     ln_ordered = tuple(sorted(ln_set))  # now these unique integers are ordered
 
-    # and they will map into the new compressed unique interger list `mapsto`
+    # and they will map into the new compressed unique integer list `mapsto`
     mapsto = tuple(range(1, len(ln_ordered) + 1))
 
     # now build a mesh_with_element_connectivity
@@ -189,7 +189,7 @@ def mesh_element_connectivity(mesh_with_lattice_connectivity: tuple):
 
 
 def flatten_tuple(t):
-    """Uses recursion to convert nested tuples into a single-sevel tuple.
+    """Uses recursion to convert nested tuples into a single-level tuple.
 
     Example:
         nested_tuple = (1, (2, 3), (4, (5, 6)), 7)

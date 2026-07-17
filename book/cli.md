@@ -1,5 +1,12 @@
 # Command Line Interface
 
+`automesh` is used primarily as a **command line interface (CLI)**: a single
+`automesh` binary with one subcommand per operation — [`convert`](cli/convert.md),
+[`defeature`](cli/defeature.md), [`diff`](cli/diff.md), [`extract`](cli/extract.md),
+[`mesh`](cli/mesh.md), [`metrics`](cli/metrics.md), [`remesh`](cli/remesh.md),
+[`segment`](cli/segment.md), and [`smooth`](cli/smooth.md).  Each subcommand
+reads one or more input files and writes an output file.
+
 ```sh
 automesh --help
 <!-- cmdrun automesh --help -->
