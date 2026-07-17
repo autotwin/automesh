@@ -96,16 +96,19 @@ mod tests {
 
     #[test]
     fn insert_stamp_preserves_parent_directory() {
-        [("logs", "run.log", "run_STAMP.log"), ("a/b", "run", "run_STAMP")]
-            .iter()
-            .for_each(|(dir, file, expected_name)| {
-                let path = Path::new(dir).join(file);
-                let expected = Path::new(dir).join(expected_name);
-                assert_eq!(
-                    insert_stamp(path.to_str().unwrap(), "STAMP"),
-                    expected.to_str().unwrap(),
-                );
-            });
+        [
+            ("logs", "run.log", "run_STAMP.log"),
+            ("a/b", "run", "run_STAMP"),
+        ]
+        .iter()
+        .for_each(|(dir, file, expected_name)| {
+            let path = Path::new(dir).join(file);
+            let expected = Path::new(dir).join(expected_name);
+            assert_eq!(
+                insert_stamp(path.to_str().unwrap(), "STAMP"),
+                expected.to_str().unwrap(),
+            );
+        });
     }
 
     #[test]
