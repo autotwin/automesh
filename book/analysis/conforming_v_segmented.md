@@ -22,7 +22,7 @@ We are interested in comparing the two methods, and quantifying what error the s
 
 For the *spheres with shells* example above, we were able to readily create two *de novo* meshes (the conforming mesh and the segmented mesh).  There are instances, however, where a traditional, conforming finite element mesh exists, but a segmented version of the same geometry does not exist.
 
-To create a segmented version of a conforming mesh, we created the [`segment`](../../cli/segment.md) command.  Following are a examples using the `segment` functionality.
+To create a segmented version of a conforming mesh, we created the [`segment`](../cli/segment.md) command.  Following are a examples using the `segment` functionality.
 
 ## Recovering the Segmented Sphere
 

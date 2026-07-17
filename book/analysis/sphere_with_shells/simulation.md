@@ -44,7 +44,7 @@ Figure: Angular acceleration and corresponding angular velocity time history.
 * [Angular acceleration tabulated data](https://1drv.ms/u/s!ApVSeeLlvsE8g_4xLyBDaZDDXvh7iw?e=iikM6v):  The standardized angular acceleration load curve has column data as (time, magnitude) in (sec, krad/s^2).  The function used to generated the curve, from Equation (1) of [^Carlsen_2021], is
 * [Angular velocity tabulated data](https://1drv.ms/u/s!ApVSeeLlvsE8g_4yrDrMBjYM28vt6A?e=reeUyW):  The angular velocity curve has column data as (time, magnitude) in (sec, rad/s).
 
-The peak angular acceleration ocurrs at $t=\Delta t / 2$ (which occurs in the tabular data at data point 4144, values (0.00414310, 7.99999997)).
+The peak angular acceleration occurs at $t=\Delta t / 2$ (which occurs in the tabular data at data point 4144, values (0.00414310, 7.99999997)).
 
 On the outer shell (block 3) of the model, we prescribe the angular velocity [boundary condition](https://github.com/autotwin/ssm/blob/c83fb7a629850ba225fd4cb45f5b70382ac0d074/bcs/shell_rotation.txt).
 
@@ -65,7 +65,7 @@ Figure: Tracer numbers `[0, 1, 2, ... 11]` at $\Delta x$ distance `[0, 1, 2, ...
 
 ## Materials
 
-We model the outer shell (block 3) as a rigid body.  The inner sphere (block 1) is nodeled as Swanson viscoelastic [white matter](https://github.com/autotwin/ssm/blob/1fd3382f1b050465050ebc66c8fe7bbc87d690c3/material/whitematter.txt).  The intermediate material (block 2) is modeled as elastic [cerebral spinal fluid](https://github.com/autotwin/ssm/blob/1fd3382f1b050465050ebc66c8fe7bbc87d690c3/material/csf.txt).
+We model the outer shell (block 3) as a rigid body.  The inner sphere (block 1) is modeled as Swanson viscoelastic [white matter](https://github.com/autotwin/ssm/blob/1fd3382f1b050465050ebc66c8fe7bbc87d690c3/material/whitematter.txt).  The intermediate material (block 2) is modeled as elastic [cerebral spinal fluid](https://github.com/autotwin/ssm/blob/1fd3382f1b050465050ebc66c8fe7bbc87d690c3/material/csf.txt).
 
 ## Input deck
 
@@ -239,7 +239,7 @@ cd ~/autotwin/automesh/book/analysis/sphere_with_shells/recipes
 figio rigid_body_ang_kinematics.yml
 ```
 
-verify that the rigid body input values were sucessfully reflected in the output:
+verify that the rigid body input values were successfully reflected in the output:
 
 angular acceleration | angular velocity | angular position
 :---: | :---: | :---:

@@ -81,7 +81,7 @@ For subjects that are human anatomy, we use the *Patient Coordinate System* (PCS
 
 | Patient Coordinate System: | Left, Posterior, Superior $\mapsto$ (x, y, z)
 | :--: | :--:
-| ![fig/erpsma_2020_Figure_C-4.png](fig/Terpsma_2020_Figure_C-4.png) | ![fig/patient_coordinate_system.png](fig/patient_coordinate_system.png)
+| ![fig/Terpsma_2020_Figure_C-4.png](fig/Terpsma_2020_Figure_C-4.png) | ![fig/patient_coordinate_system.png](fig/patient_coordinate_system.png)
 
 Figure: Illustration of the patient coordinate system, left figure from Terpsma *et al.*[^Terpsma_2020] and right figure from Sharma.[^Sharma_2021]
 
@@ -94,7 +94,7 @@ format.[^Kitware]
 
 ## References
 
-[^Li_2017]: Li FF, Johnson J, Yeung S.  Lecture 11: Dection and Segmentation, CS 231n, Stanford Unveristy, 2017.  [link](https://cs231n.stanford.edu/slides/2017/cs231n_2017_lecture11.pdf)
+[^Li_2017]: Li FF, Johnson J, Yeung S.  Lecture 11: Detection and Segmentation, CS 231n, Stanford University, 2017.  [link](https://cs231n.stanford.edu/slides/2017/cs231n_2017_lecture11.pdf)
 
 [^Lin_2014]: Lin TY, Maire M, Belongie S, Hays J, Perona P, Ramanan D, Dollár P, Zitnick CL. Microsoft coco: Common objects in context. In Computer Vision–ECCV 2014: 13th European Conference, Zurich, Switzerland, September 6-12, 2014, Proceedings, Part V 13 2014 (pp. 740-755). Springer International Publishing. [link](https://arxiv.org/pdf/1405.0312v3)
 

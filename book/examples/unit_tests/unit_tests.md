@@ -1,6 +1,6 @@
 # Unit Tests
 
-The following illustates a subset of the unit tests used to validate
+The following illustrates a subset of the unit tests used to validate
 the code implementation.
 For a complete listing of the unit sets, see
 [voxels.rs](https://github.com/autotwin/automesh/blob/main/tests/voxel.rs)
@@ -185,7 +185,7 @@ node numbers.
 ```
 
 where the segmentation `102` and `103` denotes block `102` and `103`,
-respectively, in the finite element mesh, and segmentation `0` will be included from the finite element mesh.
+respectively, in the finite element mesh, and segmentation `0` is excluded from the mesh.
 
 ![quadruple_2_blocks_void.png](quadruple_2_blocks_void.png)
 
@@ -394,7 +394,7 @@ node numbers, (right) mesh node numbers.
 ```
 
 which corresponds to `--nelx 4`, `--nely 5`, and `--nelz  3` in the
-[command line interface](cli.md).
+[command line interface](../../cli.md).
 
 ![letter_f_3d.png](letter_f_3d.png)
 

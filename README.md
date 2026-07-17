@@ -12,7 +12,7 @@ Automatic mesh generation.
 
 * [Introduction](https://autotwin.github.io/automesh/introduction.html)
 * [Installation](https://autotwin.github.io/automesh/installation.html)
-* [Getting Started](https://autotwin.github.io/automesh/getting_started.html)
+* [Minimum Working Example](https://autotwin.github.io/automesh/minimum_working_example.html)
 * [Citation](https://github.com/autotwin/automesh/blob/main/CITATION.cff)
 * [License](https://github.com/autotwin/automesh/blob/main/LICENSE)
 

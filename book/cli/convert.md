@@ -1,5 +1,10 @@
 # Convert
 
+`convert` translates between file formats without changing the underlying
+data: `convert mesh` translates between mesh formats (`.exo`, `.inp`, `.mesh`,
+`.stl`, `.vtu`), and `convert segmentation` translates between segmentation
+formats (`.npy`, `.spn`, `.vti`).
+
 ```sh
 automesh convert --help
 <!-- cmdrun automesh convert --help -->

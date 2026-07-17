@@ -2,41 +2,40 @@
 
 [Introduction](introduction.md)
 
-# User Guide
+# Getting Started
 
 - [Installation](installation.md)
-- [Getting Started](getting_started.md)
-- [Examples](examples.md)
-  - [Unit Tests](examples/unit_tests/unit_tests.md)
-  - [Spheres](examples/spheres/spheres.md)
-- [Isosurfaces](isosurface.md)
-  - [Subdivision](isosurface/subdivision.md)
-- [Dualization](dualization.md) <!-- work in progress -->
+- [Minimum Working Example](minimum_working_example.md)
 
-# Reference Guide
+# CLI Reference
 
 - [Command Line Interface](cli.md)
   - [Convert](cli/convert.md)
   - [Defeature](cli/defeature.md)
-    - [Blobs](cli/defeature_blobs.md)
   - [Diff](cli/diff.md)
   - [Extract](cli/extract.md)
   - [Mesh](cli/mesh.md)
   - [Metrics](cli/metrics.md)
-    - [Hexahedral metrics](cli/metrics_hexahedral.md)
-    - [Tetrahedral metrics](cli/metrics_tetrahedral.md)
-    - [Triangular metrics](cli/metrics_triangular.md)
   - [Remesh](cli/remesh.md)
-    - [Unit sphere](cli/remesh_sphere.md)
-    - [Stanford bunny](cli/remesh_bunny.md)
   - [Segment](cli/segment.md)
   - [Smooth](cli/smooth.md)
-    - [Smoothing Theory](cli/smooth_theory.md)
-    - [Laplace](cli/smooth_laplace.md)
-    - [Laplace with Hierarchical Control](cli/smooth_laplace_hierarchical.md)
-    - [Taubin](cli/smooth_taubin.md)
-    - [Python Visualization](cli/smooth_python_visualization.md)
-- [Analysis](analysis.md)
+
+# Examples
+
+- [Overview](examples.md)
+  - [Unit Tests](examples/unit_tests/unit_tests.md)
+  - [Spheres](examples/spheres/spheres.md)
+  - [Defeature: Blobs](examples/defeature/blobs.md)
+  - [Remesh: Unit Sphere](examples/remesh/sphere.md)
+  - [Remesh: Stanford Bunny](examples/remesh/bunny.md)
+  - [Smooth: Laplace](examples/smoothing/laplace.md)
+  - [Smooth: Laplace with Hierarchical Control](examples/smoothing/laplace_hierarchical.md)
+  - [Smooth: Taubin](examples/smoothing/taubin.md)
+  - [Smooth: Python Visualization](examples/smoothing/python_visualization.md)
+
+# Analysis
+
+- [Overview](analysis.md)
   - [Sphere with Shells](analysis/sphere_with_shells.md)
     - [Voxel Mesh `automesh`](analysis/sphere_with_shells/voxel_automesh.md)
     - [Voxel Mesh Sculpt](analysis/sphere_with_shells/voxel_sculpt.md)
@@ -46,12 +45,20 @@
     - [Comparisons](analysis/sphere_with_shells/comparisons.md)
   - [Conforming v Segmented Meshes](analysis/conforming_v_segmented.md)
 
-# Appendices
+# Theory
+
+- [Isosurfaces](theory/isosurface.md)
+- [Subdivision](theory/subdivision.md)
+- [Dualization](theory/dualization.md) <!-- work in progress -->
+- [Smoothing](theory/smoothing.md)
+- [Hexahedral Metrics](theory/metrics_hexahedral.md)
+- [Tetrahedral Metrics](theory/metrics_tetrahedral.md)
+- [Triangular Metrics](theory/metrics_triangular.md)
+
+# Contributing
 
 - [Development](development.md)
-    - [Python](development/python.md)
-    - [Rust](development/rust.md)
-    
+
 # Reviews
 
 - [Tong 2024](reviews/tong_2024.md)

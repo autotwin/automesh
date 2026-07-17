@@ -37,7 +37,7 @@ results = [compute_metrics(t) for t in t_vals]
 j_vals, sj_vals = zip(*results)
 
 # Create a combined plot of Jacobian and Scaled Jacobian where scaled Jacobian
-# is usesd if the Jacobian is positive, and the Jacobian is used if it is negative.
+# is used if the Jacobian is positive, and the Jacobian is used if it is negative.
 # Create combined_j_sj_vals: use sj if sj > 0, else use j
 combined_j_sj_vals = [sj if sj > 0 else j for j, sj in zip(j_vals, sj_vals)]
 
