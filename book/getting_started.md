@@ -743,3 +743,6 @@ The surfaces are visualized below:
 quadrilateral faces are divided into two triangles.  The [Isosurface](./isosurface.md) section contains more details about alternative methods used to create an isosurface.
 
 The [Sphere with Shells](./analysis/sphere_with_shells.md) section contains more examples of the command line interface.
+
+> Remark: Every `automesh` command above also accepts `--quiet` and `--log
+> FILE`, to silence or record terminal output; see [Global Options](cli.md#global-options).
