@@ -3,7 +3,7 @@ of illustrating the defeature command.
 
 Example:
 source ~/autotwin/automesh/.venv/bin/activate
-cd ~/autotwin/automesh/book/analysis/defeature
+cd ~/autotwin/automesh/book/defeature
 python defeature.py
 """
 
@@ -118,11 +118,17 @@ def create_blobs(data: np.ndarray, num_blobs: int, radius_max: int) -> None:
         create_blob(data=data, center=center, radius_max=radius_max)
 
 
-def run_commands(commands: list) -> None:
-    """Run a list of commands in the shell.
+def run_commands(commands: list[list[str]]) -> None:
+    """Run a list of commands in the shell, stopping at the first failure.
 
     Parameters:
-        commands: A list of command strings to run.
+        commands: A list of command argument lists to run.
+
+    Raises:
+        subprocess.CalledProcessError: If any command exits non-zero. Later
+            commands often depend on the output of earlier ones, so
+            continuing after a failure would only produce a more confusing
+            error downstream.
     """
     for command in commands:
         try:
@@ -135,6 +141,32 @@ def run_commands(commands: list) -> None:
             logging.error("Return code: %s", e.returncode)
             logging.error("Standard Output: %s", e.stdout)
             logging.error("Standard Error: %s", e.stderr)
+            raise
+
+
+def resolve_automesh() -> Path:
+    """Resolve the path to the `automesh` release binary.
+
+    Returns:
+        The path to the `automesh` binary.
+    """
+    automesh = Path("~/autotwin/automesh/target/release/automesh").expanduser()
+    assert automesh.is_file(), f"automesh not found at {automesh}"
+    return automesh
+
+
+def mesh_hex_cmd(automesh: Path, input_file: str, output_file: str) -> list[str]:
+    """Build an `automesh mesh hex` command with no refinement.
+
+    Parameters:
+        automesh: The path to the `automesh` binary.
+        input_file: The input segmentation file (`.npy`).
+        output_file: The output mesh file (`.exo` or `.mesh`).
+
+    Returns:
+        The command as a list of arguments, suitable for `subprocess.run`.
+    """
+    return [str(automesh), "mesh", "hex", "-i", input_file, "-o", output_file, "-r", "0"]
 
 
 def spheres():
@@ -152,35 +184,14 @@ def spheres():
     print(f"The domain with spheres has been saved to:\n{FN_SPHERE}.")
 
     # Create the mesh with automesh
-    automesh = Path("~/autotwin/automesh/target/release/automesh").expanduser()
-    assert automesh.is_file(), f"automesh not found at {automesh}"
+    automesh = resolve_automesh()
 
     FN_SPHERE_EXO = f"{FN_SPHERE_STEM}.exo"
     FN_SPHERE_MESH = f"{FN_SPHERE_STEM}.mesh"
 
     commands = [
-        [
-            str(automesh),
-            "mesh",
-            "hex",
-            "-i",
-            str(FN_SPHERE),
-            "-o",
-            str(FN_SPHERE_EXO),
-            "-r",
-            "0",
-        ],
-        [
-            str(automesh),
-            "mesh",
-            "hex",
-            "-i",
-            str(FN_SPHERE),
-            "-o",
-            str(FN_SPHERE_MESH),
-            "-r",
-            "0",
-        ],
+        mesh_hex_cmd(automesh, FN_SPHERE, FN_SPHERE_EXO),
+        mesh_hex_cmd(automesh, FN_SPHERE, FN_SPHERE_MESH),
     ]
 
     run_commands(commands=commands)
@@ -202,8 +213,7 @@ def blobs():
     print(f"The domain with blobs has been saved to:\n{FN_BLOB}.")
 
     # Create the mesh with automesh
-    automesh = Path("~/autotwin/automesh/target/release/automesh").expanduser()
-    assert automesh.is_file(), f"automesh not found at {automesh}"
+    automesh = resolve_automesh()
 
     FN_BLOB_EXO = f"{FN_BLOB_STEM}.exo"
     FN_BLOB_MESH = f"{FN_BLOB_STEM}.mesh"
@@ -211,60 +221,11 @@ def blobs():
     FN_BLOB_DEFEATURED_MESH = f"{FN_BLOB_STEM}_defeatured.mesh"
 
     commands = [
-        [
-            str(automesh),
-            "mesh",
-            "hex",
-            "-i",
-            str(FN_BLOB),
-            "-o",
-            str(FN_BLOB_EXO),
-            "-r",
-            "0",
-        ],
-        [
-            str(automesh),
-            "mesh",
-            "hex",
-            "-i",
-            str(FN_BLOB),
-            "-o",
-            str(FN_BLOB_MESH),
-            "-r",
-            "0",
-        ],
-        [
-            str(automesh),
-            "defeature",
-            "-i",
-            str(FN_BLOB),
-            "-o",
-            str(FN_BLOB_DEFEATURED),
-            "-m",
-            "20",
-        ],
-        [
-            str(automesh),
-            "mesh",
-            "hex",
-            "-i",
-            str(FN_BLOB_DEFEATURED),
-            "-o",
-            str(FN_BLOB_DEFEATURED_EXO),
-            "-r",
-            "0",
-        ],
-        [
-            str(automesh),
-            "mesh",
-            "hex",
-            "-i",
-            str(FN_BLOB_DEFEATURED),
-            "-o",
-            str(FN_BLOB_DEFEATURED_MESH),
-            "-r",
-            "0",
-        ],
+        mesh_hex_cmd(automesh, FN_BLOB, FN_BLOB_EXO),
+        mesh_hex_cmd(automesh, FN_BLOB, FN_BLOB_MESH),
+        [str(automesh), "defeature", "-i", FN_BLOB, "-o", FN_BLOB_DEFEATURED, "-m", "20"],
+        mesh_hex_cmd(automesh, FN_BLOB_DEFEATURED, FN_BLOB_DEFEATURED_EXO),
+        mesh_hex_cmd(automesh, FN_BLOB_DEFEATURED, FN_BLOB_DEFEATURED_MESH),
     ]
 
     run_commands(commands=commands)

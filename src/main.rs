@@ -210,12 +210,15 @@ enum Commands {
 fn main() -> Result<(), ErrorWrapper> {
     let time = Instant::now();
     let args = Args::parse();
+    let quiet = args.quiet;
     if let Some(path) = &args.log {
-        log::set_logfile(path)?;
+        let logfile = log::set_logfile(path)?;
+        if !quiet {
+            println!("Logging to {logfile}");
+        }
         log::write_log(&about!());
         log::write_log("");
     }
-    let quiet = args.quiet;
     let result = match args.command {
         Some(Commands::Convert { subcommand }) => match subcommand {
             ConvertSubcommand::Mesh(args) => convert_mesh(args, quiet),
