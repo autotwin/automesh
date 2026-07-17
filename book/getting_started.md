@@ -720,7 +720,7 @@ The original voxel mesh and the smoothed voxel mesh are shown below:
 :---: | :---:
 ![octahedron_voxels](fig/octahedron_voxels.png) | ![octahedron_voxels_s05](fig/octahedron_voxels_s05.png)
 
-See the [Smoothing](smoothing/smoothing.md) section for more information.
+See the [Smoothing Theory](cli/smooth_theory.md) section for more information.
 
 ## Isosurface
 

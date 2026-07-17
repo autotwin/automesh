@@ -1,5 +1,5 @@
 # Cubit 16.14 on macOS
-# automesh/book/smoothing/sphere.jou
+# automesh/book/cli/sphere.jou
 
 reset
 
@@ -17,7 +17,7 @@ reset
 
 # {savefolder = "/Users/chovey/autotwin/basis/data/cubit/"}
 # {savefolder = "/Users/chovey/autotwin/basis/scratch/"}
-# {savefolder = "/Users/chovey/autotwin/automesh/book/smoothing/"}
+# {savefolder = "/Users/chovey/autotwin/automesh/book/cli/"}
 
 # {basename = "sphere_res_"}
 
@@ -123,14 +123,14 @@ block 2 volume with name "outer_vol*"
 # export mesh "/Users/chovey/autotwin/basis/data/cubit/unmerged" + {ELEMENT_SIZE}.e  overwrite
 # export mesh "/Users/chovey/autotwin/basis/data/cubit/unmerged.e"  overwrite
 # export mesh "/Users/chovey/autotwin/basis/scratch/unmerged.e"  overwrite
-export mesh "/Users/chovey/autotwin/automesh/book/smoothing/sphere_temp_unmerged.g" overwrite
+export mesh "/Users/chovey/autotwin/automesh/book/cli/sphere_temp_unmerged.g" overwrite
 
 reset
 
 # import mesh geometry "/Users/chovey/autotwin/basis/data/cubit/unmerged.e" feature_angle 135.00  merge  merge_nodes {ELEMENT_SIZE/100}
 # import mesh geometry "/Users/chovey/autotwin/basis/data/cubit/unmerged.e" feature_angle 135.00  merge  merge_nodes {ELEMENT_TOLERANCE}
 # import mesh geometry "/Users/chovey/autotwin/basis/scratch/unmerged.e" feature_angle 135.00  merge  merge_nodes {ELEMENT_TOLERANCE}
-import mesh geometry "/Users/chovey/autotwin/automesh/book/smoothing/sphere_temp_unmerged.g" merge  merge_nodes {ELEMENT_TOLERANCE}
+import mesh geometry "/Users/chovey/autotwin/automesh/book/cli/sphere_temp_unmerged.g" merge  merge_nodes {ELEMENT_TOLERANCE}
 
 sideset 1 add surface 1
 sideset 2 add surface 2

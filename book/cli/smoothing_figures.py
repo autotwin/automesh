@@ -4,7 +4,7 @@ smoothing algorithms.
 Example
 -------
 source ~/autotwin/automesh/.venv/bin/activate
-cd ~/autotwin/automesh/book/smoothing
+cd ~/autotwin/automesh/book/cli
 python smoothing_figures.py
 """
 

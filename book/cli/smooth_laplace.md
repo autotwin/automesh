@@ -28,7 +28,7 @@ node | node neighbors
 
 ### Hierarchy
 
-Following is a test where all nodes are `BOUNDARY` from the [`Hierarchy`](../../theory/smoothing.md#the-hierarchy-enum) enum.
+Following is a test where all nodes are `BOUNDARY` from the [`Hierarchy`](smooth_theory.md#the-hierarchy-enum) enum.
 
 ```python
 node_hierarchy: NodeHierarchy = (
