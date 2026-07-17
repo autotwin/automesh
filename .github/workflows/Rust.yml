@@ -52,6 +52,9 @@ jobs:
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
         toolchain: [beta, stable]
+        exclude:
+          # TODO: netCDF vcpkg install is broken on Windows runners; re-enable once fixed.
+          - os: windows-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v7
