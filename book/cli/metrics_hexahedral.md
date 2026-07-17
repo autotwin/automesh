@@ -382,7 +382,7 @@ as a **per node** *weighted* value calculation.
 * This calculation produces the
 incremental movement of the subject node that would improve the scaled Jacobian for the element at that node.
 * The development follows an incremental update of nodal position, similar
-to the update formulation of Laplace and Taubin [smoothing](./../smoothing.md).)
+to the update formulation of Laplace and Taubin [smoothing](./smooth_theory.md).)
 
 ### Node and Element Valence
 
@@ -505,7 +505,7 @@ $$
 \tag{33}
 $$
 
-The quantity $\Delta \mathbf{e}^{(k)}$ is geometrically interpreted as a **search direction** or **gap vector**, analogous to the $\Delta\boldsymbol{p}$ gap vector defined for [Laplace smoothing](./../smoothing.md).
+The quantity $\Delta \mathbf{e}^{(k)}$ is geometrically interpreted as a **search direction** or **gap vector**, analogous to the $\Delta\boldsymbol{p}$ gap vector defined for [Laplace smoothing](./smooth_theory.md).
 
 Let $\lambda \in \mathbb{R}^+$ be the positive scaling factor for the gap $\Delta \mathbf{e}^{(k)}$.
 

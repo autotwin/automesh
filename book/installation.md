@@ -1,15 +1,26 @@
 # Installation
 
-Use `automesh` from one of the following interfaces:
+`automesh` is a single command line program.  There is no Python API — there
+is only one `automesh`, and every way of installing it produces the exact
+same command line interface (CLI), with the same subcommands, same flags,
+same output.
 
-* command line interface,
-* Rust interface, or
-* Python interface.
+There are two independent, equivalent ways to get `automesh` onto your machine:
 
-All interfaces are independent from each other:
+* **Rust**, via `cargo install automesh`, which compiles the binary from
+  the source code, or
+* **Python**, via `pipx install automesh` (or `pip install automesh`), which
+  installs a prebuilt binary through PyPI.
 
-* The Rust interfaces can be used without the Python interface.
-* The Python interface can be used without the Rust interfaces.
+Neither depends on the other — you don't need Rust installed to use the
+Python route, and you don't need Python installed to use the Rust route.
+Pick whichever toolchain you already have set up.  The Python route exists
+for exactly one reason: it lets someone who already has Python and pip on
+their machine — a data scientist or researcher working with segmentation
+data, for example — get the `automesh` CLI without installing Rust and
+Cargo first.  It is not a Python library; `import automesh` will not work.
+See [Step 2](#step-2-install-automesh) for the details of what the Python
+route actually installs.
 
 For macOS and Linux, use a terminal.  For Windows, use a Command Prompt (CMD) or PowerShell.
 
@@ -17,12 +28,12 @@ Some macOS users have encountered a build error with the `netcdf-src` crate.  Se
 
 ## Step 1: Install Prerequisites
 
-* The command line interface and Rust interface depend on [Rust](https://www.rust-lang.org/) and [Cargo](https://doc.rust-lang.org/cargo/).
+* The Rust route depends on [Rust](https://www.rust-lang.org/) and [Cargo](https://doc.rust-lang.org/cargo/).
   * Cargo is the Rust package manager.
   * Cargo is included with the Rust installation.
-* The Python interface depends on [Python](https://www.python.org/) and [pip](https://pypi.org/project/pip/).
-  * pip is the Python package installer.
+* The Python route depends on [Python](https://www.python.org/) and [pip](https://pypi.org/project/pip/), and works best with [pipx](https://pipx.pypa.io/), which is the standard tool for installing Python-packaged command line applications.
   * pip is included with the standard installation of Python starting from Python 3.4.
+  * pipx itself is installed via pip: `pip install pipx` (or `brew install pipx` on macOS, `sudo apt install pipx` on Debian/Ubuntu).
 
 ### Rust Prerequisites
 
@@ -105,9 +116,10 @@ source .venv/bin/activate.fish  # for fish shell
 
 ## Step 2: Install `automesh`
 
-Install the desired interface.
+Install with either route — both put the same `automesh` binary on your
+`PATH`.
 
-### Command Line Interface
+### Rust: build from source with Cargo
 
 [![book](https://img.shields.io/badge/automesh-Book-blue?logo=mdbook&logoColor=000000)](https://autotwin.github.io/automesh/cli)
 [![crates](https://img.shields.io/crates/v/automesh?logo=rust&logoColor=000000&label=Crates&color=32592f)](https://crates.io/crates/automesh)
@@ -116,28 +128,52 @@ Install the desired interface.
 cargo install automesh
 ```
 
-### Rust Interface
+Cargo downloads the source from [crates.io](https://crates.io/crates/automesh)
+and compiles it locally.
 
-[![crates](https://img.shields.io/crates/v/automesh?logo=rust&logoColor=000000&label=Crates&color=32592f)](https://crates.io/crates/automesh)
-[![docs](https://img.shields.io/badge/Docs-API-e57300?logo=docsdotrs&logoColor=000000)](https://docs.rs/automesh)
-
-```sh
-cargo add automesh
-```
-
-### Python Interface
+### Python: install a prebuilt binary with pip
 
 [![pypi](https://img.shields.io/pypi/v/automesh?logo=pypi&logoColor=FBE072&label=PyPI&color=4B8BBE)](https://pypi.org/project/automesh)
-[![docs](https://img.shields.io/badge/Docs-API-8CA1AF?logo=readthedocs)](https://automesh.readthedocs.io)
 
 ```sh
+pipx install automesh    # recommended, or
 pip install automesh     # using pip, or
 uv pip install automesh  # using uv
 ```
 
+`automesh`'s [PyPI project](https://pypi.org/project/automesh) publishes one
+prebuilt wheel per supported platform, plus a source distribution as a
+fallback for anything else.  As of version `0.4.1`, the published files are:
+
+| file | contents |
+| :--- | :--- |
+| `automesh-0.4.1-py3-none-macosx_11_0_arm64.whl` | compiled binary for Apple Silicon macOS |
+| `automesh-0.4.1-py3-none-manylinux_2_38_x86_64.whl` | compiled binary for x86_64 Linux |
+| `automesh-0.4.1-py3-none-win_amd64.whl` | compiled binary for 64-bit Windows |
+| `automesh-0.4.1.tar.gz` | source distribution, built locally with Cargo if no wheel matches your platform |
+
+Each wheel's `py3-none-<platform>` tag is a tell that this isn't a normal
+Python extension module — a real compiled Python module (built with, say,
+`pyo3`) is tagged with a specific interpreter ABI, like
+`cp312-cp312-macosx_...`.  `py3-none` means "works with any CPython 3, no
+Python ABI dependency at all," which is exactly what you'd expect from a
+wheel that contains nothing but a native executable.  That's what
+[`maturin`](https://www.maturin.rs/)'s `bindings = "bin"` mode does: it
+compiles the ordinary Rust binary, then packages it inside a wheel the same
+way `pip` packages any console-script entry point, and installs it straight
+into your environment's `bin/` (or `Scripts/` on Windows) directory — no
+Python import machinery is ever involved.
+
+`pipx` is recommended over plain `pip install` because `automesh` is an
+application, not a library you'd import into other Python code; `pipx`
+installs it into its own isolated environment and adds it to your `PATH`,
+the same way you'd expect a CLI tool to be installed, without needing to
+manage a virtual environment yourself.
+
 ## Step 3: Verify Installation
 
-### Rust Interfaces
+Whichever route you used, verification is identical — it's the same
+program either way.
 
 Run the command line help:
 
@@ -151,19 +187,14 @@ which should display the following:
 <!-- cmdrun automesh --help -->
 ```
 
-### Python Interface
+There is no Python module to `import`.  If you installed with `pipx`/`pip`
+and want to call `automesh` from a Python script, invoke it as a
+subprocess, exactly as you would a Cargo-installed copy:
 
-```sh
-python
+```python
+import subprocess
 
-# In Python, import the module
->>> import automesh
-
-# List all attributes and methods of the module
->>> dir(automesh)
-
-# Get help on the module
->>> help(automesh)
+subprocess.run(["automesh", "mesh", "hex", "-i", "in.npy", "-o", "out.exo", "-r", "0"])
 ```
 
 ## Troubleshooting

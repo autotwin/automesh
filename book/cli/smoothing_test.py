@@ -3,7 +3,7 @@ r"""This module, smoothing_test.py, tests the smoothing modules.
 Example:
 --------
 source ~/autotwin/automesh/.venv/bin/activate
-cd ~/autotwin/automesh/book/examples/smoothing
+cd ~/autotwin/automesh/book/cli
 python -m pytest smoothing_test.py
 
 Reference:
