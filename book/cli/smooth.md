@@ -8,33 +8,23 @@ the domain.  Taubin smoothing is a two-pass extension of Laplacian
 smoothing — a smoothing pass followed by a re-expansion pass — that avoids
 that shrinkage.  Hierarchical control can restrict which nodes are free to
 move, so a mesh's exterior or interface geometry can be preserved during
-smoothing.  See [Smoothing Theory](../theory/smoothing.md) for the full
-derivations.
+smoothing.  The element type is detected automatically from the input mesh
+file; there is no separate hex/tri subcommand to choose.  See
+[Smoothing Theory](../theory/smoothing.md) for the full derivations.
 
 ```sh
 automesh smooth --help
 <!-- cmdrun automesh smooth --help -->
 ```
 
-## Smooth Hex
+## Smooth Remesh
+
+An optional `remesh` subcommand can be chained directly onto smoothing,
+regardless of the input mesh's element type:
 
 ```sh
-automesh smooth hex --help
-<!-- cmdrun automesh smooth hex --help -->
-```
-
-## Smooth Tri
-
-```sh
-automesh smooth tri --help
-<!-- cmdrun automesh smooth tri --help -->
-```
-
-## Smooth Tri Remesh
-
-```sh
-automesh smooth tri remesh --help
-<!-- cmdrun automesh smooth tri remesh --help -->
+automesh smooth remesh --help
+<!-- cmdrun automesh smooth remesh --help -->
 ```
 
 ## Examples
