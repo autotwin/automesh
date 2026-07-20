@@ -214,7 +214,7 @@ fn main() -> Result<(), ErrorWrapper> {
     if let Some(path) = &args.log {
         let logfile = log::set_logfile(path)?;
         if !quiet {
-            println!("Logging to {logfile}");
+            println!("\x1b[1;92mLogging\x1b[0m to {logfile}");
         }
         log::write_log(&about!());
         log::write_log("");
