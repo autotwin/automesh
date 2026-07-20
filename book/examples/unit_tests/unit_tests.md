@@ -1,12 +1,12 @@
 # Unit Tests
 
-The following illustrates a subset of the unit tests used to validate
-the code implementation.
-For a complete listing of the unit sets, see
-[voxels.rs](https://github.com/autotwin/automesh/blob/main/tests/voxel.rs)
-and [voxel.py](https://github.com/autotwin/automesh/blob/main/tests/voxel.py).
-
-The Python code used to generate the figures is included [below](#source).
+The following illustrates a subset of the cases used to validate the code
+implementation's voxel-to-mesh node numbering.  Validation of these cases is
+performed by a `pytest` suite rather than `cargo test`; for the complete set
+of gold-value checks, see
+[examples_test.py](https://github.com/autotwin/automesh/blob/main/book/examples/unit_tests/examples_test.py).
+The Python code used to generate the figures on this page is included
+[below](#source), alongside `examples_test.py` in full.
 
 **Remark:** We use the convention `np` when importing `numpy` as follows:
 
