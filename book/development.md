@@ -37,6 +37,30 @@ git clone git@github.com:autotwin/automesh.git
 cd automesh
 ```
 
+## Building the Book Locally
+
+The book embeds live command output via `mdbook-cmdrun`: most pages run
+`automesh` (some piped through `ansifilter` to strip ANSI color codes for
+plain-text embedding), and a few run `cat` or `python`.  If `automesh` isn't
+resolvable on `PATH`, `mdbook-cmdrun` fails silently — the affected output
+blocks simply render empty, with no error — so before running `mdbook build`
+or `mdbook serve`, make sure both are available:
+
+```sh
+cd automesh               # the repository root, containing Cargo.toml
+cargo install --path .    # installs `automesh` to ~/.cargo/bin; re-run after
+                          # source changes you want reflected in the book
+brew install ansifilter   # macOS, one-time (apt-get install ansifilter on Linux)
+```
+
+`cargo install --path .` must be run from the repository root (or pass that
+path explicitly, e.g. `cargo install --path ~/autotwin/automesh` from
+anywhere) — `--path` points at the directory containing the crate's
+`Cargo.toml`, not at the book or any other subdirectory.
+
+Both install locations are typically already on `PATH` via Rustup/Homebrew,
+so no `PATH` changes should be needed.
+
 ## Development Cycle Overview
 
 * **Branch**
@@ -46,7 +70,8 @@ cd automesh
         * tests
         * implementation
     * Document:
-        * `mdbook build`
+        * `mdbook build` (see [Building the Book Locally](#building-the-book-locally)
+          for prerequisites)
             * output: `automesh/book/build`
         * `mdbook serve --open`
             * interactive mode
