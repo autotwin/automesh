@@ -17,7 +17,10 @@
     ```sh
     rustup update
     ```
-* [CMake](https://cmake.org/download/) [^cmake_2024]
+* [netCDF](https://www.unidata.ucar.edu/software/netcdf/), a system library
+  `automesh` links against for Exodus II I/O [^netcdf_2026] — see the
+  [netCDF Prerequisite](installation.md#netcdf-prerequisite) in Installation
+  for per-platform install commands.
 
 ## Optional
 
@@ -65,4 +68,9 @@ cd automesh
 
 ## References
 
-[^cmake_2024]: As of Oct 2024, `cmake` is required for `hdf5-metno-src v0.9.2`, used for writing Exodus II files.  On macOS with `brew`, install with `brew install cmake` instead of the GUI installer.
+[^netcdf_2026]: `automesh`'s build script looks for the netCDF library in a
+    fixed, OS-specific location (e.g. `/opt/homebrew/lib` or `/usr/local/lib`
+    on macOS, `/usr/lib/x86_64-linux-gnu` on Linux, or
+    `C:/vcpkg/installed/x64-windows/lib` on Windows) rather than using
+    `pkg-config` or an environment variable, so netCDF must be installed to
+    one of those default locations for the build to find it.

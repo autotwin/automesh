@@ -24,7 +24,10 @@ route actually installs.
 
 For macOS and Linux, use a terminal.  For Windows, use a Command Prompt (CMD) or PowerShell.
 
-Some macOS users have encountered a build error with the `netcdf-src` crate.  See [Troubleshooting](#troubleshooting) for a solution to this error.
+The Rust route links against a netCDF library already present on your
+system rather than building one — see
+[netCDF Prerequisite](#netcdf-prerequisite) below for how to install it on
+each platform.
 
 ## Step 1: Install Prerequisites
 
@@ -38,6 +41,45 @@ Some macOS users have encountered a build error with the `netcdf-src` crate.  Se
 ### Rust Prerequisites
 
 It is recommended to install Rust using [Rustup](https://rust-lang.org/learn/get-started/), which is an installer and version management tool.
+
+#### netCDF Prerequisite
+
+`automesh` links against [netCDF](https://www.unidata.ucar.edu/software/netcdf/)
+rather than building it from source, so a netCDF library must already be on
+your system before `cargo install automesh` or `cargo build` will succeed.
+This applies to the Rust route, and to the Python route's source-distribution
+fallback (see [Step 2](#step-2-install-automesh)).
+
+Install it with your platform's package manager, the same way the project's
+own CI does (see
+[`.github/workflows/Rust.yml`](https://github.com/autotwin/automesh/blob/main/.github/workflows/Rust.yml)):
+
+##### macOS
+
+```sh
+brew install netcdf
+```
+
+##### Linux (Debian/Ubuntu)
+
+```sh
+sudo apt-get update && sudo apt-get install -y libnetcdf-dev
+```
+
+##### Windows
+
+```sh
+vcpkg install netcdf-c:x64-windows
+```
+
+Then add `C:\vcpkg\installed\x64-windows\bin` to your `PATH` so the netCDF
+DLL can be found at runtime.
+
+> **Note:** the Windows `vcpkg` install of netCDF is currently unreliable in
+> CI (see the `TODO` in `Rust.yml`), so the Windows build is not exercised
+> by continuous integration. If you hit trouble building on Windows, prefer
+> the [Python route](#python-install-a-prebuilt-binary-with-pip), which
+> installs a prebuilt binary and does not require a local netCDF install.
 
 ### Python Prerequisites
 
@@ -199,61 +241,26 @@ subprocess.run(["automesh", "mesh", "hex", "-i", "in.npy", "-o", "out.exo", "-r"
 
 ## Troubleshooting
 
-### `ZLIB` target not found
+### netCDF library not found
 
-Some users have encountered an error when trying to build the `netcdf` crate, e.g.,
+`automesh`'s build script does not use `pkg-config` or an environment
+variable to locate netCDF — it checks a fixed, OS-specific location instead:
 
-```bash
-...
-error: failed to run custom build command for `netcdf-src v0.4.3`
-...
-The link interface of target "hdf5-static" contains:
+| OS | expected location |
+| :--- | :--- |
+| macOS | `/opt/homebrew/lib` or `/usr/local/lib` |
+| Linux | `/usr/lib/x86_64-linux-gnu` |
+| Windows | `C:/vcpkg/installed/x64-windows/lib` |
 
-  ZLIB::ZLIB
-
-but the target was not found.  Possible reasons include:
-
-  * There is a typo in the target name.
-  * A find_package call is missing for an IMPORTED target.
-  * An ALIAS target is missing.
-...
-```
-
-HDF5 is looking for `ZLIB::ZLIB` as a CMake target, but it's not being found
-even though `ZLIB` is present.
-
-A solution is to use a dynamically-linked `netcdf` from Homebrew instead of
-trying to build it statically.  This should avoid the CMake `ZLIB::ZLIB` target
-issue entirely.
-
-Update the `Cargo.toml` for `automesh` to avoid static linking:
-
-```toml
-...
-# netcdf = { version = "=0.11.1", features = ["ndarray", "static"] }
-netcdf = { version = "=0.11.1", features = ["ndarray"] }
-...
-```
-
-Then,
+If `cargo install automesh` or `cargo build` fails with a "Could not find
+netCDF library" error, the library isn't installed in one of these
+locations. Reinstall netCDF with the package manager for your platform (see
+[netCDF Prerequisite](#netcdf-prerequisite)), which installs to the expected
+location by default, then retry:
 
 ```bash
-# Make sure netcdf is installed via Homebrew
-brew install netcdf
-
-# Set the environment variable to use system netcdf
-export NETCDF_DIR=/opt/homebrew
-
-# Clean and build
 cargo clean
 cargo build
-```
-
-If you still encounter errors about `netcdf` not being found, also try:
-
-```bash
-export PKG_CONFIG_PATH=/opt/homebrew/lib/pkgconfig
-export DYLD_LIBRARY_PATH=/opt/homebrew/lib
 ```
 
 ## Environment Modules
@@ -264,13 +271,13 @@ The **`automesh`** application can be installed as a service on a **High-Perform
 
 **`automesh`** must be available and installed to a file location that is accessible by all compute nodes and users who need it.
 
-* **Location:** Choose a central directory such as `/opt/hpc/` or `/sw/` for the **`automesh`** binaries, libraries, and associated files. For example, let's assume the install path is `/opt/hpc/apps/automesh/0.3.7`.
+* **Location:** Choose a central directory such as `/opt/hpc/` or `/sw/` for the **`automesh`** binaries, libraries, and associated files. For example, let's assume the install path is `/opt/hpc/apps/automesh/0.4.1`.
 * **Compilation:** Compile **`automesh`** and all its dependencies statically if possible, or ensure all shared libraries (`.so` files) are also included in the installation directory structure.
 
 ### Create a Module File
 
 The **module file**, a small script usually written in **Tcl** or **Lua**, provides the **`module load`** functionality. It tells the shell what changes to make to the user's environment when the module is loaded.
-* **Location:** Module files are placed in a specific directory **structure** that is scanned by the **Environment Modules** software (e.g., Lmod or Tcl-based modules). A common path would be `/opt/hpc/modules/automesh/0.3.7`.
+* **Location:** Module files are placed in a specific directory **structure** that is scanned by the **Environment Modules** software (e.g., Lmod or Tcl-based modules). A common path would be `/opt/hpc/modules/automesh/0.4.1`.
 
 A typical module file would be something like this:
 
@@ -278,7 +285,7 @@ A typical module file would be something like this:
 #%Module
 # Define the application name and version
 set name automesh
-set version 0.3.7
+set version 0.4.1
 
 # 1. Prerequisite check (e.g., automesh needs a specific compiler)
 # If your app needs a specific compiler, you can ensure it's loaded first:
@@ -317,5 +324,5 @@ This is usually done in a global system profile script so it is active for all u
 Users can discover and load `automesh`:
 
 * **Check for the module:** `module avail automesh`
-* **Load the service:** `module load automesh/0.3.7` (or `module load automesh` if it is the default)
+* **Load the service:** `module load automesh/0.4.1` (or `module load automesh` if it is the default)
 * **Run the program:** `automesh --version`
