@@ -3,12 +3,24 @@
 We examine the Taubin smoothing algorithm on a sphere composed of hexahedral elements.
 We created a two block (green inner volume, yellow outer volume) mesh in Cubit, then added normal noise to the hemisphere where the $x$ coordinate was positive.  We then applied Taubin smoothing to the noised model.
 
-The Cubit and Python code used to generate the noised input file and figures is included [below](#source).  Alternatively, the `.inp` files can be downloaded directly from the table below:
+## Downloadable Files
 
-name | size (MB) | md5 checksum
---- | :---: | :---:
-[`sphere_res_1cm.inp`](https://1drv.ms/u/c/3cc1bee5e2795295/ER8M2M-kE7BDsv6q6HqyqcIB7e1R5TcKhc-rZt4_Q4QXSg?e=Cxa6ef) | `1.5` | `644ef573c257222bfd61dcfda7131c6a`
-[`sphere_res_1cm_noised.inp`](https://1drv.ms/u/c/3cc1bee5e2795295/Eb-evDgLk-1GjUI-h-BjWE8B2boLnG5E8Adj5dfgtynCyw?e=u2kMWH) | `1.5` | `7031df475b972b15cf28bf2c5b69c162` 
+The Cubit and Python code used to generate the noised input file and figures
+is included [below](#source).  The `.inp` mesh files used as input to the
+`automesh smooth` commands in the [`automesh`](#automesh) section — the
+original two-material sphere mesh, and the same mesh with normal noise added
+to the $x > 0$ hemisphere — can be downloaded directly:
+
+| file | size (MB) | md5 checksum |
+| :--- | :---: | :---: |
+| [sphere_res_1cm.inp](https://1drv.ms/u/c/3cc1bee5e2795295/ER8M2M-kE7BDsv6q6HqyqcIB7e1R5TcKhc-rZt4_Q4QXSg?e=Cxa6ef) | `1.5` | `644ef573c257222bfd61dcfda7131c6a` |
+| [sphere_res_1cm_noised.inp](https://1drv.ms/u/c/3cc1bee5e2795295/Eb-evDgLk-1GjUI-h-BjWE8B2boLnG5E8Adj5dfgtynCyw?e=u2kMWH) | `1.5` | `7031df475b972b15cf28bf2c5b69c162` |
+
+These two files are hosted externally (not in the repository) because of their
+size, and are not regenerated automatically as part of the book build.  The
+smoothed outputs shown below (`s10.exo`, `s50.exo`, `s200.exo`) are likewise
+not themselves available for download — only their rendered screenshots are
+checked into the repository.
 
 The two-material `sphere_res_1cm_noised.inp` file is visualized below with and without a midplane cut.
 
@@ -32,15 +44,15 @@ We compare our volumetric results to the surface mesh presented by Taubin.[^Taub
 The smoothing parameters used were the `autotwin` defaults,[^autotwin_defaults] the same as used in Taubin's Figure 3 example.
 
 ```sh
-automesh smooth hex -i sphere_res_1cm_noised.inp -o s10.exo -n 10
+automesh smooth -i sphere_res_1cm_noised.inp -o s10.exo -n 10
 ```
 
 ```sh
-automesh smooth hex -i sphere_res_1cm_noised.inp -o s50.exo -n 50
+automesh smooth -i sphere_res_1cm_noised.inp -o s50.exo -n 50
 ```
 
 ```sh
-automesh smooth hex -i sphere_res_1cm_noised.inp -o s200.exo -n 200
+automesh smooth -i sphere_res_1cm_noised.inp -o s200.exo -n 200
 ```
 
 front | iso | `xz` midplane
