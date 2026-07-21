@@ -51,7 +51,13 @@
 
 - [Isosurfaces](theory/isosurface.md)
 - [Subdivision](theory/subdivision.md)
-- [Dualization](theory/dualization.md) <!-- work in progress -->
+- [Hexahedral Meshing from a Surface](theory/hex_from_surface.md)
+  - [Octree Construction](theory/hex_from_surface/octree_construction.md)
+  - [Equilibration](theory/hex_from_surface/equilibration.md)
+  - [Dualization](theory/hex_from_surface/dualization.md)
+  - [Trimming](theory/hex_from_surface/trimming.md)
+  - [Buffering](theory/hex_from_surface/buffering.md)
+- [Dualization (deprecated)](theory/dualization.md) <!-- superseded by Hexahedral Meshing from a Surface; slated for deletion -->
 - [Smoothing](theory/smoothing.md)
 - [Hexahedral Metrics](theory/metrics_hexahedral.md)
 - [Tetrahedral Metrics](theory/metrics_tetrahedral.md)
