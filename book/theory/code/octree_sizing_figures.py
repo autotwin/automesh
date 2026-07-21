@@ -9,17 +9,20 @@ refinement is visible: the bar is meshed finely because it is thin, while the
 lobes stay coarse.  Both regions receive about s cells across their own local
 thickness.
 
-Run manually to regenerate; the PNG is committed as a static asset:
+Run manually to regenerate; the SVG is committed as a static asset:
 
     python3 book/theory/code/octree_sizing_figures.py
 """
+
+import os
 
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Rectangle
 
 SCALE = 4  # the `--scale` argument, s
-OUT = "book/fig/octree_sizing.png"
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = os.path.join(HERE, "..", "..", "fig", "octree_sizing.svg")
 
 
 def thickness(x, y):
@@ -167,7 +170,7 @@ def main():
     ax.set_aspect("equal")
     ax.axis("off")
     fig.tight_layout()
-    fig.savefig(OUT, dpi=180, bbox_inches="tight")
+    fig.savefig(OUT, format="svg", bbox_inches="tight")
     print(f"wrote {OUT}  [{len(cells)} cells, depth {depth}]")
 
 
