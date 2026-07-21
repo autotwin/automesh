@@ -51,6 +51,7 @@
 
 - [Isosurfaces](theory/isosurface.md)
 - [Subdivision](theory/subdivision.md)
+- [Hexahedral Meshing from a Surface](theory/hex_from_surface.md)
 - [Dualization](theory/dualization.md) <!-- work in progress -->
 - [Smoothing](theory/smoothing.md)
 - [Hexahedral Metrics](theory/metrics_hexahedral.md)
