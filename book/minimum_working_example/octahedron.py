@@ -1,5 +1,7 @@
 """This module creates a 7x7x7 octahedron segmentation."""
 
+from pathlib import Path
+
 import numpy as np
 
 segmentation = np.array(
@@ -71,6 +73,7 @@ segmentation = np.array(
     dtype=np.uint8,
 )
 
-FILE_NAME = "octahedron.npy"
+FILE_NAME = "minimum_working_example/octahedron.npy"
+Path(FILE_NAME).parent.mkdir(parents=True, exist_ok=True)
 np.save(FILE_NAME, segmentation)
 print(f"Saved {FILE_NAME} with shape {segmentation.shape}.")

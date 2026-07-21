@@ -3,6 +3,21 @@
 In this section, we use a simple segmentation to create a finite element mesh, a
 smoothed finite element mesh, and an isosurface.
 
+## Downloadable Files
+
+Every file used or produced on this page can be built by hand by following
+the steps below.  If you'd rather skip the manual steps, each file is also
+available for direct download:
+
+| file | description |
+| :--- | :--- |
+| [octahedron.npy](minimum_working_example/octahedron.npy) | The octahedron segmentation, saved as a NumPy array (see [Segmentation Input](#segmentation-input)). |
+| [octahedron2.spn](minimum_working_example/octahedron2.spn) | `octahedron.npy` converted to `.spn` format (see [The `convert` Command](#the-convert-command)). |
+| [octahedron3.npy](minimum_working_example/octahedron3.npy) | `octahedron2.spn` converted back to `.npy`, round-tripping the segmentation (see [The `convert` Command](#the-convert-command)). |
+| [octahedron.inp](minimum_working_example/octahedron.inp) | The all-hexahedral finite element mesh, in Abaqus `.inp` format (see [Mesh Generation](#mesh-generation)). |
+| [octahedron_s05.inp](minimum_working_example/octahedron_s05.inp) | `octahedron.inp` after five iterations of Taubin smoothing (see [Smoothing](#smoothing)). |
+| [octahedron.stl](minimum_working_example/octahedron.stl) | The triangulated isosurface mesh, in `.stl` format (see [Isosurface](#isosurface)). |
+
 ## Segmentation Input
 
 We start with a segmentation of a regular octahedron composed of three materials.
@@ -563,7 +578,7 @@ for a process called
 used to produce spherical shapes at higher resolutions.
 See [Octa Loop](https://github.com/autotwin/mesh/blob/main/doc/octa_loop.md) for additional information.
 A sphere in resolutions of (`24 x 24 x 24`) and (`48 x 48 x 48`), used
-in the [Sphere with Shells](https://autotwin.github.io/automesh/analysis/sphere_with_shells/index.html) section,
+in the [Sphere with Shells](./analysis/sphere_with_shells.md) section,
 is shown below: ![spheres_cont_cut](analysis/fig/spheres_cont_cut.png)
 
 ## Segmentation File Types
@@ -641,7 +656,7 @@ binary file in `.npy` format.
 We illustrate creating the octahedron segmentation in Python:
 
 ```python
-<!-- cmdrun cat octahedron.py -->
+<!-- cmdrun cat minimum_working_example/octahedron.py -->
 ```
 
 ## The `convert` Command
@@ -657,16 +672,16 @@ automesh convert --help
 For example, to convert the `octahedron.npy` to `octahedron2.spn`:
 
 ```sh
-<!-- cmdrun python octahedron.py > /dev/null -->
-automesh convert segmentation -i octahedron.npy -o octahedron2.spn
-<!-- cmdrun automesh convert segmentation -i octahedron.npy -o octahedron2.spn | ansifilter -->
+<!-- cmdrun python minimum_working_example/octahedron.py > /dev/null -->
+automesh convert segmentation -i minimum_working_example/octahedron.npy -o minimum_working_example/octahedron2.spn
+<!-- cmdrun automesh convert segmentation -i minimum_working_example/octahedron.npy -o minimum_working_example/octahedron2.spn | ansifilter -->
 ```
 
 To convert from `octahedron2.spn` to `octahedron3.npy`:
 
 ```sh
-automesh convert segmentation -i octahedron2.spn -x 7 -y 7 -z 7 -o octahedron3.npy
-<!-- cmdrun automesh convert segmentation -i octahedron2.spn -x 7 -y 7 -z 7 -o octahedron3.npy | ansifilter -->
+automesh convert segmentation -i minimum_working_example/octahedron2.spn -x 7 -y 7 -z 7 -o minimum_working_example/octahedron3.npy
+<!-- cmdrun automesh convert segmentation -i minimum_working_example/octahedron2.spn -x 7 -y 7 -z 7 -o minimum_working_example/octahedron3.npy | ansifilter -->
 ```
 
 > Remark: Notice that the `.spn` requires number of voxels in each of the x, y, and z dimensions to be specified using `--nelx`, `--nely`, `--nelz` (or, equivalently `-x`, `-y`, `-z`) flags.
@@ -674,7 +689,7 @@ automesh convert segmentation -i octahedron2.spn -x 7 -y 7 -z 7 -o octahedron3.n
 We can verify the two `.npy` files encode the same segmentation:
 
 ```python
-<!-- cmdrun cat octahedron_roundtrip.py -->
+<!-- cmdrun cat minimum_working_example/octahedron_roundtrip.py -->
 ```
 
 ## Mesh Generation
@@ -693,8 +708,8 @@ To convert the `octahedron.npy` into an ABAQUS finite element mesh, while removi
 segmentation `0` from the mesh:
 
 ```sh
-automesh mesh hex -r 0 -i octahedron.npy -o octahedron.inp
-<!-- cmdrun automesh mesh hex -r 0 -i octahedron.npy -o octahedron.inp | ansifilter -->
+automesh mesh hex -r 0 -i minimum_working_example/octahedron.npy -o minimum_working_example/octahedron.inp
+<!-- cmdrun automesh mesh hex -r 0 -i minimum_working_example/octahedron.npy -o minimum_working_example/octahedron.inp | ansifilter -->
 ```
 
 ## Smoothing
@@ -710,8 +725,8 @@ To smooth the `octahedron.inp` mesh with Taubin smoothing parameters for five
 iterations:
 
 ```sh
-automesh smooth hex -n 5 -i octahedron.inp -o octahedron_s05.inp
-<!-- cmdrun automesh smooth hex -n 5 -i octahedron.inp -o octahedron_s05.inp | ansifilter -->
+automesh smooth -n 5 -i minimum_working_example/octahedron.inp -o minimum_working_example/octahedron_s05.inp
+<!-- cmdrun automesh smooth -n 5 -i minimum_working_example/octahedron.inp -o minimum_working_example/octahedron_s05.inp | ansifilter -->
 ```
 
 The original voxel mesh and the smoothed voxel mesh are shown below:
@@ -729,8 +744,8 @@ An isosurface can be generated from a segmentation using the `tri` command.
 To create a mesh of the outer isosurfaces contained in the `octahedron` example:
 
 ```sh
-automesh mesh tri -r 0 1 2 -i octahedron.npy -o octahedron.stl
-<!-- cmdrun automesh mesh tri -r 0 1 2 -i octahedron.npy -o octahedron.stl | ansifilter -->
+automesh mesh tri -r 0 1 2 -i minimum_working_example/octahedron.npy -o minimum_working_example/octahedron.stl
+<!-- cmdrun automesh mesh tri -r 0 1 2 -i minimum_working_example/octahedron.npy -o minimum_working_example/octahedron.stl | ansifilter -->
 ```
 
 The surfaces are visualized below:

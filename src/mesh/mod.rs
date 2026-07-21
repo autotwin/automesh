@@ -55,7 +55,7 @@ pub struct MeshArgs {
     #[arg(long, short = 'z', value_name = "NEL")]
     pub nelz: Option<usize>,
 
-    /// Voxel IDs to remove from the mesh
+    /// Voxel IDs to remove from the mesh (npy | spn)
     #[arg(long, num_args = 1.., short, value_delimiter = ' ', value_name = "ID")]
     pub remove: Option<Vec<usize>>,
 

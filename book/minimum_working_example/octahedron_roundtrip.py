@@ -4,10 +4,10 @@ segmentation data encoded in two .npy files is the same.
 
 import numpy as np
 
-aa = np.load("octahedron.npy")
+aa = np.load("minimum_working_example/octahedron.npy")
 print(aa)
 
-bb = np.load("octahedron3.npy")
+bb = np.load("minimum_working_example/octahedron3.npy")
 print(bb)
 
 comparison = aa == bb
