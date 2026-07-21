@@ -10,7 +10,7 @@
 
 Before projecting, the extracted boundary is checked for manifoldness: every edge must be shared by exactly two faces.  If not, meshing fails with
 
-```
+```sh
 Error: non-manifold boundary.
 ```
 
