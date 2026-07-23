@@ -11,7 +11,7 @@ use conspire::{
         Coordinate, Coordinates,
         grid::Voxels,
         mesh::{Mesh, Tessellation},
-        ntree::Balancing,
+        ntree::{Balancing, CurvatureSizing},
         segmentation::Segmentation,
     },
     math::Tensor,
@@ -99,8 +99,12 @@ pub struct MeshArgs {
     pub ztranslate: f64,
 
     /// Octree refinement scale for dualizing a tessellation (stl) input
-    #[arg(long, default_value_t = 3.0, value_name = "SCALE")]
+    #[arg(long, default_value_t = 3.0, short = 's', value_name = "SCALE")]
     pub scale: f64,
+
+    /// ???
+    #[arg(long, short = 't', value_name = "TOL")]
+    pub tolerance: Option<f64>,
 
     /// Uses strong balancing instead of the default weak balancing
     #[arg(action, long)]
@@ -216,9 +220,23 @@ fn dualize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     );
     time = Instant::now();
     let mesh = if args.strong {
-        tessellation.dualize(Balancing::Strong, args.scale)
+        tessellation.dualize(
+            Balancing::Strong,
+            args.scale,
+            CurvatureSizing {
+                tolerance: args.tolerance,
+                ..Default::default()
+            },
+        )
     } else {
-        tessellation.dualize(Balancing::Weak, args.scale)
+        tessellation.dualize(
+            Balancing::Weak,
+            args.scale,
+            CurvatureSizing {
+                tolerance: args.tolerance,
+                ..Default::default()
+            },
+        )
     }?;
     let mesh = scaled(
         mesh,
