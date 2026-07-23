@@ -102,7 +102,7 @@ pub struct MeshArgs {
     #[arg(long, default_value_t = 3.0, short = 's', value_name = "SCALE")]
     pub scale: f64,
 
-    /// ???
+    /// Chord-error tolerance for curvature-driven refinement [default: disabled]
     #[arg(long, short = 't', value_name = "TOL")]
     pub tolerance: Option<f64>,
 
