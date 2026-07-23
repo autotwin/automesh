@@ -99,7 +99,7 @@ pub struct MeshArgs {
     pub ztranslate: f64,
 
     /// Octree refinement scale for dualizing a tessellation (stl) input
-    #[arg(long, default_value_t = 3.0, short = 's', value_name = "SCALE")]
+    #[arg(long, default_value_t = 5.0, short = 's', value_name = "SCALE")]
     pub scale: f64,
 
     /// Chord-error tolerance for curvature-driven refinement [default: disabled]
