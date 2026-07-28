@@ -10,7 +10,7 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::Voxels,
-        mesh::{Mesh, Tessellation},
+        mesh::{Fitting, Mesh, Tessellation},
         ntree::{Balancing, CurvatureSizing},
         segmentation::Segmentation,
     },
@@ -109,6 +109,10 @@ pub struct MeshArgs {
     /// Uses strong balancing instead of the default weak balancing
     #[arg(action, long)]
     pub strong: bool,
+
+    /// Snaps the buffer layer onto the surface instead of a soft fit
+    #[arg(action, long)]
+    pub snap: bool,
 
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
@@ -219,25 +223,25 @@ fn dualize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         "   \x1b[1;96mDualizing\x1b[0m tessellation into hexahedra"
     );
     time = Instant::now();
-    let mesh = if args.strong {
-        tessellation.dualize(
-            Balancing::Strong,
-            args.scale,
-            CurvatureSizing {
-                tolerance: args.tolerance,
-                ..Default::default()
-            },
-        )
+    let balancing = if args.strong {
+        Balancing::Strong(1)
     } else {
-        tessellation.dualize(
-            Balancing::Weak,
-            args.scale,
-            CurvatureSizing {
-                tolerance: args.tolerance,
-                ..Default::default()
-            },
-        )
-    }?;
+        Balancing::Weak(1)
+    };
+    let fitting = if args.snap {
+        Fitting::Snap
+    } else {
+        Fitting::Soft
+    };
+    let mesh = tessellation.dualize(
+        balancing,
+        args.scale,
+        CurvatureSizing {
+            tolerance: args.tolerance,
+            ..Default::default()
+        },
+        fitting,
+    )?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],

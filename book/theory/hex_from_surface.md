@@ -32,7 +32,7 @@ The pipeline has five stages, and **stage 3 is the pivot between the two vocabul
 | 2 | [**Equilibration**](hex_from_surface/equilibration.md), which balances and pairs the octree | cells |
 | 3 | [**Dualization**](hex_from_surface/dualization.md), which converts cells into hexahedra via templates | cells → hexahedra |
 | 4 | [**Trimming**](hex_from_surface/trimming.md), which discards hexahedra lying outside the surface | hexahedra |
-| 5 | [**Buffering**](hex_from_surface/buffering.md), which projects the boundary onto the surface | hexahedra |
+| 5 | [**Buffering**](hex_from_surface/buffering.md), which fits the boundary to the surface | hexahedra |
 
 Stage 3 consumes the octree and emits the dual mesh.  **The octree plays no further role once dualization is complete** — trimming and buffering never consult it, and never subdivide, coarsen, or otherwise revisit a cell.  Whatever the templates produced is what the remaining stages must work with, which is why the interior quality bound established at stage 3 survives to the finished mesh.
 
