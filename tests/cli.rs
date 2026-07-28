@@ -17,6 +17,15 @@ fn input(name: &str) -> PathBuf {
         .join(name)
 }
 
+/// The book's unit sphere, the only closed tessellation fixture in the repository.
+fn sphere() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("book")
+        .join("examples")
+        .join("remesh")
+        .join("sphere_radius_1.stl")
+}
+
 fn out(extension: &str) -> PathBuf {
     let id = COUNTER.fetch_add(1, Ordering::Relaxed);
     std::env::temp_dir().join(format!(
@@ -64,6 +73,22 @@ fn mesh_tri_to_stl() {
         input("letter_f_3d.npy").to_str().unwrap(),
         "-o",
         output.to_str().unwrap(),
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_poly_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "poly",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "5",
     ]);
     assert_nonempty(&output);
 }
