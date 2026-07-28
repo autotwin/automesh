@@ -94,6 +94,22 @@ fn mesh_poly_to_vtu() {
 }
 
 #[test]
+fn mesh_hexdom_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hexdom",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "6",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
 fn convert_mesh_exo_to_inp() {
     let exo = out("exo");
     run(&[

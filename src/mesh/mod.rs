@@ -22,6 +22,8 @@ use std::{path::Path, time::Instant};
 pub enum MeshSubcommand {
     /// Creates an all-hexahedral mesh from a segmentation or tessellation
     Hex(MeshArgs),
+    /// Creates a hex-dominant mesh from a tessellation, polyhedral at the boundary
+    Hexdom(MeshArgs),
     /// Creates a polyhedral mesh from a tessellation
     Poly(MeshArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
@@ -127,6 +129,7 @@ pub struct MeshArgs {
 
 pub enum Element {
     Hexahedra,
+    HexDominant,
     Polyhedra,
     Triangles,
 }
@@ -183,8 +186,12 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     match (&element, extension(&args.input)) {
         (Element::Hexahedra, Some("stl")) => return dualize(args, quiet),
-        (Element::Polyhedra, Some("stl")) => return cut(args, quiet),
-        (Element::Polyhedra, extension) => return Err(invalid_input(&args.input, extension)),
+        (element @ (Element::HexDominant | Element::Polyhedra), Some("stl")) => {
+            return cut(args, element, quiet);
+        }
+        (Element::HexDominant | Element::Polyhedra, extension) => {
+            return Err(invalid_input(&args.input, extension));
+        }
         _ => {}
     }
     let voxels = read_voxels(&args, quiet)?;
@@ -201,7 +208,9 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
             let segmentation = Segmentation::new(voxels, scale, translate);
             Mesh::from_segmentation(segmentation, remove.as_deref())
         }
-        Element::Polyhedra => unreachable!("polyhedral meshing requires a tessellation input"),
+        Element::HexDominant | Element::Polyhedra => {
+            unreachable!("cutting requires a tessellation input")
+        }
         Element::Triangles => {
             crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m voxels into triangles");
             let voxels = remove_materials(voxels, args.remove.as_deref());
@@ -268,23 +277,41 @@ fn dualize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     finish(mesh, args, quiet)
 }
 
-/// Cuts an octree fitted to a tessellation (stl) input into a polyhedral mesh.
-fn cut(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+/// Cuts an octree fitted to a tessellation (stl) input to the surface.
+///
+/// [`Element::Polyhedra`] cuts the octree itself, while [`Element::HexDominant`]
+/// cuts its dual, leaving hexahedra everywhere but at the boundary.
+fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
     let mut time = Instant::now();
     let tessellation = Tessellation::try_from(Path::new(&args.input))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    let polyhedral = matches!(element, Element::Polyhedra);
     crate::echo!(
         quiet,
-        "     \x1b[1;96mCutting\x1b[0m tessellation into polyhedra"
+        "     \x1b[1;96mCutting\x1b[0m tessellation into {}",
+        if polyhedral {
+            "polyhedra"
+        } else {
+            "hexahedra and polyhedra"
+        }
     );
     time = Instant::now();
+    if !polyhedral && args.levels != 1 {
+        return Err(ErrorWrapper::from(
+            "Dualization requires 2:1 balancing, so levels applies to mesh poly only",
+        ));
+    }
     let balancing = if args.strong {
         Balancing::Strong(args.levels)
     } else {
         Balancing::Weak(args.levels)
     };
-    let mesh = tessellation.cut_polyhedral(balancing, args.scale)?;
+    let mesh = if polyhedral {
+        tessellation.cut_polyhedral(balancing, args.scale)
+    } else {
+        tessellation.cut(balancing, args.scale)
+    }?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],
