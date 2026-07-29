@@ -13,10 +13,12 @@ originally scanned by Greg Turk and Marc Levoy at Stanford University in 1994.
 ## Download
 
 The mesh used here is the cleaned bunny from Alec Jacobson's community
-`common-3d-test-models` repository:
+`common-3d-test-models` repository, mirrored on OneDrive for convenience:
 
-- [⬇ `stanford-bunny.obj` from Alec Jacobson's repository](https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.obj)
-  (OBJ, 69,451 triangles)
+- [⬇ `stanford-bunny.obj`](https://1drv.ms/u/c/3cc1bee5e2795295/IQAkhtTCdloDT6bG1zXR7Ly-AfRzJU72H6AcklZFKFM0RD4?e=KsuaeZ)
+  (OBJ, 69,451 triangles, sha256 `1eb35d1e21ce99e5ce911353b6be278990713448dd9e8f5c9387f9de39b32205`)
+  — hosted at `OneDrive/automesh/data/stanford-bunny.obj`
+  - backup: [Alec Jacobson's repository](https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.obj)
 
 `remesh` reads **binary STL**, not OBJ, so convert the downloaded file once with
 the [`obj_to_binary_stl.py` helper](#helper-obj-to-binary-stl) (shown at the end
@@ -26,6 +28,15 @@ converted file.
 ```sh
 python obj_to_binary_stl.py stanford-bunny.obj stanford_bunny.stl
 ```
+
+Alternatively, skip the conversion step and download the same file pre-converted:
+
+- [⬇ `stanford_bunny.stl`](https://1drv.ms/u/c/3cc1bee5e2795295/IQBv8OdcUamuTL18jOJJ4suIASblxjU2_Vn_9WSsmF5NDFU?e=egBKFe)
+  (binary STL, pre-converted, sha256 `909348a1c93eed60fef06515add5928a51461ed9893e74a242df1bf1adb4ed85`)
+  — hosted at `OneDrive/automesh/data/stanford_bunny.stl`
+
+This is the exact output of the command above; either path produces the same
+`stanford_bunny.stl` used throughout the rest of this page.
 
 ## The input mesh
 
