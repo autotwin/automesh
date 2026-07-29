@@ -2,9 +2,9 @@ use super::ErrorWrapper;
 use conspire::{
     geometry::{
         grid::{Input as GridInput, Output as GridOutput, Voxels},
-        mesh::{Input as MeshInput, Mesh, Output as MeshOutput, Tessellation},
+        mesh::{Input as MeshInput, Mesh, Output as MeshOutput, Tessellation, Vtk},
     },
-    io::Write,
+    io::{Write, write::Compression},
 };
 use std::{path::Path, time::Instant};
 
@@ -58,7 +58,7 @@ pub fn read_mesh(file: &str, quiet: bool, show_title: bool) -> Result<Mesh<3>, E
         Some("inp") => Mesh::try_from(MeshInput::Abaqus(file))?,
         Some("exo") => Mesh::try_from(MeshInput::Exodus(file))?,
         Some("mesh") => Mesh::try_from(MeshInput::Medit(file))?,
-        Some("vtu") => Mesh::try_from(MeshInput::Vtu(file))?,
+        Some("vtu") => Mesh::try_from(MeshInput::VtkUnstructured(file))?,
         Some("stl") => Mesh::from(Tessellation::try_from(Path::new(file))?),
         _ => return Err(invalid_input(file, extension)),
     };
@@ -75,10 +75,12 @@ pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWra
         Some("inp") => mesh.write(MeshOutput::Abaqus(file))?,
         Some("exo") => mesh.write(MeshOutput::Exodus(file))?,
         Some("mesh") => mesh.write(MeshOutput::Medit(file))?,
-        Some("vtu") => mesh.write(MeshOutput::Vtu(file))?,
+        Some("vtu") => mesh.write(MeshOutput::Vtk(Vtk::UnstructuredGrid(Compression::Off(
+            file,
+        ))))?,
         Some("stl") => Tessellation::from(mesh).write(file)?,
         _ => return Err(invalid_output(file, extension)),
-    }
+    } // Output::Vtk(Vtk::UnstructuredGrid(Compression::Off(path)))
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     Ok(())
 }
@@ -144,7 +146,7 @@ pub fn write_segmentation(
     match extension {
         Some("npy") => voxels.write(GridOutput::Npy(file))?,
         Some("spn") => voxels.write(GridOutput::Spn(file))?,
-        Some("vti") => voxels.write(GridOutput::Vti(file))?,
+        Some("vti") => voxels.write(GridOutput::Vti(Compression::Off(file)))?,
         _ => return Err(invalid_output(file, extension)),
     }
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());

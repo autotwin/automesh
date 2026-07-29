@@ -10,8 +10,8 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::Voxels,
-        mesh::{Mesh, Tessellation},
-        ntree::Balancing,
+        mesh::{Fitting, Mesh, Tessellation},
+        ntree::{Balancing, CurvatureSizing},
         segmentation::Segmentation,
     },
     math::Tensor,
@@ -22,6 +22,10 @@ use std::{path::Path, time::Instant};
 pub enum MeshSubcommand {
     /// Creates an all-hexahedral mesh from a segmentation or tessellation
     Hex(MeshArgs),
+    /// Creates a hex-dominant mesh from a tessellation, polyhedral at the boundary
+    Hexdom(MeshArgs),
+    /// Creates a polyhedral mesh from a tessellation
+    Poly(MeshArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshArgs),
 }
@@ -99,12 +103,24 @@ pub struct MeshArgs {
     pub ztranslate: f64,
 
     /// Octree refinement scale for dualizing a tessellation (stl) input
-    #[arg(long, default_value_t = 3.0, value_name = "SCALE")]
+    #[arg(long, default_value_t = 5.0, short = 's', value_name = "SCALE")]
     pub scale: f64,
+
+    /// Chord-error tolerance for curvature-driven refinement [default: disabled]
+    #[arg(long, short = 't', value_name = "TOL")]
+    pub tolerance: Option<f64>,
 
     /// Uses strong balancing instead of the default weak balancing
     #[arg(action, long)]
     pub strong: bool,
+
+    /// Snaps the buffer layer onto the surface instead of a soft fit
+    #[arg(action, long)]
+    pub snap: bool,
+
+    /// Level difference allowed between neighboring octree cells (poly)
+    #[arg(long, default_value_t = 1, short = 'l', value_name = "NUM")]
+    pub levels: usize,
 
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
@@ -113,6 +129,8 @@ pub struct MeshArgs {
 
 pub enum Element {
     Hexahedra,
+    HexDominant,
+    Polyhedra,
     Triangles,
 }
 
@@ -166,8 +184,15 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
 }
 
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    if let (Element::Hexahedra, Some("stl")) = (&element, extension(&args.input)) {
-        return dualize(args, quiet);
+    match (&element, extension(&args.input)) {
+        (Element::Hexahedra, Some("stl")) => return dualize(args, quiet),
+        (element @ (Element::HexDominant | Element::Polyhedra), Some("stl")) => {
+            return cut(args, element, quiet);
+        }
+        (Element::HexDominant | Element::Polyhedra, extension) => {
+            return Err(invalid_input(&args.input, extension));
+        }
+        _ => {}
     }
     let voxels = read_voxels(&args, quiet)?;
     let time = Instant::now();
@@ -182,6 +207,9 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
             let translate = Coordinate::from([args.xtranslate, args.ytranslate, args.ztranslate]);
             let segmentation = Segmentation::new(voxels, scale, translate);
             Mesh::from_segmentation(segmentation, remove.as_deref())
+        }
+        Element::HexDominant | Element::Polyhedra => {
+            unreachable!("cutting requires a tessellation input")
         }
         Element::Triangles => {
             crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m voxels into triangles");
@@ -215,10 +243,74 @@ fn dualize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         "   \x1b[1;96mDualizing\x1b[0m tessellation into hexahedra"
     );
     time = Instant::now();
-    let mesh = if args.strong {
-        tessellation.dualize(Balancing::Strong, args.scale)
+    let balancing = if args.strong {
+        Balancing::Strong(1)
     } else {
-        tessellation.dualize(Balancing::Weak, args.scale)
+        Balancing::Weak(1)
+    };
+    let fitting = if args.snap {
+        Fitting::Snap
+    } else {
+        Fitting::Soft
+    };
+    let mesh = tessellation.dualize(
+        balancing,
+        args.scale,
+        CurvatureSizing {
+            tolerance: args.tolerance,
+            ..Default::default()
+        },
+        fitting,
+    )?;
+    let mesh = scaled(
+        mesh,
+        [args.xscale, args.yscale, args.zscale],
+        [args.xtranslate, args.ytranslate, args.ztranslate],
+    );
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+    finish(mesh, args, quiet)
+}
+
+/// Cuts an octree fitted to a tessellation (stl) input to the surface.
+///
+/// [`Element::Polyhedra`] cuts the octree itself, while [`Element::HexDominant`]
+/// cuts its dual, leaving hexahedra everywhere but at the boundary.
+fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrapper> {
+    crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
+    let mut time = Instant::now();
+    let tessellation = Tessellation::try_from(Path::new(&args.input))?;
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    let polyhedral = matches!(element, Element::Polyhedra);
+    crate::echo!(
+        quiet,
+        "     \x1b[1;96mMeshing\x1b[0m tessellation into {}",
+        if polyhedral {
+            "polyhedra"
+        } else {
+            "hexahedra and polyhedra"
+        }
+    );
+    time = Instant::now();
+    if !polyhedral && args.levels != 1 {
+        return Err(ErrorWrapper::from(
+            "Dualization requires 2:1 balancing, so levels applies to mesh poly only",
+        ));
+    }
+    let balancing = if args.strong {
+        Balancing::Strong(args.levels)
+    } else {
+        Balancing::Weak(args.levels)
+    };
+    let mesh = if polyhedral {
+        tessellation.cut_polyhedral(balancing, args.scale)
+    } else {
+        tessellation.cut(balancing, args.scale)
     }?;
     let mesh = scaled(
         mesh,
