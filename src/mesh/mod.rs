@@ -289,7 +289,7 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
     let polyhedral = matches!(element, Element::Polyhedra);
     crate::echo!(
         quiet,
-        "     \x1b[1;96mCutting\x1b[0m tessellation into {}",
+        "     \x1b[1;96mMeshing\x1b[0m tessellation into {}",
         if polyhedral {
             "polyhedra"
         } else {
