@@ -27,7 +27,7 @@ jobs:
       - name: mdBook
         run: cargo install mdbook --version 0.4.52
       - name: Dependencies
-        run: cargo install mdbook-cmdrun mdbook-katex
+        run: cargo install mdbook-cmdrun --version 0.7.3 && cargo install mdbook-katex --version 0.9.4
       - name: Python
         uses: actions/setup-python@v7
         with:
