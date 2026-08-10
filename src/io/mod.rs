@@ -2,7 +2,7 @@ use super::ErrorWrapper;
 use conspire::{
     geometry::{
         grid::{Input as GridInput, Output as GridOutput, Voxels},
-        mesh::{Input as MeshInput, Mesh, Output as MeshOutput, Tessellation, Vtk},
+        mesh::{Input as MeshInput, Mesh, Output as MeshOutput, Stl, Tessellation, Vtk},
     },
     io::{Write, write::Compression},
 };
@@ -78,7 +78,7 @@ pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWra
         Some("vtu") => mesh.write(MeshOutput::Vtk(Vtk::UnstructuredGrid(Compression::Off(
             file,
         ))))?,
-        Some("stl") => Tessellation::from(mesh).write(file)?,
+        Some("stl") => Tessellation::from(mesh).write(Stl::Binary(file))?,
         _ => return Err(invalid_output(file, extension)),
     } // Output::Vtk(Vtk::UnstructuredGrid(Compression::Off(path)))
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
