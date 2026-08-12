@@ -12,9 +12,9 @@ automesh remesh --help
 ```
 
 Remeshing reads and writes surface (triangular) mesh formats; see the `--input`
-and `--output` formats listed in the help above.  STL files **must be binary
-STL** for both input and output — ASCII STL is not accepted.  The worked examples
-below include short scripts to convert ASCII STL or OBJ meshes to binary STL.
+and `--output` formats listed in the help above.  STL input may be **either
+ASCII or binary** — the encoding is detected automatically.  STL output is
+always written binary.
 
 `remesh` runs in one of two sizing modes, `uniform` and `adaptive`.
 

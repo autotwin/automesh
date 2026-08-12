@@ -1,5 +1,5 @@
 r"""This module, obj_to_binary_stl.py, converts a triangular OBJ mesh into a
-binary STL file.  `automesh remesh` reads binary STL (not OBJ), so the Stanford
+binary STL file.  `automesh remesh` reads STL, not OBJ, so the Stanford
 bunny OBJ from Alec Jacobson's repository must be converted before use.
 
 Example
