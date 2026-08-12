@@ -20,10 +20,10 @@ The mesh used here is the cleaned bunny from Alec Jacobson's community
   — hosted at `OneDrive/automesh/data/stanford-bunny.obj`
   - backup: [Alec Jacobson's repository](https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.obj)
 
-`remesh` reads **binary STL**, not OBJ, so convert the downloaded file once with
-the [`obj_to_binary_stl.py` helper](#helper-obj-to-binary-stl) (shown at the end
-of this page), producing `stanford_bunny.stl`.  All commands on this page use that
-converted file.
+`remesh` reads STL (ASCII or binary), not OBJ, so convert the downloaded file
+once with the [`obj_to_binary_stl.py` helper](#helper-obj-to-binary-stl) (shown
+at the end of this page), producing `stanford_bunny.stl`.  All commands on this
+page use that converted file.
 
 ```sh
 python obj_to_binary_stl.py stanford-bunny.obj stanford_bunny.stl
@@ -228,8 +228,8 @@ and records the facet count:
 
 ## Helper: OBJ to binary STL
 
-The Stanford bunny is distributed as an OBJ, but `remesh` reads binary STL.  This
-helper converts the downloaded OBJ to the `stanford_bunny.stl` used above:
+The Stanford bunny is distributed as an OBJ, but `remesh` reads STL, not OBJ.
+This helper converts the downloaded OBJ to the `stanford_bunny.stl` used above:
 
 ```python
 <!-- cmdrun cat obj_to_binary_stl.py -->
@@ -239,4 +239,4 @@ helper converts the downloaded OBJ to the `stanford_bunny.stl` used above:
 
 [^Dunyach_2013]: Dunyach M, Vanderhaeghe D, Barthe L, Botsch M. Adaptive remeshing for real-time mesh deformation. In *Eurographics 2013 Short Papers*. 2013. [paper](https://diglib.eg.org/items/bd0987f0-b1d0-45cc-bde4-2a99ebf51946) · [DOI](https://doi.org/10.2312/conf/EG2013/short/029-032)
 
-[^conspire]: Buché MR. *conspire* — a Rust library for computational continuum mechanics, version 0.7.1. [repository](https://github.com/mrbuche/conspire.rs) · [crate](https://docs.rs/crate/conspire)
+[^conspire]: Buché MR. *conspire* — a Rust library for computational continuum mechanics, version 0.7.3. [repository](https://github.com/mrbuche/conspire.rs) · [crate](https://docs.rs/crate/conspire)

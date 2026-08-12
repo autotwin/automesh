@@ -159,18 +159,3 @@ are produced by the following script, which remeshes the sphere at several
 ```python
 <!-- cmdrun cat remesh_iterations.py -->
 ```
-
-## Converting ASCII STL to binary STL
-
-`remesh` requires binary STL for both input and output.  If your surface is an
-ASCII STL, the following script converts it to binary STL:
-
-```python
-<!-- cmdrun cat ascii_to_binary_stl.py -->
-```
-
-Run it as:
-
-```sh
-python ascii_to_binary_stl.py input_ascii.stl output_binary.stl
-```
