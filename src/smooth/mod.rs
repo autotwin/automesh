@@ -5,7 +5,7 @@ use super::{
     remesh::{MeshRemeshSubcommand, apply_remesh_subcommand},
 };
 use clap::Subcommand;
-use conspire::geometry::mesh::{Mesh, Smoothing, Weighting};
+use conspire::geometry::mesh::{Connectivity, Mesh, Smoothing, Weighting};
 use std::time::Instant;
 
 pub const TAUBIN_DEFAULT_ITERS: usize = 20;
@@ -108,6 +108,17 @@ pub fn apply_smoothing_method(
     hierarchical: bool,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
+    if mesh.connectivities().iter().any(|connectivity| {
+        matches!(
+            connectivity,
+            Connectivity::Polyhedral(_) | Connectivity::Polygonal(_)
+        )
+    }) {
+        return Err(ErrorWrapper::from(
+            "Smoothing is not yet implemented for polyhedral or polygonal connectivity \
+             (mesh hexdom/poly output)",
+        ));
+    }
     let time = Instant::now();
     let method = method.unwrap_or_else(|| "Taubin".to_string());
     let smoothing = match method.as_str() {
