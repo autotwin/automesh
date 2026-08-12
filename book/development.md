@@ -29,6 +29,20 @@
     * [Python Debugger](https://marketplace.visualstudio.com/items?itemName=ms-python.debugpy)
     * [Rust Analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
 * [GitHub CLI](https://cli.github.com)
+* **`cargo bi` build+install helper** (macOS) — [`scripts/cargo-bi`](https://github.com/autotwin/automesh/blob/main/scripts/cargo-bi)
+  chains `cargo build` and `cargo install --path . --force` into one
+  command; see [Development Cycle Overview](#development-cycle-overview)
+  for why that matters.  Install it once, symlinked so future updates to
+  the script are picked up automatically:
+
+    ```sh
+    ln -s "$(pwd)/scripts/cargo-bi" ~/.cargo/bin/cargo-bi
+    ```
+
+    Cargo's plugin mechanism treats any executable named `cargo-*` on
+    `PATH` as the subcommand `cargo *`, so this makes `cargo bi` (and
+    `cargo bi --release`) available immediately, from any directory
+    containing a `Cargo.toml`.
 
 ## Clone Repository
 
@@ -66,6 +80,12 @@ so no `PATH` changes should be needed.
 * **Branch**
 * **Develop**
     * `cargo build`
+        * `cargo install --path . --force` — updates the `automesh` on
+          `PATH` (`~/.cargo/bin/automesh`).  `cargo build` alone only
+          writes to `target/`; plain `automesh` keeps resolving to
+          whatever was last installed until this is rerun.
+        * `cargo bi` (or `cargo bi --release`) runs both steps in one
+          command — see [Optional](#optional) for one-time setup.
     * Develop:
         * tests
         * implementation

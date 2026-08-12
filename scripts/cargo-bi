@@ -1,0 +1,12 @@
+#!/bin/sh
+# cargo bi [--release] [other cargo-build args...]
+# Builds the crate, then reinstalls its binary to ~/.cargo/bin so plain
+# invocations of the tool on PATH pick up the change. `cargo build` alone
+# only writes to target/ and never touches an existing `cargo install`.
+#
+# Cargo invokes external subcommands as `cargo-bi bi <rest...>`, passing
+# the subcommand name itself as $1 — shift it off before forwarding.
+set -e
+shift
+cargo build "$@"
+cargo install --path . --force
