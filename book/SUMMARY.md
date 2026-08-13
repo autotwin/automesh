@@ -50,6 +50,10 @@
 # Theory
 
 - [Isosurfaces](theory/isosurface.md)
+  - [Introduction](theory/isosurface/introduction.md) <!-- DRAFT -->
+  - [Implementation Plan](theory/isosurface/implementation_plan.md) <!-- DRAFT -->
+  - [Marching Cubes](theory/isosurface/marching_cubes.md)
+  - [Dual Contouring](theory/isosurface/dual_contouring.md)
 - [Subdivision](theory/subdivision.md)
 - [Hexahedral Meshing from a Surface](theory/hex_from_surface.md)
   - [Octree Construction](theory/hex_from_surface/octree_construction.md)
