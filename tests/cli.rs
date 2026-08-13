@@ -110,6 +110,58 @@ fn mesh_hexdom_to_vtu() {
 }
 
 #[test]
+fn mesh_hex_uniform_to_exo() {
+    let output = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--uniform",
+        "0.2",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_hexdom_uniform_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hexdom",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--uniform",
+        "0.2",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_uniform_rejects_a_segmentation_input() {
+    let output = out("exo");
+    let status = Command::new(BIN)
+        .args([
+            "mesh",
+            "hex",
+            "-i",
+            input("letter_f_3d.npy").to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "--uniform",
+            "0.2",
+        ])
+        .arg("--quiet")
+        .status()
+        .expect("failed to spawn automesh");
+    assert!(!status.success(), "uniform meshing accepted a segmentation");
+}
+
+#[test]
 fn convert_mesh_exo_to_inp() {
     let exo = out("exo");
     run(&[

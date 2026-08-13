@@ -144,7 +144,7 @@ pub fn apply_smoothing_method(
             )));
         }
     };
-    mesh.smooth(smoothing);
+    mesh.smooth(smoothing)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     Ok(())
 }
