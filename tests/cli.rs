@@ -162,6 +162,45 @@ fn mesh_uniform_rejects_a_segmentation_input() {
 }
 
 #[test]
+fn smooth_poly() {
+    let vtu = out("vtu");
+    run(&[
+        "mesh",
+        "poly",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        vtu.to_str().unwrap(),
+        "-s",
+        "5",
+    ]);
+    let output = out("vtu");
+    let metrics = out("csv");
+    run(&[
+        "smooth",
+        "-i",
+        vtu.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-n",
+        "5",
+        "--metrics",
+        metrics.to_str().unwrap(),
+    ]);
+    assert_nonempty(&output);
+    // Polyhedra have no Verdict metrics, so every column is NaN rather than a panic.
+    let table = std::fs::read_to_string(&metrics).expect("metrics file was not created");
+    let mut rows = table.lines().skip(1).peekable();
+    assert!(rows.peek().is_some(), "metrics file has no rows");
+    rows.for_each(|row| {
+        assert!(
+            row.split(',').all(|value| value.trim() == "NaN"),
+            "expected all-NaN row, got {row:?}"
+        )
+    });
+}
+
+#[test]
 fn convert_mesh_exo_to_inp() {
     let exo = out("exo");
     run(&[
