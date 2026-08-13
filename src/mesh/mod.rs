@@ -10,13 +10,13 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::Voxels,
-        mesh::{Fitting, Mesh, Tessellation},
-        ntree::{Balancing, CurvatureSizing},
+        mesh::{Class, Fitting, Mesh, Tessellation},
+        ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
         segmentation::Segmentation,
     },
     math::Tensor,
 };
-use std::{path::Path, time::Instant};
+use std::{collections::HashSet, path::Path, time::Instant};
 
 #[derive(Subcommand)]
 pub enum MeshSubcommand {
@@ -106,6 +106,10 @@ pub struct MeshArgs {
     #[arg(long, default_value_t = 5.0, short = 's', value_name = "SCALE")]
     pub scale: f64,
 
+    /// Uniform lattice of the given cell size instead of an octree (stl)
+    #[arg(long, short = 'u', value_name = "SPACING")]
+    pub uniform: Option<f64>,
+
     /// Chord-error tolerance for curvature-driven refinement [default: disabled]
     #[arg(long, short = 't', value_name = "TOL")]
     pub tolerance: Option<f64>,
@@ -185,7 +189,7 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
 
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     match (&element, extension(&args.input)) {
-        (Element::Hexahedra, Some("stl")) => return dualize(args, quiet),
+        (Element::Hexahedra, Some("stl")) => return hexahedralize(args, quiet),
         (element @ (Element::HexDominant | Element::Polyhedra), Some("stl")) => {
             return cut(args, element, quiet);
         }
@@ -193,6 +197,11 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
             return Err(invalid_input(&args.input, extension));
         }
         _ => {}
+    }
+    if args.uniform.is_some() {
+        return Err(ErrorWrapper::from(
+            "Uniform lattice meshing applies to tessellation (stl) inputs only",
+        ));
     }
     let voxels = read_voxels(&args, quiet)?;
     let time = Instant::now();
@@ -232,36 +241,69 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
     finish(mesh, args, quiet)
 }
 
-/// Dualizes a tessellation (stl) input into an all-hexahedral mesh.
-fn dualize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+/// Meshes a tessellation (stl) input into an all-hexahedral mesh.
+///
+/// A background mesh of the enclosed volume is built first — the dual of an
+/// octree fitted to the surface, or a uniform lattice under `--uniform` — and
+/// trimmed to the surface. A buffer layer is then fitted onto the surface.
+/// Buffering is timed on its own because it dominates the total by far, while
+/// the steps building the background are lumped together as one.
+fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
     let mut time = Instant::now();
     let tessellation = Tessellation::try_from(Path::new(&args.input))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    crate::echo!(
-        quiet,
-        "   \x1b[1;96mDualizing\x1b[0m tessellation into hexahedra"
-    );
-    time = Instant::now();
-    let balancing = if args.strong {
-        Balancing::Strong(1)
-    } else {
-        Balancing::Weak(1)
-    };
     let fitting = if args.snap {
         Fitting::Snap
     } else {
         Fitting::Soft
     };
-    let mesh = tessellation.dualize(
-        balancing,
-        args.scale,
-        CurvatureSizing {
-            tolerance: args.tolerance,
-            ..Default::default()
-        },
-        fitting,
-    )?;
+
+    crate::echo!(
+        quiet,
+        "     \x1b[1;96mMeshing\x1b[0m hexahedra {}",
+        if args.uniform.is_some() {
+            "uniformly"
+        } else {
+            "adaptively"
+        }
+    );
+    time = Instant::now();
+    let mut mesh = if let Some(spacing) = args.uniform {
+        tessellation.lattice_background(spacing)?.0
+    } else {
+        let balancing = if args.strong {
+            Balancing::Strong(1)
+        } else {
+            Balancing::Weak(1)
+        };
+        let mut octree = Octree::<u16, usize>::from_features(
+            &tessellation,
+            args.scale,
+            CurvatureSizing {
+                tolerance: args.tolerance,
+                ..Default::default()
+            },
+            0,
+        );
+        octree.equilibrate(balancing, Pairing::Regular)?;
+        octree.dualize()
+    };
+    tessellation.trim(&mut mesh)?;
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+
+    crate::echo!(
+        quiet,
+        "   \x1b[1;96mBuffering\x1b[0m hexahedra onto geometry"
+    );
+    time = Instant::now();
+    let mesh = mesh.buffer(&tessellation, fitting)?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],
@@ -287,30 +329,58 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
     let tessellation = Tessellation::try_from(Path::new(&args.input))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     let polyhedral = matches!(element, Element::Polyhedra);
-    crate::echo!(
-        quiet,
-        "     \x1b[1;96mMeshing\x1b[0m tessellation into {}",
-        if polyhedral {
-            "polyhedra"
-        } else {
-            "hexahedra and polyhedra"
-        }
-    );
-    time = Instant::now();
+    if polyhedral && args.uniform.is_some() {
+        return Err(ErrorWrapper::from(
+            "Uniform lattice meshing applies to mesh hex and mesh hexdom only",
+        ));
+    }
     if !polyhedral && args.levels != 1 {
         return Err(ErrorWrapper::from(
             "Dualization requires 2:1 balancing, so levels applies to mesh poly only",
         ));
     }
-    let balancing = if args.strong {
-        Balancing::Strong(args.levels)
+
+    crate::echo!(
+        quiet,
+        "     \x1b[1;96mMeshing\x1b[0m {} {}",
+        if polyhedral { "polyhedra" } else { "hexahedra" },
+        if args.uniform.is_some() {
+            "uniformly"
+        } else {
+            "adaptively"
+        }
+    );
+    time = Instant::now();
+    let (background, classes) = if let Some(spacing) = args.uniform {
+        tessellation.lattice_background(spacing)
     } else {
-        Balancing::Weak(args.levels)
-    };
+        let balancing = if args.strong {
+            Balancing::Strong(args.levels)
+        } else {
+            Balancing::Weak(args.levels)
+        };
+        if polyhedral {
+            tessellation.octree_background(balancing, args.scale)
+        } else {
+            tessellation.dual_background(balancing, args.scale)
+        }
+    }?;
+    let (elements, nodes) = retained(&background, &classes);
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{elements} elements, {nodes} nodes]\x1b[0m",
+        time.elapsed()
+    );
+
+    crate::echo!(
+        quiet,
+        "   \x1b[1;96mBuffering\x1b[0m polyhedra onto geometry"
+    );
+    time = Instant::now();
     let mesh = if polyhedral {
-        tessellation.cut_polyhedral(balancing, args.scale)
+        tessellation.cut_polyhedral(background, &classes)
     } else {
-        tessellation.cut(balancing, args.scale)
+        tessellation.cut(background, &classes)
     }?;
     let mesh = scaled(
         mesh,
@@ -325,6 +395,26 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
         mesh.number_of_nodes()
     );
     finish(mesh, args, quiet)
+}
+
+/// Counts the background cells the cut will keep, and the nodes they use.
+///
+/// A background mesh spans the whole octree or lattice, so most of its cells
+/// can lie outside the tessellation and be discarded by the cut. Counting only
+/// what survives keeps this step comparable to the one that follows it, and to
+/// the hexahedral path, where trimming drops those cells before they are
+/// counted at all.
+fn retained(background: &Mesh<3>, classes: &[Class]) -> (usize, usize) {
+    let mut nodes = HashSet::new();
+    let elements = background
+        .connectivities()
+        .iter()
+        .flatten()
+        .zip(classes)
+        .filter(|(_, class)| !matches!(class, Class::Outside))
+        .inspect(|(element, _)| nodes.extend(element.iter().copied()))
+        .count();
+    (elements, nodes.len())
 }
 
 /// Zeroes out (treats as void) any voxels whose material is in `remove`.
