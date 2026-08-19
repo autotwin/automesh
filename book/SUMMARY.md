@@ -70,6 +70,13 @@
 # Reviews
 
 - [Tong 2024](reviews/tong_2024.md)
+  - [Octree Construction](reviews/tong_2024/octree_construction.md)
+  - [Equilibration](reviews/tong_2024/equilibration.md)
+  - [Dualization](reviews/tong_2024/dualization.md)
+  - [Trimming](reviews/tong_2024/trimming.md)
+  - [Buffering](reviews/tong_2024/buffering.md)
+  - [Reproducing Tong 2024](reviews/tong_2024/reproduction.md)
+  - [Threshold Fitting as a Mechanical Procedure](reviews/tong_2024/threshold_fitting.md)
 
 -----------
 
