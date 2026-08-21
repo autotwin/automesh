@@ -150,7 +150,7 @@ fn read_voxels(args: &MeshArgs, quiet: bool) -> Result<Voxels<u8>, ErrorWrapper>
                     quiet,
                     " \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less"
                 );
-                voxels = voxels.defeature(min);
+                voxels = voxels.defeature(min)?;
                 crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
             }
             Ok(voxels)
@@ -286,7 +286,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
                 ..Default::default()
             },
             0,
-        );
+        )?;
         octree.equilibrate(balancing, Pairing::Regular)?;
         octree.dualize()
     };

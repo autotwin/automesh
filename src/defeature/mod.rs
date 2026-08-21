@@ -20,7 +20,7 @@ pub fn defeature(
         quiet,
         " \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less"
     );
-    let voxels = voxels.defeature(min);
+    let voxels = voxels.defeature(min)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     write_segmentation(&output, &voxels, quiet)
 }
