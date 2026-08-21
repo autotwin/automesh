@@ -2,7 +2,10 @@ use super::{
     ErrorWrapper,
     io::{extension, invalid_output, read_mesh, write_mesh, write_segmentation},
 };
-use conspire::geometry::{grid::Voxels, mesh::Mesh};
+use conspire::{
+    geometry::{grid::Voxels, mesh::Mesh},
+    units::Length,
+};
 use std::time::Instant;
 
 #[derive(clap::Args)]
@@ -32,7 +35,7 @@ pub fn segment(args: SegmentArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mesh = read_mesh(&args.input, quiet, true)?;
     let time = Instant::now();
     crate::echo!(quiet, "  \x1b[1;96mSegmenting\x1b[0m from finite elements");
-    let voxels = Voxels::<usize>::from_finite_elements(&mesh, args.size);
+    let voxels = Voxels::<usize>::from_finite_elements(&mesh, Length::meters(args.size));
     let nel = *voxels.nel();
     let remove = args.remove.unwrap_or_default();
     let data: Vec<u8> = voxels
