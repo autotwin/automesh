@@ -15,6 +15,7 @@ use conspire::{
         segmentation::Segmentation,
     },
     math::Tensor,
+    units::Length,
 };
 use std::{collections::HashSet, path::Path, time::Instant};
 
@@ -149,7 +150,7 @@ fn read_voxels(args: &MeshArgs, quiet: bool) -> Result<Voxels<u8>, ErrorWrapper>
                     quiet,
                     " \x1b[1;96mDefeaturing\x1b[0m clusters of {min} voxels or less"
                 );
-                voxels = voxels.defeature(min);
+                voxels = voxels.defeature(min)?;
                 crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
             }
             Ok(voxels)
@@ -270,7 +271,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     );
     time = Instant::now();
     let mut mesh = if let Some(spacing) = args.uniform {
-        tessellation.lattice_background(spacing)?.0
+        tessellation.lattice_background(Length::meters(spacing))?.0
     } else {
         let balancing = if args.strong {
             Balancing::Strong(1)
@@ -281,11 +282,11 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
             &tessellation,
             args.scale,
             CurvatureSizing {
-                tolerance: args.tolerance,
+                tolerance: args.tolerance.map(Length::meters),
                 ..Default::default()
             },
             0,
-        );
+        )?;
         octree.equilibrate(balancing, Pairing::Regular)?;
         octree.dualize()
     };
@@ -352,7 +353,7 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
     );
     time = Instant::now();
     let (background, classes) = if let Some(spacing) = args.uniform {
-        tessellation.lattice_background(spacing)
+        tessellation.lattice_background(Length::meters(spacing))
     } else {
         let balancing = if args.strong {
             Balancing::Strong(args.levels)
@@ -449,9 +450,9 @@ fn scaled(mesh: Mesh<3>, scale: [f64; 3], translate: [f64; 3]) -> Mesh<3> {
         .iter()
         .map(|coordinate| {
             Coordinate::from([
-                coordinate[0] * scale[0] + translate[0],
-                coordinate[1] * scale[1] + translate[1],
-                coordinate[2] * scale[2] + translate[2],
+                coordinate[0] * scale[0] + Length::meters(translate[0]),
+                coordinate[1] * scale[1] + Length::meters(translate[1]),
+                coordinate[2] * scale[2] + Length::meters(translate[2]),
             ])
         })
         .collect();
