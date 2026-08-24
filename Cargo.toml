@@ -14,7 +14,7 @@ version = "0.4.5"
 
 [dependencies]
 clap = { version = "=4.6.6", features = ["derive"] }
-conspire = { git = "https://github.com/mrbuche/conspire.rs.git", branch = "octree-leaf-tie", features = ["geometry", "netcdf"] }
+conspire = { version = "0.7.6", features = ["geometry", "netcdf"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]
