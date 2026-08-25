@@ -11,7 +11,7 @@ from engineering practice.
 Models are split by where they come from:
 
 - [Academic Models](academic.md) — standard test surfaces from the
-  computational- eometry / computer graphics literature, chosen for specific
+  computational geometry / computer graphics literature, chosen for specific
   geometric challenges (sharp features, high genus, curvature variation, thin
   structures).
 - [Industry Models](industry.md) — parts representative of real
