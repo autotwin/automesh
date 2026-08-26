@@ -122,6 +122,10 @@ pub struct MeshArgs {
     #[arg(long, short = 'p', value_name = "RADIUS")]
     pub proximity: Option<f64>,
 
+    /// Cells across a narrow feature caught by proximity [default: scale]
+    #[arg(long, value_name = "NUM")]
+    pub proximity_scale: Option<f64>,
+
     /// Uses strong balancing instead of the default weak balancing
     #[arg(action, long)]
     pub strong: bool,
@@ -294,6 +298,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
             },
             SeparationSizing {
                 radius: args.proximity.map(Length::meters),
+                scale: args.proximity_scale,
                 ..Default::default()
             },
             0,

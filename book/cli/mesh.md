@@ -8,9 +8,9 @@ into hexahedra by octree dualization.  For a tessellation, `--uniform
 <SPACING>` replaces the octree with a uniform lattice of cubes of the given
 edge length, trimmed to the surface and buffered onto it exactly as the dual
 is; the background is then ungraded, so `--scale`, `--tolerance`,
-`--proximity`, `--strong` and `--levels` no longer apply.  An optional
-`smooth` subcommand can
-be chained directly onto `mesh hex`.  A further `remesh` subcommand can also
+`--proximity`, `--proximity-scale`, `--strong` and `--levels` no longer
+apply.  An optional `smooth` subcommand can be chained directly onto
+`mesh hex`.  A further `remesh` subcommand can also
 be chained after `smooth` — `automesh mesh hex smooth remesh --help`
 succeeds, so the command line accepts it — but running it always fails.
 `remesh` requires triangular connectivity, and a hex mesh has none, so the
