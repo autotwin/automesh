@@ -13,7 +13,9 @@ use conspire::{
         mesh::{
             Class, Connectivity, Finish, Fitting, Freedom, Marching, Mesh, Placement, Tessellation,
         },
-        ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
+        ntree::{
+            Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing, SeparationSizing,
+        },
         segmentation::Segmentation,
     },
     math::{Tensor, TensorVec},
@@ -118,6 +120,11 @@ pub struct MeshArgs {
     /// Chord-error tolerance for curvature-driven refinement [default: disabled]
     #[arg(long, short = 't', value_name = "TOL")]
     pub tolerance: Option<f64>,
+
+    /// Crease-to-crease distance below which narrow features (thin ribs,
+    /// walls, stair-steps) drive refinement [default: disabled]
+    #[arg(long, short = 'p', value_name = "RADIUS")]
+    pub proximity: Option<f64>,
 
     /// Uses strong balancing instead of the default weak balancing
     #[arg(action, long)]
@@ -348,6 +355,10 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
             args.scale,
             CurvatureSizing {
                 tolerance: args.tolerance.map(Length::meters),
+                ..Default::default()
+            },
+            SeparationSizing {
+                radius: args.proximity.map(Length::meters),
                 ..Default::default()
             },
             0,
