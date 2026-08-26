@@ -72,6 +72,7 @@ struct Args {
 }
 
 #[derive(Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
     /// Converts between mesh or segmentation file types
     Convert {
