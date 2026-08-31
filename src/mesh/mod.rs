@@ -9,6 +9,7 @@ use clap::Subcommand;
 use conspire::{
     geometry::{
         Coordinate, Coordinates,
+        cad::{brep::Brep, sizing::FeatureSizing},
         grid::Voxels,
         mesh::{Class, Fitting, Mesh, Tessellation},
         ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
@@ -119,6 +120,30 @@ pub struct MeshArgs {
     #[arg(action, long)]
     pub strong: bool,
 
+    /// Target segments per B-rep edge for the sizing field (stp)
+    #[arg(long, default_value_t = 16, value_name = "NUM")]
+    pub segments: usize,
+
+    /// Gradation rate of the sizing field away from edges (stp)
+    #[arg(long, default_value_t = 0.25, value_name = "RATE")]
+    pub gradation: f64,
+
+    /// Minimum element size for the sizing field [default: max-size / 50] (stp)
+    #[arg(long, value_name = "LEN")]
+    pub min_size: Option<f64>,
+
+    /// Maximum element size for the sizing field [default: longest side / 10] (stp)
+    #[arg(long, value_name = "LEN")]
+    pub max_size: Option<f64>,
+
+    /// Maximum octree depth (1..=15) over the padded bounding box (stp)
+    #[arg(long, default_value_t = 6, value_name = "NUM")]
+    pub max_levels: u32,
+
+    /// Grows the bounding box by this fraction on each side (stp)
+    #[arg(long, default_value_t = 0.1, value_name = "FRAC")]
+    pub padding: f64,
+
     /// Snaps the buffer layer onto the surface instead of a soft fit
     #[arg(action, long)]
     pub snap: bool,
@@ -191,6 +216,9 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     match (&element, extension(&args.input)) {
         (Element::Hexahedra, Some("stl")) => return hexahedralize(args, quiet),
+        (Element::Hexahedra, Some("stp")) | (Element::Hexahedra, Some("step")) => {
+            return cadify(args, quiet);
+        }
         (element @ (Element::HexDominant | Element::Polyhedra), Some("stl")) => {
             return cut(args, element, quiet);
         }
@@ -305,6 +333,74 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     );
     time = Instant::now();
     let mesh = mesh.buffer(&tessellation, fitting)?;
+    let mesh = scaled(
+        mesh,
+        [args.xscale, args.yscale, args.zscale],
+        [args.xtranslate, args.ytranslate, args.ztranslate],
+    );
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+    finish(mesh, args, quiet)
+}
+
+/// TEMPORARY: meshes a STEP (stp) B-rep input into an all-hexahedral mesh.
+///
+/// Reads the `MANIFOLD_SOLID_BREP`, builds an edge-length sizing field, refines
+/// and dualizes a background octree, trims it to the surface, and fits a buffer
+/// layer onto the exact (planar-face) geometry via `Brep::mesh`. Rides on the
+/// conspire `cad` branch and is expected to move once that pipeline matures.
+fn cadify(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
+    let mut time = Instant::now();
+    let brep = Brep::try_from(Path::new(&args.input))?;
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    if brep.vertices.is_empty() {
+        return Err(ErrorWrapper::from("B-rep has no vertices"));
+    }
+
+    let mut longest = 0.0_f64;
+    for axis in 0..3 {
+        let (mut low, mut high) = (f64::INFINITY, f64::NEG_INFINITY);
+        for vertex in &brep.vertices {
+            let value = vertex[axis].value();
+            low = low.min(value);
+            high = high.max(value);
+        }
+        longest = longest.max(high - low);
+    }
+    let maximum = args.max_size.unwrap_or(longest / 10.0);
+    let minimum = args.min_size.unwrap_or(maximum / 50.0);
+    if !(minimum > 0.0 && maximum >= minimum) {
+        return Err(ErrorWrapper::from(
+            "sizing bounds must satisfy 0 < min-size <= max-size",
+        ));
+    }
+    let balancing = if args.strong {
+        Balancing::Strong(1)
+    } else {
+        Balancing::Weak(1)
+    };
+    let fitting = if args.snap {
+        Fitting::Snap
+    } else {
+        Fitting::Soft
+    };
+
+    crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m B-rep into hexahedra");
+    time = Instant::now();
+    let sizing = FeatureSizing::of(
+        &brep,
+        args.segments,
+        Length::meters(minimum),
+        Length::meters(maximum),
+        args.gradation,
+    );
+    let mesh = brep.mesh(&sizing, args.max_levels, args.padding, balancing, fitting)?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],

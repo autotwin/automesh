@@ -179,7 +179,7 @@ enum Commands {
     /// Creates a finite element mesh from a segmentation
     Mesh {
         #[command(subcommand)]
-        subcommand: MeshSubcommand,
+        subcommand: Box<MeshSubcommand>,
     },
 
     /// Quality metrics for an existing finite element mesh
@@ -261,7 +261,7 @@ fn main() -> Result<(), ErrorWrapper> {
         }) => extract(
             input, output, nelx, nely, nelz, xmin, xmax, ymin, ymax, zmin, zmax, quiet,
         ),
-        Some(Commands::Mesh { subcommand }) => match subcommand {
+        Some(Commands::Mesh { subcommand }) => match *subcommand {
             MeshSubcommand::Hex(args) => mesh::mesh(Element::Hexahedra, args, quiet),
             MeshSubcommand::Hexdom(args) => mesh::mesh(Element::HexDominant, args, quiet),
             MeshSubcommand::Poly(args) => mesh::mesh(Element::Polyhedra, args, quiet),
