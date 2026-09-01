@@ -14,6 +14,7 @@ use conspire::{
         mesh::{Class, Fitting, Mesh, Tessellation},
         ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
         segmentation::Segmentation,
+        solid::Solid,
     },
     math::Tensor,
     units::Length,
@@ -397,10 +398,16 @@ fn cadify(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         &brep,
         args.segments,
         Length::meters(minimum),
-        Length::meters(maximum),
-        args.gradation,
+        Some(Length::meters(maximum)),
+        Some(args.gradation),
     );
-    let mesh = brep.mesh(&sizing, args.max_levels, args.padding, balancing, fitting)?;
+    let mesh = brep.mesh(
+        &sizing,
+        Some(args.max_levels),
+        args.padding,
+        balancing,
+        fitting,
+    )?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],
