@@ -129,13 +129,21 @@ pub struct MeshArgs {
     #[arg(long, default_value_t = 0.25, value_name = "RATE")]
     pub gradation: f64,
 
-    /// Minimum element size for the sizing field [default: max-size / 50] (stp)
+    /// Minimum element size for the sizing field [default: max-size / 50, or longest side / 500 with no max-size] (stp)
     #[arg(long, value_name = "LEN")]
     pub min_size: Option<f64>,
 
-    /// Maximum element size for the sizing field [default: longest side / 10] (stp)
+    /// Maximum element size for the sizing field [default: no ceiling, mesh coarsens away from the part] (stp)
     #[arg(long, value_name = "LEN")]
     pub max_size: Option<f64>,
+
+    /// Elements to force through the thinnest wall or gap anywhere (stp) [default: disabled]
+    #[arg(long, value_name = "NUM")]
+    pub through_thickness: Option<usize>,
+
+    /// Elements around a full turn of local surface curvature (stp) [default: disabled]
+    #[arg(long, value_name = "NUM")]
+    pub curve_sections: Option<usize>,
 
     /// Maximum octree depth (1..=15) over the padded bounding box (stp)
     #[arg(long, default_value_t = 6, value_name = "NUM")]
@@ -374,9 +382,11 @@ fn cadify(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         }
         longest = longest.max(high - low);
     }
-    let maximum = args.max_size.unwrap_or(longest / 10.0);
-    let minimum = args.min_size.unwrap_or(maximum / 50.0);
-    if !(minimum > 0.0 && maximum >= minimum) {
+    let maximum = args.max_size;
+    let minimum = args
+        .min_size
+        .unwrap_or_else(|| maximum.map_or(longest / 500.0, |maximum| maximum / 50.0));
+    if !(minimum > 0.0 && maximum.is_none_or(|maximum| maximum >= minimum)) {
         return Err(ErrorWrapper::from(
             "sizing bounds must satisfy 0 < min-size <= max-size",
         ));
@@ -394,13 +404,19 @@ fn cadify(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
 
     crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m B-rep into hexahedra");
     time = Instant::now();
-    let sizing = FeatureSizing::of(
+    let mut sizing = FeatureSizing::of(
         &brep,
         args.segments,
         Length::meters(minimum),
-        Some(Length::meters(maximum)),
+        maximum.map(Length::meters),
         Some(args.gradation),
     );
+    if let Some(cells) = args.through_thickness {
+        sizing = sizing.with_proximity(&brep, cells)?;
+    }
+    if let Some(sections) = args.curve_sections {
+        sizing = sizing.with_curvature(&brep, sections)?;
+    }
     let mesh = brep.mesh(
         &sizing,
         Some(args.max_levels),
