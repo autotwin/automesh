@@ -239,4 +239,4 @@ This helper converts the downloaded OBJ to the `stanford_bunny.stl` used above:
 
 [^Dunyach_2013]: Dunyach M, Vanderhaeghe D, Barthe L, Botsch M. Adaptive remeshing for real-time mesh deformation. In *Eurographics 2013 Short Papers*. 2013. [paper](https://diglib.eg.org/items/bd0987f0-b1d0-45cc-bde4-2a99ebf51946) · [DOI](https://doi.org/10.2312/conf/EG2013/short/029-032)
 
-[^conspire]: Buché MR. *conspire* — a Rust library for computational continuum mechanics, version 0.7.3. [repository](https://github.com/mrbuche/conspire.rs) · [crate](https://docs.rs/crate/conspire)
+[^conspire]: Buche MR. *conspire* — a Rust library for computational continuum mechanics, version 0.7.3. [repository](https://github.com/mrbuche/conspire.rs) · [crate](https://docs.rs/crate/conspire)
