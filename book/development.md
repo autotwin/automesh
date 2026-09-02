@@ -17,10 +17,6 @@
     ```sh
     rustup update
     ```
-* [netCDF](https://www.unidata.ucar.edu/software/netcdf/), a system library
-  `automesh` links against for Exodus II I/O [^netcdf_2026] — see the
-  [netCDF Prerequisite](installation.md#netcdf-prerequisite) in Installation
-  for per-platform install commands.
 
 ## Optional
 
@@ -110,12 +106,3 @@ so no `PATH` changes should be needed.
     * Clean:
         * `cargo clean`
 * **Merge Request**
-
-## References
-
-[^netcdf_2026]: `automesh`'s build script looks for the netCDF library in a
-    fixed, OS-specific location (e.g. `/opt/homebrew/lib` or `/usr/local/lib`
-    on macOS, `/usr/lib/x86_64-linux-gnu` on Linux, or
-    `C:/vcpkg/installed/x64-windows/lib` on Windows) rather than using
-    `pkg-config` or an environment variable, so netCDF must be installed to
-    one of those default locations for the build to find it.

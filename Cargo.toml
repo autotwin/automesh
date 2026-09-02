@@ -14,7 +14,8 @@ version = "0.4.6"
 
 [dependencies]
 clap = { version = "=4.6.6", features = ["derive"] }
-conspire = { version = "0.7.6", features = ["geometry", "netcdf"] }
+# TEMPORARY: pinned to conspire `main` for the homegrown netCDF-4 (HDF5) Exodus writer.
+conspire = { git = "https://github.com/mrbuche/conspire.rs", branch = "main", features = ["geometry"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]
