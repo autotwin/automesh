@@ -9,6 +9,9 @@ Several are already familiar from elsewhere in this book, notably the
 below are drawn from the same general source: Alec Jacobson's
 [`common-3d-test-models`](https://github.com/alecjacobson/common-3d-test-models)
 repository, already cited on the bunny page.
+The page also collects academic models that are not surface-scan test cases.
+A representative volume element is one such model.
+It comes from the micromechanics literature rather than computer graphics.
 
 The table below tracks candidate models and their status.  "Planned" entries
 have no worked example yet — they are a roadmap, not a claim that the model
@@ -23,6 +26,7 @@ or a download link is already in the repository.
 | Fandisk | synthetic CAD-like surface with sharp creases | Planned |
 | Rocker Arm / Bimba | scanned mechanical-part test models | Planned |
 | Suzanne | Blender's low-poly monkey head; common regression case | Planned |
+| Representative Volume Element (RVE) | unit cube with three interior spherical pores | See [Representative Volume Element (RVE)](academic/rve.md) |
 
 ## Stanford Bunny
 
