@@ -13,8 +13,8 @@ to the $x > 0$ hemisphere — can be downloaded directly:
 
 | file | size (MB) | md5 checksum |
 | :--- | :---: | :---: |
-| [sphere_res_1cm.inp](https://1drv.ms/u/c/3cc1bee5e2795295/ER8M2M-kE7BDsv6q6HqyqcIB7e1R5TcKhc-rZt4_Q4QXSg?e=Cxa6ef) | `1.5` | `644ef573c257222bfd61dcfda7131c6a` |
-| [sphere_res_1cm_noised.inp](https://1drv.ms/u/c/3cc1bee5e2795295/Eb-evDgLk-1GjUI-h-BjWE8B2boLnG5E8Adj5dfgtynCyw?e=u2kMWH) | `1.5` | `7031df475b972b15cf28bf2c5b69c162` |
+| [sphere_res_1cm.inp](https://1drv.ms/u/c/3cc1bee5e2795295/ER8M2M-kE7BDsv6q6HqyqcIB7e1R5TcKhc-rZt4_Q4QXSg?e=Cxa6ef&download=1) | `1.5` | `644ef573c257222bfd61dcfda7131c6a` |
+| [sphere_res_1cm_noised.inp](https://1drv.ms/u/c/3cc1bee5e2795295/Eb-evDgLk-1GjUI-h-BjWE8B2boLnG5E8Adj5dfgtynCyw?e=u2kMWH&download=1) | `1.5` | `7031df475b972b15cf28bf2c5b69c162` |
 
 These two files are hosted externally (not in the repository) because of their
 size, and are not regenerated automatically as part of the book build.  The

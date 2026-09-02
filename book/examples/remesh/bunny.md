@@ -13,10 +13,11 @@ originally scanned by Greg Turk and Marc Levoy at Stanford University in 1994.
 ## Download
 
 The mesh used here is the cleaned bunny from Alec Jacobson's community
-`common-3d-test-models` repository, mirrored on OneDrive for convenience:
+`common-3d-test-models` repository, mirrored on OneDrive for convenience.
+Each checksum below shows the first 12 hex characters of the sha256.
 
-- [⬇ `stanford-bunny.obj`](https://1drv.ms/u/c/3cc1bee5e2795295/IQAkhtTCdloDT6bG1zXR7Ly-AfRzJU72H6AcklZFKFM0RD4?e=KsuaeZ)
-  (OBJ, 69,451 triangles, sha256 `1eb35d1e21ce99e5ce911353b6be278990713448dd9e8f5c9387f9de39b32205`)
+- [`stanford-bunny.obj`](https://1drv.ms/u/c/3cc1bee5e2795295/IQAkhtTCdloDT6bG1zXR7Ly-AfRzJU72H6AcklZFKFM0RD4?e=KsuaeZ&download=1)
+  (OBJ, 69,451 triangles, sha256 `1eb35d1e21ce...`)
   — hosted at `OneDrive/automesh/data/stanford-bunny.obj`
   - backup: [Alec Jacobson's repository](https://github.com/alecjacobson/common-3d-test-models/blob/master/data/stanford-bunny.obj)
 
@@ -31,8 +32,8 @@ python obj_to_binary_stl.py stanford-bunny.obj stanford_bunny.stl
 
 Alternatively, skip the conversion step and download the same file pre-converted:
 
-- [⬇ `stanford_bunny.stl`](https://1drv.ms/u/c/3cc1bee5e2795295/IQBv8OdcUamuTL18jOJJ4suIASblxjU2_Vn_9WSsmF5NDFU?e=egBKFe)
-  (binary STL, pre-converted, sha256 `909348a1c93eed60fef06515add5928a51461ed9893e74a242df1bf1adb4ed85`)
+- [`stanford_bunny.stl`](https://1drv.ms/u/c/3cc1bee5e2795295/IQBv8OdcUamuTL18jOJJ4suIASblxjU2_Vn_9WSsmF5NDFU?e=egBKFe&download=1)
+  (binary STL, pre-converted, sha256 `909348a1c93e...`)
   — hosted at `OneDrive/automesh/data/stanford_bunny.stl`
 
 This is the exact output of the command above; either path produces the same
@@ -239,4 +240,4 @@ This helper converts the downloaded OBJ to the `stanford_bunny.stl` used above:
 
 [^Dunyach_2013]: Dunyach M, Vanderhaeghe D, Barthe L, Botsch M. Adaptive remeshing for real-time mesh deformation. In *Eurographics 2013 Short Papers*. 2013. [paper](https://diglib.eg.org/items/bd0987f0-b1d0-45cc-bde4-2a99ebf51946) · [DOI](https://doi.org/10.2312/conf/EG2013/short/029-032)
 
-[^conspire]: Buché MR. *conspire* — a Rust library for computational continuum mechanics, version 0.7.3. [repository](https://github.com/mrbuche/conspire.rs) · [crate](https://docs.rs/crate/conspire)
+[^conspire]: Buche MR. *conspire* — a Rust library for computational continuum mechanics, version 0.7.3. [repository](https://github.com/mrbuche/conspire.rs) · [crate](https://docs.rs/crate/conspire)

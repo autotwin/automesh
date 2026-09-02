@@ -7,7 +7,7 @@ the [Stanford bunny](bunny.md), where they differ.
 
 ## The input mesh
 
-[⬇ Download the example mesh: `sphere_radius_1.stl`](sphere_radius_1.stl)
+[Download the example mesh: `sphere_radius_1.stl`](sphere_radius_1.stl)
 (binary format, 54 kB)
 
 ![sphere_radius_1.png](sphere_radius_1.png)

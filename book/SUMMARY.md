@@ -34,6 +34,10 @@
   - [Smooth: Laplace with Hierarchical Control](examples/smoothing/laplace_hierarchical.md)
   - [Smooth: Taubin](examples/smoothing/taubin.md)
   - [Smooth: Python Visualization](examples/smoothing/python_visualization.md)
+- [Gallery](examples/gallery/gallery.md)
+  - [Academic Models](examples/gallery/academic.md)
+    - [Representative Volume Element (RVE)](examples/gallery/academic/rve.md)
+  - [Industry Models](examples/gallery/industry.md)
 
 # Analysis
 
