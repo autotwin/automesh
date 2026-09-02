@@ -24,11 +24,6 @@ route actually installs.
 
 For macOS and Linux, use a terminal.  For Windows, use a Command Prompt (CMD) or PowerShell.
 
-The Rust route links against a netCDF library already present on your
-system rather than building one — see
-[netCDF Prerequisite](#netcdf-prerequisite) below for how to install it on
-each platform.
-
 ## Step 1: Install Prerequisites
 
 * The Rust route depends on [Rust](https://www.rust-lang.org/) and [Cargo](https://doc.rust-lang.org/cargo/).
@@ -41,45 +36,6 @@ each platform.
 ### Rust Prerequisites
 
 It is recommended to install Rust using [Rustup](https://rust-lang.org/learn/get-started/), which is an installer and version management tool.
-
-#### netCDF Prerequisite
-
-`automesh` links against [netCDF](https://www.unidata.ucar.edu/software/netcdf/)
-rather than building it from source, so a netCDF library must already be on
-your system before `cargo install automesh` or `cargo build` will succeed.
-This applies to the Rust route, and to the Python route's source-distribution
-fallback (see [Step 2](#step-2-install-automesh)).
-
-Install it with your platform's package manager, the same way the project's
-own CI does (see
-[`.github/workflows/Rust.yml`](https://github.com/autotwin/automesh/blob/main/.github/workflows/Rust.yml)):
-
-##### macOS
-
-```sh
-brew install netcdf
-```
-
-##### Linux (Debian/Ubuntu)
-
-```sh
-sudo apt-get update && sudo apt-get install -y libnetcdf-dev
-```
-
-##### Windows
-
-```sh
-vcpkg install netcdf-c:x64-windows
-```
-
-Then add `C:\vcpkg\installed\x64-windows\bin` to your `PATH` so the netCDF
-DLL can be found at runtime.
-
-> **Note:** the Windows `vcpkg` install of netCDF is currently unreliable in
-> CI (see the `TODO` in `Rust.yml`), so the Windows build is not exercised
-> by continuous integration. If you hit trouble building on Windows, prefer
-> the [Python route](#python-install-a-prebuilt-binary-with-pip), which
-> installs a prebuilt binary and does not require a local netCDF install.
 
 ### Python Prerequisites
 
@@ -237,30 +193,6 @@ subprocess, exactly as you would a Cargo-installed copy:
 import subprocess
 
 subprocess.run(["automesh", "mesh", "hex", "-i", "in.npy", "-o", "out.exo", "-r", "0"])
-```
-
-## Troubleshooting
-
-### netCDF library not found
-
-`automesh`'s build script does not use `pkg-config` or an environment
-variable to locate netCDF — it checks a fixed, OS-specific location instead:
-
-| OS | expected location |
-| :--- | :--- |
-| macOS | `/opt/homebrew/lib` or `/usr/local/lib` |
-| Linux | `/usr/lib/x86_64-linux-gnu` |
-| Windows | `C:/vcpkg/installed/x64-windows/lib` |
-
-If `cargo install automesh` or `cargo build` fails with a "Could not find
-netCDF library" error, the library isn't installed in one of these
-locations. Reinstall netCDF with the package manager for your platform (see
-[netCDF Prerequisite](#netcdf-prerequisite)), which installs to the expected
-location by default, then retry:
-
-```bash
-cargo clean
-cargo build
 ```
 
 ## Environment Modules

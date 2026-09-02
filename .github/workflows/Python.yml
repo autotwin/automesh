@@ -20,8 +20,6 @@ jobs:
         uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
         with:
           toolchain: stable
-      - name: netCDF
-        run: sudo apt-get update && sudo apt-get install -y libnetcdf-dev
       - name: Python
         uses: actions/setup-python@v7
         with:
@@ -43,9 +41,6 @@ jobs:
       fail-fast: true
       matrix:
         os: [macos-latest, ubuntu-latest, windows-latest]
-        exclude:
-          # TODO: netCDF vcpkg install is broken on Windows runners; re-enable once fixed.
-          - os: windows-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v7
@@ -53,17 +48,6 @@ jobs:
       uses: dtolnay/rust-toolchain@6c977a6ca4077a0ceb28ffbe03f59d46e9ac8772
       with:
         toolchain: stable
-    - name: netCDF
-      shell: bash
-      run: |
-        case "${{ runner.os }}" in
-          Linux) sudo apt-get update && sudo apt-get install -y libnetcdf-dev ;;
-          macOS) brew install netcdf ;;
-          Windows)
-            vcpkg install netcdf-c:x64-windows
-            echo "C:/vcpkg/installed/x64-windows/bin" >> "$GITHUB_PATH"
-            ;;
-        esac
     - name: Python
       uses: actions/setup-python@v7
       with:
