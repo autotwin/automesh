@@ -61,6 +61,13 @@ fn mesh_hex_to_exo() {
         output.to_str().unwrap(),
     ]);
     assert_nonempty(&output);
+    // Exodus output is the netCDF-4 (HDF5) container: expect the HDF5 magic.
+    let bytes = std::fs::read(&output).expect("output file was not created");
+    assert_eq!(
+        &bytes[..8],
+        b"\x89HDF\r\n\x1a\n",
+        "expected a netCDF-4 (HDF5) Exodus file"
+    );
 }
 
 #[test]
