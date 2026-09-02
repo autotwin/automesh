@@ -265,6 +265,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MeshSubcommand::Hex(args) => mesh::mesh(Element::Hexahedra, args, quiet),
             MeshSubcommand::Hexdom(args) => mesh::mesh(Element::HexDominant, args, quiet),
             MeshSubcommand::Poly(args) => mesh::mesh(Element::Polyhedra, args, quiet),
+            MeshSubcommand::Tet(args) => mesh::mesh(Element::Tetrahedra, args, quiet),
             MeshSubcommand::Tri(args) => mesh::mesh(Element::Triangles, args, quiet),
         },
         Some(Commands::Metrics(args)) => metrics(args, quiet),

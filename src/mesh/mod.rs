@@ -27,6 +27,8 @@ pub enum MeshSubcommand {
     Hexdom(MeshArgs),
     /// Creates a polyhedral mesh from a tessellation
     Poly(MeshArgs),
+    /// Creates an all-tetrahedral mesh from a tessellation
+    Tet(MeshArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshArgs),
 }
@@ -136,6 +138,7 @@ pub enum Element {
     Hexahedra,
     HexDominant,
     Polyhedra,
+    Tetrahedra,
     Triangles,
 }
 
@@ -191,10 +194,11 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     match (&element, extension(&args.input)) {
         (Element::Hexahedra, Some("stl")) => return hexahedralize(args, quiet),
+        (Element::Tetrahedra, Some("stl")) => return tetrahedralize(args, quiet),
         (element @ (Element::HexDominant | Element::Polyhedra), Some("stl")) => {
             return cut(args, element, quiet);
         }
-        (Element::HexDominant | Element::Polyhedra, extension) => {
+        (Element::HexDominant | Element::Polyhedra | Element::Tetrahedra, extension) => {
             return Err(invalid_input(&args.input, extension));
         }
         _ => {}
@@ -221,6 +225,7 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
         Element::HexDominant | Element::Polyhedra => {
             unreachable!("cutting requires a tessellation input")
         }
+        Element::Tetrahedra => unreachable!("tetrahedralizing requires a tessellation input"),
         Element::Triangles => {
             crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m voxels into triangles");
             let voxels = remove_materials(voxels, args.remove.as_deref());
@@ -305,6 +310,73 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     );
     time = Instant::now();
     let mesh = mesh.buffer(&tessellation, fitting)?;
+    let mesh = scaled(
+        mesh,
+        [args.xscale, args.yscale, args.zscale],
+        [args.xtranslate, args.ytranslate, args.ztranslate],
+    );
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+    finish(mesh, args, quiet)
+}
+
+/// Meshes a tessellation (stl) input into an all-tetrahedral mesh.
+///
+/// The tetrahedral counterpart of [`hexahedralize`]. A background tetrahedral
+/// mesh of the enclosed volume is built — six tetrahedra per cell of an octree
+/// fitted to the surface, or of a uniform lattice under `--uniform` — and
+/// trimmed to the surface. A buffer layer of tetrahedra is then fitted onto
+/// the surface. As in the hexahedral path, buffering is timed on its own.
+fn tetrahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
+    let mut time = Instant::now();
+    let tessellation = Tessellation::try_from(Path::new(&args.input))?;
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    let fitting = if args.snap {
+        Fitting::Snap
+    } else {
+        Fitting::Soft
+    };
+
+    crate::echo!(
+        quiet,
+        "     \x1b[1;96mMeshing\x1b[0m tetrahedra {}",
+        if args.uniform.is_some() {
+            "uniformly"
+        } else {
+            "adaptively"
+        }
+    );
+    time = Instant::now();
+    let (mut mesh, _classes) = if let Some(spacing) = args.uniform {
+        tessellation.lattice_tet_background(Length::meters(spacing))?
+    } else {
+        tessellation.octree_tet_background(
+            Balancing::Strong(1),
+            args.scale,
+            args.tolerance.map(Length::meters),
+        )?
+    };
+    tessellation.trim(&mut mesh)?;
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+
+    crate::echo!(
+        quiet,
+        "   \x1b[1;96mBuffering\x1b[0m tetrahedra onto geometry"
+    );
+    time = Instant::now();
+    let mesh = mesh.buffer_tets(&tessellation, fitting)?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],

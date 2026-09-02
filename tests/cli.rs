@@ -117,6 +117,58 @@ fn mesh_hexdom_to_vtu() {
 }
 
 #[test]
+fn mesh_tet_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "tet",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "5",
+        "-t",
+        "0.1",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_tet_uniform_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "tet",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--uniform",
+        "0.3",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_tet_rejects_a_segmentation_input() {
+    let output = out("vtu");
+    let status = Command::new(BIN)
+        .args([
+            "mesh",
+            "tet",
+            "-i",
+            input("letter_f_3d.npy").to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
+        .arg("--quiet")
+        .status()
+        .expect("failed to spawn automesh");
+    assert!(!status.success(), "tet meshing accepted a segmentation");
+}
+
+#[test]
 fn mesh_hex_uniform_to_exo() {
     let output = out("exo");
     run(&[
