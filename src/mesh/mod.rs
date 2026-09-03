@@ -11,7 +11,7 @@ use conspire::{
         Coordinate, Coordinates,
         grid::Voxels,
         mesh::{Class, Fitting, Mesh, Tessellation},
-        ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
+        ntree::{Balancing, Pairing},
         segmentation::Segmentation,
     },
     math::Tensor,
@@ -283,17 +283,9 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         } else {
             Balancing::Weak(1)
         };
-        let mut octree = Octree::<u16, usize>::from_features(
-            &tessellation,
-            args.scale,
-            CurvatureSizing {
-                tolerance: args.tolerance.map(Length::meters),
-                ..Default::default()
-            },
-            0,
-        )?;
-        octree.equilibrate(balancing, Pairing::Regular)?;
-        octree.dualize()
+        tessellation
+            .dual_background(balancing, args.scale, args.tolerance.map(Length::meters))?
+            .0
     };
     tessellation.trim(&mut mesh)?;
     crate::echo!(
@@ -358,6 +350,7 @@ fn tetrahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     } else {
         tessellation.octree_tet_background(
             Balancing::Strong(1),
+            Pairing::None,
             args.scale,
             args.tolerance.map(Length::meters),
         )?
@@ -432,10 +425,11 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
         } else {
             Balancing::Weak(args.levels)
         };
+        let tolerance = args.tolerance.map(Length::meters);
         if polyhedral {
-            tessellation.octree_background(balancing, args.scale)
+            tessellation.octree_background(balancing, args.scale, tolerance)
         } else {
-            tessellation.dual_background(balancing, args.scale)
+            tessellation.dual_background(balancing, args.scale, tolerance)
         }
     }?;
     let (elements, nodes) = retained(&background, &classes);
