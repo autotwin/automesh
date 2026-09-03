@@ -16,7 +16,7 @@ version = "0.4.6"
 clap = { version = "=4.6.6", features = ["derive"] }
 # TEMPORARY: pinned to the conspire `cad` branch for STEP (.stp) all-hex meshing.
 # Revert to a published version once the CAD pipeline lands in a release.
-conspire = { git = "https://github.com/mrbuche/conspire.rs", branch = "cad", features = ["geometry", "netcdf"] }
+conspire = { git = "https://github.com/mrbuche/conspire.rs", branch = "cad", features = ["geometry"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]

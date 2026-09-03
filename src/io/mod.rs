@@ -2,7 +2,9 @@ use super::ErrorWrapper;
 use conspire::{
     geometry::{
         grid::{Input as GridInput, Output as GridOutput, Voxels},
-        mesh::{Input as MeshInput, Mesh, Output as MeshOutput, Stl, Tessellation, Vtk},
+        mesh::{
+            ExodusFormat, Input as MeshInput, Mesh, Output as MeshOutput, Stl, Tessellation, Vtk,
+        },
     },
     io::{Write, write::Compression},
 };
@@ -73,7 +75,7 @@ pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWra
     let extension = extension(file);
     match extension {
         Some("inp") => mesh.write(MeshOutput::Abaqus(file))?,
-        Some("exo") => mesh.write(MeshOutput::Exodus(file))?,
+        Some("exo") => mesh.write(MeshOutput::Exodus(ExodusFormat::Classic(file)))?,
         Some("mesh") => mesh.write(MeshOutput::Medit(file))?,
         Some("vtu") => mesh.write(MeshOutput::Vtk(Vtk::UnstructuredGrid(Compression::Off(
             file,
