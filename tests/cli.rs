@@ -417,3 +417,69 @@ fn mesh_hex_stl_prints_banner_once() {
     let banner = concat!("automesh ", env!("CARGO_PKG_VERSION"));
     assert_eq!(stdout.matches(banner).count(), 1, "stdout was: {stdout}");
 }
+
+/// Clap rejects a bad method while parsing, before any file is read or written.
+#[test]
+fn smooth_rejects_an_unknown_method() {
+    let output = out("exo");
+    let result = Command::new(BIN)
+        .args([
+            "mesh",
+            "hex",
+            "-i",
+            input("letter_f_3d.npy").to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "smooth",
+            "-m",
+            "bogus",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert_eq!(result.status.code(), Some(2), "stderr was: {stderr}");
+    assert!(
+        stderr.contains("invalid value 'bogus'"),
+        "stderr was: {stderr}"
+    );
+    assert!(
+        result.stdout.is_empty(),
+        "the command did work before failing"
+    );
+    assert!(!output.exists(), "the command wrote an output file");
+}
+
+#[test]
+fn smooth_accepts_method_spellings() {
+    let inp = out("inp");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        inp.to_str().unwrap(),
+    ]);
+    for method in [
+        "Laplace",
+        "laplace",
+        "Laplacian",
+        "laplacian",
+        "Taubin",
+        "taubin",
+    ] {
+        let output = out("inp");
+        run(&[
+            "smooth",
+            "-i",
+            inp.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-n",
+            "2",
+            "-m",
+            method,
+        ]);
+        assert_nonempty(&output);
+    }
+}

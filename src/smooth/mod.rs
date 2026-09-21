@@ -4,13 +4,22 @@ use super::{
     metrics::write_metrics,
     remesh::{MeshRemeshSubcommand, apply_remesh_subcommand},
 };
-use clap::Subcommand;
+use clap::{Subcommand, ValueEnum};
 use conspire::geometry::mesh::{Mesh, Smoothing, Weighting};
 use std::time::Instant;
 
 pub const TAUBIN_DEFAULT_ITERS: usize = 20;
 pub const TAUBIN_DEFAULT_BAND: f64 = 0.1;
 pub const TAUBIN_DEFAULT_SCALE: f64 = 0.6307;
+
+/// Parsed by clap, so a misspelled method fails before any work starts.
+#[derive(Clone, Copy, Debug, ValueEnum)]
+#[value(rename_all = "PascalCase")]
+pub enum SmoothingMethod {
+    #[value(alias = "Laplacian")]
+    Laplace,
+    Taubin,
+}
 
 #[derive(Subcommand, Debug)]
 pub enum MeshSmoothCommands {
@@ -23,9 +32,16 @@ pub enum MeshSmoothCommands {
         #[arg(default_value_t = TAUBIN_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
         iterations: usize,
 
-        /// Smoothing method (Laplace | Taubin) [default: Taubin]
-        #[arg(long, short, value_name = "NAME")]
-        method: Option<String>,
+        /// Smoothing method
+        #[arg(
+            default_value_t = SmoothingMethod::Taubin,
+            ignore_case = true,
+            long,
+            short,
+            value_enum,
+            value_name = "NAME"
+        )]
+        method: SmoothingMethod,
 
         /// Pass-band frequency (for Taubin only)
         #[arg(default_value_t = TAUBIN_DEFAULT_BAND, long, short = 'k', value_name = "FREQ")]
@@ -58,9 +74,16 @@ pub struct SmoothArgs {
     #[arg(default_value_t = TAUBIN_DEFAULT_ITERS, long, short = 'n', value_name = "NUM")]
     pub iterations: usize,
 
-    /// Smoothing method (Laplace | Taubin) [default: Taubin]
-    #[arg(long, short, value_name = "NAME")]
-    pub method: Option<String>,
+    /// Smoothing method
+    #[arg(
+        default_value_t = SmoothingMethod::Taubin,
+        ignore_case = true,
+        long,
+        short,
+        value_enum,
+        value_name = "NAME"
+    )]
+    pub method: SmoothingMethod,
 
     /// Pass-band frequency (for Taubin only)
     #[arg(default_value_t = TAUBIN_DEFAULT_BAND, long, short = 'k', value_name = "FREQ")]
@@ -102,16 +125,15 @@ pub fn smooth(args: SmoothArgs, quiet: bool) -> Result<(), ErrorWrapper> {
 pub fn apply_smoothing_method(
     mesh: &mut Mesh<3>,
     iterations: usize,
-    method: Option<String>,
+    method: SmoothingMethod,
     pass_band: f64,
     scale: f64,
     hierarchical: bool,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
     let time = Instant::now();
-    let method = method.unwrap_or_else(|| "Taubin".to_string());
-    let smoothing = match method.as_str() {
-        "Laplacian" | "Laplace" | "laplacian" | "laplace" => {
+    let smoothing = match method {
+        SmoothingMethod::Laplace => {
             crate::echo!(
                 quiet,
                 "   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Laplace"
@@ -124,7 +146,7 @@ pub fn apply_smoothing_method(
                 preserve_interfaces: hierarchical,
             }
         }
-        "Taubin" | "taubin" => {
+        SmoothingMethod::Taubin => {
             crate::echo!(
                 quiet,
                 "   \x1b[1;96mSmoothing\x1b[0m with {iterations} iterations of Taubin"
@@ -137,11 +159,6 @@ pub fn apply_smoothing_method(
                 preserve_boundary: hierarchical,
                 preserve_interfaces: hierarchical,
             }
-        }
-        _ => {
-            return Err(ErrorWrapper::from(format!(
-                "Invalid smoothing method {method} specified"
-            )));
         }
     };
     mesh.smooth(smoothing)?;
