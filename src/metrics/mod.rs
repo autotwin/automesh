@@ -21,7 +21,7 @@ pub struct MetricsArgs {
 }
 
 pub fn metrics(args: MetricsArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&args.input, quiet, true)?;
+    let mesh = read_mesh(&args.input, quiet)?;
     write_metrics(&mesh, &args.output, quiet)
 }
 

@@ -47,7 +47,7 @@ pub struct ConvertSegmentationArgs {
 }
 
 pub fn convert_mesh(args: ConvertMeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&args.input, quiet, true)?;
+    let mesh = read_mesh(&args.input, quiet)?;
     write_mesh(&args.output, mesh, quiet)
 }
 
@@ -59,6 +59,6 @@ pub fn convert_segmentation(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet, true)?;
+    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet)?;
     write_segmentation(&output, &voxels, quiet)
 }

@@ -143,7 +143,7 @@ fn read_voxels(args: &MeshArgs, quiet: bool) -> Result<Voxels<u8>, ErrorWrapper>
     match extension(&args.input) {
         Some("npy") | Some("spn") => {
             let mut voxels =
-                read_segmentation(&args.input, args.nelx, args.nely, args.nelz, quiet, true)?;
+                read_segmentation(&args.input, args.nelx, args.nely, args.nelz, quiet)?;
             if let Some(min) = args.defeature {
                 let time = Instant::now();
                 crate::echo!(

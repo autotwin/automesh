@@ -394,3 +394,26 @@ fn defeature_segmentation() {
     ]);
     assert_nonempty(&output);
 }
+
+/// A tessellation input skips the reader that once printed the banner.
+#[test]
+fn mesh_hex_stl_prints_banner_once() {
+    let output = out("exo");
+    let result = Command::new(BIN)
+        .args([
+            "mesh",
+            "hex",
+            "-i",
+            sphere().to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "--uniform",
+            "0.2",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(result.status.success(), "command failed");
+    let stdout = String::from_utf8_lossy(&result.stdout);
+    let banner = concat!("automesh ", env!("CARGO_PKG_VERSION"));
+    assert_eq!(stdout.matches(banner).count(), 1, "stdout was: {stdout}");
+}
