@@ -91,22 +91,21 @@ same coordinates, connectivity, and order in both files.  `automesh` reads the
 ## Reproducing the Baseline
 
 We ran the code ourselves, and did not rely on the published mesh alone.  The
-run used `HybridOctree_Hex` v1.0.  In the repository, that is commit `00e0e82`
-of 2024-01-16.  The commit renames the folder `HybridOctree_Hex_v1.0` to
-`HybridOctree_Hex`, and its settings match the table above.  Later commits
-change them.  The current `main` is a later version, with a `VOXEL_SIZE` of 10
-and a different `C_THRES`.
+run used `HybridOctree_Hex` v1.0, which is commit `00e0e82` of 2024-01-16.  The
+commit renames the folder `HybridOctree_Hex_v1.0` to `HybridOctree_Hex`, and its
+settings match the table above.  Later commits change them.  The current `main`
+is a later version, with a `VOXEL_SIZE` of 10 and a different `C_THRES`.
 
-The fork [`hovey/HybridOctree_Hex`](https://github.com/hovey/HybridOctree_Hex)
-keeps the history of the repository, so `git checkout 00e0e82` works there as
-well.  It also hosts the surface files that this page downloads.  Take care with
-its folder `HybridOctree_Hex_v1.0`.  That folder is a modified copy of v1.0.  It
-adds compile-time options, such as `VOXEL_SIZE_VALUE`, `LADDER_TOP`, and
-`C_THRES_VALUES`.  Its defaults match the table above, but it is not the
-original code.  The run below uses the original, at the commit.
+The code comes from the fork
+[`hovey/HybridOctree_Hex`](https://github.com/hovey/HybridOctree_Hex).  We made
+the fork from the original repository, `CMU-CBML/HybridOctree_Hex`, and it
+keeps the full history, so the commit above is in it.  The fork also hosts the
+surface files that this page downloads.  Use the folder `HybridOctree_Hex` at
+that commit.  On the fork's `main`, the folder `HybridOctree_Hex_v1.0` is a
+modified copy, and not the original code.
 
 ```sh
-git clone https://github.com/CMU-CBML/HybridOctree_Hex.git
+git clone --filter=blob:none --no-checkout https://github.com/hovey/HybridOctree_Hex.git
 cd HybridOctree_Hex
 git checkout 00e0e82
 cd HybridOctree_Hex
@@ -116,6 +115,9 @@ cp "../input boundaries/bone_tri.raw" bone/model.raw
 cd bone
 ../HexGen
 ```
+
+The two options on the first line keep the download near 100 MB, where a plain
+clone of the fork is about 600 MB.
 
 The program reads `model.raw` from the current directory.  The build prints
 warnings and no errors.  We ran it on macOS, on an Apple M1 Pro, with Apple
