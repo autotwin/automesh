@@ -127,18 +127,18 @@ changed for the last six.
 The script [`bone_baseline_compare.py`](bone_baseline_compare.py) compares that
 file with the published mesh.
 
-| | reproduced | published |
+| | published | reproduced |
 | --- | ---: | ---: |
 | nodes | 10,356 | 10,356 |
 | elements | 8,619 | 8,619 |
-| same elements, in the same order | yes | |
-| minimum scaled Jacobian | 0.610002 | 0.6100001 |
-| 5th percentile | 0.6102 | 0.6103 |
-| median | 0.7909 | 0.7910 |
-| maximum aspect ratio | 23.04 | 21.25 |
-| elements above ratio 10 | 40 | 34 |
-| maximum skew | 0.7211 | 0.7252 |
-| maximum element volume | 39.65 | 39.64 |
+| same elements, in the same order | | yes |
+| minimum scaled Jacobian | 0.6100001 | 0.610002 |
+| 5th percentile | 0.6103 | 0.6102 |
+| median | 0.7910 | 0.7909 |
+| maximum aspect ratio | 21.25 | 23.04 |
+| elements above ratio 10 | 34 | 40 |
+| maximum skew | 0.7252 | 0.7211 |
+| maximum element volume | 39.64 | 39.65 |
 
 The two meshes have the same nodes and the same elements, with the same
 connectivity, in the same order.  The octree and the dual mesh reproduce
