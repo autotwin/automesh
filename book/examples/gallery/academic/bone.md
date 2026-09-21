@@ -126,9 +126,10 @@ clang 21.0.0.
 The first stages took about 52 seconds: 35 seconds for the octree, 5 for the
 dual mesh, and 12 for the interior mesh.  Then the projection step began.  It
 moves the boundary nodes onto the surface, and it guards the quality of the
-elements as it goes.  It starts with a quality bar of 0.53.  Each time the mesh
-meets the bar, it writes `finalMesh.vtk` and raises the bar by 0.01.  In our
-run the bar rose ten times.  The mesh written at the tenth step, after 293
+elements as it goes.  It starts with a quality bar of 0.01.  The first time the
+mesh meets it, the bar jumps to 0.53.  Each time the mesh meets the bar, it
+writes `finalMesh.vtk` and raises the bar by 0.01.  In our run the bar rose ten
+times.  The mesh written at the tenth step, after 293
 iterations and about three minutes, met the bar of 0.61.  The program then
 searched for a mesh that meets 0.62, and did not find one.  It does not stop on
 its own here.  We stopped it after nine minutes, and `finalMesh.vtk` had not
@@ -516,11 +517,47 @@ automesh mesh hex -i bone_tri_cleaned.stl -o run56.vtu --scale 7 "${FRAME[@]}" -
 does not match the worst case.  The minimum scaled Jacobian is near 0.3, where
 the reference holds 0.61.  The gap sits in the elements on the boundary.
 
-Three directions could close it.  A fit that guards element quality would move
-boundary nodes toward the surface, and reject a move that drops an element
-below a bar.  Smoothing that keeps boundary nodes on the surface would help
-the interior without the shrinkage.  Better transition elements would help the
-adaptive octree.  The issue
+**What the study shows.**  None of the levers that set the size, the scale, the
+balancing, the fit, the tolerance, or the spacing raises the worst element above
+about 0.31.  Smoothing lifts it to 0.36 at most.  It also costs volume and
+raises the count of elements below 0.6.  These levers change how many elements
+the mesh has.  They do not change how bad the worst boundary elements are.  For
+this bone, the result is solid.
+
+**What it does not show.**  The study does not show that one method is the
+answer.  It shows what does not work, where the low elements sit, and how the
+reference works.  The reference method is a ratchet.  Its code raises a quality
+bar in steps of 0.01, up to 0.61 in our run.  It moves a boundary node only when
+the neighboring elements stay above the bar.  The hard floor of the reference is
+that bar.
+
+The study did not try the alternatives.  Better initial fitting is one, and
+issue [autotwin/automesh#750](https://github.com/autotwin/automesh/issues/750)
+holds the results of Protais, Cherchi, and Livesu.  The smooth fit oracle in
+[`conspire` PR #186](https://github.com/mrbuche/conspire.rs/pull/186) is
+another.  Local topology repair of the worst elements is a third.  Any of them
+could raise the floor without being a ratchet.  A quality guard is the one
+approach we know of that gives a floor by construction.  Better fitting improves
+the distribution, but it cannot promise a floor.
+
+**Two guards may be needed.**  On the lattice, 97% of the elements below 0.6
+touch the boundary, so a guard on the boundary fit targets them.  On the octree,
+about half of the tail is interior transition elements: 606 of 1,117.  A guard
+on the boundary alone would leave them.  The interior needs the same guard, or
+better transition templates.
+
+**The smallest version.**  A guarded smoother is the smallest step toward a
+ratchet.  It moves a node toward a better position.  It accepts the move only if
+no neighboring element drops below the current bar.  Then it raises the bar and
+repeats.  The smoothing of `automesh` has no guard today.  That is why it
+inverts elements and shrinks the volume.  A guard, together with keeping the
+boundary nodes on the surface, would fix both faults.
+
+**A test we have not run.**  A prototype on the lattice mesh would show how far a
+guard goes.  It would use the acceptance rule of the reference, and the same
+steps of 0.01 in the bar.  It would report how high the worst element climbs,
+and how many elements stay below 0.6.  If the floor rises toward 0.6, a guard is
+enough.  If it stalls near 0.4, the fit needs more.  The issue
 [autotwin/automesh#768](https://github.com/autotwin/automesh/issues/768)
 tracks this, with the bone as the benchmark.
 
