@@ -92,8 +92,8 @@ def main():
         sys.exit(1)
     ours_points, ours_cells = vtk_load(path=sys.argv[1])
     theirs_points, theirs_cells = vtk_load(path=sys.argv[2])
-    print(f"reproduced: {len(ours_points)} nodes, {len(ours_cells)} elements")
     print(f"published:  {len(theirs_points)} nodes, {len(theirs_cells)} elements")
+    print(f"reproduced: {len(ours_points)} nodes, {len(ours_cells)} elements")
     same = ours_cells == theirs_cells
     print(f"same elements, in the same order: {same}")
     if same:
@@ -109,9 +109,9 @@ def main():
     with tempfile.TemporaryDirectory() as directory:
         ours = summary(columns=metrics_compute(points=ours_points, cells=ours_cells, directory=directory))
         theirs = summary(columns=metrics_compute(points=theirs_points, cells=theirs_cells, directory=directory))
-    print(f"{'quality':30} {'reproduced':>12} {'published':>12}")
+    print(f"{'quality':30} {'published':>12} {'reproduced':>12}")
     for key in ours:
-        print(f"  {key:28} {ours[key]:>12.7g} {theirs[key]:>12.7g}")
+        print(f"  {key:28} {theirs[key]:>12.7g} {ours[key]:>12.7g}")
 
 
 if __name__ == "__main__":

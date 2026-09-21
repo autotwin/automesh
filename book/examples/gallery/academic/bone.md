@@ -97,6 +97,14 @@ of 2024-01-16.  The commit renames the folder `HybridOctree_Hex_v1.0` to
 change them.  The current `main` is a later version, with a `VOXEL_SIZE` of 10
 and a different `C_THRES`.
 
+The fork [`hovey/HybridOctree_Hex`](https://github.com/hovey/HybridOctree_Hex)
+keeps the history of the repository, so `git checkout 00e0e82` works there as
+well.  It also hosts the surface files that this page downloads.  Take care with
+its folder `HybridOctree_Hex_v1.0`.  That folder is a modified copy of v1.0.  It
+adds compile-time options, such as `VOXEL_SIZE_VALUE`, `LADDER_TOP`, and
+`C_THRES_VALUES`.  Its defaults match the table above, but it is not the
+original code.  The run below uses the original, at the commit.
+
 ```sh
 git clone https://github.com/CMU-CBML/HybridOctree_Hex.git
 cd HybridOctree_Hex
