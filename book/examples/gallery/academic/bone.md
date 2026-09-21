@@ -27,17 +27,20 @@ lengths and volumes below use that scale.
 ## The Baseline Settings
 
 The code, `HybridOctree_Hex` v1.0 [[1]](#reference), ships with the settings
-below.  They are defaults in `Initialization.h`.  The baseline mesh uses them
-unchanged.
+below.  Four are constants in `Initialization.h`: `C_THRES`, `H_THRES`,
+`CELL_DETECT`, and `VOXEL_SIZE`.  The curvature formula and the level of the
+deepest rung are fixed inside `HexGen.cpp`.  The published mesh comes from these
+settings, as
+[Reproducing the Baseline](#reproducing-the-baseline) shows.
 
 | setting | value | what it sets |
 | --- | --- | --- |
-| curvature formula | $(\theta - \pi)^2$, summed over the edges at a vertex (`CURVATURE_MODE 0`) | how sharply the surface bends at a vertex |
+| curvature formula | $(\theta - \pi)^2$, summed over the edges at a vertex; fixed in the code | how sharply the surface bends at a vertex |
 | `C_THRES` | {0.15, 0.3, 0.6, 1.2, 2.4} | the curvature ladder |
 | `H_THRES` | {16, 8, 4, 2, 1} | the thickness ladder |
 | `CELL_DETECT` | 1 | which cells a vertex or triangle can split |
 | `VOXEL_SIZE` | 9 | the depth budget of the octree |
-| `LADDER_TOP` | 8 | the octree level of the deepest rung |
+| `LADDER_TOP` | 8 | the octree level of the deepest rung; fixed in the code |
 
 **Curvature.**  At each surface vertex, the code looks at every edge that
 meets the vertex.  Two triangles share each edge.  The angle $\theta$ between
@@ -63,8 +66,10 @@ it.  A larger value refines more.
 
 **`VOXEL_SIZE` and `LADDER_TOP`.**  `VOXEL_SIZE` is the base-2 logarithm of the
 octree's depth budget.  The value 9 allows a $512^3$ grid, whose finest cells
-are $100 / 512 \approx 0.195$ wide.  `LADDER_TOP` is the level of the deepest
-rung.  The value 8 puts the five rungs on levels 4 through 8.  The deepest rung
+are $100 / 512 \approx 0.195$ wide.  `LADDER_TOP` is our name for the level of the
+deepest rung.  The code does not name it.  It fixes the value in a test,
+`level == 8`, inside `ComputeCellValue`.  The value 8 puts the five rungs on
+levels 4 through 8.  The deepest rung
 guards the step from level 8 to level 9, which is the last the budget allows.
 Every level-3 cell that meets the surface splits, with no rung at all.
 
@@ -82,6 +87,77 @@ mesh in Abaqus format, as `C3D8` elements.  The nodes and elements have the
 same coordinates, connectivity, and order in both files.  `automesh` reads the
 `.inp` file, so it computes the metrics from that one.  See
 [Downloads](#downloads) for both files.
+
+## Reproducing the Baseline
+
+We ran the code ourselves, and did not rely on the published mesh alone.  The
+run used `HybridOctree_Hex` v1.0.  In the repository, that is commit `00e0e82`
+of 2024-01-16.  The commit renames the folder `HybridOctree_Hex_v1.0` to
+`HybridOctree_Hex`, and its settings match the table above.  Later commits
+change them.  The current `main` is a later version, with a `VOXEL_SIZE` of 10
+and a different `C_THRES`.
+
+```sh
+git clone https://github.com/CMU-CBML/HybridOctree_Hex.git
+cd HybridOctree_Hex
+git checkout 00e0e82
+cd HybridOctree_Hex
+c++ -std=c++17 -O2 -o HexGen Main.cpp HexGen.cpp Mesh.cpp
+mkdir bone
+cp "../input boundaries/bone_tri.raw" bone/model.raw
+cd bone
+../HexGen
+```
+
+The program reads `model.raw` from the current directory.  The build prints
+warnings and no errors.  We ran it on macOS, on an Apple M1 Pro, with Apple
+clang 21.0.0.
+
+The first stages took about 52 seconds: 35 seconds for the octree, 5 for the
+dual mesh, and 12 for the interior mesh.  Then the projection step began.  It
+moves the boundary nodes onto the surface, and it guards the quality of the
+elements as it goes.  It starts with a quality bar of 0.53.  Each time the mesh
+meets the bar, it writes `finalMesh.vtk` and raises the bar by 0.01.  In our
+run the bar rose ten times.  The mesh written at the tenth step, after 293
+iterations and about three minutes, met the bar of 0.61.  The program then
+searched for a mesh that meets 0.62, and did not find one.  It does not stop on
+its own here.  We stopped it after nine minutes, and `finalMesh.vtk` had not
+changed for the last six.
+
+The script [`bone_baseline_compare.py`](bone_baseline_compare.py) compares that
+file with the published mesh.
+
+| | reproduced | published |
+| --- | ---: | ---: |
+| nodes | 10,356 | 10,356 |
+| elements | 8,619 | 8,619 |
+| same elements, in the same order | yes | |
+| minimum scaled Jacobian | 0.610002 | 0.6100001 |
+| 5th percentile | 0.6102 | 0.6103 |
+| median | 0.7909 | 0.7910 |
+| maximum aspect ratio | 23.04 | 21.25 |
+| elements above ratio 10 | 40 | 34 |
+| maximum skew | 0.7211 | 0.7252 |
+| maximum element volume | 39.65 | 39.64 |
+
+The two meshes have the same nodes and the same elements, with the same
+connectivity, in the same order.  The octree and the dual mesh reproduce
+exactly.  Other settings would give a different octree, and so different
+connectivity.  The floor of 0.61 reproduces, and the median and the 5th
+percentile agree to three digits.
+
+The node positions do not match exactly.  None of the 3,202 boundary nodes
+matches to six digits.  They differ by 0.031 on average, and by 0.92 at most,
+in the units of the 100-unit cube.  Of the 7,154 interior nodes, 1,563 match to
+six digits, and the largest difference is 1.21.  The aspect ratio has a few
+more outliers than the published mesh.
+
+We think the reason is the random step in the projection.  The code calls
+`rand()` and never seeds it.  The generator differs between platforms.  For
+example, `RAND_MAX` is 2,147,483,647 on macOS, and the compiler warns about it.
+We did not test this.  We reproduced the octree, the connectivity, the quality
+floor, and the shape of the quality distribution.  We did not reproduce the
+exact position of every node.
 
 ## Minimum Scaled Jacobian
 
@@ -284,8 +360,8 @@ above 0.31.
 | weak or strong balancing, soft or snapped fit | 4 | worst element 0.298 to 0.305 |
 | curvature tolerance | 15 | 4,413 to 181,175 elements, and the worst element still 0.19 to 0.30 |
 | uniform spacing, 1.2 to 2.2 | 11 | worst element 0.16 to 0.29, with 1.5% to 5.2% of elements below 0.6 |
-| smoothing, on the lattice | 10 | worst element up to 0.36, but 3.8% to 12.7% of elements fall below 0.6, and the volume changes by 1% to 49% |
-| smoothing, on the octree | 10 | worst element falls to 0.14 or below, five runs invert an element, and the volume changes by 1% to 54% |
+| smoothing, lattice case | 10 | worst element up to 0.36, but 3.8% to 12.7% of elements fall below 0.6, and the volume changes by 1% to 49% |
+| smoothing, octree case | 10 | worst element falls to 0.14 or below, five runs invert an element, and the volume changes by 1% to 54% |
 
 The worst element rests on a handful of boundary elements, so it is noisy.  On
 the lattice it moves between 0.16 and 0.29 as the spacing changes.  The count
@@ -512,6 +588,11 @@ python3 bone_tail.py bone_octree.vtu bone_octree_metrics.csv
 
 # the sweep of 56 runs, about two minutes
 python3 bone_sweep.py bone_sweep.tsv
+
+# compare the reproduced baseline with the published mesh, after the run in
+# the section Reproducing the Baseline; copy its finalMesh.vtk here first
+cp path/to/bone/finalMesh.vtk reproduced_bone.vtk
+python3 bone_baseline_compare.py reproduced_bone.vtk bone.vtk
 ```
 
 The histogram commands print the extremes in the tables above.
@@ -522,7 +603,8 @@ The histogram commands print the extremes in the tables above.
    Hybrid octree-based adaptive all-hexahedral mesh generation with Jacobian
    control."  *Journal of Computational Science* 78 (2024) 102278.
    <https://doi.org/10.1016/j.jocs.2024.102278>.  The code is at
-   <https://github.com/CMU-CBML/HybridOctree_Hex>.
+   <https://github.com/CMU-CBML/HybridOctree_Hex>.  The run on this page used
+   commit `00e0e82`.
 2. Utkarsh Ayachit.  *The ParaView Guide: A Parallel Visualization
    Application.*  Kitware, 2015.  <https://www.paraview.org>.
 3. Patrick M. Knupp, C. D. Ernst, D. C. Thompson, C. J. Stimpson, and
