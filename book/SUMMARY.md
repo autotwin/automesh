@@ -72,10 +72,6 @@
 
 - [Development](development.md)
 
-# Reviews
-
-- [Tong 2024](reviews/tong_2024.md)
-
 -----------
 
 [Contributors](contributors.md)

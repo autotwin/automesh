@@ -17,7 +17,8 @@ about twice the shortest.  ParaView 5.10.1 makes the renders from
 The Tong 2024 is the baseline in this book.  This page records the baseline: the settings that
 produced it, its size, and its element quality.  Then it meshes the same
 surface with `automesh` and compares the two.  The
-[Tong 2024 review](../../../reviews/tong_2024.md) describes the method.
+[Tong 2024 review](https://github.com/hovey/HybridOctree_Hex/blob/main/review_of_tong_2024.md)
+describes the method.
 
 The method refines an octree by surface curvature and by wall thickness.  It
 turns the octree into hexahedra, then projects the boundary onto the surface.
