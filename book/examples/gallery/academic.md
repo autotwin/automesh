@@ -27,6 +27,7 @@ or a download link is already in the repository.
 | Rocker Arm / Bimba | scanned mechanical-part test models | Planned |
 | Suzanne | Blender's low-poly monkey head; common regression case | Planned |
 | Representative Volume Element (RVE) | unit cube with three interior spherical pores | See [Representative Volume Element (RVE)](academic/rve.md) |
+| Bone | slender shaft with two rounded lobes at each end; the Tong 2024 hybrid-octree mesh is the baseline | See [Bone](academic/bone.md) |
 
 ## Stanford Bunny
 
