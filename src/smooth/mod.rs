@@ -80,7 +80,7 @@ pub struct SmoothArgs {
 }
 
 pub fn smooth(args: SmoothArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    let mut mesh = read_mesh(&args.input, quiet, true)?;
+    let mut mesh = read_mesh(&args.input, quiet)?;
     apply_smoothing_method(
         &mut mesh,
         args.iterations,

@@ -219,6 +219,9 @@ fn main() -> Result<(), ErrorWrapper> {
         log::write_log(&about!());
         log::write_log("");
     }
+    if args.command.is_some() {
+        io::title(quiet);
+    }
     let result = match args.command {
         Some(Commands::Convert { subcommand }) => match subcommand {
             ConvertSubcommand::Mesh(args) => convert_mesh(args, quiet),

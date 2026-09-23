@@ -50,10 +50,7 @@ fn done(time: Instant, quiet: bool) {
 }
 
 /// Reads a finite element mesh (exo | inp | mesh | stl | vtu) into a conspire mesh.
-pub fn read_mesh(file: &str, quiet: bool, show_title: bool) -> Result<Mesh<3>, ErrorWrapper> {
-    if show_title {
-        title(quiet);
-    }
+pub fn read_mesh(file: &str, quiet: bool) -> Result<Mesh<3>, ErrorWrapper> {
     let time = begin("Reading", file, quiet);
     let extension = extension(file);
     let mesh = match extension {
@@ -105,18 +102,13 @@ pub fn nel(
 }
 
 /// Reads a segmentation (npy | spn) into voxels.
-#[allow(clippy::too_many_arguments)]
 pub fn read_segmentation(
     file: &str,
     nelx: Option<usize>,
     nely: Option<usize>,
     nelz: Option<usize>,
     quiet: bool,
-    show_title: bool,
 ) -> Result<Voxels<u8>, ErrorWrapper> {
-    if show_title {
-        title(quiet);
-    }
     let time = begin("Reading", file, quiet);
     let extension = extension(file);
     let voxels = match extension {

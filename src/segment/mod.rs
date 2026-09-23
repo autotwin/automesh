@@ -32,7 +32,7 @@ pub struct SegmentArgs {
 }
 
 pub fn segment(args: SegmentArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&args.input, quiet, true)?;
+    let mesh = read_mesh(&args.input, quiet)?;
     let time = Instant::now();
     crate::echo!(quiet, "  \x1b[1;96mSegmenting\x1b[0m from finite elements");
     let voxels = Voxels::<usize>::from_finite_elements(&mesh, Length::meters(args.size));

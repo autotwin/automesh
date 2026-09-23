@@ -14,7 +14,7 @@ pub fn defeature(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet, true)?;
+    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet)?;
     let time = Instant::now();
     crate::echo!(
         quiet,
