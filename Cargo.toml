@@ -14,7 +14,9 @@ version = "0.4.7"
 
 [dependencies]
 clap = { version = "=4.6.7", features = ["derive"] }
-conspire = { version = "0.7.7", features = ["geometry"] }
+# TEMPORARY: pinned to the conspire `worktree-marching-cubes` branch for marching cubes.
+# Revert to a published version once marching cubes lands in a release.
+conspire = { git = "https://github.com/mrbuche/conspire.rs", branch = "worktree-marching-cubes", features = ["geometry"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]

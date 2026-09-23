@@ -9,12 +9,12 @@ use clap::Subcommand;
 use conspire::{
     geometry::{
         Coordinate, Coordinates,
-        grid::Voxels,
-        mesh::{Class, Fitting, Mesh, Tessellation},
+        grid::{Gradient, MarchingCubes, Voxels},
+        mesh::{Class, Connectivity, Fitting, Mesh, Tessellation},
         ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
         segmentation::Segmentation,
     },
-    math::Tensor,
+    math::{Tensor, TensorVec},
     units::Length,
 };
 use std::{collections::HashSet, path::Path, time::Instant};
@@ -130,6 +130,18 @@ pub struct MeshArgs {
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
+
+    /// Isosurface method for triangles from a segmentation (tri)
+    #[arg(long, value_enum, default_value_t = Cubes::Cuberille, value_name = "METHOD")]
+    pub cubes: Cubes,
+}
+
+#[derive(Clone, Copy, clap::ValueEnum)]
+pub enum Cubes {
+    /// Faces of the voxels, shared between materials
+    Cuberille,
+    /// Smooth isosurface of each material
+    Marching,
 }
 
 pub enum Element {
@@ -224,7 +236,10 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
         Element::Triangles => {
             crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m voxels into triangles");
             let voxels = remove_materials(voxels, args.remove.as_deref());
-            let mesh = Mesh::from(Tessellation::from(voxels));
+            let mesh = match args.cubes {
+                Cubes::Cuberille => Mesh::from(Tessellation::from(voxels)),
+                Cubes::Marching => marching(&voxels)?,
+            };
             scaled(
                 mesh,
                 [args.xscale, args.yscale, args.zscale],
@@ -438,6 +453,55 @@ fn remove_materials(voxels: Voxels<u8>, remove: Option<&[usize]>) -> Voxels<u8> 
         }
         _ => voxels,
     }
+}
+
+/// Extracts a closed marching cubes isosurface of each nonzero material.
+///
+/// Each material is padded with void so its surface closes at the grid
+/// boundary. Interfaces are represented once per adjacent material.
+fn marching(voxels: &Voxels<u8>) -> Result<Mesh<3>, ErrorWrapper> {
+    let [nx, ny, nz] = *voxels.nel();
+    let padded = [nz + 2, ny + 2, nx + 2];
+    let mut materials: Vec<u8> = voxels.data().iter().copied().filter(|&m| m != 0).collect();
+    materials.sort_unstable();
+    materials.dedup();
+    let extractor = MarchingCubes {
+        gradient: Gradient::Ascent,
+        degenerate: false,
+        ..Default::default()
+    };
+    let mut coordinates = Coordinates::new();
+    let mut connectivities = Vec::with_capacity(materials.len());
+    for material in materials {
+        let mut data = vec![0.0; padded.iter().product()];
+        for k in 0..nz {
+            for j in 0..ny {
+                for i in 0..nx {
+                    if voxels.data()[voxels.flat([i, j, k])] == material {
+                        data[((k + 1) * padded[1] + j + 1) * padded[2] + i + 1] = 1.0;
+                    }
+                }
+            }
+        }
+        let surface = extractor
+            .extract(&Voxels::new_row_major(data, padded), None)
+            .map_err(ErrorWrapper::from)?;
+        let offset = coordinates.len();
+        for vertex in surface.vertices.iter() {
+            coordinates.push(Coordinate::from([
+                vertex[0] + Length::meters(-0.5),
+                vertex[1] + Length::meters(-0.5),
+                vertex[2] + Length::meters(-0.5),
+            ]));
+        }
+        let faces: Vec<[usize; 3]> = surface
+            .faces
+            .iter()
+            .map(|face| face.map(|node| node + offset))
+            .collect();
+        connectivities.push(Connectivity::Triangular(faces.into()));
+    }
+    Ok(Mesh::from((connectivities, coordinates)))
 }
 
 /// Applies per-axis scaling (before translation) to the mesh coordinates.
