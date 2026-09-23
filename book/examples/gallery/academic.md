@@ -12,6 +12,8 @@ repository, already cited on the bunny page.
 The page also collects academic models that are not surface-scan test cases.
 A representative volume element is one such model.
 It comes from the micromechanics literature rather than computer graphics.
+The unit sphere is another.
+It has an exact answer, so it measures surface error directly.
 
 The table below tracks candidate models and their status.  "Planned" entries
 have no worked example yet — they are a roadmap, not a claim that the model
@@ -26,6 +28,7 @@ or a download link is already in the repository.
 | Fandisk | synthetic CAD-like surface with sharp creases | Planned |
 | Rocker Arm / Bimba | scanned mechanical-part test models | Planned |
 | Suzanne | Blender's low-poly monkey head; common regression case | Planned |
+| Unit Sphere | segmented sphere of radius 1; marching-cubes surfaces measured against the exact sphere | See [Unit Sphere](academic/unit_sphere.md) |
 | Representative Volume Element (RVE) | unit cube with three interior spherical pores | See [Representative Volume Element (RVE)](academic/rve.md) |
 | Bone | slender shaft with two rounded lobes at each end; the Tong 2024 hybrid-octree mesh is the baseline | See [Bone](academic/bone.md) |
 
