@@ -565,3 +565,76 @@ fn partition_rejects_missing_parts() {
         .expect("failed to spawn automesh");
     assert!(!result.status.success());
 }
+
+fn hex_source() -> PathBuf {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    source
+}
+
+#[test]
+fn agglomerate_to_exo_and_vtu() {
+    let source = hex_source();
+    [("rcb", "exo"), ("rib", "exo"), ("rcb", "vtu")]
+        .into_iter()
+        .for_each(|(method, extension)| {
+            let output = out(extension);
+            run(&[
+                "agglomerate",
+                "-i",
+                source.to_str().unwrap(),
+                "-o",
+                output.to_str().unwrap(),
+                "-m",
+                method,
+                "-n",
+                "3",
+            ]);
+            assert_nonempty(&output);
+        });
+}
+
+#[test]
+fn agglomerate_box_to_exo() {
+    let source = hex_source();
+    let output = out("exo");
+    run(&[
+        "agglomerate",
+        "-i",
+        source.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-m",
+        "box",
+        "-d",
+        "2",
+        "1",
+        "1",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn agglomerate_rejects_unsupported_output() {
+    let source = hex_source();
+    let result = Command::new(BIN)
+        .args([
+            "agglomerate",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            out("inp").to_str().unwrap(),
+            "-n",
+            "3",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
+}
