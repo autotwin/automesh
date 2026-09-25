@@ -102,6 +102,15 @@ pub fn write_mesh_threads(
     Ok(())
 }
 
+/// Writes a conspire mesh as an Exodus file whatever the file extension, without echoing.
+pub fn write_exodus(file: &str, mesh: Mesh<3>, threads: usize) -> Result<(), ErrorWrapper> {
+    mesh.write(MeshOutput::Exodus(ExodusFormat::Netcdf4 {
+        path: file,
+        threads,
+    }))?;
+    Ok(())
+}
+
 /// Resolves the voxels-per-direction needed to read an spn segmentation.
 pub fn nel(
     nelx: Option<usize>,

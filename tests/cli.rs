@@ -1,7 +1,7 @@
 //! End-to-end smoke tests driving the compiled binary against fixtures in tests/input.
 
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -484,6 +484,16 @@ fn smooth_accepts_method_spellings() {
     }
 }
 
+fn assert_parts(output: &Path, parts: usize) {
+    let width = parts.to_string().len();
+    (0..parts).for_each(|rank| {
+        assert_nonempty(&PathBuf::from(format!(
+            "{}.{parts}.{rank:0width$}",
+            output.display()
+        )))
+    });
+}
+
 #[test]
 fn partition_rcb_and_rib_to_exo() {
     let source = out("exo");
@@ -510,12 +520,12 @@ fn partition_rcb_and_rib_to_exo() {
             "-j",
             "2",
         ]);
-        assert_nonempty(&output);
+        assert_parts(&output, 3);
     });
 }
 
 #[test]
-fn partition_box_to_vtu() {
+fn partition_box_to_exo() {
     let source = out("exo");
     run(&[
         "mesh",
@@ -525,7 +535,7 @@ fn partition_box_to_vtu() {
         "-o",
         source.to_str().unwrap(),
     ]);
-    let output = out("vtu");
+    let output = out("exo");
     run(&[
         "partition",
         "-i",
@@ -539,7 +549,33 @@ fn partition_box_to_vtu() {
         "1",
         "1",
     ]);
-    assert_nonempty(&output);
+    assert_parts(&output, 2);
+}
+
+#[test]
+fn partition_rejects_non_exo_output() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    let result = Command::new(BIN)
+        .args([
+            "partition",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            out("vtu").to_str().unwrap(),
+            "-n",
+            "3",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
 }
 
 #[test]

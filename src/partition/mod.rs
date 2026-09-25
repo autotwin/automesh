@@ -1,10 +1,10 @@
 use super::{
     ErrorWrapper,
-    io::{read_mesh, write_mesh_threads},
+    io::{extension, invalid_output, read_mesh, write_exodus},
 };
 use clap::{Args, ValueEnum};
 use conspire::geometry::mesh::{Mesh, Partition};
-use std::time::Instant;
+use std::{sync::Mutex, thread, time::Instant};
 
 /// Parsed by clap, so a misspelled method fails before any work starts.
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -97,7 +97,9 @@ impl PartitionOptions {
             quiet,
             "   \x1b[1;96mSplitting\x1b[0m using {} [{} parts]",
             format!("{:?}", self.method).to_uppercase(),
-            partition.number_of_parts()
+            (0..partition.number_of_parts())
+                .filter(|&part| !partition.part_elements(part).is_empty())
+                .count()
         );
         crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
         Ok(partition)
@@ -110,7 +112,7 @@ pub struct PartitionArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Partitioned mesh output file (exo | inp | mesh | vtu), with each part split into its own element block(s)
+    /// Partitioned mesh output file (exo), written as one file per part named FILE.PARTS.RANK
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -119,8 +121,55 @@ pub struct PartitionArgs {
 }
 
 pub fn partition(args: PartitionArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    match extension(&args.output) {
+        Some("exo") => {}
+        other => return Err(invalid_output(&args.output, other)),
+    }
     let threads = args.options.threads()?;
     let mesh = read_mesh(&args.input, quiet)?;
     let partition = args.options.split(&mesh, quiet)?;
-    write_mesh_threads(&args.output, partition.blocked(&mesh), threads, quiet)
+    let parts = (0..partition.number_of_parts())
+        .filter(|&part| !partition.part_elements(part).is_empty())
+        .collect::<Vec<_>>();
+    let width = parts.len().to_string().len();
+    let jobs = Mutex::new(
+        parts
+            .iter()
+            .enumerate()
+            .map(|(rank, &part)| {
+                (
+                    format!("{}.{}.{rank:0width$}", args.output, parts.len()),
+                    partition.part(&mesh, part).0,
+                )
+            })
+            .collect::<Vec<_>>()
+            .into_iter(),
+    );
+    crate::echo!(
+        quiet,
+        "     \x1b[1;96mWriting\x1b[0m {}.{}.* [{} files]",
+        args.output,
+        parts.len(),
+        parts.len()
+    );
+    let time = Instant::now();
+    let errors = Mutex::new(Vec::new());
+    thread::scope(|scope| {
+        (0..threads.min(parts.len())).for_each(|_| {
+            scope.spawn(|| {
+                loop {
+                    let job = jobs.lock().unwrap().next();
+                    let Some((file, part)) = job else { break };
+                    if let Err(error) = write_exodus(&file, part, 1) {
+                        errors.lock().unwrap().push(error)
+                    }
+                }
+            });
+        })
+    });
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    match errors.into_inner().unwrap().into_iter().next() {
+        Some(error) => Err(error),
+        None => Ok(()),
+    }
 }

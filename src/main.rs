@@ -192,7 +192,7 @@ enum Commands {
     /// Quality metrics for an existing finite element mesh
     Metrics(MetricsArgs),
 
-    /// Partitions a mesh into parts, written as element blocks
+    /// Partitions a mesh into parts, written as one exo file per part
     Partition(PartitionArgs),
 
     /// Applies isotropic remeshing to an existing mesh [default mode: uniform]
