@@ -14,7 +14,7 @@ version = "0.4.7"
 
 [dependencies]
 clap = { version = "=4.6.7", features = ["derive"] }
-conspire = { git = "https://github.com/mrbuche/conspire.rs", branch = "worktree-agglomerate", features = ["geometry"] }
+conspire = { git = "https://github.com/mrbuche/conspire.rs", branch = "worktree-partition-rcb", features = ["geometry"] }
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "docs/katex.html"]
