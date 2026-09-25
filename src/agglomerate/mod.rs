@@ -34,9 +34,7 @@ pub fn agglomerate(args: AgglomerateArgs, quiet: bool) -> Result<(), ErrorWrappe
         partition.number_of_parts()
     );
     let time = Instant::now();
-    let agglomerated = partition
-        .agglomerated_mesh(&mesh)
-        .map_err(ErrorWrapper::from)?;
+    let agglomerated = partition.agglomerate(&mesh).map_err(ErrorWrapper::from)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     write_mesh_threads(&args.output, agglomerated, threads, quiet)
 }
