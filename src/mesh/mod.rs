@@ -10,8 +10,8 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::Voxels,
-        mesh::{Class, Fitting, Mesh, Tessellation},
-        ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
+        mesh::{Class, Dualization, Fitting, Mesh, Tessellation},
+        ntree::{Balance, Balancing, CurvatureSizing, Octree, Pairing},
         segmentation::Segmentation,
     },
     math::Tensor,
