@@ -5,6 +5,7 @@ use std::{
 };
 
 mod convert;
+mod decompose;
 mod defeature;
 mod diff;
 mod error;
@@ -18,6 +19,7 @@ mod segment;
 mod smooth;
 
 use convert::{ConvertSubcommand, convert_mesh, convert_segmentation};
+use decompose::{DecomposeArgs, decompose};
 use defeature::defeature;
 use diff::diff;
 use error::ErrorWrapper;
@@ -78,6 +80,9 @@ enum Commands {
         #[command(subcommand)]
         subcommand: ConvertSubcommand,
     },
+
+    /// Decomposes a mesh into parts, written as element blocks
+    Decompose(DecomposeArgs),
 
     /// Defeatures and creates a new segmentation
     Defeature {
@@ -234,6 +239,7 @@ fn main() -> Result<(), ErrorWrapper> {
                 quiet,
             ),
         },
+        Some(Commands::Decompose(args)) => decompose(args, quiet),
         Some(Commands::Defeature {
             input,
             output,

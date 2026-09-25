@@ -483,3 +483,85 @@ fn smooth_accepts_method_spellings() {
         assert_nonempty(&output);
     }
 }
+
+#[test]
+fn decompose_rcb_and_rib_to_exo() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    ["rcb", "rib"].into_iter().for_each(|method| {
+        let output = out("exo");
+        run(&[
+            "decompose",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-m",
+            method,
+            "-n",
+            "3",
+            "-j",
+            "2",
+        ]);
+        assert_nonempty(&output);
+    });
+}
+
+#[test]
+fn decompose_box_to_vtu() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    let output = out("vtu");
+    run(&[
+        "decompose",
+        "-i",
+        source.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-m",
+        "box",
+        "-d",
+        "2",
+        "1",
+        "1",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn decompose_rejects_missing_parts() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    let result = Command::new(BIN)
+        .args([
+            "decompose",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            out("exo").to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
+}
