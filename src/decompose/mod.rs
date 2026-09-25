@@ -104,7 +104,8 @@ pub fn decompose(args: DecomposeArgs, quiet: bool) -> Result<(), ErrorWrapper> {
 fn report(method: DecomposeMethod, partition: &Partition, elapsed: Duration, quiet: bool) {
     crate::echo!(
         quiet,
-        "   \x1b[1;96mSplitting\x1b[0m {method:?} [{} parts]",
+        "   \x1b[1;96mSplitting\x1b[0m {} [{} parts]",
+        format!("{method:?}").to_uppercase(),
         partition.number_of_parts()
     );
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {elapsed:?}");
