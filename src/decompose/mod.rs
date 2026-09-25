@@ -3,8 +3,8 @@ use super::{
     io::{read_mesh, write_mesh_threads},
 };
 use clap::{Args, ValueEnum};
-use conspire::geometry::mesh::{Mesh, Partition};
-use std::time::Instant;
+use conspire::geometry::mesh::Partition;
+use std::time::{Duration, Instant};
 
 /// Parsed by clap, so a misspelled method fails before any work starts.
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -59,7 +59,6 @@ pub fn decompose(args: DecomposeArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         None => std::thread::available_parallelism().map_or(1, |threads| threads.get()),
     };
     let mesh = read_mesh(&args.input, quiet)?;
-    crate::echo!(quiet, "  \x1b[1;96mPartitioning\x1b[0m {:?}", args.method);
     let time = Instant::now();
     let partition = match args.method {
         DecomposeMethod::Box => {
@@ -97,25 +96,16 @@ pub fn decompose(args: DecomposeArgs, quiet: bool) -> Result<(), ErrorWrapper> {
             }
         }
     };
-    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    report(&partition, &mesh, quiet);
+    let elapsed = time.elapsed();
+    report(args.method, &partition, elapsed, quiet);
     write_mesh_threads(&args.output, partition.blocked_mesh(&mesh), threads, quiet)
 }
 
-fn report(partition: &Partition, mesh: &Mesh<3>, quiet: bool) {
-    let quality = partition.quality(mesh);
+fn report(method: DecomposeMethod, partition: &Partition, elapsed: Duration, quiet: bool) {
     crate::echo!(
         quiet,
-        "        \x1b[1;93mParts\x1b[0m {} (elements min {}, max {}, imbalance {:.3})",
-        partition.number_of_parts(),
-        quality.sizes.iter().min().copied().unwrap_or(0),
-        quality.sizes.iter().max().copied().unwrap_or(0),
-        quality.imbalance
+        "   \x1b[1;96mSplitting\x1b[0m {method:?} [{} parts]",
+        partition.number_of_parts()
     );
-    crate::echo!(
-        quiet,
-        "   \x1b[1;93mInterface\x1b[0m {} nodes, {} disconnected parts",
-        quality.interface_nodes,
-        quality.disconnected_parts
-    );
+    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {elapsed:?}");
 }
