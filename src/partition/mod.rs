@@ -122,5 +122,5 @@ pub fn partition(args: PartitionArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let threads = args.options.threads()?;
     let mesh = read_mesh(&args.input, quiet)?;
     let partition = args.options.split(&mesh, quiet)?;
-    write_mesh_threads(&args.output, partition.blocked_mesh(&mesh), threads, quiet)
+    write_mesh_threads(&args.output, partition.blocked(&mesh), threads, quiet)
 }
