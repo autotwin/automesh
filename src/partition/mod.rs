@@ -104,7 +104,7 @@ pub fn partition(args: PartitionArgs, quiet: bool) -> Result<(), ErrorWrapper> {
 fn report(method: PartitionMethod, partition: &Partition, elapsed: Duration, quiet: bool) {
     crate::echo!(
         quiet,
-        "   \x1b[1;96mSplitting\x1b[0m {} [{} parts]",
+        "   \x1b[1;96mSplitting\x1b[0m using {} [{} parts]",
         format!("{method:?}").to_uppercase(),
         partition.number_of_parts()
     );
