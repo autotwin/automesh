@@ -9,7 +9,7 @@ use std::time::{Duration, Instant};
 /// Parsed by clap, so a misspelled method fails before any work starts.
 #[derive(Clone, Copy, Debug, ValueEnum)]
 #[value(rename_all = "UPPER")]
-pub enum DecomposeMethod {
+pub enum PartitionMethod {
     /// Recursive coordinate bisection
     Rcb,
     /// Recursive inertial bisection
@@ -19,25 +19,25 @@ pub enum DecomposeMethod {
 }
 
 #[derive(Args)]
-pub struct DecomposeArgs {
+pub struct PartitionArgs {
     /// Mesh input file (exo | inp | mesh | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Decomposed mesh output file (exo | inp | mesh | vtu), with each part split into its own element block(s)
+    /// Partitioned mesh output file (exo | inp | mesh | vtu), with each part split into its own element block(s)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
-    /// Decomposition method
+    /// Partitioning method
     #[arg(
-        default_value_t = DecomposeMethod::Rcb,
+        default_value_t = PartitionMethod::Rcb,
         ignore_case = true,
         long,
         short,
         value_enum,
         value_name = "NAME"
     )]
-    pub method: DecomposeMethod,
+    pub method: PartitionMethod,
 
     /// Number of parts (RCB | RIB)
     #[arg(long, short = 'n', value_name = "NUM")]
@@ -52,7 +52,7 @@ pub struct DecomposeArgs {
     pub threads: Option<usize>,
 }
 
-pub fn decompose(args: DecomposeArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+pub fn partition(args: PartitionArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let threads = match args.threads {
         Some(0) => return Err(ErrorWrapper::from("Threads must be positive")),
         Some(threads) => threads,
@@ -61,7 +61,7 @@ pub fn decompose(args: DecomposeArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mesh = read_mesh(&args.input, quiet)?;
     let time = Instant::now();
     let partition = match args.method {
-        DecomposeMethod::Box => {
+        PartitionMethod::Box => {
             if args.parts.is_some() {
                 return Err(ErrorWrapper::from(
                     "Parts (-n) applies to RCB and RIB, use divisions (-d) for BOX",
@@ -91,7 +91,7 @@ pub fn decompose(args: DecomposeArgs, quiet: bool) -> Result<(), ErrorWrapper> {
                 )));
             }
             match method {
-                DecomposeMethod::Rib => mesh.partition_rib(parts),
+                PartitionMethod::Rib => mesh.partition_rib(parts),
                 _ => mesh.partition_rcb(parts),
             }
         }
@@ -101,7 +101,7 @@ pub fn decompose(args: DecomposeArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     write_mesh_threads(&args.output, partition.blocked_mesh(&mesh), threads, quiet)
 }
 
-fn report(method: DecomposeMethod, partition: &Partition, elapsed: Duration, quiet: bool) {
+fn report(method: PartitionMethod, partition: &Partition, elapsed: Duration, quiet: bool) {
     crate::echo!(
         quiet,
         "   \x1b[1;96mSplitting\x1b[0m {} [{} parts]",

@@ -485,7 +485,7 @@ fn smooth_accepts_method_spellings() {
 }
 
 #[test]
-fn decompose_rcb_and_rib_to_exo() {
+fn partition_rcb_and_rib_to_exo() {
     let source = out("exo");
     run(&[
         "mesh",
@@ -498,7 +498,7 @@ fn decompose_rcb_and_rib_to_exo() {
     ["rcb", "rib"].into_iter().for_each(|method| {
         let output = out("exo");
         run(&[
-            "decompose",
+            "partition",
             "-i",
             source.to_str().unwrap(),
             "-o",
@@ -515,7 +515,7 @@ fn decompose_rcb_and_rib_to_exo() {
 }
 
 #[test]
-fn decompose_box_to_vtu() {
+fn partition_box_to_vtu() {
     let source = out("exo");
     run(&[
         "mesh",
@@ -527,7 +527,7 @@ fn decompose_box_to_vtu() {
     ]);
     let output = out("vtu");
     run(&[
-        "decompose",
+        "partition",
         "-i",
         source.to_str().unwrap(),
         "-o",
@@ -543,7 +543,7 @@ fn decompose_box_to_vtu() {
 }
 
 #[test]
-fn decompose_rejects_missing_parts() {
+fn partition_rejects_missing_parts() {
     let source = out("exo");
     run(&[
         "mesh",
@@ -555,7 +555,7 @@ fn decompose_rejects_missing_parts() {
     ]);
     let result = Command::new(BIN)
         .args([
-            "decompose",
+            "partition",
             "-i",
             source.to_str().unwrap(),
             "-o",

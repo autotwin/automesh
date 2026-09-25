@@ -5,7 +5,6 @@ use std::{
 };
 
 mod convert;
-mod decompose;
 mod defeature;
 mod diff;
 mod error;
@@ -14,18 +13,19 @@ mod io;
 mod log;
 mod mesh;
 mod metrics;
+mod partition;
 mod remesh;
 mod segment;
 mod smooth;
 
 use convert::{ConvertSubcommand, convert_mesh, convert_segmentation};
-use decompose::{DecomposeArgs, decompose};
 use defeature::defeature;
 use diff::diff;
 use error::ErrorWrapper;
 use extract::extract;
 use mesh::{Element, MeshSubcommand};
 use metrics::{MetricsArgs, metrics};
+use partition::{PartitionArgs, partition};
 use remesh::{MeshRemeshCommands, remesh};
 use segment::{SegmentArgs, segment};
 use smooth::{SmoothArgs, smooth};
@@ -80,9 +80,6 @@ enum Commands {
         #[command(subcommand)]
         subcommand: ConvertSubcommand,
     },
-
-    /// Decomposes a mesh into parts, written as element blocks
-    Decompose(DecomposeArgs),
 
     /// Defeatures and creates a new segmentation
     Defeature {
@@ -190,6 +187,9 @@ enum Commands {
     /// Quality metrics for an existing finite element mesh
     Metrics(MetricsArgs),
 
+    /// Partitions a mesh into parts, written as element blocks
+    Partition(PartitionArgs),
+
     /// Applies isotropic remeshing to an existing mesh [default mode: uniform]
     Remesh {
         /// Mesh input file (exo | inp | stl | vtu)
@@ -239,7 +239,6 @@ fn main() -> Result<(), ErrorWrapper> {
                 quiet,
             ),
         },
-        Some(Commands::Decompose(args)) => decompose(args, quiet),
         Some(Commands::Defeature {
             input,
             output,
@@ -277,6 +276,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MeshSubcommand::Tri(args) => mesh::mesh(Element::Triangles, args, quiet),
         },
         Some(Commands::Metrics(args)) => metrics(args, quiet),
+        Some(Commands::Partition(args)) => partition(args, quiet),
         Some(Commands::Remesh {
             input,
             output,
