@@ -530,6 +530,155 @@ worst element drops sharply from $n = 40$ on, to 0.032 and then 0.010.  At
 $n = 160$, 23 elements are inverted, and the worst has a Minimum Scaled
 Jacobian of −0.792.  None are inverted at $n = 10$ to 80.
 
+### Control Study
+
+The octree's poor quality might come from `automesh` reading the
+marching-cubes staircase as full of sharp features, and over-refining toward
+them.  Testing that needs one correction first.
+
+`automesh mesh hex`'s adaptive octree combines two refinement signals:
+
+1. **curvature-driven sizing**, gated by a chord-error tolerance
+   (`--tolerance`, disabled by default), and
+2. **local-thickness sizing**, from the shape diameter function of
+   Shapira, Shamir, and Cohen-Or.[^Shapira2008]
+
+Neither [`unit_sphere_mesh.py`](#unit_sphere_meshpy) nor the Sculpt
+comparison passes `--tolerance`, so curvature-driven sizing never activates
+on this page.  **Local thickness alone** (not curvature) sets the octree's
+refinement target.
+
+The shape diameter function estimates local thickness by casting a cone of
+rays inward from each face and measuring the distance to the far side of the
+surface.  On a smooth convex shape that distance stays close to the diameter
+everywhere.  On a voxel staircase, a ray from one step's riser can reach the
+next step over instead of crossing the sphere, so the function can report a
+locally small thickness right at the steps — the same steps where the
+octree refines most (see [`automesh`](#automesh) above).
+
+The control tests that: mesh a smooth surface with the same octree (default
+scale, no tolerance), and see whether it needs the same refinement, or
+inverts any element.  The script
+[`unit_sphere_mesh.py`](#unit_sphere_meshpy) meshes two Octa-Loop surfaces
+from the [Subdivision](../../../theory/subdivision.md#refinement) page:
+level 3, the 512-facet surface already used for the Sculpt baseline, and
+level 7, the finest available, at 131,072 facets — close to the facet size
+of the $n = 160$ marching-cubes surface, so the comparison is not simply
+coarse against fine.
+
+```sh
+automesh mesh hex -i octa_loop03.stl -o unit_sphere_control_loop03.inp \
+  --metrics unit_sphere_control_loop03.csv
+automesh mesh hex -i octa_loop07.stl -o unit_sphere_control_loop07.inp \
+  --metrics unit_sphere_control_loop07.csv
+```
+
+| surface | facets | facet edge (mean) | elements | MSJ min | MSJ mean |
+| :--- | ---: | ---: | ---: | ---: | ---: |
+| marching cubes, $n = 160$ | 964,568 | 0.00616 | 25,815 | −0.792 | 0.755 |
+| Octa-Loop level 3 | 512 | 0.23492 | 111 | 0.384 | 0.749 |
+| Octa-Loop level 7 | 131,072 | 0.01473 | 1,415 | 0.439 | 0.816 |
+
+![unit_sphere_control_meshes.png](unit_sphere_control_meshes.png)
+
+Figure: The three octree meshes, each element painted by its Minimum Scaled
+Jacobian, on the same 0 to 1 scale as the earlier mesh figures: the
+$n = 160$ marching-cubes surface (left), Octa-Loop level 3 (center), and
+Octa-Loop level 7 (right).  The marching-cubes mesh has several small dark
+clusters of poor elements; neither control does.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+1. The Octa-Loop level 3 mesh (center panel) is visibly not symmetric across
+   the $xy$, $yz$, and $zx$ planes, unlike the other meshes on this page.
+2. The input STL itself, `octa_loop03.stl`, is perfectly symmetric.
+   Reflecting every vertex
+   across each axis finds an exact match on the surface, at every axis.
+   *The asymmetry comes from the meshing process, not the geometry.*
+3. The octree's local-thickness sizing is the source.  `conspire`'s shape
+   diameter function estimates thickness at each facet by casting a cone
+   of rays inward.  The cone is oriented by a tangent frame built from the
+   facet's normal.
+4. That tangent frame comes from an orthonormal-basis construction.  It
+   builds the frame with Gram-Schmidt, seeded from the fixed global axes
+   $x$, $y$, and $z$, in that order.  The construction has nothing to do
+   with the local surface.
+5. This construction is not equivariant under reflection.  A facet normal
+   and its exact mirror image do not receive mirrored tangent frames.
+6. The ray samples are discrete, only 3 rings and 10 azimuthal directions
+   per facet.  A mirror-symmetric pair of facets can then sample different
+   points on the surface, and measure different local thickness.
+7. Different thickness estimates drive different octree refinement
+   decisions on each side.  That breaks a symmetry the input geometry
+   actually has.
+8. The effect shrinks fast with resolution.  The same reflection test on
+   the level 7 control gives a maximum mismatch of 0.0143, down from 0.235
+   to 0.273 at level 3.  Only 1% of its nodes are affected, against 96% to
+   100% at level 3.
+9. One detail points straight at the mechanism.  At level 3, the
+   $z$-reflection mismatch (0.273) is larger than the $x$ or $y$ mismatch
+   (0.235).  The Gram-Schmidt seed order tries $x$ and $y$ first and $z$
+   last, so $z$ is the axis most likely to be singled out.
+10. A fix belongs in `conspire`, not `automesh`.  `automesh`'s CLI has no
+    option that reaches this code path.
+11. Two changes would help.
+    <ol type="a">
+    <li>Seed the tangent frame from something tied to the local mesh,
+    instead of the global axes.</li>
+    <li>Raise the ring and azimuthal sample counts, fixed today at 3 and
+    10, so the discrete sampling better approximates the continuous,
+    symmetric integral.</li>
+    </ol>
+12. No fix can make every normal's tangent frame equivariant at once.  The
+    hairy ball theorem rules that out, for any continuous tangent field on
+    a sphere of directions.  But the current choice ties that one
+    unavoidable discontinuity to the world axes.  That is exactly what
+    biases this octahedron-derived surface, since its own symmetry axes
+    happen to line up with the world axes.
+
+**Observations:**
+
+* The asymmetry is real, not numerical noise.  A perfectly symmetric input
+  produces a mesh that is not.
+* It is a resolution effect, not a fixed error.  The maximum reflection
+  mismatch falls from 0.235–0.273 at level 3 to 0.0143 at level 7, a
+  17 to 19 times reduction.
+* It has one identifiable cause: `orthonormal_basis`'s Gram-Schmidt
+  seeding from the fixed global axes, not from the local surface.  The
+  fixed seed order also explains why $z$ is singled out at level 3.
+* The fix belongs in `conspire`.  `automesh`'s CLI has no option that
+  reaches the shape diameter function's sampling, so nothing on the
+  `automesh` side can correct it today.
+
+![unit_sphere_control_meshes_cut.png](unit_sphere_control_meshes_cut.png)
+
+Figure: A cut through the middle of the same three meshes, at $z = 0$, on
+the same scale.  Only the elements whose centers lie below the plane are
+drawn.  The clusters from the full view sit at the boundary, dense knots of
+small elements; both controls stay coarse and regular throughout.  The
+figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+![unit_sphere_control.png](unit_sphere_control.png)
+
+Figure: Element quality of the octree meshing three surfaces: the $n = 160$
+marching-cubes surface (solid, orange), Octa-Loop level 3 (dashed, blue),
+and Octa-Loop level 7 (dotted, green).  Each panel is a histogram with a log
+scale on the count.  Only the marching-cubes curve reaches below zero.  The
+figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+Neither control mesh inverts an element.  Both stay at or above Sculpt's own
+baseline (0.343 minimum), even level 7, whose facets are only 2.4 times
+larger than the marching-cubes surface that produces −0.792.  Level 7's
+octree also makes far fewer elements than the marching-cubes $n = 160$
+octree, 1,415 against 25,815, on comparably sized facets.  So the octree is
+not simply reacting to facet size: a smooth surface with similar facets
+does not provoke the same refinement.
+
+This bears on the octree only.  `--uniform` builds its mesh directly from a
+fixed-size lattice and never calls the octree or the shape diameter
+function, so it says nothing about why the uniform lattice's own quality
+also lags Sculpt's.
+
 ## Reproduce
 
 The commands below regenerate every table and figure on this page.  They run
@@ -543,8 +692,9 @@ The steps need three tools and one input file.
 * `automesh` 0.4.7 must be on the `PATH`.  The comparison and mesh scripts
   call it.
 * Sculpt, from Cubit 16.08, must be on the `PATH` for the Sculpt meshes.
-* The input `octa_loop03.stl` must sit in this directory.  It downloads from
-  the [Refinement](../../../theory/subdivision.md#refinement) table of the
+* The inputs `octa_loop03.stl` and `octa_loop07.stl` must sit in this
+  directory.  Both download from the
+  [Refinement](../../../theory/subdivision.md#refinement) table of the
   Subdivision page.
 
 ```sh
@@ -584,33 +734,58 @@ book.  Only the figures are.
 
 ### `unit_sphere_segmentation.py`
 
+<details>
+<summary>Show source</summary>
+
 ```python
 <!-- cmdrun cat unit_sphere_segmentation.py -->
 ```
 
+</details>
+
 ### `unit_sphere_isosurface.py`
+
+<details>
+<summary>Show source</summary>
 
 ```python
 <!-- cmdrun cat unit_sphere_isosurface.py -->
 ```
 
+</details>
+
 ### `unit_sphere_comparison.py`
+
+<details>
+<summary>Show source</summary>
 
 ```python
 <!-- cmdrun cat unit_sphere_comparison.py -->
 ```
 
+</details>
+
 ### `unit_sphere_mesh.py`
+
+<details>
+<summary>Show source</summary>
 
 ```python
 <!-- cmdrun cat unit_sphere_mesh.py -->
 ```
 
+</details>
+
 ### `unit_sphere_figures.py`
+
+<details>
+<summary>Show source</summary>
 
 ```python
 <!-- cmdrun cat unit_sphere_figures.py -->
 ```
+
+</details>
 
 ## Reference
 
@@ -644,3 +819,8 @@ book.  Only the figures are.
 [^Chernyaev1995]: Evgeni V. Chernyaev.  *Marching Cubes 33: Construction of
     topologically correct isosurfaces.*  Technical Report CN/95-17, CERN,
     1995.
+
+[^Shapira2008]: Lior Shapira, Ariel Shamir, and Daniel Cohen-Or.  "Consistent
+    mesh partitioning and skeletonisation using the shape diameter
+    function."  *The Visual Computer* 24 (2008) 249–259.
+    <https://doi.org/10.1007/s00371-007-0197-5>

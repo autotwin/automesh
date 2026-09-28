@@ -6,8 +6,10 @@ The script
 1. converts each Sculpt mesh, `unit_sphere_sculpt_*.e.1.0`, to an Abaqus
    `.inp` file, since automesh 0.4.7 cannot read Sculpt's Exodus files,
 2. meshes each marching-cubes surface with `automesh mesh hex`, on a uniform
-   lattice at the Sculpt cell size and on the default octree, and
-3. writes `automesh metrics` for every mesh and prints a summary.
+   lattice at the Sculpt cell size and on the default octree,
+3. meshes the smooth Octa-Loop surfaces with the default octree only, as a
+   control (see the Control Study section on unit_sphere.md), and
+4. writes `automesh metrics` for every mesh and prints a summary.
 
 Example
 -------
@@ -18,8 +20,8 @@ uv run --with numpy --with scipy unit_sphere_mesh.py
 Output
 ------
 unit_sphere_sculpt_*.inp, unit_sphere_uniform_nNNN.inp,
-unit_sphere_octree_nNNN.inp, a metrics CSV beside each mesh, and a table on
-the terminal.
+unit_sphere_octree_nNNN.inp, unit_sphere_control_loopNN.inp, a metrics CSV
+beside each mesh, and a table on the terminal.
 """
 
 import subprocess
@@ -110,6 +112,13 @@ def main() -> None:
                 label=f"{name}_n{n:03d}",
                 csv=hex_write(stl=stl, mesh=mesh, options=options),
             )
+    for level in ("03", "07"):
+        stl = here / f"octa_loop{level}.stl"
+        mesh = here / f"unit_sphere_control_loop{level}.inp"
+        summary_print(
+            label=f"control_loop{level}",
+            csv=hex_write(stl=stl, mesh=mesh, options=[]),
+        )
 
 
 if __name__ == "__main__":

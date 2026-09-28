@@ -9,6 +9,9 @@
     unit_sphere_meshers.png      Sculpt and automesh meshes of the n = 160 surface
     unit_sphere_meshers_cut.png  the same meshes, cut at z = 0
     unit_sphere_quality.png      quality histograms of the n = 160 meshes
+    unit_sphere_control.png      quality histograms of the octree control study
+    unit_sphere_control_meshes.png      the control study's three octree meshes
+    unit_sphere_control_meshes_cut.png  the same meshes, cut at z = 0
 
 Example
 -------
@@ -23,7 +26,9 @@ Output
 unit_sphere_voxels.png, unit_sphere_isosurfaces.png,
 unit_sphere_convergence.png, unit_sphere_sculpt.png,
 unit_sphere_sculpt_cut.png, unit_sphere_meshers.png,
-unit_sphere_meshers_cut.png, and unit_sphere_quality.png.
+unit_sphere_meshers_cut.png, unit_sphere_quality.png,
+unit_sphere_control.png, unit_sphere_control_meshes.png, and
+unit_sphere_control_meshes_cut.png.
 """
 
 from pathlib import Path
@@ -57,6 +62,21 @@ MESHER_PANELS = (
     ("Sculpt", "unit_sphere_sculpt_n160"),
     ("automesh, uniform lattice", "unit_sphere_uniform_n160"),
     ("automesh, adaptive octree", "unit_sphere_octree_n160"),
+)
+CONTROL_PANELS = (
+    ("octree, n=160 marching cubes", "unit_sphere_octree_n160"),
+    ("Octa-Loop level 3", "unit_sphere_control_loop03"),
+    ("Octa-Loop level 7", "unit_sphere_control_loop07"),
+)
+QUALITY_MESHES = (
+    ("Sculpt", "unit_sphere_sculpt_n160.csv"),
+    ("automesh, uniform lattice", "unit_sphere_uniform_n160.csv"),
+    ("automesh, adaptive octree", "unit_sphere_octree_n160.csv"),
+)
+CONTROL_MESHES = (
+    ("octree, n=160 marching cubes", "unit_sphere_octree_n160.csv"),
+    ("octree, Octa-Loop level 3", "unit_sphere_control_loop03.csv"),
+    ("octree, Octa-Loop level 7", "unit_sphere_control_loop07.csv"),
 )
 DPI = 200
 EDGES_MAX = 40
@@ -377,13 +397,8 @@ def meshes_plot(*, here: Path, panels: tuple, output: str, cut: bool) -> None:
     plt.close(fig)
 
 
-def quality_plot(*, here: Path) -> None:
-    """Draws the four quality histograms for the n = 160 meshes."""
-    meshes = (
-        ("Sculpt", "unit_sphere_sculpt_n160.csv"),
-        ("automesh, uniform lattice", "unit_sphere_uniform_n160.csv"),
-        ("automesh, adaptive octree", "unit_sphere_octree_n160.csv"),
-    )
+def quality_plot(*, here: Path, meshes: tuple, output: str) -> None:
+    """Draws the four quality histograms for the given meshes."""
     data = [
         (label, np.genfromtxt(here / name, delimiter=",", names=True))
         for label, name in meshes
@@ -419,7 +434,7 @@ def quality_plot(*, here: Path) -> None:
         bbox_to_anchor=(0.5, 1.0),
     )
     fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.93))
-    fig.savefig(here / "unit_sphere_quality.png", dpi=DPI)
+    fig.savefig(here / output, dpi=DPI)
     plt.close(fig)
 
 
@@ -441,7 +456,16 @@ def main() -> None:
             output="unit_sphere_meshers_cut.png" if cut else "unit_sphere_meshers.png",
             cut=cut,
         )
-    quality_plot(here=here)
+        meshes_plot(
+            here=here,
+            panels=CONTROL_PANELS,
+            output="unit_sphere_control_meshes_cut.png"
+            if cut
+            else "unit_sphere_control_meshes.png",
+            cut=cut,
+        )
+    quality_plot(here=here, meshes=QUALITY_MESHES, output="unit_sphere_quality.png")
+    quality_plot(here=here, meshes=CONTROL_MESHES, output="unit_sphere_control.png")
 
 
 if __name__ == "__main__":
