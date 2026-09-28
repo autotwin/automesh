@@ -12,6 +12,8 @@
     unit_sphere_control.png      quality histograms of the octree control study
     unit_sphere_control_meshes.png      the control study's three octree meshes
     unit_sphere_control_meshes_cut.png  the same meshes, cut at z = 0
+    unit_sphere_smooth_meshes.png       the octree meshes of the n = 160 surface, smoothed
+    unit_sphere_smooth_meshes_cut.png   the same meshes, cut at z = 0
 
 Example
 -------
@@ -19,6 +21,7 @@ cd ~/autotwin/automesh/book/examples/gallery/academic
 uv run --with numpy unit_sphere_segmentation.py
 uv run --with numpy --with scikit-image unit_sphere_isosurface.py
 uv run --with numpy --with scipy unit_sphere_mesh.py
+uv run --with numpy unit_sphere_smooth.py
 uv run --with numpy --with scikit-image --with matplotlib unit_sphere_figures.py
 
 Output
@@ -27,8 +30,9 @@ unit_sphere_voxels.png, unit_sphere_isosurfaces.png,
 unit_sphere_convergence.png, unit_sphere_sculpt.png,
 unit_sphere_sculpt_cut.png, unit_sphere_meshers.png,
 unit_sphere_meshers_cut.png, unit_sphere_quality.png,
-unit_sphere_control.png, unit_sphere_control_meshes.png, and
-unit_sphere_control_meshes_cut.png.
+unit_sphere_control.png, unit_sphere_control_meshes.png,
+unit_sphere_control_meshes_cut.png, unit_sphere_smooth_meshes.png, and
+unit_sphere_smooth_meshes_cut.png.
 """
 
 from pathlib import Path
@@ -67,6 +71,11 @@ CONTROL_PANELS = (
     ("octree, n=160 marching cubes", "unit_sphere_octree_n160"),
     ("Octa-Loop level 3", "unit_sphere_control_loop03"),
     ("Octa-Loop level 7", "unit_sphere_control_loop07"),
+)
+SMOOTH_PANELS = (
+    ("octree, no smoothing", "unit_sphere_octree_n160"),
+    ("octree, 50 iterations", "unit_sphere_smooth_n160_it050"),
+    ("octree, 200 iterations", "unit_sphere_smooth_n160_it200"),
 )
 QUALITY_MESHES = (
     ("Sculpt", "unit_sphere_sculpt_n160.csv"),
@@ -462,6 +471,14 @@ def main() -> None:
             output="unit_sphere_control_meshes_cut.png"
             if cut
             else "unit_sphere_control_meshes.png",
+            cut=cut,
+        )
+        meshes_plot(
+            here=here,
+            panels=SMOOTH_PANELS,
+            output="unit_sphere_smooth_meshes_cut.png"
+            if cut
+            else "unit_sphere_smooth_meshes.png",
             cut=cut,
         )
     quality_plot(here=here, meshes=QUALITY_MESHES, output="unit_sphere_quality.png")

@@ -479,13 +479,22 @@ automesh mesh hex -i unit_sphere_mc_n160.stl -o unit_sphere_octree_n160.inp \
 The table gives the element count and the worst and mean Minimum Scaled
 Jacobian (MSJ) of each mesh.
 
-| $n$ | Sculpt elements | Sculpt MSJ min / mean | uniform elements | uniform MSJ min / mean | octree elements | octree MSJ min / mean |
-| ---: | ---: | :---: | ---: | :---: | ---: | :---: |
-| 10 | 6,912 | 0.388 / 0.885 | 6,024 | 0.154 / 0.830 | 8,243 | 0.088 / 0.695 |
-| 20 | 6,768 | 0.404 / 0.900 | 5,984 | 0.097 / 0.838 | 9,983 | 0.102 / 0.711 |
-| 40 | 6,768 | 0.420 / 0.902 | 5,840 | 0.119 / 0.838 | 14,767 | 0.032 / 0.742 |
-| 80 | 6,768 | 0.401 / 0.901 | 5,825 | 0.126 / 0.827 | 15,223 | 0.010 / 0.754 |
-| 160 | 6,768 | 0.427 / 0.901 | 5,789 | 0.102 / 0.825 | 25,815 | −0.792 / 0.755 |
+<table>
+<thead>
+<tr><th rowspan="2" style="text-align:right">$n$</th>
+<th colspan="2" style="text-align:center">Sculpt</th>
+<th colspan="2" style="text-align:center">automesh uniform</th>
+<th colspan="2" style="text-align:center">automesh octree</th></tr>
+<tr><th style="text-align:right">elements</th><th style="text-align:center">MSJ min / mean</th><th style="text-align:right">elements</th><th style="text-align:center">MSJ min / mean</th><th style="text-align:right">elements</th><th style="text-align:center">MSJ min / mean</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align:right">10</td><td style="text-align:right">6,912</td><td style="text-align:center">0.388 / 0.885</td><td style="text-align:right">6,024</td><td style="text-align:center">0.154 / 0.830</td><td style="text-align:right">8,243</td><td style="text-align:center">0.088 / 0.695</td></tr>
+<tr><td style="text-align:right">20</td><td style="text-align:right">6,768</td><td style="text-align:center">0.404 / 0.900</td><td style="text-align:right">5,984</td><td style="text-align:center">0.097 / 0.838</td><td style="text-align:right">9,983</td><td style="text-align:center">0.102 / 0.711</td></tr>
+<tr><td style="text-align:right">40</td><td style="text-align:right">6,768</td><td style="text-align:center">0.420 / 0.902</td><td style="text-align:right">5,840</td><td style="text-align:center">0.119 / 0.838</td><td style="text-align:right">14,767</td><td style="text-align:center">0.032 / 0.742</td></tr>
+<tr><td style="text-align:right">80</td><td style="text-align:right">6,768</td><td style="text-align:center">0.401 / 0.901</td><td style="text-align:right">5,825</td><td style="text-align:center">0.126 / 0.827</td><td style="text-align:right">15,223</td><td style="text-align:center">0.010 / 0.754</td></tr>
+<tr><td style="text-align:right">160</td><td style="text-align:right">6,768</td><td style="text-align:center">0.427 / 0.901</td><td style="text-align:right">5,789</td><td style="text-align:center">0.102 / 0.825</td><td style="text-align:right">25,815</td><td style="text-align:center">−0.792 / 0.755</td></tr>
+</tbody>
+</table>
 
 ![unit_sphere_meshers.png](unit_sphere_meshers.png)
 
@@ -695,6 +704,170 @@ fixed-size lattice and never calls the octree or the shape diameter
 function, so it says nothing about why the uniform lattice's own quality
 also lags Sculpt's.
 
+## Smoothing
+
+Sculpt returns one mesh for every marching-cubes surface from $n = 20$ on.
+Its first stage converts the surface to a volume fraction in each cell of its
+grid.  That conversion washes over detail smaller than a cell.[^Sculpt]  The
+octree has no such conversion.  It measures thickness on the surface itself,
+one facet at a time.  The voxel steps of the marching-cubes surface can
+corrupt that measurement (see [Control Study](#control-study)).
+
+This section smooths the marching-cubes surface before meshing.  If the voxel
+steps cause the octree's failures, smoothing should remove the steps and the
+failures with them.  Each surface goes through `automesh smooth`, then
+through the same octree command as the [`automesh`](#automesh) section.
+
+```sh
+automesh smooth -i unit_sphere_mc_n160.stl -o unit_sphere_smooth_n160.stl \
+  --iterations 50
+automesh mesh hex -i unit_sphere_smooth_n160.stl -o unit_sphere_smooth_n160.inp \
+  --metrics unit_sphere_smooth_n160.csv
+```
+
+`automesh smooth` uses Taubin smoothing by default.  Each iteration makes two
+moves.  The first move pulls every vertex toward the average of its
+neighbors.  It removes high-frequency detail such as the voxel steps.  The
+second move pushes each vertex back out by a smaller amount.  It counters the
+shrinkage of the first move.  The script
+[`unit_sphere_smooth.py`](#unit_sphere_smoothpy) keeps the defaults
+(`-k 0.1`, `-s 0.6307`) and varies only the iteration count, over 0, 5, 10,
+20, 50, 100, and 200.  Zero is the unsmoothed baseline.  Each later count is
+2 to 2.5 times the one before, to find where more iterations stop helping.
+The top of 200 is arbitrary.
+
+The script also measures the mean and standard deviation of each smoothed
+surface's vertex distance from the origin.  On the unit sphere, the mean is 1
+and the standard deviation is 0.  The mean shows whether smoothing shrinks or
+inflates the sphere.  The standard deviation shows how far the surface
+strays from a sphere.
+
+**$n = 10$**
+
+| iterations | radius mean | radius std | elements | MSJ min | MSJ mean | inverted |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.99935 | 0.02149 | 8,243 | 0.088 | 0.695 | 0 |
+| 5 | 0.99679 | 0.00977 | 207 | 0.355 | 0.740 | 0 |
+| 10 | 0.99997 | 0.01041 | 207 | 0.292 | 0.749 | 0 |
+| 20 | 1.00076 | 0.00850 | 183 | 0.409 | 0.660 | 0 |
+| 50 | 1.00321 | 0.00705 | 111 | 0.235 | 0.692 | 0 |
+| 100 | 1.00736 | 0.00696 | 111 | 0.291 | 0.718 | 0 |
+| 200 | 1.01577 | 0.00777 | 111 | 0.331 | 0.729 | 0 |
+
+**$n = 20$**
+
+| iterations | radius mean | radius std | elements | MSJ min | MSJ mean | inverted |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.99910 | 0.01014 | 9,983 | 0.102 | 0.711 | 0 |
+| 5 | 0.99846 | 0.00537 | 207 | 0.309 | 0.747 | 0 |
+| 10 | 0.99928 | 0.00576 | 207 | 0.250 | 0.765 | 0 |
+| 20 | 0.99949 | 0.00503 | 207 | 0.481 | 0.783 | 0 |
+| 50 | 1.00015 | 0.00432 | 183 | 0.454 | 0.702 | 0 |
+| 100 | 1.00126 | 0.00390 | 111 | 0.312 | 0.755 | 0 |
+| 200 | 1.00349 | 0.00367 | 111 | 0.512 | 0.761 | 0 |
+
+**$n = 40$**
+
+| iterations | radius mean | radius std | elements | MSJ min | MSJ mean | inverted |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.99964 | 0.00509 | 14,767 | 0.032 | 0.742 | 0 |
+| 5 | 0.99948 | 0.00268 | 1,165 | 0.200 | 0.726 | 0 |
+| 10 | 0.99969 | 0.00288 | 473 | 0.185 | 0.730 | 0 |
+| 20 | 0.99974 | 0.00247 | 207 | 0.441 | 0.785 | 0 |
+| 50 | 0.99991 | 0.00208 | 183 | 0.522 | 0.735 | 0 |
+| 100 | 1.00019 | 0.00189 | 111 | 0.262 | 0.743 | 0 |
+| 200 | 1.00075 | 0.00177 | 111 | 0.582 | 0.776 | 0 |
+
+**$n = 80$**
+
+| iterations | radius mean | radius std | elements | MSJ min | MSJ mean | inverted |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.99986 | 0.00255 | 15,223 | 0.010 | 0.754 | 0 |
+| 5 | 0.99982 | 0.00134 | 957 | 0.234 | 0.650 | 0 |
+| 10 | 0.99987 | 0.00145 | 1,157 | 0.219 | 0.719 | 0 |
+| 20 | 0.99988 | 0.00123 | 1,415 | 0.307 | 0.757 | 0 |
+| 50 | 0.99993 | 0.00103 | 551 | 0.275 | 0.818 | 0 |
+| 100 | 1.00000 | 0.00093 | 207 | 0.644 | 0.819 | 0 |
+| 200 | 1.00014 | 0.00088 | 207 | 0.626 | 0.822 | 0 |
+
+**$n = 160$**
+
+| iterations | radius mean | radius std | elements | MSJ min | MSJ mean | inverted |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 0.99997 | 0.00128 | 25,815 | −0.792 | 0.755 | 23 |
+| 5 | 0.99996 | 0.00067 | 1,165 | 0.171 | 0.729 | 0 |
+| 10 | 0.99997 | 0.00072 | 1,157 | 0.176 | 0.719 | 0 |
+| 20 | 0.99997 | 0.00061 | 2,123 | 0.179 | 0.724 | 0 |
+| 50 | 0.99998 | 0.00050 | 1,157 | 0.400 | 0.776 | 0 |
+| 100 | 1.00000 | 0.00045 | 957 | 0.337 | 0.706 | 0 |
+| 200 | 1.00003 | 0.00041 | 551 | 0.419 | 0.830 | 0 |
+
+The rows with 0 iterations repeat the octree column of the
+[`automesh`](#automesh) table.  The five tables give five results.
+
+1. **Smoothing removes the inversions.**  The unsmoothed $n = 160$ mesh has 23
+   inverted elements.  All 30 smoothed meshes have none, including the
+   5-iteration meshes.
+2. **The element count falls by 11 to 133 times.**  The unsmoothed octree
+   makes 8,243 to 25,815 elements.  The smoothed octree makes 111 to 2,123.
+   At $n = 160$, 5 iterations cut 25,815 elements to 1,165.  The smoothed
+   octree refines far less.
+3. **The surface gets closer to a sphere, and the gain slows.**  At
+   $n = 160$, the radius standard deviation falls from 0.00128 to 0.00067
+   after 5 iterations and to 0.00041 after 200, a factor of 3.1.  At
+   $n = 10$, it falls from 0.02149 to 0.00696 after 100 iterations and rises
+   to 0.00777 after 200.
+4. **Smoothing inflates the coarse surfaces.**  At $n = 160$, the radius mean
+   stays within 0.00004 of 1 through 200 iterations.  At $n = 10$, it rises
+   to 1.00736 after 100 iterations and 1.01577 after 200.  At $n = 20$, it
+   reaches 1.00349 after 200.  This page does not test why.
+5. **The worst element's MSJ does not rise steadily with iterations.**  At
+   $n = 80$, the minimum MSJ is 0.234 after 5 iterations, 0.275 after 50, and
+   0.644 after 100.  At $n = 160$, it is 0.171 after 5 and 0.419 after 200.
+   Each cell of the table is one octree run.  The trend across iterations is
+   noisy, and this page does not test why.
+
+![unit_sphere_smooth_meshes.png](unit_sphere_smooth_meshes.png)
+
+Figure: Octree meshes of the $n = 160$ marching-cubes surface: unsmoothed
+(left, 25,815 elements), Taubin-smoothed for 50 iterations (middle, 1,157
+elements), and for 200 iterations (right, 551 elements).  Each element is
+painted by its Minimum Scaled Jacobian, on the same 0 to 1 scale as the
+earlier mesh figures.  The unsmoothed mesh has dense clusters of small
+elements beside large blue elements.  Neither smoothed mesh has a cluster.
+The worst element is 0.400 at 50 iterations and 0.419 at 200.  At 200
+iterations, two isolated teal patches hold the lowest values.  The figure is
+produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+![unit_sphere_smooth_meshes_cut.png](unit_sphere_smooth_meshes_cut.png)
+
+Figure: A cut through the middle of the same three meshes, at $z = 0$, on the
+same scale.  Only the elements whose centers lie below the plane are drawn.
+All three have an interior of elements near 1.0.  In the unsmoothed mesh,
+small elements cluster at four places on the rim, where the sphere meets the
+coordinate axes.  The smoothed meshes have no clusters.  Each has one ring of
+green boundary elements, with a few teal, around a coarse interior.  The
+figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+Sculpt's minimum MSJ is 0.388, 0.404, 0.420, 0.401, and 0.427 at
+$n = 10, 20, 40, 80, 160$.  Of the 30 smoothed octree meshes, 9 match or
+beat Sculpt's minimum at their $n$.  They come at 20 iterations for $n = 10$;
+at 20, 50, and 200 for $n = 20$ and $40$; and at 100 and 200 for $n = 80$.
+None does at $n = 160$, where 200 iterations give 0.419 against Sculpt's
+0.427.  No smoothed mesh reaches Sculpt's mean of 0.885 to 0.902.  The best
+mean is 0.830, at $n = 160$ and 200 iterations.
+
+The comparison with Sculpt has a limit.  Sculpt makes 6,768 to 6,912
+elements.  The smoothed octree makes 111 to 2,123, which is 3 to 62 times
+fewer.  A minimum MSJ above Sculpt's comes from a coarser mesh, not only a
+better one.  For $n \leq 40$ at 100 iterations or more, the octree makes 111
+elements, the same count as the Octa-Loop level 3 control.  At $n = 80$ it
+makes 207.
+
+The test shows that smoothing removes the failure.  It does not show that the
+shape diameter function was the only cause.  A direct test would keep the
+voxel steps and change only how the octree measures thickness.
+
 ## Reproduce
 
 The commands below regenerate every table and figure on this page.  They run
@@ -732,14 +905,18 @@ done
 # automesh meshes, and metrics for every mesh
 uv run --with numpy --with scipy unit_sphere_mesh.py
 
+# Taubin smoothing, then the octree
+uv run --with numpy unit_sphere_smooth.py
+
 # figures
 uv run --with numpy --with scipy --with scikit-image --with matplotlib \
   unit_sphere_figures.py
 ```
 
-On the machine that built this page, the whole sequence takes about three
-minutes from an empty directory.  The `automesh` meshes take about two of
-those minutes, most of it in the adaptive octree.  The timing table in
+On the machine that built this page, the sequence without the smoothing
+script takes about three minutes from an empty directory.  The `automesh`
+meshes take about two of those minutes, most of it in the adaptive octree.
+`unit_sphere_smooth.py` adds 4 minutes 20 seconds, for its 35 octree meshes.  The timing table in
 [Why Lewiner?](#why-lewiner) depends on the machine.  Every other number on
 the page comes out the same on each run.
 
@@ -792,6 +969,17 @@ book.  Only the figures are.
 
 </details>
 
+### `unit_sphere_smooth.py`
+
+<details>
+<summary>Show source</summary>
+
+```python
+<!-- cmdrun cat unit_sphere_smooth.py -->
+```
+
+</details>
+
 ### `unit_sphere_figures.py`
 
 <details>
@@ -835,6 +1023,12 @@ book.  Only the figures are.
 [^Chernyaev1995]: Evgeni V. Chernyaev.  *Marching Cubes 33: Construction of
     topologically correct isosurfaces.*  Technical Report CN/95-17, CERN,
     1995.
+
+[^Sculpt]: Sandia National Laboratories.  "Sculpt Tech Brief."  *Cubit 15.8
+    Help Manual*.
+    <https://cubit.sandia.gov/files/cubit/15.8/help_manual/WebHelp/mesh_generation/meshing_schemes/parallel/sculpt_tech.htm>.
+    Sculpt extracts the surface from volume fractions on an overlay grid, and
+    the result "tends to wash over small features and inaccuracies."
 
 [^Shapira2008]: Lior Shapira, Ariel Shamir, and Daniel Cohen-Or.  "Consistent
     mesh partitioning and skeletonisation using the shape diameter
