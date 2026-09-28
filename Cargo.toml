@@ -15,9 +15,10 @@ version = "0.4.7"
 [dependencies]
 clap = { version = "=4.6.7", features = ["derive"] }
 # TEMPORARY: pinned to conspire.rs main for .off dev (needs #200/#201, and
-# ca28ef03 which re-exports Dualization publicly again after #201). Requires
-# nightly Rust (main uses the unstable float_algebraic feature). Switch back
-# to a crates.io version once mrbuche publishes a release containing these.
+# ca28ef03 which re-exports Dualization publicly again after #201). Needs a
+# fairly recent stable Rust (main uses float_algebraic, stabilized ~1.98).
+# `cargo package`/`cargo publish` will refuse a git dependency outright, so
+# switch back to a crates.io version once mrbuche publishes a release.
 conspire = { git = "https://github.com/mrbuche/conspire.rs", rev = "91c462b6", features = ["geometry"] }
 
 [package.metadata.docs.rs]

@@ -40,9 +40,11 @@
     `PATH` as the subcommand `cargo *`, so this makes `cargo bi` (and
     `cargo bi --release`) available immediately, from any directory
     containing a `Cargo.toml`.  `cargo bi-nightly` is the same helper built
-    and installed with the nightly toolchain instead — use it on a branch
-    whose `conspire` dependency is pinned to a git rev that needs unstable
-    Rust features (a `Cargo.toml` comment on such a branch says so).
+    and installed with the nightly toolchain instead — a fallback for a
+    branch whose `conspire` dependency is pinned to a git rev that needs a
+    Rust feature not yet in your installed stable toolchain (`rustup
+    update stable` is usually the simpler fix; a `Cargo.toml` comment on
+    such a branch says which feature and when it stabilized).
 
 ## Clone Repository
 
