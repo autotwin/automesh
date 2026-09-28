@@ -14,6 +14,7 @@
     unit_sphere_control_meshes_cut.png  the same meshes, cut at z = 0
     unit_sphere_smooth_meshes.png       the octree meshes of the n = 160 surface, smoothed
     unit_sphere_smooth_meshes_cut.png   the same meshes, cut at z = 0
+    unit_sphere_smooth_quality.png      quality histograms of the same three meshes
 
 Example
 -------
@@ -31,8 +32,8 @@ unit_sphere_convergence.png, unit_sphere_sculpt.png,
 unit_sphere_sculpt_cut.png, unit_sphere_meshers.png,
 unit_sphere_meshers_cut.png, unit_sphere_quality.png,
 unit_sphere_control.png, unit_sphere_control_meshes.png,
-unit_sphere_control_meshes_cut.png, unit_sphere_smooth_meshes.png, and
-unit_sphere_smooth_meshes_cut.png.
+unit_sphere_control_meshes_cut.png, unit_sphere_smooth_meshes.png,
+unit_sphere_smooth_meshes_cut.png, and unit_sphere_smooth_quality.png.
 """
 
 from pathlib import Path
@@ -86,6 +87,11 @@ CONTROL_MESHES = (
     ("octree, n=160 marching cubes", "unit_sphere_octree_n160.csv"),
     ("octree, Octa-Loop level 3", "unit_sphere_control_loop03.csv"),
     ("octree, Octa-Loop level 7", "unit_sphere_control_loop07.csv"),
+)
+SMOOTH_MESHES = (
+    ("octree, no smoothing", "unit_sphere_octree_n160.csv"),
+    ("octree, 50 iterations", "unit_sphere_smooth_n160_it050.csv"),
+    ("octree, 200 iterations", "unit_sphere_smooth_n160_it200.csv"),
 )
 DPI = 200
 EDGES_MAX = 40
@@ -483,6 +489,9 @@ def main() -> None:
         )
     quality_plot(here=here, meshes=QUALITY_MESHES, output="unit_sphere_quality.png")
     quality_plot(here=here, meshes=CONTROL_MESHES, output="unit_sphere_control.png")
+    quality_plot(
+        here=here, meshes=SMOOTH_MESHES, output="unit_sphere_smooth_quality.png"
+    )
 
 
 if __name__ == "__main__":

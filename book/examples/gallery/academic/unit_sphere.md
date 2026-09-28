@@ -849,6 +849,19 @@ coordinate axes.  The smoothed meshes have no clusters.  Each has one ring of
 green boundary elements, with a few teal, around a coarse interior.  The
 figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
+![unit_sphere_smooth_quality.png](unit_sphere_smooth_quality.png)
+
+Figure: Element quality of the same three octree meshes: unsmoothed (solid,
+orange), 50 iterations (dashed, blue), and 200 iterations (dotted, green).
+Each panel is a histogram with a log scale on the count.  Only the unsmoothed
+curve reaches below zero in Minimum Scaled Jacobian, down to −0.792.  Its
+maximum aspect ratio is 31.11 and its maximum skew is 0.950.  Those fall to
+4.33 and 0.642 at 50 iterations, and to 3.71 and 0.625 at 200.  The smallest
+unsmoothed element has a volume of $6.7 \times 10^{-11}$.  The smallest
+smoothed elements have $3.9 \times 10^{-4}$ at 50 iterations and
+$1.4 \times 10^{-3}$ at 200.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
 Sculpt's minimum MSJ is 0.388, 0.404, 0.420, 0.401, and 0.427 at
 $n = 10, 20, 40, 80, 160$.  Of the 30 smoothed octree meshes, 9 match or
 beat Sculpt's minimum at their $n$.  They come at 20 iterations for $n = 10$;
