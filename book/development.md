@@ -33,12 +33,16 @@
 
     ```sh
     ln -s "$(pwd)/scripts/cargo-bi" ~/.cargo/bin/cargo-bi
+    ln -s "$(pwd)/scripts/cargo-bi-nightly" ~/.cargo/bin/cargo-bi-nightly
     ```
 
     Cargo's plugin mechanism treats any executable named `cargo-*` on
     `PATH` as the subcommand `cargo *`, so this makes `cargo bi` (and
     `cargo bi --release`) available immediately, from any directory
-    containing a `Cargo.toml`.
+    containing a `Cargo.toml`.  `cargo bi-nightly` is the same helper built
+    and installed with the nightly toolchain instead — use it on a branch
+    whose `conspire` dependency is pinned to a git rev that needs unstable
+    Rust features (a `Cargo.toml` comment on such a branch says so).
 
 ## Clone Repository
 

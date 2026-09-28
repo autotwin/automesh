@@ -49,7 +49,7 @@ fn done(time: Instant, quiet: bool) {
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
 }
 
-/// Reads a finite element mesh (exo | inp | mesh | stl | vtu) into a conspire mesh.
+/// Reads a finite element mesh (exo | inp | mesh | off | stl | vtu) into a conspire mesh.
 pub fn read_mesh(file: &str, quiet: bool) -> Result<Mesh<3>, ErrorWrapper> {
     let time = begin("Reading", file, quiet);
     let extension = extension(file);
@@ -57,6 +57,7 @@ pub fn read_mesh(file: &str, quiet: bool) -> Result<Mesh<3>, ErrorWrapper> {
         Some("inp") => Mesh::try_from(MeshInput::Abaqus(file))?,
         Some("exo") => Mesh::try_from(MeshInput::Exodus(file))?,
         Some("mesh") => Mesh::try_from(MeshInput::Medit(file))?,
+        Some("off") => Mesh::try_from(MeshInput::Off(file))?,
         Some("vtu") => Mesh::try_from(MeshInput::VtkUnstructured(file))?,
         Some("stl") => Mesh::from(Tessellation::try_from(Path::new(file))?),
         _ => return Err(invalid_input(file, extension)),
@@ -65,7 +66,7 @@ pub fn read_mesh(file: &str, quiet: bool) -> Result<Mesh<3>, ErrorWrapper> {
     Ok(mesh)
 }
 
-/// Writes a conspire mesh to a finite element file (exo | inp | mesh | vtu | stl).
+/// Writes a conspire mesh to a finite element file (exo | inp | mesh | off | vtu | stl).
 pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mWriting\x1b[0m {file}");
     let time = Instant::now();
@@ -77,6 +78,7 @@ pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWra
             threads: std::thread::available_parallelism().map_or(1, |threads| threads.get()),
         }))?,
         Some("mesh") => mesh.write(MeshOutput::Medit(file))?,
+        Some("off") => mesh.write(MeshOutput::Off(file))?,
         Some("vtu") => mesh.write(MeshOutput::Vtk(Vtk::UnstructuredGrid(Compression::Off(
             file,
         ))))?,

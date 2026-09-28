@@ -10,8 +10,8 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::Voxels,
-        mesh::{Class, Fitting, Mesh, Tessellation},
-        ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
+        mesh::{Class, Dualization, Fitting, Mesh, Tessellation},
+        ntree::{Balance, Balancing, CurvatureSizing, Octree, Pairing},
         segmentation::Segmentation,
     },
     math::Tensor,
@@ -40,7 +40,7 @@ pub struct MeshArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Mesh output file (exo | inp | mesh | stl | vtu)
+    /// Mesh output file (exo | inp | mesh | off | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 

@@ -89,7 +89,8 @@ Figure: Illustration of the patient coordinate system, left figure from Terpsma 
 
 `automesh` writes several mesh formats: `.exo`, the EXODUS II finite element
 data model;[^Schoof_1994] `.inp`, the Abaqus input format;[^Dassault] `.mesh`,
-the Medit format;[^Frey_2001] and `.vtu`, the VTK XML UnstructuredGrid
+the Medit format;[^Frey_2001] `.off`, the Object File Format used by
+Geomview;[^Phillips_1993] and `.vtu`, the VTK XML UnstructuredGrid
 format.[^Kitware]
 
 ## References
@@ -109,5 +110,7 @@ format.[^Kitware]
 [^Dassault]: Dassault Systèmes Simulia Corp. Abaqus documentation. [link](https://www.3ds.com/support/documentation)
 
 [^Frey_2001]: Frey PJ. MEDIT: an interactive mesh visualization software. Institut National de Recherche en Informatique et en Automatique (INRIA); 2001 Dec. Technical Report RT-0253. [link](https://inria.hal.science/inria-00069921)
+
+[^Phillips_1993]: Phillips M, Levy S, Munzner T. Geomview: An interactive geometry viewer. Notices of the American Mathematical Society. 1993 Oct;40:985-8.
 
 [^Kitware]: Kitware Inc. VTK File Formats. [link](https://docs.vtk.org/en/v9.3.1/design_documents/VTKFileFormats.html)
