@@ -588,6 +588,8 @@ Octa-Loop level 7 (right).  The marching-cubes mesh has several small dark
 clusters of poor elements; neither control does.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
+**Octa-Loop level 3:**
+
 1. The Octa-Loop level 3 mesh (center panel) is visibly not symmetric across
    the $xy$, $yz$, and $zx$ planes, unlike the other meshes on this page.
 2. The input STL itself, `octa_loop03.stl`, is perfectly symmetric.
@@ -634,6 +636,20 @@ clusters of poor elements; neither control does.  The figure is produced by
     unavoidable discontinuity to the world axes.  That is exactly what
     biases this octahedron-derived surface, since its own symmetry axes
     happen to line up with the world axes.
+
+**Octa-Loop level 7:**
+
+1. `octa_loop07.stl` is also exactly symmetric.  The same reflection test
+   finds a maximum mismatch of $10^{-7}$, floating-point noise, at every
+   axis.  So the level 7 control's own small remaining asymmetry (Octa-Loop
+   level 3, item 8, a maximum mismatch of 0.0143) also comes from the
+   meshing process, not the input.
+2. The same mechanism applies here as at level 3 (item 4).  The octree's
+   local-thickness sizing depends on a per-facet tangent frame that is
+   not equivariant under reflection.  A finer surface approximates the
+   underlying continuous, symmetric integral more closely, which is why
+   the effect is far weaker here than at level 3, but it does not
+   vanish.
 
 **Observations:**
 
