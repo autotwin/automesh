@@ -270,6 +270,33 @@ fn convert_mesh_off_to_inp() {
 }
 
 #[test]
+fn convert_mesh_off_rejects_hexahedra() {
+    let exo = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        exo.to_str().unwrap(),
+    ]);
+    let off = out("off");
+    let status = Command::new(BIN)
+        .args([
+            "convert",
+            "mesh",
+            "-i",
+            exo.to_str().unwrap(),
+            "-o",
+            off.to_str().unwrap(),
+        ])
+        .arg("--quiet")
+        .status()
+        .expect("failed to spawn automesh");
+    assert!(!status.success(), ".off accepted a hexahedral mesh");
+}
+
+#[test]
 fn convert_segmentation_npy_to_spn() {
     let output = out("spn");
     run(&[
