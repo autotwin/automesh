@@ -582,6 +582,16 @@ automesh mesh hex -i octa_loop07.stl -o unit_sphere_control_loop07.inp \
   --metrics unit_sphere_control_loop07.csv
 ```
 
+![unit_sphere_control_surfaces.png](unit_sphere_control_surfaces.png)
+
+Figure: The three input surfaces of the control study: the $n = 160$
+marching-cubes surface (left, 964,568 triangles), Octa-Loop level 3 (center,
+512 triangles), and Octa-Loop level 7 (right, 131,072 triangles).  The
+marching-cubes triangles are too small to resolve at this size.  The voxel
+staircase shows as concentric terrace rings around the top pole.  Octa-Loop
+level 3 shows its 512 flat facets.  Octa-Loop level 7 looks smooth.  The
+figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
 | surface | facets | facet edge (mean) | elements | MSJ min | MSJ mean |
 | :--- | ---: | ---: | ---: | ---: | ---: |
 | marching cubes, $n = 160$ | 964,568 | 0.00616 | 25,815 | −0.792 | 0.755 |

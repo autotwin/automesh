@@ -10,6 +10,7 @@
     unit_sphere_meshers_cut.png  the same meshes, cut at z = 0
     unit_sphere_quality.png      quality histograms of the n = 160 meshes
     unit_sphere_control.png      quality histograms of the octree control study
+    unit_sphere_control_surfaces.png    the control study's three input surfaces
     unit_sphere_control_meshes.png      the control study's three octree meshes
     unit_sphere_control_meshes_cut.png  the same meshes, cut at z = 0
     unit_sphere_smooth_meshes.png       the octree meshes of the n = 160 surface, smoothed
@@ -31,8 +32,8 @@ unit_sphere_voxels.png, unit_sphere_isosurfaces.png,
 unit_sphere_convergence.png, unit_sphere_sculpt.png,
 unit_sphere_sculpt_cut.png, unit_sphere_meshers.png,
 unit_sphere_meshers_cut.png, unit_sphere_quality.png,
-unit_sphere_control.png, unit_sphere_control_meshes.png,
-unit_sphere_control_meshes_cut.png, unit_sphere_smooth_meshes.png,
+unit_sphere_control.png, unit_sphere_control_surfaces.png,
+unit_sphere_control_meshes.png, unit_sphere_control_meshes_cut.png, unit_sphere_smooth_meshes.png,
 unit_sphere_smooth_meshes_cut.png, and unit_sphere_smooth_quality.png.
 """
 
@@ -95,6 +96,15 @@ SMOOTH_MESHES = (
 )
 DPI = 200
 EDGES_MAX = 40
+ISOSURFACE_PANELS = tuple(
+    (f"n={n}", f"unit_sphere_mc_n{n:03d}.stl", 1 / n if n <= EDGES_MAX else None)
+    for n in RADII
+)
+CONTROL_SURFACES = (
+    ("n=160 marching cubes", "unit_sphere_mc_n160.stl", None),
+    ("Octa-Loop level 3", "octa_loop03.stl", 0.3),
+    ("Octa-Loop level 7", "octa_loop07.stl", None),
+)
 ELEVATION, AZIMUTH = 63, -110
 LIGHT = LightSource(azdeg=325, altdeg=45)
 COLOR = plt.get_cmap("tab10")(0)
@@ -117,14 +127,20 @@ QUALITY = (
 
 
 def stl_read(*, path: Path) -> np.ndarray:
-    """Returns the triangles of a binary STL, with shape (faces, 3, 3)."""
+    """Returns the triangles of a binary or ASCII STL, with shape (faces, 3, 3)."""
     record = np.dtype(
         [("normal", "<f4", 3), ("vertices", "<f4", (3, 3)), ("attribute", "<u2")]
     )
-    with path.open("rb") as file:
-        file.seek(80)
-        count = int(np.frombuffer(file.read(4), dtype="<u4")[0])
-        return np.frombuffer(file.read(), dtype=record, count=count)["vertices"]
+    data = path.read_bytes()
+    count = int(np.frombuffer(data, dtype="<u4", count=1, offset=80)[0])
+    if len(data) == 84 + record.itemsize * count:
+        return np.frombuffer(data, dtype=record, count=count, offset=84)["vertices"]
+    rows = [
+        line.split()[1:]
+        for line in data.decode().splitlines()
+        if line.lstrip().startswith("vertex")
+    ]
+    return np.array(rows, dtype=np.float32).reshape(-1, 3, 3)
 
 
 def camera() -> np.ndarray:
@@ -215,11 +231,15 @@ def voxels_plot(*, here: Path) -> None:
     plt.close(fig)
 
 
-def isosurfaces_plot(*, here: Path) -> None:
-    """Draws the marching-cubes surfaces, on the unit sphere."""
-    fig = plt.figure(figsize=(5 * len(RADII), 5))
-    for index, n in enumerate(RADII):
-        triangles = stl_read(path=here / f"unit_sphere_mc_n{n:03d}.stl")
+def surfaces_plot(*, here: Path, panels: tuple, output: str) -> None:
+    """Draws STL surfaces side by side, on the unit sphere.
+
+    Each panel is a title, an STL file, and an edge width. A width of `None`
+    draws no edges, for surfaces whose triangles are smaller than a pixel.
+    """
+    fig = plt.figure(figsize=(5 * len(panels), 5))
+    for index, (title, name, width) in enumerate(panels):
+        triangles = stl_read(path=here / name)
         count = len(triangles)
         normals = np.cross(
             triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0]
@@ -229,16 +249,15 @@ def isosurfaces_plot(*, here: Path) -> None:
         normals = normals[normals @ camera() > 0.0]
         shade = 0.4 + 0.6 * LIGHT.shade_normals(normals, fraction=1.0)
         colors = np.clip(np.outer(shade, np.array(COLOR[:3])), 0.0, 1.0)
-        ax = fig.add_subplot(1, len(RADII), index + 1, projection="3d")
+        ax = fig.add_subplot(1, len(panels), index + 1, projection="3d")
         # Sub-pixel triangles leave anti-aliasing gaps unless edges match faces.
-        edges = "k" if n <= EDGES_MAX else colors
-        width = 1 / n if n <= EDGES_MAX else 0.3
+        edges, width = ("k", width) if width else (colors, 0.3)
         ax.add_collection3d(
             Poly3DCollection(
                 triangles, facecolors=colors, edgecolors=edges, linewidth=width
             )
         )
-        ax.set_title(f"n={n} ({count:,} triangles)")
+        ax.set_title(f"{title} ({count:,} triangles)")
         for axis in (ax.set_xlim, ax.set_ylim, ax.set_zlim):
             axis(-1, 1)
         for ticks in (ax.set_xticks, ax.set_yticks, ax.set_zticks):
@@ -249,7 +268,7 @@ def isosurfaces_plot(*, here: Path) -> None:
         ax.set_aspect("equal")
         ax.view_init(elev=ELEVATION, azim=AZIMUTH)
     fig.tight_layout(rect=LAYOUT)
-    fig.savefig(here / "unit_sphere_isosurfaces.png", dpi=DPI)
+    fig.savefig(here / output, dpi=DPI)
     plt.close(fig)
 
 
@@ -456,7 +475,12 @@ def quality_plot(*, here: Path, meshes: tuple, output: str) -> None:
 def main() -> None:
     here = Path(__file__).parent
     voxels_plot(here=here)
-    isosurfaces_plot(here=here)
+    surfaces_plot(
+        here=here, panels=ISOSURFACE_PANELS, output="unit_sphere_isosurfaces.png"
+    )
+    surfaces_plot(
+        here=here, panels=CONTROL_SURFACES, output="unit_sphere_control_surfaces.png"
+    )
     convergence_plot(here=here)
     for cut in (False, True):
         meshes_plot(
