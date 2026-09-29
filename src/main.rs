@@ -197,11 +197,11 @@ enum Commands {
 
     /// Applies isotropic remeshing to an existing mesh [default mode: uniform]
     Remesh {
-        /// Mesh input file (exo | inp | stl | vtu)
+        /// Mesh input file (exo | inp | off | stl | vtu)
         #[arg(long, short, value_name = "FILE")]
         input: String,
 
-        /// Mesh output file (exo | inp | mesh | stl | vtu)
+        /// Mesh output file (exo | inp | mesh | off | stl | vtu)
         #[arg(long, short, value_name = "FILE")]
         output: String,
 

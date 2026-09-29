@@ -10,7 +10,7 @@ use std::time::Instant;
 
 #[derive(clap::Args)]
 pub struct SegmentArgs {
-    /// Mesh input file (exo | inp | stl | vtu)
+    /// Mesh input file (exo | inp | off | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 

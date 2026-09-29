@@ -85,6 +85,22 @@ fn mesh_tri_to_stl() {
 }
 
 #[test]
+fn mesh_tri_to_off() {
+    let output = out("off");
+    run(&[
+        "mesh",
+        "tri",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    assert_nonempty(&output);
+    let bytes = std::fs::read(&output).expect("output file was not created");
+    assert!(bytes.starts_with(b"OFF"), "expected an OFF magic header");
+}
+
+#[test]
 fn mesh_poly_to_vtu() {
     let output = out("vtu");
     run(&[
@@ -228,6 +244,56 @@ fn convert_mesh_exo_to_inp() {
         inp.to_str().unwrap(),
     ]);
     assert_nonempty(&inp);
+}
+
+#[test]
+fn convert_mesh_off_to_inp() {
+    let off = out("off");
+    run(&[
+        "mesh",
+        "tri",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        off.to_str().unwrap(),
+    ]);
+    let inp = out("inp");
+    run(&[
+        "convert",
+        "mesh",
+        "-i",
+        off.to_str().unwrap(),
+        "-o",
+        inp.to_str().unwrap(),
+    ]);
+    assert_nonempty(&inp);
+}
+
+#[test]
+fn convert_mesh_off_rejects_hexahedra() {
+    let exo = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        exo.to_str().unwrap(),
+    ]);
+    let off = out("off");
+    let status = Command::new(BIN)
+        .args([
+            "convert",
+            "mesh",
+            "-i",
+            exo.to_str().unwrap(),
+            "-o",
+            off.to_str().unwrap(),
+        ])
+        .arg("--quiet")
+        .status()
+        .expect("failed to spawn automesh");
+    assert!(!status.success(), ".off accepted a hexahedral mesh");
 }
 
 #[test]

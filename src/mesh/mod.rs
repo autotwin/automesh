@@ -40,7 +40,7 @@ pub struct MeshArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Mesh output file (exo | inp | mesh | stl | vtu)
+    /// Mesh output file (exo | inp | mesh | off | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
