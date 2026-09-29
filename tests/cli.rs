@@ -1,7 +1,7 @@
 //! End-to-end smoke tests driving the compiled binary against fixtures in tests/input.
 
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::Command,
     sync::atomic::{AtomicUsize, Ordering},
 };
@@ -416,4 +416,261 @@ fn mesh_hex_stl_prints_banner_once() {
     let stdout = String::from_utf8_lossy(&result.stdout);
     let banner = concat!("automesh ", env!("CARGO_PKG_VERSION"));
     assert_eq!(stdout.matches(banner).count(), 1, "stdout was: {stdout}");
+}
+
+/// Clap rejects a bad method while parsing, before any file is read or written.
+#[test]
+fn smooth_rejects_an_unknown_method() {
+    let output = out("exo");
+    let result = Command::new(BIN)
+        .args([
+            "mesh",
+            "hex",
+            "-i",
+            input("letter_f_3d.npy").to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "smooth",
+            "-m",
+            "bogus",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert_eq!(result.status.code(), Some(2), "stderr was: {stderr}");
+    assert!(
+        stderr.contains("invalid value 'bogus'"),
+        "stderr was: {stderr}"
+    );
+    assert!(
+        result.stdout.is_empty(),
+        "the command did work before failing"
+    );
+    assert!(!output.exists(), "the command wrote an output file");
+}
+
+#[test]
+fn smooth_accepts_method_spellings() {
+    let inp = out("inp");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        inp.to_str().unwrap(),
+    ]);
+    for method in [
+        "Laplace",
+        "laplace",
+        "Laplacian",
+        "laplacian",
+        "Taubin",
+        "taubin",
+    ] {
+        let output = out("inp");
+        run(&[
+            "smooth",
+            "-i",
+            inp.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-n",
+            "2",
+            "-m",
+            method,
+        ]);
+        assert_nonempty(&output);
+    }
+}
+
+fn assert_parts(output: &Path, parts: usize) {
+    let width = parts.to_string().len();
+    (0..parts).for_each(|rank| {
+        assert_nonempty(&PathBuf::from(format!(
+            "{}.{parts}.{rank:0width$}",
+            output.display()
+        )))
+    });
+}
+
+#[test]
+fn partition_rcb_and_rib_to_exo() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    ["rcb", "rib"].into_iter().for_each(|method| {
+        let output = out("exo");
+        run(&[
+            "partition",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-m",
+            method,
+            "-n",
+            "3",
+            "-j",
+            "2",
+        ]);
+        assert_parts(&output, 3);
+    });
+}
+
+#[test]
+fn partition_box_to_exo() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    let output = out("exo");
+    run(&[
+        "partition",
+        "-i",
+        source.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-m",
+        "box",
+        "-d",
+        "2",
+        "1",
+        "1",
+    ]);
+    assert_parts(&output, 2);
+}
+
+#[test]
+fn partition_rejects_non_exo_output() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    let result = Command::new(BIN)
+        .args([
+            "partition",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            out("vtu").to_str().unwrap(),
+            "-n",
+            "3",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
+}
+
+#[test]
+fn partition_rejects_missing_parts() {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    let result = Command::new(BIN)
+        .args([
+            "partition",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            out("exo").to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
+}
+
+fn hex_source() -> PathBuf {
+    let source = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("letter_f_3d.npy").to_str().unwrap(),
+        "-o",
+        source.to_str().unwrap(),
+    ]);
+    source
+}
+
+#[test]
+fn agglomerate_to_exo_and_vtu() {
+    let source = hex_source();
+    [("rcb", "exo"), ("rib", "exo"), ("rcb", "vtu")]
+        .into_iter()
+        .for_each(|(method, extension)| {
+            let output = out(extension);
+            run(&[
+                "agglomerate",
+                "-i",
+                source.to_str().unwrap(),
+                "-o",
+                output.to_str().unwrap(),
+                "-m",
+                method,
+                "-n",
+                "3",
+            ]);
+            assert_nonempty(&output);
+        });
+}
+
+#[test]
+fn agglomerate_box_to_exo() {
+    let source = hex_source();
+    let output = out("exo");
+    run(&[
+        "agglomerate",
+        "-i",
+        source.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-m",
+        "box",
+        "-d",
+        "2",
+        "1",
+        "1",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn agglomerate_rejects_unsupported_output() {
+    let source = hex_source();
+    let result = Command::new(BIN)
+        .args([
+            "agglomerate",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            out("inp").to_str().unwrap(),
+            "-n",
+            "3",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
 }
