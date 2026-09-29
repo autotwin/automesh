@@ -1,7 +1,6 @@
 # Introduction
 
-> **DRAFT.** Written to scope work on the `surfacing` branch. Not yet
-> reviewed.
+> **DRAFT.** Not yet reviewed.
 
 Isosurfacing is a method to extract the surface from a three-dimensional
 scalar field. A scalar field $\phi = \phi(x, y, z): \mathbb{R}^3 \mapsto
@@ -24,8 +23,8 @@ cuberille implementation below emits a face wherever two face-adjacent
 voxels' labels differ, whichever two labels they are. Any isosurfacing
 method `automesh` adds needs to preserve that: a method that only finds
 the outer material/void boundary would be a regression, not an upgrade.
-See [Implementation Plan](implementation_plan.md#phase-2--marching-cubes)
-for how Marching Cubes and Dual Contouring each need to handle this.
+See [Status](status.md#multi-material-interfaces) for how Marching Cubes
+and Dual Contouring stand on this.
 
 ## Three approaches, not two
 
@@ -64,11 +63,9 @@ interpolate a smoother surface *during* extraction, at the cost of losing
 the guarantee that every output vertex sits exactly on a voxel boundary.
 [Marching Cubes](marching_cubes.md) interpolates along voxel edges. [Dual
 Contouring](dual_contouring.md) places a vertex inside each voxel, using
-gradient information to better preserve sharp features. Neither is
-implemented in `automesh` or `conspire` today; they are documented here as
-the standard alternatives against which the `surfacing` branch's work is
-evaluated. See the [Implementation Plan](implementation_plan.md) for how
-that work is scoped.
+gradient information to better preserve sharp features. `conspire` `main` has implemented Marching Cubes, and `automesh` does not
+expose it yet. Neither `conspire` nor `automesh` implements Dual
+Contouring. See [Status](status.md) for the details.
 
 ## References
 
