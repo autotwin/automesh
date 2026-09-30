@@ -2,8 +2,8 @@
 
 `convert` translates between file formats without changing the underlying
 data: `convert mesh` translates between mesh formats (`.exo`, `.inp`, `.mesh`,
-`.stl`, `.vtu`), and `convert segmentation` translates between segmentation
-formats (`.npy`, `.spn`, `.vti`).
+`.off`, `.stl`, `.vtu`), and `convert segmentation` translates between
+segmentation formats (`.npy`, `.spn`, `.vti`).
 
 ```sh
 automesh convert --help
@@ -18,17 +18,20 @@ pyramidal, or a mix of these within the same mesh — and writes them to the
 output format unchanged; there is no separate hex/tet/tri subcommand to
 choose.
 
-**`.stl` is the exception:** `.stl` is a triangulated-surface format only,
-so every element it reads or writes is a 3D triangle.
+**`.stl` and `.off` are the exceptions:** both are surface-only formats.
+`.stl` holds only 3D triangles. `.off` holds 3D triangles and
+quadrilaterals.
 
-- An `.stl` input can be converted to any of the other mesh formats
-  (`.exo`, `.inp`, `.mesh`, `.vtu`); the resulting mesh is composed
-  exclusively of triangular elements.
+- An `.stl` or `.off` input can be converted to any of the other mesh
+  formats (`.exo`, `.inp`, `.mesh`, `.vtu`); the resulting mesh is
+  composed of whatever surface elements the input held (triangles only,
+  for `.stl`; triangles and/or quadrilaterals, for `.off`).
 - Any of the other mesh formats can be converted to `.stl`, provided the
-  input mesh is itself composed exclusively of triangular elements; the
-  resulting `.stl` is then, likewise, composed solely of triangles.
+  input mesh is itself composed exclusively of triangular elements, or to
+  `.off`, provided the input mesh is composed exclusively of triangular
+  and/or quadrilateral elements.
 - A volumetric mesh (containing hexahedral, tetrahedral, wedge, or
-  pyramidal elements) cannot be converted to `.stl`.
+  pyramidal elements) cannot be converted to `.stl` or `.off`.
 
 ```sh
 automesh convert mesh --help

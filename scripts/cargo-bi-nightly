@@ -1,0 +1,14 @@
+#!/bin/sh
+# cargo bi-nightly [--release] [other cargo-build args...]
+# Same as `cargo bi`, but builds and installs with the nightly toolchain.
+# Needed on branches pinned to a conspire git rev that requires unstable
+# Rust features; switch back to plain `cargo bi` once back on a stable
+# conspire release.
+#
+# Cargo invokes external subcommands as `cargo-bi-nightly bi-nightly
+# <rest...>`, passing the subcommand name itself as $1 — shift it off
+# before forwarding.
+set -e
+shift
+cargo +nightly build "$@"
+cargo +nightly install --path . --force
