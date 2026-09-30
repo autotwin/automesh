@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Isosurfaces of the sphere segmentations, by marching cubes.
+"""Marching cubes surfaces of the sphere segmentations.
 
 For each segmentation `unit_sphere_nNNN.npy` of radius `n` voxels, the script
 
@@ -19,7 +19,7 @@ Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
 uv run --with numpy unit_sphere_segmentation.py
-uv run --with numpy --with scikit-image unit_sphere_isosurface.py
+uv run --with numpy --with scikit-image unit_sphere_marching_cubes.py
 
 Output
 ------
@@ -33,7 +33,7 @@ from collections import Counter
 from pathlib import Path
 
 import numpy as np
-from skimage.measure import marching_cubes
+from skimage import measure
 
 RADII = (10, 20, 40, 80, 160)
 LEVEL = 0.5
@@ -41,10 +41,10 @@ PAD = 1
 REPEATS = 5
 
 
-def isosurface(*, voxels: np.ndarray, method: str = "lewiner") -> tuple:
+def marching_cubes(*, voxels: np.ndarray, method: str = "lewiner") -> tuple:
     """Returns the vertices and outward-wound faces, in voxel units."""
     padded = np.pad(voxels, PAD)
-    vertices, faces, _, _ = marching_cubes(padded, level=LEVEL, method=method)
+    vertices, faces, _, _ = measure.marching_cubes(padded, level=LEVEL, method=method)
     # skimage's default winding is inward, opposite to its returned normals.
     return vertices, faces[:, ::-1]
 
@@ -121,11 +121,11 @@ def triangles(*, vertices: np.ndarray, faces: np.ndarray) -> set:
 
 
 def seconds_best(*, voxels: np.ndarray, method: str) -> float:
-    """Returns the fastest of several marching-cubes runs, in seconds."""
+    """Returns the fastest of several marching cubes runs, in seconds."""
     best = np.inf
     for _ in range(REPEATS):
         start = time.perf_counter()
-        isosurface(voxels=voxels, method=method)
+        marching_cubes(voxels=voxels, method=method)
         best = min(best, time.perf_counter() - start)
     return best
 
@@ -141,7 +141,7 @@ def main() -> None:
     )
     for n in RADII:
         voxels = np.load(here / f"unit_sphere_n{n:03d}.npy")
-        vertices, faces = isosurface(voxels=voxels)
+        vertices, faces = marching_cubes(voxels=voxels)
         vertices = (vertices - (n + PAD)) / n
         stl_write(
             path=here / f"unit_sphere_mc_n{n:03d}.stl",
@@ -165,8 +165,8 @@ def main() -> None:
     print(f"{'n':>3}  {'Lewiner (ms)':>12}  {'Lorensen (ms)':>13}  {'same mesh':>9}")
     for n in RADII:
         voxels = np.load(here / f"unit_sphere_n{n:03d}.npy")
-        v1, f1 = isosurface(voxels=voxels, method="lewiner")
-        v2, f2 = isosurface(voxels=voxels, method="lorensen")
+        v1, f1 = marching_cubes(voxels=voxels, method="lewiner")
+        v2, f2 = marching_cubes(voxels=voxels, method="lorensen")
         same = triangles(vertices=v1, faces=f1) == triangles(vertices=v2, faces=f2)
         lewiner = 1e3 * seconds_best(voxels=voxels, method="lewiner")
         lorensen = 1e3 * seconds_best(voxels=voxels, method="lorensen")

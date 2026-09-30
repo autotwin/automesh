@@ -3,7 +3,7 @@
 The bone is a closed surface of 12,088 triangles.  A long, slender shaft
 joins a pair of rounded lobes at each end.  The model comes from the
 hybrid-octree meshing work of Tong, Halilaj, and Zhang
-[[1]](#reference), which meshes it with all-hexahedral elements.
+[[1]](#references), which meshes it with all-hexahedral elements.
 
 ![bone_surface.png](bone_surface.png)
 
@@ -27,7 +27,7 @@ lengths and volumes below use that scale.
 
 ## The Baseline Settings
 
-The code, `HybridOctree_Hex` v1.0 [[1]](#reference), ships with the settings
+The code, `HybridOctree_Hex` v1.0 [[1]](#references), ships with the settings
 below.  Four are constants in `Initialization.h`: `C_THRES`, `H_THRES`,
 `CELL_DETECT`, and `VOXEL_SIZE`.  The curvature formula and the level of the
 deepest rung are fixed inside `HexGen.cpp`.  The published mesh comes from these
@@ -196,7 +196,7 @@ ParaView 5.10.1 makes the renders.  They come from
 ## Quality Metrics
 
 `automesh` computes four measures for each element: Minimum Scaled Jacobian,
-Maximum Aspect Ratio, Maximum Skew, and Element Volume [[3]](#reference).
+Maximum Aspect Ratio, Maximum Skew, and Element Volume [[3]](#references).
 
 ![bone_quality_histograms.svg](bone_quality_histograms.svg)
 
@@ -562,7 +562,7 @@ enough.  If it stalls near 0.4, the fit needs more.  The issue
 [autotwin/automesh#768](https://github.com/autotwin/automesh/issues/768)
 tracks this, with the bone as the benchmark.
 
-## Reproduce
+## Reproducibility
 
 The inputs are not committed.  See [Downloads](#downloads) to get them.  From
 this directory:
@@ -645,7 +645,7 @@ python3 bone_baseline_compare.py reproduced_bone.vtk bone.vtk
 
 The histogram commands print the extremes in the tables above.
 
-## Reference
+## References
 
 1. Hua Tong, Eni Halilaj, and Yongjie Jessica Zhang.  "HybridOctree_Hex:
    Hybrid octree-based adaptive all-hexahedral mesh generation with Jacobian

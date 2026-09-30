@@ -1,16 +1,19 @@
 # Unit Sphere
 
-A sphere is a useful first model because, given its radius, the surface area and
+A sphere is a useful model because, given its radius, the surface area and
 volume are known quantities.  The error of any surface that approximates
 the analytical surface of the sphere can be easily quantified.
 
-This page builds a unit sphere from a segmentation of voxels.  Marching cubes
-turns the segmentation into a triangulated surface.  We then measure that
-surface against the exact sphere.
+This page builds a unit sphere from a voxel segmentation.  Voxels inside the
+sphere have value `1`.  Voxels outside have value `0`.  Marching cubes turns
+the segmentation into a triangulated surface.  That surface approximates the
+[isosurface](../../../theory/isosurface.md) of the segmentation at the value
+0.5, halfway between `0` and `1`.  We measure the triangulated surface against
+the exact sphere.
 
 ## Related Studies
 
-Two other pages of this book build unit spheres by other methods.
+Two other sections build unit spheres by other methods.
 
 * [Octa-Loop](../../../theory/subdivision.md#octa-loop), on the Subdivision
   page, refines a unit octahedron into a sphere by Loop subdivision.
@@ -22,17 +25,18 @@ Two other pages of this book build unit spheres by other methods.
 The script [`unit_sphere_segmentation.py`](#unit_sphere_segmentationpy) builds
 a sphere of radius $n$ voxels.  The sphere sits at the center of a cube of
 $2n+1$ voxels per side.  A voxel is inside when its center satisfies
-$x^2 + y^2 + z^2 \le n^2$.  An inside voxel has value 1, and every other voxel
-has value 0.  The array axes are $(x, y, z)$, the order `automesh` reads from
-a `.npy` file.
+$x^2 + y^2 + z^2 \le n^2$.  An inside voxel has value `1`, and every other
+voxel has value `0`.  The array axes are $(x, y, z)$, the order `automesh`
+reads from a `.npy` file.
 
 ```sh
 uv run --with numpy unit_sphere_segmentation.py
 ```
 
-The script writes five segmentations, for $n$ = 10, 20, 40, 80, and 160.  Each
-voxel has side $1/n$ once the sphere is scaled to radius 1.  The volume column
-counts the inside voxels and multiplies by $1/n^3$.  The error,
+The script writes five segmentations of increasing resolution: $n$ = 10, 20,
+40, 80, and 160.  Each voxel has side length $1/n$ once the sphere is scaled
+to radius 1.  The volume column counts the inside voxels and multiplies by
+$1/n^3$.  The error,
 $(\text{volume} - 4\pi/3) / (4\pi/3)$, compares that volume with the exact
 volume $4\pi/3 \approx 4.1888$.
 
@@ -45,29 +49,26 @@ volume $4\pi/3 \approx 4.1888$.
 | 160 | 321×321×321 | 33,076,161 | 17,155,325 | 4.1883 | −0.01% |
 
 The voxel volume falls short at every $n$ in the table, and the shortfall
-shrinks as $n$ grows.  Neither pattern holds at every $n$.  The
-[Convergence](#convergence) section follows every $n$ from 4 to 160.
+shrinks as $n$ grows.
 
 ![unit_sphere_voxels.png](unit_sphere_voxels.png)
 
 Figure: The segmentations for $n = 10$ (left), $n = 40$ (middle), and
-$n = 160$ (right), in voxel units.  Only the outer faces of the inside voxels
-are drawn.  Each fourfold increase in $n$ shrinks the voxel steps fourfold,
-and at $n = 160$ they are barely visible.  The figure is produced by
+$n = 160$ (right), in voxel units.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
-## Isosurface
+## Marching Cubes
 
 Marching cubes turns a grid of values into a triangulated surface at one
 level of those values.  The script
-[`unit_sphere_isosurface.py`](#unit_sphere_isosurfacepy) wraps the
+[`unit_sphere_marching_cubes.py`](#unit_sphere_marching_cubespy) wraps the
 implementation in [scikit-image](https://scikit-image.org),
 `skimage.measure.marching_cubes`, with the method of Lewiner
 *et al.*[^Lewiner2003]  For each segmentation, the script
 
 1. pads the segmentation by one voxel of zeros, so the surface closes,
-2. runs marching cubes at level 0.5, halfway between outside (0) and
-   inside (1),
+2. runs marching cubes at level `0.5`, halfway between outside (`0`) and
+   inside (`1`),
 3. reverses each face, so every triangle winds outward (see
    [Pitfalls](#pitfalls)),
 4. translates and scales the vertices to a unit sphere (see
@@ -75,7 +76,7 @@ implementation in [scikit-image](https://scikit-image.org),
 5. writes a binary STL.
 
 ```sh
-uv run --with numpy --with scikit-image unit_sphere_isosurface.py
+uv run --with numpy --with scikit-image unit_sphere_marching_cubes.py
 ```
 
 It then checks each surface.  $v$, $e$, and $f$ count the vertices, edges,
@@ -90,13 +91,14 @@ error compares that volume with the exact volume $4\pi/3 \approx 4.1888$.
 | 80 | 120,486 | 361,452 | 240,968 | 4.1865 | −0.06% |
 | 160 | 482,286 | 1,446,852 | 964,568 | 4.1882 | −0.01% |
 
-The volume falls short of $4\pi/3$ at every $n$ in the table.  The surface
-also encloses less volume than the voxels it came from.  That second pattern
+The volume created from marching cubes
+underestimates the true $4\pi/3$ value at every $n$ in the table.  The surface
+also encloses less volume than the voxels it came from.  This pattern
 holds at every $n$ from 4 to 160.  Marching cubes cuts each corner of the
-voxel staircase with a flat triangle, and every cut removes a little
+voxel staircase with a flat triangle, and every cut removes a small
 volume.
 
-The script also runs five checks on each surface.  All five surfaces give
+The script also runs five surface integrity checks.  All five surfaces give
 the same result on every check.
 
 * **Closed.**  No edge is open.  An open edge belongs to one face only.
@@ -110,11 +112,11 @@ For a closed, connected, orientable surface, $\chi = 2 - 2g$, where $g$ is
 the genus, the number of handles.  Here $\chi = 2$, so $g = 0$, and each
 surface is topologically a sphere.
 
-![unit_sphere_isosurfaces.png](unit_sphere_isosurfaces.png)
+![unit_sphere_marching_cubes.png](unit_sphere_marching_cubes.png)
 
-Figure: The marching-cubes surfaces for $n = 10$ (left), $n = 40$ (middle),
-and $n = 160$ (right), scaled to the unit sphere.  The terraces are the voxel
-staircase of the segmentation.  A binary mask places every vertex at the
+Figure: The marching cubes surfaces for $n = 10$ (left), $n = 40$ (middle),
+and $n = 160$ (right), scaled to the unit sphere.  
+A binary mask places every vertex at the
 midpoint of a cube edge, so the surface cannot round off the steps.  The
 steps shrink as $n$ grows, but the rings around each pole remain visible
 even at $n = 160$.  The figure is produced by
@@ -122,29 +124,30 @@ even at $n = 160$.  The figure is produced by
 
 ### Convergence
 
-The two tables sample five values of $n$, each double the last.  The script
+
+The script
 [`unit_sphere_figures.py`](#unit_sphere_figurespy) also computes both
 volumes at every $n$ from 4 to 160, 157 values in all.
 
 ![unit_sphere_convergence.png](unit_sphere_convergence.png)
 
 Figure: The volume (left) and the magnitude of its error (right) against
-$n$, for the voxels and for the marching-cubes surface.  Thin lines connect
+$n$, for the voxels and for the marching cubes surface.  Thin lines connect
 every $n$ from 4 to 160.  Markers show the five values of $n$ in the tables.
 On the left, the dotted line marks the exact volume $4\pi/3$, and a few
 values at $n \le 7$ fall off the scale.  On the right, the gray guides have
 slopes of −1 and −2.
 
-Both volumes settle onto $4\pi/3$, but neither settles smoothly.  The voxel
-error changes sign 46 times, and 25 of the 157 voxel volumes exceed
-$4\pi/3$.  The marching-cubes error changes sign 24 times, and 12 of its
-volumes exceed $4\pi/3$.  The five values in the tables all happen to fall
+Both volumes settle onto $4\pi/3$, but neither settles smoothly.  The **voxel
+error** changes sign 46 times, and 25 of the 157 voxel volumes exceed
+$4\pi/3$.  The **marching cubes error** changes sign 24 times, and 12 of its
+volumes exceed $4\pi/3$.  The five values in the tables just happened to fall
 short.
 
 Under the oscillation, both errors fall toward zero.  A least-squares fit of
 $\log|\text{error}|$ against $\log n$ gives a slope of −1.71 for the voxels
 and −1.76 for marching cubes.  Both lie between the two guides.  The
-marching-cubes volume stays below the voxel volume at all 157 values.
+marching cubes volume stays below the voxel volume at all 157 values.
 
 ### Why Lewiner?
 
@@ -264,7 +267,7 @@ $1/n$.  That is first order, slower than the volume error in
 the staircase steps partly cancel in that average.  The radius spread sees
 every step.
 
-## Comparison
+## Surface Comparison
 
 ### Hausdorff Distance
 
@@ -309,15 +312,13 @@ The inward distance approaches it from below.  The Hausdorff distance falls
 as $1/n$, first order, like the radius CoV.  The triangle count $f$ grows as
 $n^2$, so in terms of triangles the distance falls only as $f^{-1/2}$.
 
-### Area and Volume
+### Surface Area
 
-The volume converges.  Its error falls toward zero at a log-log slope of
-about −1.7, as the [Convergence](#convergence) section shows.
-
-The area does not converge.  The script
-[`unit_sphere_comparison.py`](#unit_sphere_comparisonpy) also adds up the
-areas of the marching-cubes triangles.  The error compares that area with the
-exact area $4\pi \approx 12.5664$.
+The volume converges, as the [Convergence](#convergence) section shows.  The
+surface area does not converge.  The script
+[`unit_sphere_comparison.py`](#unit_sphere_comparisonpy) adds up the areas of
+the marching cubes triangles.  The error compares that area with the exact
+area $4\pi \approx 12.5664$.
 
 | $n$ | area | error |
 | ---: | ---: | ---: |
@@ -328,8 +329,11 @@ exact area $4\pi \approx 12.5664$.
 | 160 | 13.6673 | +8.76% |
 
 The voxel staircase itself would overstate the area by 50% at any $n$.
-Marching cubes cuts its corners, which removes most of that excess.  The area
-still settles near 8.8% too large.  Smaller voxels make smaller steps, but
+Marching cubes cuts the voxel staircase corners, which removes most of that excess.
+Howver, the surface area
+still settles near 8.8% too large.
+
+Smaller voxels make smaller steps, but
 the triangles keep the same few orientations relative to the true surface.
 So the Hausdorff distance falls to zero while the area error does not.  A
 surface can come arbitrarily close to the sphere and still have the wrong
@@ -344,8 +348,9 @@ measures.
 
 A binary mask puts every vertex at the midpoint of a cube edge.  So marching
 cubes can make only a few triangle shapes.  Grouped by maximum edge ratio and
-minimum scaled Jacobian, the surfaces contain exactly five.  The table gives
-the fraction of triangles of each shape.
+minimum scaled Jacobian, the triangular surfaces created by marching cubes
+produce exactly **five shapes**.  The table gives the fraction of triangles
+of each shape.
 
 | shape | angles | edge ratio | scaled Jacobian | $n = 10$ | $n = 20$ | $n = 40$ | $n = 80$ | $n = 160$ |
 | :--- | :---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -358,13 +363,15 @@ the fraction of triangles of each shape.
 **Refinement does not change the quality.**  The same five shapes appear at every
 $n$, in nearly the same proportions.  More than a quarter of the triangles
 have the worst scaled Jacobian, $1/\sqrt{3} \approx 0.577$, with a smallest
-angle of 30°.  No triangle is worse.  Smaller voxels shrink the triangles but
-never reshape them.  A histogram of any measure would show only these five
-spikes, so the table stands in for one.
+angle of 30°.  No triangle is worse.
+
+**Smaller voxels shrink the triangles but
+never reshape them.**  A histogram of any measure would show only these five
+spikes, so the table is shown instead of a histogram.
 
 ## Mesh
 
-This section meshes the marching-cubes surfaces with hexahedra.  Sculpt, the
+This section meshes the marching cubes surfaces with hexahedra.  Sculpt, the
 mesher the Subdivision page uses, serves as the baseline, and `automesh`
 meshes the same surfaces at the same cell size for comparison.
 
@@ -373,13 +380,13 @@ meshes the same surfaces at the same cell size for comparison.
 The Subdivision page meshes its Octa-Loop spheres with
 [Sculpt](../../../theory/subdivision.md#sculpt-baseline).  At levels 3 to 7,
 it reports a grid of 26×26×26 cells, 7,731 nodes, and 6,672 elements.  Here
-Sculpt meshes the marching-cubes surfaces on the same grid instead.
+Sculpt meshes the marching cubes surfaces on the same grid instead.
 
 The baseline runs Sculpt through Cubit's `sculpt parallel` command, which
 chooses the grid itself.  For Octa-Loop level 3, Cubit places 26 cells in each
 direction across a box of $\pm 1.240409$, a cell size of about 0.0954.
 Standalone Sculpt with those options reproduces the baseline exactly, at 7,731
-nodes and 6,672 elements.  The same options mesh each marching-cubes surface.
+nodes and 6,672 elements.  The same options mesh each marching cubes surface.
 
 ```sh
 B=1.240409
@@ -408,7 +415,7 @@ element is better than the baseline's at every $n$.
 
 ![unit_sphere_sculpt.png](unit_sphere_sculpt.png)
 
-Figure: The Sculpt meshes of Octa-Loop level 3 (left), the marching-cubes
+Figure: The Sculpt meshes of Octa-Loop level 3 (left), the marching cubes
 surface for $n = 10$ (middle), and for $n = 160$ (right), on the same grid.
 Each element is painted by its Minimum Scaled Jacobian, on a fixed scale from
 0 to 1.  In all three, the best elements form bands of regular hexes, and the
@@ -441,7 +448,7 @@ one element deep at the boundary.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 Left to choose its own grid, Cubit sizes the cells to the small
-marching-cubes facets.  For $n = 40$ it picks 73×73×73 cells and makes
+marching cubes facets.  For $n = 40$ it picks 73×73×73 cells and makes
 180,201 elements.  Fixing the grid keeps the meshes comparable with the
 baseline.
 
@@ -458,7 +465,7 @@ intact.
 ### `automesh`
 
 The script [`unit_sphere_mesh.py`](#unit_sphere_meshpy) meshes each
-marching-cubes surface with `automesh mesh hex` in two ways.  The uniform
+marching cubes surface with `automesh mesh hex` in two ways.  The uniform
 lattice uses the Sculpt cell size, $2 \times 1.240409 / 26 \approx 0.095416$.
 The adaptive octree uses the default scale (`-s 5`).  The script then runs
 `automesh metrics` on every mesh, Sculpt's included.
@@ -533,7 +540,7 @@ reaches down to 0.10.  Its aspect ratio reaches 9 to 13, where Sculpt stays
 below 5.
 
 The adaptive octree does worse than the lattice.  It refines toward the small
-marching-cubes facets, so its element count grows with $n$, from 8,243 to
+marching cubes facets, so its element count grows with $n$, from 8,243 to
 25,815.  Its mean stays between 0.70 and 0.76, below the lattice's.  Its
 worst element drops sharply from $n = 40$ on, to 0.032 and then 0.010.  At
 $n = 160$, 23 elements are inverted, and the worst has a Minimum Scaled
@@ -541,9 +548,9 @@ Jacobian of −0.792.  None are inverted at $n = 10$ to 80.
 
 ### Control Study
 
-The octree's poor quality might come from `automesh` reading the
-marching-cubes staircase as full of sharp features, and over-refining toward
-them.  Testing that needs one correction first.
+Does the octree's poor quality come from `automesh` reading the
+marching cubes staircase as full of sharp features, and over-refining toward
+them?
 
 `automesh mesh hex`'s adaptive octree combines two refinement signals:
 
@@ -561,18 +568,18 @@ The shape diameter function estimates local thickness by casting a cone of
 rays inward from each face and measuring the distance to the far side of the
 surface.  On a smooth convex shape that distance stays close to the diameter
 everywhere.  On a voxel staircase, a ray from one step's riser can reach the
-next step over instead of crossing the sphere, so the function can report a
-locally small thickness right at the steps — the same steps where the
+next step over instead of crossing the sphere, *so the function can report a
+**locally small thicknes** right at the steps* — the same steps where the
 octree refines most (see [`automesh`](#automesh) above).
 
-The control tests that: mesh a smooth surface with the same octree (default
+The control study tests that.  The mesh a smooth surface with the same octree (default
 scale, no tolerance), and see whether it needs the same refinement, or
 inverts any element.  The script
 [`unit_sphere_mesh.py`](#unit_sphere_meshpy) meshes two Octa-Loop surfaces
 from the [Subdivision](../../../theory/subdivision.md#refinement) page:
 level 3, the 512-facet surface already used for the Sculpt baseline, and
 level 7, the finest available, at 131,072 facets — close to the facet size
-of the $n = 160$ marching-cubes surface, so the comparison is not simply
+of the $n = 160$ marching cubes surface, so the comparison is not simply
 coarse against fine.
 
 ```sh
@@ -585,9 +592,9 @@ automesh mesh hex -i octa_loop07.stl -o unit_sphere_control_loop07.inp \
 ![unit_sphere_control_surfaces.png](unit_sphere_control_surfaces.png)
 
 Figure: The three input surfaces of the control study: the $n = 160$
-marching-cubes surface (left, 964,568 triangles), Octa-Loop level 3 (center,
+marching cubes surface (left, 964,568 triangles), Octa-Loop level 3 (center,
 512 triangles), and Octa-Loop level 7 (right, 131,072 triangles).  The
-marching-cubes triangles are too small to resolve at this size.  The voxel
+marching cubes triangles are too small to resolve at this size.  The voxel
 staircase shows as concentric terrace rings around the top pole.  Octa-Loop
 level 3 shows its 512 flat facets.  Octa-Loop level 7 looks smooth.  The
 figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
@@ -600,10 +607,9 @@ figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ![unit_sphere_control_meshes.png](unit_sphere_control_meshes.png)
 
-Figure: The three octree meshes, each element painted by its Minimum Scaled
-Jacobian, on the same 0 to 1 scale as the earlier mesh figures: the
-$n = 160$ marching-cubes surface (left), Octa-Loop level 3 (center), and
-Octa-Loop level 7 (right).  The marching-cubes mesh has several small dark
+Figure: The three `automesh` octree meshes shown with the element minimum scaled
+Jacobian. The $n = 160$ marching cubes surface (left), Octa-Loop level 3 (center), and
+Octa-Loop level 7 (right).  The marching cubes mesh has several small dark
 clusters of poor elements; neither control does.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
@@ -695,16 +701,16 @@ figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 ![unit_sphere_control.png](unit_sphere_control.png)
 
 Figure: Element quality of the octree meshing three surfaces: the $n = 160$
-marching-cubes surface (solid, orange), Octa-Loop level 3 (dashed, blue),
+marching cubes surface (solid, orange), Octa-Loop level 3 (dashed, blue),
 and Octa-Loop level 7 (dotted, green).  Each panel is a histogram with a log
-scale on the count.  Only the marching-cubes curve reaches below zero.  The
+scale on the count.  Only the marching cubes curve reaches below zero.  The
 figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 Neither control mesh inverts an element.  Both stay at or above Sculpt's own
 baseline (0.343 minimum), even level 7, whose facets are only 2.4 times
-larger than the marching-cubes surface that produces −0.792.  Level 7's
-octree also makes far fewer elements than the marching-cubes $n = 160$
+larger than the marching cubes surface that produces −0.792.  Level 7's
+octree also makes far fewer elements than the marching cubes $n = 160$
 octree, 1,415 against 25,815, on comparably sized facets.  So the octree is
 not simply reacting to facet size: a smooth surface with similar facets
 does not provoke the same refinement.
@@ -714,16 +720,16 @@ fixed-size lattice and never calls the octree or the shape diameter
 function, so it says nothing about why the uniform lattice's own quality
 also lags Sculpt's.
 
-## Smoothing
+## Marching Cubes Surface Smoothing
 
-Sculpt returns one mesh for every marching-cubes surface from $n = 20$ on.
+Sculpt returns one mesh for every marching cubes surface from $n = 20$ on.
 Its first stage converts the surface to a volume fraction in each cell of its
 grid.  That conversion washes over detail smaller than a cell.[^Sculpt]  The
 octree has no such conversion.  It measures thickness on the surface itself,
-one facet at a time.  The voxel steps of the marching-cubes surface can
+one facet at a time.  The voxel steps of the marching cubes surface can
 corrupt that measurement (see [Control Study](#control-study)).
 
-This section smooths the marching-cubes surface before meshing.  If the voxel
+This section smooths the marching cubes surface before meshing.  If the voxel
 steps cause the octree's failures, smoothing should remove the steps and the
 failures with them.  Each surface goes through `automesh smooth`, then
 through the same octree command as the [`automesh`](#automesh) section.
@@ -830,7 +836,7 @@ The rows with 0 iterations repeat the octree column of the
 4. **Smoothing inflates the coarse surfaces.**  At $n = 160$, the radius mean
    stays within 0.00004 of 1 through 200 iterations.  At $n = 10$, it rises
    to 1.00736 after 100 iterations and 1.01577 after 200.  At $n = 20$, it
-   reaches 1.00349 after 200.  This page does not test why.
+   reaches 1.00349 after 200.
 5. **The worst element's MSJ does not rise steadily with iterations.**  At
    $n = 80$, the minimum MSJ is 0.234 after 5 iterations, 0.275 after 50, and
    0.644 after 100.  At $n = 160$, it is 0.171 after 5 and 0.419 after 200.
@@ -839,14 +845,10 @@ The rows with 0 iterations repeat the octree column of the
 
 ![unit_sphere_smooth_meshes.png](unit_sphere_smooth_meshes.png)
 
-Figure: Octree meshes of the $n = 160$ marching-cubes surface: unsmoothed
+Figure: Octree meshes of the $n = 160$ marching cubes surface: unsmoothed
 (left, 25,815 elements), Taubin-smoothed for 50 iterations (middle, 1,157
-elements), and for 200 iterations (right, 551 elements).  Each element is
-painted by its Minimum Scaled Jacobian, on the same 0 to 1 scale as the
-earlier mesh figures.  The unsmoothed mesh has dense clusters of small
-elements beside large blue elements.  Neither smoothed mesh has a cluster.
-The worst element is 0.400 at 50 iterations and 0.419 at 200.  At 200
-iterations, two isolated teal patches hold the lowest values.  The figure is
+elements), and for 200 iterations (right, 551 elements).
+The figure is
 produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ![unit_sphere_smooth_meshes_cut.png](unit_sphere_smooth_meshes_cut.png)
@@ -891,7 +893,7 @@ The test shows that smoothing removes the failure.  It does not show that the
 shape diameter function was the only cause.  A direct test would keep the
 voxel steps and change only how the octree measures thickness.
 
-## Reproduce
+## Reproducibility
 
 The commands below regenerate every table and figure on this page.  They run
 from the page's own directory, in order, because each step reads the files
@@ -912,9 +914,9 @@ The steps need three tools and one input file.
 ```sh
 cd ~/autotwin/automesh/book/examples/gallery/academic
 
-# segmentations, marching-cubes surfaces, and the comparison tables
+# segmentations, marching cubes surfaces, and the comparison tables
 uv run --with numpy unit_sphere_segmentation.py
-uv run --with numpy --with scikit-image unit_sphere_isosurface.py
+uv run --with numpy --with scikit-image unit_sphere_marching_cubes.py
 uv run --with numpy unit_sphere_comparison.py
 
 # Sculpt meshes on the baseline grid
@@ -959,13 +961,13 @@ book.  Only the figures are.
 
 </details>
 
-### `unit_sphere_isosurface.py`
+### `unit_sphere_marching_cubes.py`
 
 <details>
 <summary>Show source</summary>
 
 ```python
-<!-- cmdrun cat unit_sphere_isosurface.py -->
+<!-- cmdrun cat unit_sphere_marching_cubes.py -->
 ```
 
 </details>
@@ -1014,7 +1016,7 @@ book.  Only the figures are.
 
 </details>
 
-## Reference
+## References
 
 [^Lewiner2003]: Thomas Lewiner, Hélio Lopes, Antônio Wilson Vieira, and
     Geovan Tavares.  "Efficient implementation of Marching Cubes' cases with

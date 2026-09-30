@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Each marching-cubes surface, compared with the exact unit sphere.
+"""Each marching cubes surface, compared with the exact unit sphere.
 
 The script prints three tables.
 
@@ -9,7 +9,7 @@ The script prints three tables.
                triangle closest to the origin.  The larger of the two is the
                Hausdorff distance, since each surface is closed and encloses
                the origin (see unit_sphere.md).
-    area       the area of the marching-cubes triangles, against the exact
+    area       the area of the marching cubes triangles, against the exact
                area 4 pi.
     shapes     the fraction of triangles of each shape, grouped by the
                maximum edge ratio and minimum scaled Jacobian that
@@ -19,7 +19,7 @@ Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
 uv run --with numpy unit_sphere_segmentation.py
-uv run --with numpy --with scikit-image unit_sphere_isosurface.py
+uv run --with numpy --with scikit-image unit_sphere_marching_cubes.py
 uv run --with numpy unit_sphere_comparison.py
 
 Output

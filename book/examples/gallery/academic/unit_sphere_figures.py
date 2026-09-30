@@ -2,7 +2,7 @@
 """Figures for the Unit Sphere page.
 
     unit_sphere_voxels.png       the segmentations for n = 10, 40, and 160
-    unit_sphere_isosurfaces.png  the marching-cubes surfaces for n = 10, 40, and 160
+    unit_sphere_marching_cubes.png  the marching cubes surfaces for n = 10, 40, and 160
     unit_sphere_convergence.png  the volume and its error, for every n from 4 to 160
     unit_sphere_sculpt.png       the Sculpt meshes, painted by Minimum Scaled Jacobian
     unit_sphere_sculpt_cut.png   the same meshes, cut at z = 0
@@ -21,14 +21,14 @@ Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
 uv run --with numpy unit_sphere_segmentation.py
-uv run --with numpy --with scikit-image unit_sphere_isosurface.py
+uv run --with numpy --with scikit-image unit_sphere_marching_cubes.py
 uv run --with numpy --with scipy unit_sphere_mesh.py
 uv run --with numpy unit_sphere_smooth.py
 uv run --with numpy --with scikit-image --with matplotlib unit_sphere_figures.py
 
 Output
 ------
-unit_sphere_voxels.png, unit_sphere_isosurfaces.png,
+unit_sphere_voxels.png, unit_sphere_marching_cubes.png,
 unit_sphere_convergence.png, unit_sphere_sculpt.png,
 unit_sphere_sculpt_cut.png, unit_sphere_meshers.png,
 unit_sphere_meshers_cut.png, unit_sphere_quality.png,
@@ -45,7 +45,7 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LightSource, Normalize
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
-from unit_sphere_isosurface import isosurface, volume_signed
+from unit_sphere_marching_cubes import marching_cubes, volume_signed
 from unit_sphere_segmentation import sphere
 
 RADII = (10, 40, 160)
@@ -96,7 +96,7 @@ SMOOTH_MESHES = (
 )
 DPI = 200
 EDGES_MAX = 40
-ISOSURFACE_PANELS = tuple(
+MARCHING_CUBES_PANELS = tuple(
     (f"n={n}", f"unit_sphere_mc_n{n:03d}.stl", 1 / n if n <= EDGES_MAX else None)
     for n in RADII
 )
@@ -273,11 +273,11 @@ def surfaces_plot(*, here: Path, panels: tuple, output: str) -> None:
 
 
 def volumes_sweep() -> tuple:
-    """Returns the voxel and marching-cubes volumes for every n in SWEEP."""
+    """Returns the voxel and marching cubes volumes for every n in SWEEP."""
     voxel, surface = [], []
     for n in SWEEP:
         voxels = sphere(radius=n)
-        vertices, faces = isosurface(voxels=voxels)
+        vertices, faces = marching_cubes(voxels=voxels)
         voxel.append(voxels.sum() / n**3)
         surface.append(volume_signed(vertices=(vertices - (n + 1)) / n, faces=faces))
     return np.array(voxel), np.array(surface)
@@ -476,7 +476,7 @@ def main() -> None:
     here = Path(__file__).parent
     voxels_plot(here=here)
     surfaces_plot(
-        here=here, panels=ISOSURFACE_PANELS, output="unit_sphere_isosurfaces.png"
+        here=here, panels=MARCHING_CUBES_PANELS, output="unit_sphere_marching_cubes.png"
     )
     surfaces_plot(
         here=here, panels=CONTROL_SURFACES, output="unit_sphere_control_surfaces.png"

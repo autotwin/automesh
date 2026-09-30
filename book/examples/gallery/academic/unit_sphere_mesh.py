@@ -5,7 +5,7 @@ The script
 
 1. converts each Sculpt mesh, `unit_sphere_sculpt_*.e.1.0`, to an Abaqus
    `.inp` file, since automesh 0.4.7 cannot read Sculpt's Exodus files,
-2. meshes each marching-cubes surface with `automesh mesh hex`, on a uniform
+2. meshes each marching cubes surface with `automesh mesh hex`, on a uniform
    lattice at the Sculpt cell size and on the default octree,
 3. meshes the smooth Octa-Loop surfaces with the default octree only, as a
    control (see the Control Study section on unit_sphere.md), and

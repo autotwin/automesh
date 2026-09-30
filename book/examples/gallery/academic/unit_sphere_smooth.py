@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Taubin smoothing of the marching-cubes surfaces, then the default octree.
+"""Taubin smoothing of the marching cubes surfaces, then the default octree.
 
-For each marching-cubes surface, the script
+For each marching cubes surface, the script
 
 1. smooths the surface with `automesh smooth` (Taubin, default parameters)
    for each iteration count in ITERATIONS, where 0 leaves the surface as is,
@@ -19,7 +19,7 @@ unit_sphere_figures.py draws.
 Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
-uv run --with numpy unit_sphere_isosurface.py   # the input surfaces
+uv run --with numpy unit_sphere_marching_cubes.py   # the input surfaces
 uv run --with numpy unit_sphere_smooth.py
 
 Output
