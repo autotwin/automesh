@@ -10,7 +10,9 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::{Gradient, MarchingCubes, Voxels},
-        mesh::{Class, Connectivity, Fitting, Mesh, Tessellation},
+        mesh::{
+            Class, Connectivity, Finish, Fitting, Freedom, Marching, Mesh, Placement, Tessellation,
+        },
         ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
         segmentation::Segmentation,
     },
@@ -118,6 +120,10 @@ pub struct MeshArgs {
     /// Uses strong balancing instead of the default weak balancing
     #[arg(action, long)]
     pub strong: bool,
+
+    /// Cuts the uniform lattice with marching cubes and inflates it onto the surface (stl)
+    #[arg(action, long, requires = "uniform")]
+    pub inflate: bool,
 
     /// Snaps the buffer layer onto the surface instead of a soft fit
     #[arg(action, long)]
@@ -269,6 +275,14 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mut time = Instant::now();
     let tessellation = Tessellation::try_from(Path::new(&args.input))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    if args.inflate && args.snap {
+        return Err(ErrorWrapper::from(
+            "Inflation adds no buffer layer, so snap does not apply",
+        ));
+    }
+    if args.inflate {
+        return inflate(args, tessellation, quiet);
+    }
     let fitting = if args.snap {
         Fitting::Snap
     } else {
@@ -320,6 +334,42 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     );
     time = Instant::now();
     let mesh = mesh.buffer(&tessellation, fitting)?;
+    let mesh = scaled(
+        mesh,
+        [args.xscale, args.yscale, args.zscale],
+        [args.xtranslate, args.ytranslate, args.ztranslate],
+    );
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+    finish(mesh, args, quiet)
+}
+
+/// Inflates a marching cubes cut of a uniform lattice onto a tessellation.
+///
+/// The lattice is cut along the surface and split into hexahedra, then every
+/// node is fitted onto the surface. No buffer layer is inserted, so the element
+/// count is set by the lattice alone.
+fn inflate(args: MeshArgs, tessellation: Tessellation, quiet: bool) -> Result<(), ErrorWrapper> {
+    let spacing = args
+        .uniform
+        .expect("inflation requires a uniform lattice spacing");
+    crate::echo!(
+        quiet,
+        "     \x1b[1;96mMeshing\x1b[0m hexahedra uniformly, inflated onto geometry"
+    );
+    let time = Instant::now();
+    let mesh = tessellation.marching_hex(
+        Length::meters(spacing),
+        Marching {
+            placement: Placement::Crossing(0.2),
+            finish: Finish::Fit(Freedom::Whole),
+        },
+    )?;
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],
