@@ -125,6 +125,10 @@ pub struct MeshArgs {
     #[arg(action, long, requires = "uniform")]
     pub inflate: bool,
 
+    /// Cuts the uniform lattice with marching cubes, leaving the boundary as cut (stl)
+    #[arg(action, conflicts_with = "inflate", long, requires = "uniform")]
+    pub marching: bool,
+
     /// Snaps the buffer layer onto the surface instead of a soft fit
     #[arg(action, long)]
     pub snap: bool,
@@ -275,13 +279,8 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mut time = Instant::now();
     let tessellation = Tessellation::try_from(Path::new(&args.input))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    if args.inflate && args.snap {
-        return Err(ErrorWrapper::from(
-            "Inflation adds no buffer layer, so snap does not apply",
-        ));
-    }
-    if args.inflate {
-        return inflate(args, tessellation, quiet);
+    if args.inflate || args.marching {
+        return marching_hex(args, tessellation, quiet);
     }
     let fitting = if args.snap {
         Fitting::Snap
@@ -349,25 +348,49 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     finish(mesh, args, quiet)
 }
 
-/// Inflates a marching cubes cut of a uniform lattice onto a tessellation.
+/// Cuts a uniform lattice with marching cubes along a tessellation.
 ///
-/// The lattice is cut along the surface and split into hexahedra, then every
-/// node is fitted onto the surface. No buffer layer is inserted, so the element
-/// count is set by the lattice alone.
-fn inflate(args: MeshArgs, tessellation: Tessellation, quiet: bool) -> Result<(), ErrorWrapper> {
+/// The lattice is cut along the surface and split into hexahedra. Under
+/// `--inflate` every node is then fitted onto the surface, and the boundary is
+/// snapped onto it under `--snap`. Under `--marching` the boundary is left as
+/// cut. No buffer layer is inserted, so the element count is set by the
+/// lattice alone.
+fn marching_hex(
+    args: MeshArgs,
+    tessellation: Tessellation,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    if args.marching && args.snap {
+        return Err(ErrorWrapper::from(
+            "Snapping applies to an inflated mesh, not one left as cut",
+        ));
+    }
     let spacing = args
         .uniform
-        .expect("inflation requires a uniform lattice spacing");
+        .expect("marching cubes requires a uniform lattice spacing");
+    let boundary = if args.inflate {
+        Finish::Fit(
+            Freedom::Whole,
+            if args.snap {
+                Fitting::Snap
+            } else {
+                Fitting::Soft
+            },
+        )
+    } else {
+        Finish::Cut
+    };
     crate::echo!(
         quiet,
-        "     \x1b[1;96mMeshing\x1b[0m hexahedra uniformly, inflated onto geometry"
+        "     \x1b[1;96mMeshing\x1b[0m hexahedra uniformly with marching cubes{}",
+        if args.inflate { ", inflated" } else { "" }
     );
     let time = Instant::now();
     let mesh = tessellation.marching_hex(
         Length::meters(spacing),
         Marching {
             placement: Placement::Crossing(0.2),
-            finish: Finish::Fit(Freedom::Whole),
+            finish: boundary,
         },
     )?;
     let mesh = scaled(

@@ -166,6 +166,66 @@ fn mesh_hex_uniform_inflated_to_vtu() {
 }
 
 #[test]
+fn mesh_hex_uniform_inflated_and_snapped_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--uniform",
+        "0.35",
+        "--inflate",
+        "--snap",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_hex_uniform_marching_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--uniform",
+        "0.35",
+        "--marching",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_marching_conflicts_are_rejected() {
+    for extra in [
+        &["--uniform", "0.35", "--marching", "--inflate"][..],
+        &["--uniform", "0.35", "--marching", "--snap"][..],
+        &["--marching"][..],
+    ] {
+        let output = out("vtu");
+        let status = Command::new(BIN)
+            .args([
+                "mesh",
+                "hex",
+                "-i",
+                sphere().to_str().unwrap(),
+                "-o",
+                output.to_str().unwrap(),
+            ])
+            .args(extra)
+            .arg("--quiet")
+            .status()
+            .expect("failed to spawn automesh");
+        assert!(!status.success(), "accepted {extra:?}");
+    }
+}
+
+#[test]
 fn mesh_inflate_requires_uniform() {
     let output = out("vtu");
     let status = Command::new(BIN)
