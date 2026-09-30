@@ -134,7 +134,8 @@ pub struct MeshArgs {
     pub snap: bool,
 
     /// Replaces shell hexahedra below this minimum scaled Jacobian along
-    /// features with pyramids and refits, implying --snap [default: disabled]
+    /// features with pyramids and refits, snapping both fits under --snap
+    /// [default: disabled]
     #[arg(conflicts_with_all = ["inflate", "marching"], long, value_name = "MSJ")]
     pub pyramids: Option<f64>,
 
@@ -287,7 +288,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     if args.inflate || args.marching {
         return marching_hex(args, tessellation, quiet);
     }
-    let fitting = if args.snap || args.pyramids.is_some() {
+    let fitting = if args.snap {
         Fitting::Snap
     } else {
         Fitting::Soft

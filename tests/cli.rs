@@ -225,9 +225,8 @@ fn mesh_marching_conflicts_are_rejected() {
     }
 }
 
-/// `--pyramids` implies `--snap`, so it needs no companion flag to run.
 #[test]
-fn mesh_hex_uniform_pyramids_implies_snap() {
+fn mesh_hex_uniform_pyramids_snapped_to_vtu() {
     let output = out("vtu");
     run(&[
         "mesh",
@@ -240,6 +239,7 @@ fn mesh_hex_uniform_pyramids_implies_snap() {
         "0.2",
         "--pyramids",
         "0.3",
+        "--snap",
     ]);
     assert_nonempty(&output);
 }
