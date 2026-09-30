@@ -133,6 +133,11 @@ pub struct MeshArgs {
     #[arg(action, long)]
     pub snap: bool,
 
+    /// Replaces shell hexahedra below this minimum scaled Jacobian along
+    /// features with pyramids and refits, implying --snap [default: disabled]
+    #[arg(conflicts_with_all = ["inflate", "marching"], long, value_name = "MSJ")]
+    pub pyramids: Option<f64>,
+
     /// Level difference allowed between neighboring octree cells (poly)
     #[arg(long, default_value_t = 1, short = 'l', value_name = "NUM")]
     pub levels: usize,
@@ -282,7 +287,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     if args.inflate || args.marching {
         return marching_hex(args, tessellation, quiet);
     }
-    let fitting = if args.snap {
+    let fitting = if args.snap || args.pyramids.is_some() {
         Fitting::Snap
     } else {
         Fitting::Soft
@@ -332,7 +337,11 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         "   \x1b[1;96mBuffering\x1b[0m hexahedra onto geometry"
     );
     time = Instant::now();
-    let mesh = mesh.buffer(&tessellation, fitting)?;
+    let mesh = if let Some(threshold) = args.pyramids {
+        mesh.buffer_targeted(&tessellation, fitting, threshold)?
+    } else {
+        mesh.buffer(&tessellation, fitting)?
+    };
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],

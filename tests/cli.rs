@@ -225,6 +225,68 @@ fn mesh_marching_conflicts_are_rejected() {
     }
 }
 
+/// `--pyramids` implies `--snap`, so it needs no companion flag to run.
+#[test]
+fn mesh_hex_uniform_pyramids_implies_snap() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--uniform",
+        "0.2",
+        "--pyramids",
+        "0.3",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_hex_adaptive_pyramids_to_vtu() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--scale",
+        "3",
+        "--pyramids",
+        "0.3",
+    ]);
+    assert_nonempty(&output);
+}
+
+#[test]
+fn mesh_pyramids_conflicts_with_marching_and_inflate() {
+    for flag in ["--marching", "--inflate"] {
+        let output = out("vtu");
+        let status = Command::new(BIN)
+            .args([
+                "mesh",
+                "hex",
+                "-i",
+                sphere().to_str().unwrap(),
+                "-o",
+                output.to_str().unwrap(),
+                "--uniform",
+                "0.2",
+                "--pyramids",
+                "0.3",
+                flag,
+            ])
+            .arg("--quiet")
+            .status()
+            .expect("failed to spawn automesh");
+        assert!(!status.success(), "pyramids accepted {flag}");
+    }
+}
+
 #[test]
 fn mesh_inflate_requires_uniform() {
     let output = out("vtu");
