@@ -371,42 +371,49 @@ fn marching_hex(
     let size = args
         .uniform
         .expect("marching cubes requires a uniform element size");
-    let boundary = if args.inflate {
-        Finish::Fit(
-            Freedom::Whole,
-            if args.snap {
-                Fitting::Snap
-            } else {
-                Fitting::Soft
-            },
-        )
-    } else {
-        Finish::Cut
-    };
-    crate::echo!(
-        quiet,
-        "     \x1b[1;96mMeshing\x1b[0m hexahedra uniformly with marching cubes{}",
-        if args.inflate { ", inflated" } else { "" }
-    );
-    let time = Instant::now();
-    let mesh = tessellation.marching_hex(
+    crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m hexahedra uniformly");
+    let mut time = Instant::now();
+    let mut mesh = tessellation.marching_hex(
         Length::meters(size * 2.0),
         Marching {
             placement: Placement::Crossing(0.2),
-            finish: boundary,
+            finish: Finish::Cut,
         },
     )?;
-    let mesh = scaled(
-        mesh,
-        [args.xscale, args.yscale, args.zscale],
-        [args.xtranslate, args.ytranslate, args.ztranslate],
-    );
     crate::echo!(
         quiet,
         "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
         time.elapsed(),
         mesh.number_of_elements(),
         mesh.number_of_nodes()
+    );
+    if args.inflate {
+        crate::echo!(
+            quiet,
+            "  \x1b[1;96mInflating\x1b[0m hexahedra onto geometry"
+        );
+        time = Instant::now();
+        mesh.inflate(
+            &tessellation,
+            Freedom::Whole,
+            if args.snap {
+                Fitting::Snap
+            } else {
+                Fitting::Soft
+            },
+        )?;
+        crate::echo!(
+            quiet,
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+            time.elapsed(),
+            mesh.number_of_elements(),
+            mesh.number_of_nodes()
+        );
+    }
+    let mesh = scaled(
+        mesh,
+        [args.xscale, args.yscale, args.zscale],
+        [args.xtranslate, args.ytranslate, args.ztranslate],
     );
     finish(mesh, args, quiet)
 }
