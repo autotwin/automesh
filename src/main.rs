@@ -76,6 +76,7 @@ struct Args {
 }
 
 #[derive(Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
     /// Partitions a mesh and agglomerates each part into one polyhedral element
     Agglomerate(AgglomerateArgs),

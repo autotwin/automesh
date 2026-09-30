@@ -10,7 +10,9 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::{Gradient, MarchingCubes, Voxels},
-        mesh::{Class, Connectivity, Fitting, Mesh, Tessellation},
+        mesh::{
+            Class, Connectivity, Finish, Fitting, Freedom, Marching, Mesh, Placement, Tessellation,
+        },
         ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
         segmentation::Segmentation,
     },
@@ -107,7 +109,7 @@ pub struct MeshArgs {
     #[arg(long, default_value_t = 5.0, short = 's', value_name = "SCALE")]
     pub scale: f64,
 
-    /// Uniform lattice of the given cell size instead of an octree (stl)
+    /// Uniform mesh of the given element size instead of an octree (stl)
     #[arg(long, short = 'u', value_name = "SPACING")]
     pub uniform: Option<f64>,
 
@@ -119,9 +121,23 @@ pub struct MeshArgs {
     #[arg(action, long)]
     pub strong: bool,
 
+    /// Cuts the uniform lattice with marching cubes and inflates it onto the surface (stl)
+    #[arg(action, long, requires = "uniform")]
+    pub inflate: bool,
+
+    /// Cuts the uniform lattice with marching cubes, leaving the boundary as cut (stl)
+    #[arg(action, conflicts_with = "inflate", long, requires = "uniform")]
+    pub marching: bool,
+
     /// Snaps the buffer layer onto the surface instead of a soft fit
     #[arg(action, long)]
     pub snap: bool,
+
+    /// Replaces shell hexahedra below this minimum scaled Jacobian along
+    /// features with pyramids and refits, snapping both fits under --snap
+    /// [default: disabled]
+    #[arg(conflicts_with_all = ["inflate", "marching"], long, value_name = "MSJ")]
+    pub pyramids: Option<f64>,
 
     /// Level difference allowed between neighboring octree cells (poly)
     #[arg(long, default_value_t = 1, short = 'l', value_name = "NUM")]
@@ -269,6 +285,9 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mut time = Instant::now();
     let tessellation = Tessellation::try_from(Path::new(&args.input))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    if args.inflate || args.marching {
+        return marching_hex(args, tessellation, quiet);
+    }
     let fitting = if args.snap {
         Fitting::Snap
     } else {
@@ -319,7 +338,11 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         "   \x1b[1;96mBuffering\x1b[0m hexahedra onto geometry"
     );
     time = Instant::now();
-    let mesh = mesh.buffer(&tessellation, fitting)?;
+    let mesh = if let Some(threshold) = args.pyramids {
+        mesh.buffer_targeted(&tessellation, fitting, threshold)?
+    } else {
+        mesh.buffer(&tessellation, fitting)?
+    };
     let mesh = scaled(
         mesh,
         [args.xscale, args.yscale, args.zscale],
@@ -331,6 +354,76 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         time.elapsed(),
         mesh.number_of_elements(),
         mesh.number_of_nodes()
+    );
+    finish(mesh, args, quiet)
+}
+
+/// Cuts a uniform lattice with marching cubes along a tessellation.
+///
+/// The lattice is cut along the surface and split into hexahedra. Under
+/// `--inflate` every node is then fitted onto the surface, and the boundary is
+/// snapped onto it under `--snap`. Under `--marching` the boundary is left as
+/// cut. No buffer layer is inserted, so the element count is set by the
+/// lattice alone.
+///
+/// Each lattice cell is split into eight hexahedra, so the lattice is laid at
+/// twice the requested element size.
+fn marching_hex(
+    args: MeshArgs,
+    tessellation: Tessellation,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
+    if args.marching && args.snap {
+        return Err(ErrorWrapper::from(
+            "Snapping applies to an inflated mesh, not one left as cut",
+        ));
+    }
+    let size = args
+        .uniform
+        .expect("marching cubes requires a uniform element size");
+    crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m hexahedra uniformly");
+    let mut time = Instant::now();
+    let mut mesh = tessellation.marching_hex(
+        Length::meters(size * 2.0),
+        Marching {
+            placement: Placement::Crossing(0.2),
+            finish: Finish::Cut,
+        },
+    )?;
+    crate::echo!(
+        quiet,
+        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+        time.elapsed(),
+        mesh.number_of_elements(),
+        mesh.number_of_nodes()
+    );
+    if args.inflate {
+        crate::echo!(
+            quiet,
+            "   \x1b[1;96mInflating\x1b[0m hexahedra onto geometry"
+        );
+        time = Instant::now();
+        mesh.inflate(
+            &tessellation,
+            Freedom::Whole,
+            if args.snap {
+                Fitting::Snap
+            } else {
+                Fitting::Soft
+            },
+        )?;
+        crate::echo!(
+            quiet,
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
+            time.elapsed(),
+            mesh.number_of_elements(),
+            mesh.number_of_nodes()
+        );
+    }
+    let mesh = scaled(
+        mesh,
+        [args.xscale, args.yscale, args.zscale],
+        [args.xtranslate, args.ytranslate, args.ztranslate],
     );
     finish(mesh, args, quiet)
 }
