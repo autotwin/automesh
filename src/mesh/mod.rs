@@ -109,7 +109,7 @@ pub struct MeshArgs {
     #[arg(long, default_value_t = 5.0, short = 's', value_name = "SCALE")]
     pub scale: f64,
 
-    /// Uniform lattice of the given cell size instead of an octree (stl)
+    /// Uniform mesh of the given element size instead of an octree (stl)
     #[arg(long, short = 'u', value_name = "SPACING")]
     pub uniform: Option<f64>,
 
@@ -355,6 +355,9 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
 /// snapped onto it under `--snap`. Under `--marching` the boundary is left as
 /// cut. No buffer layer is inserted, so the element count is set by the
 /// lattice alone.
+///
+/// Each lattice cell is split into eight hexahedra, so the lattice is laid at
+/// twice the requested element size.
 fn marching_hex(
     args: MeshArgs,
     tessellation: Tessellation,
@@ -365,9 +368,9 @@ fn marching_hex(
             "Snapping applies to an inflated mesh, not one left as cut",
         ));
     }
-    let spacing = args
+    let size = args
         .uniform
-        .expect("marching cubes requires a uniform lattice spacing");
+        .expect("marching cubes requires a uniform element size");
     let boundary = if args.inflate {
         Finish::Fit(
             Freedom::Whole,
@@ -387,7 +390,7 @@ fn marching_hex(
     );
     let time = Instant::now();
     let mesh = tessellation.marching_hex(
-        Length::meters(spacing),
+        Length::meters(size * 2.0),
         Marching {
             placement: Placement::Crossing(0.2),
             finish: boundary,
