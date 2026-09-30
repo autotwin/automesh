@@ -613,83 +613,6 @@ Octa-Loop level 7 (right).  The marching cubes mesh has several small dark
 clusters of poor elements; neither control does.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
-**Octa-Loop level 3:**
-
-1. The Octa-Loop level 3 mesh (center panel) is visibly not symmetric across
-   the $xy$, $yz$, and $zx$ planes, unlike the other meshes on this page.
-2. The input STL itself, `octa_loop03.stl`, is perfectly symmetric.
-   Reflecting every vertex
-   across each axis finds an exact match on the surface, at every axis.
-   *The asymmetry comes from the meshing process, not the geometry.*
-3. The octree's local-thickness sizing is the source.  `conspire`'s shape
-   diameter function estimates thickness at each facet by casting a cone
-   of rays inward.  The cone is oriented by a tangent frame built from the
-   facet's normal.
-4. That tangent frame comes from an orthonormal-basis construction.  It
-   builds the frame with Gram-Schmidt, seeded from the fixed global axes
-   $x$, $y$, and $z$, in that order.  The construction has nothing to do
-   with the local surface.
-5. This construction is not equivariant under reflection.  A facet normal
-   and its exact mirror image do not receive mirrored tangent frames.
-6. The ray samples are discrete, only 3 rings and 10 azimuthal directions
-   per facet.  A mirror-symmetric pair of facets can then sample different
-   points on the surface, and measure different local thickness.
-7. Different thickness estimates drive different octree refinement
-   decisions on each side.  That breaks a symmetry the input geometry
-   actually has.
-8. The effect shrinks fast with resolution.  The same reflection test on
-   the level 7 control gives a maximum mismatch of 0.0143, down from 0.235
-   to 0.273 at level 3.  Only 1% of its nodes are affected, against 96% to
-   100% at level 3.
-9. One detail points straight at the mechanism.  At level 3, the
-   $z$-reflection mismatch (0.273) is larger than the $x$ or $y$ mismatch
-   (0.235).  The Gram-Schmidt seed order tries $x$ and $y$ first and $z$
-   last, so $z$ is the axis most likely to be singled out.
-10. A fix belongs in `conspire`, not `automesh`.  `automesh`'s CLI has no
-    option that reaches this code path.
-11. Two changes would help.
-    <ol type="a">
-    <li>Seed the tangent frame from something tied to the local mesh,
-    instead of the global axes.</li>
-    <li>Raise the ring and azimuthal sample counts, fixed today at 3 and
-    10, so the discrete sampling better approximates the continuous,
-    symmetric integral.</li>
-    </ol>
-12. No fix can make every normal's tangent frame equivariant at once.  The
-    hairy ball theorem rules that out, for any continuous tangent field on
-    a sphere of directions.  But the current choice ties that one
-    unavoidable discontinuity to the world axes.  That is exactly what
-    biases this octahedron-derived surface, since its own symmetry axes
-    happen to line up with the world axes.
-
-**Octa-Loop level 7:**
-
-1. `octa_loop07.stl` is also exactly symmetric.  The same reflection test
-   finds a maximum mismatch of $10^{-7}$, floating-point noise, at every
-   axis.  So the level 7 control's own small remaining asymmetry (Octa-Loop
-   level 3, item 8, a maximum mismatch of 0.0143) also comes from the
-   meshing process, not the input.
-2. The same mechanism applies here as at level 3 (item 4).  The octree's
-   local-thickness sizing depends on a per-facet tangent frame that is
-   not equivariant under reflection.  A finer surface approximates the
-   underlying continuous, symmetric integral more closely, which is why
-   the effect is far weaker here than at level 3, but it does not
-   vanish.
-
-**Observations:**
-
-* The asymmetry is real, not numerical noise.  A perfectly symmetric input
-  produces a mesh that is not.
-* It is a resolution effect, not a fixed error.  The maximum reflection
-  mismatch falls from 0.235–0.273 at level 3 to 0.0143 at level 7, a
-  17 to 19 times reduction.
-* It has one identifiable cause: `orthonormal_basis`'s Gram-Schmidt
-  seeding from the fixed global axes, not from the local surface.  The
-  fixed seed order also explains why $z$ is singled out at level 3.
-* The fix belongs in `conspire`.  `automesh`'s CLI has no option that
-  reaches the shape diameter function's sampling, so nothing on the
-  `automesh` side can correct it today.
-
 ![unit_sphere_control_meshes_cut.png](unit_sphere_control_meshes_cut.png)
 
 Figure: A cut through the middle of the same three meshes, at $z = 0$, on
@@ -719,6 +642,220 @@ This bears on the octree only.  `--uniform` builds its mesh directly from a
 fixed-size lattice and never calls the octree or the shape diameter
 function, so it says nothing about why the uniform lattice's own quality
 also lags Sculpt's.
+
+**Octa-Loop level 3:**
+
+**Correction, 2026-09-30.**  Text struck through below states a cause that
+later experiments refuted.  It stays visible for the record.  The
+[Update](#update-2026-09-30) after the Observations gives the evidence.
+[Update 2](#update-2-2026-09-30) corrects two conclusions of that update.
+
+1. The Octa-Loop level 3 mesh (center panel) is visibly not symmetric across
+   the $xy$, $yz$, and $zx$ planes, unlike the other meshes on this page.
+2. The input STL itself, `octa_loop03.stl`, is perfectly symmetric.
+   Reflecting every vertex
+   across each axis finds an exact match on the surface, at every axis.
+   *The asymmetry comes from the meshing process, not the geometry.*
+3. ~~The octree's local-thickness sizing is the source.~~  `conspire`'s shape
+   diameter function estimates thickness at each facet by casting a cone
+   of rays inward.  The cone is oriented by a tangent frame built from the
+   facet's normal.
+4. That tangent frame comes from an orthonormal-basis construction.  It
+   builds the frame with Gram-Schmidt, seeded from the fixed global axes
+   $x$, $y$, and $z$, in that order.  The construction has nothing to do
+   with the local surface.
+5. ~~This construction is not equivariant under reflection.  A facet normal
+   and its exact mirror image do not receive mirrored tangent frames.~~
+6. ~~The ray samples are discrete, only 3 rings and 10 azimuthal directions
+   per facet.  A mirror-symmetric pair of facets can then sample different
+   points on the surface, and measure different local thickness.~~
+7. ~~Different thickness estimates drive different octree refinement
+   decisions on each side.  That breaks a symmetry the input geometry
+   actually has.~~
+8. The effect shrinks fast with resolution.  The same reflection test on
+   the level 7 control gives a maximum mismatch of 0.0143, down from 0.235
+   to 0.273 at level 3.  Only 1% of its nodes are affected, against 96% to
+   100% at level 3.
+9. ~~One detail points straight at the mechanism.~~  At level 3, the
+   $z$-reflection mismatch (0.273) is larger than the $x$ or $y$ mismatch
+   (0.235).  ~~The Gram-Schmidt seed order tries $x$ and $y$ first and $z$
+   last, so $z$ is the axis most likely to be singled out.~~
+10. A fix belongs in `conspire`, not `automesh`.  `automesh`'s CLI has no
+    option that reaches this code path.
+11. ~~Two changes would help.~~
+    <ol type="a">
+    <li><del>Seed the tangent frame from something tied to the local mesh,
+    instead of the global axes.</del></li>
+    <li><del>Raise the ring and azimuthal sample counts, fixed today at 3 and
+    10, so the discrete sampling better approximates the continuous,
+    symmetric integral.</del></li>
+    </ol>
+12. ~~No fix can make every normal's tangent frame equivariant at once.  The
+    hairy ball theorem rules that out, for any continuous tangent field on
+    a sphere of directions.  But the current choice ties that one
+    unavoidable discontinuity to the world axes.  That is exactly what
+    biases this octahedron-derived surface, since its own symmetry axes
+    happen to line up with the world axes.~~
+
+**Octa-Loop level 7:**
+
+1. `octa_loop07.stl` is also exactly symmetric.  The same reflection test
+   finds a maximum mismatch of $10^{-7}$, floating-point noise, at every
+   axis.  So the level 7 control's own small remaining asymmetry (Octa-Loop
+   level 3, item 8, a maximum mismatch of 0.0143) also comes from the
+   meshing process, not the input.
+2. ~~The same mechanism applies here as at level 3 (item 4).  The octree's
+   local-thickness sizing depends on a per-facet tangent frame that is
+   not equivariant under reflection.  A finer surface approximates the
+   underlying continuous, symmetric integral more closely, which is why
+   the effect is far weaker here than at level 3, but it does not
+   vanish.~~
+
+**Observations:**
+
+* ~~The asymmetry is real, not numerical noise.~~  A perfectly symmetric input
+  produces a mesh that is not.
+* It is a resolution effect, not a fixed error.  The maximum reflection
+  mismatch falls from 0.235–0.273 at level 3 to 0.0143 at level 7, a
+  17 to 19 times reduction.
+* ~~It has one identifiable cause: `orthonormal_basis`'s Gram-Schmidt
+  seeding from the fixed global axes, not from the local surface.  The
+  fixed seed order also explains why $z$ is singled out at level 3.~~
+* The fix belongs in `conspire`.  `automesh`'s CLI has no option that
+  reaches the shape diameter function's sampling, so nothing on the
+  `automesh` side can correct it today.
+
+#### Update, 2026-09-30
+
+Later experiments refute the cause stated above.  This update records the
+measurements.  The original text stays in place, struck through.
+
+A probe build of `conspire` 0.7.7, the version this book builds against,
+ran the stages of `automesh mesh hex` one at a time.  The probe used the
+defaults: scale 5, weak balancing at 1, and regular pairing.  After each
+stage, it reflected every node across each axis and measured the distance
+to the nearest node.  The probe build is a scratch copy and is not
+committed.  The measurement reproduces the numbers above: 0.2348, 0.2348,
+and 0.2725 at level 3, and 0.0143 at level 7.
+
+1. **The shape diameter function is symmetric.**  On `octa_loop03.stl`, the
+   values at mirror vertices differ by at most $4 \times 10^{-10}$, the size
+   of the vertex noise.  Sampling 6 rings by 20 azimuthal directions, in
+   place of 3 by 10, gives $4.5 \times 10^{-10}$.  On a copy of the
+   STL snapped to exactly symmetric coordinates, the difference is
+   $7 \times 10^{-16}$.  A hand derivation agrees.  The Gram-Schmidt frames
+   of two mirror facets differ only by sign, and each sign change maps the
+   ten azimuthal samples onto themselves.
+2. **The octree is symmetric.**  At level 3, `from_features`,
+   `equilibrate`, `dualize`, and `trim` give a mirror mismatch of exactly
+   0.  The mesh has 343 elements after `dualize` and 33 after `trim`.
+   Level 7 also gives exactly 0 at the same stages, with 3,411 and 777
+   elements.
+3. **The asymmetry enters in `buffer`.**  `buffer` removes elements, adds
+   one layer of hexahedra, and runs an optimizer called `fit`.  The mesh
+   stays exactly symmetric through the removal and the layer, at 168 nodes
+   for level 3.  After the first iteration of `fit`, the mismatch is
+   $5.8 \times 10^{-3}$.  After the first sweep, it is 0.145.  After the
+   last sweep, it is 0.2348 and 0.2725.  At level 7, `buffer` takes the
+   mismatch from 0 to 0.0143.
+4. **Mechanism 1: ties in the surface target.**  `fit` pulls each new
+   boundary node toward the closest surface point to the centroid of its
+   boundary quad.  It uses the normal of the triangle that holds that
+   point.  A centroid on a symmetry plane sits the same distance from two
+   mirror-image triangles.  The search returns one of them.  At level 3,
+   54 of 624 closest-point queries (78 quads times 8 sweeps) have two or
+   more equidistant, distinct closest points.  Mirror targets then differ
+   by up to 0.050 in position and 0.159 in normal.  At the start of `fit`,
+   the gradient of the surface-fit term differs from its mirror image by
+   10.4% of its largest value, $1.68 \times 10^{4}$.  The hex-quality term
+   is equivariant to $7 \times 10^{-16}$.  Averaging the tied points and
+   normals removes the mismatch.  The target mismatch drops to
+   $4 \times 10^{-11}$, and the gradient mismatch drops to
+   $2 \times 10^{-8}$.  After the first iteration, the mesh mismatch
+   falls from $5.8 \times 10^{-3}$ to $1.1 \times 10^{-9}$.
+5. **Mechanism 2: amplification of rounding noise.**  ~~Averaging the ties
+   does not produce a symmetric mesh.~~  On the snapped STL with averaged
+   ties, the gradient is equivariant to $4 \times 10^{-16}$, and the mesh
+   starts exactly symmetric, with a mismatch of $1.1 \times 10^{-16}$
+   after the first iteration.  The first sweep ends at
+   $9.5 \times 10^{-8}$.  The second ends at $7.3 \times 10^{-2}$.  The
+   final mesh has a mismatch of 0.21 to 0.27, the same size as without the
+   fix.  Rounding noise grows by about $10^{9}$ in one sweep.  ~~The
+   symmetric configuration behaves like an unstable point of the `fit`
+   objective.~~
+6. **The octree depth is fragile at level 7.**  Snapping the level 7 STL
+   moves each vertex by at most $5 \times 10^{-7}$.  That changes the
+   smallest positive shape diameter from 0.471 to 1.655, the octree from
+   5 levels to 3, and the mesh from 1,776 nodes to 264.  The octree depth
+   comes from the single smallest positive nodal value, so a few vertices
+   set it.  The cause at those vertices is not yet known.
+
+Items 1, 2, 4, 8, and 10 of the level 3 list stand, with one correction.
+The fix belongs in `conspire`, in `fit` within `buffer`, and not in the
+shape diameter function.  ~~Two questions remain open.  Does a symmetric
+minimum of the `fit` objective exist, and how does its quality compare
+with the 0.384 minimum scaled Jacobian of the asymmetric level 3 mesh?~~
+Does `automesh mesh hex --snap` change the result?
+
+#### Update 2, 2026-09-30
+
+Update 1 ended at a fix that did not work.  Further work on a branch of
+`conspire` corrects two of its conclusions and gives a fix that does.
+The struck-through sentences in item 5 and in the last paragraph of
+Update 1 state the conclusions that this update replaces.
+
+1. **Averaging the ties was enough for Octa-Loop.**  The probe behind
+   Update 1 averaged a tie only when the two closest points were
+   distinct.  It left one case alone.  The closest point can lie on an
+   edge shared by two mirror-image triangles.  Both triangles give the
+   same point and mirror-image normals, and `fit` used one of the two.
+   Late in the fit, the boundary nodes sit on the surface, so this case
+   is common.  The full fix treats every triangle within a tolerance of
+   the nearest as tied.  The tolerance is $10^{-6}$ times the mean
+   distance from the face centroid to its nodes.  It averages the closest
+   points and sums the normals of the tied triangles.  With this change
+   alone, the mirror mismatch of the level 3 mesh falls from 0.2725 to
+   $1.3 \times 10^{-7}$, the size of the STL's coordinate noise.  The
+   minimum scaled Jacobian rises from 0.3836 to 0.5345, and the mean
+   rises from 0.7487 to 0.7674.  At level 7, on `conspire` `main`, the
+   mismatch falls from 0.0143 to $1.8 \times 10^{-7}$, and the minimum
+   rises from 0.4374 to 0.4411.
+2. **Correct targets do not keep every mesh symmetric.**  A subdivided
+   octahedron of 32 facets at octree scale 8 still ends with a mismatch
+   of 0.18 after the tie fix.  Its initial gradient is equivariant to
+   $2 \times 10^{-16}$.  The mismatch grows from $7 \times 10^{-7}$ after
+   sweep 0 to $8 \times 10^{-6}$ after sweep 1, and to $3.6 \times 10^{-2}$
+   after sweep 2, when the regularization reaches $10^{-12}$.  A symmetric
+   solution exists.  Its minimum scaled Jacobian is 0.1724, against 0.1092
+   for the asymmetric one.  Its `fit` objective is higher, 7,636 against
+   6,772.  The optimizer leaves the symmetric state because its own
+   objective is lower elsewhere.
+3. **The fix has two parts.**  Both sit on a local branch of `conspire`,
+   in two commits, and neither is released.  The first part is the tie
+   average.  The second part finds the mirror planes through the center
+   of the mesh's bounding box, and keeps the optimizer on them.  A plane
+   counts only if it maps both the background mesh and the target
+   surface onto themselves.  A mesh with no such plane fits as before.
+4. **Results.**  On 14 symmetric inputs, the mirror mismatch is exactly
+   0, against 0.07 to 0.61 before, and 0.0143 for level 7.  The inputs
+   are Octa-Loop levels 3 and 7, and subdivided octahedra of 32 to 2,048
+   facets at octree scales 3, 5, and 8.  The minimum scaled Jacobian is
+   at or above its old value in all 14, and the mean is at or above it
+   in 13.  Octa-Loop level 3 ends exactly symmetric, with a minimum of
+   0.5345 and a mean of 0.7674.  On marching cubes surfaces of 3,800 to
+   964,568 triangles, the element counts do not change and the mean
+   changes by at most 0.004.  ~~The second closest-point query adds 0% to
+   11% to the meshing time in single runs.~~  A later change walks the
+   search tree once instead of twice.  A tie query then costs 1.08 to 1.15
+   times a nearest-point query, against 1.46 to 1.84 times for two walks.
+   End-to-end times vary from $-3$% to $+12$% in single runs, because the
+   optimizer takes a different path once the targets change.
+5. **Status and limits.**  `automesh` still pins `conspire` 0.7.7, so the
+   tables on this page keep their 0.7.7 values until the fix ships.  Then
+   the scripts must run again.  The constraint covers mirror planes
+   perpendicular to the coordinate axes.  It does not cover rotational
+   symmetry.  The second `fit` of `--snap` runs unconstrained, and the
+   effect of `--snap` has not been measured.
 
 ## Marching Cubes Surface Smoothing
 
