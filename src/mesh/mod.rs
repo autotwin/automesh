@@ -390,7 +390,7 @@ fn marching_hex(
     if args.inflate {
         crate::echo!(
             quiet,
-            "  \x1b[1;96mInflating\x1b[0m hexahedra onto geometry"
+            "   \x1b[1;96mInflating\x1b[0m hexahedra onto geometry"
         );
         time = Instant::now();
         mesh.inflate(
