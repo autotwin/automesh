@@ -76,6 +76,7 @@ struct Args {
 }
 
 #[derive(Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
     /// Partitions a mesh and agglomerates each part into one polyhedral element
     Agglomerate(AgglomerateArgs),
@@ -186,7 +187,7 @@ enum Commands {
     /// Creates a finite element mesh from a segmentation
     Mesh {
         #[command(subcommand)]
-        subcommand: Box<MeshSubcommand>,
+        subcommand: MeshSubcommand,
     },
 
     /// Quality metrics for an existing finite element mesh
@@ -275,7 +276,7 @@ fn main() -> Result<(), ErrorWrapper> {
         }) => extract(
             input, output, nelx, nely, nelz, xmin, xmax, ymin, ymax, zmin, zmax, quiet,
         ),
-        Some(Commands::Mesh { subcommand }) => match *subcommand {
+        Some(Commands::Mesh { subcommand }) => match subcommand {
             MeshSubcommand::Hex(args) => mesh::mesh(Element::Hexahedra, args, quiet),
             MeshSubcommand::Hexdom(args) => mesh::mesh(Element::HexDominant, args, quiet),
             MeshSubcommand::Poly(args) => mesh::mesh(Element::Polyhedra, args, quiet),
