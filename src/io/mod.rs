@@ -11,7 +11,20 @@ use conspire::{
 use std::{path::Path, time::Instant};
 
 pub fn extension(file: &str) -> Option<&str> {
-    Path::new(file).extension().and_then(|ext| ext.to_str())
+    let extension = Path::new(file).extension().and_then(|ext| ext.to_str())?;
+    if matches!(extension, "e" | "exo") || is_decomposed_exodus(file) {
+        Some("exo")
+    } else {
+        Some(extension)
+    }
+}
+
+fn is_decomposed_exodus(file: &str) -> bool {
+    let mut parts = file.rsplit('.');
+    let is_number = |part: Option<&str>| {
+        part.is_some_and(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()))
+    };
+    is_number(parts.next()) && is_number(parts.next()) && matches!(parts.next(), Some("e" | "exo"))
 }
 
 pub fn invalid_input(file: &str, extension: Option<&str>) -> ErrorWrapper {
@@ -174,4 +187,24 @@ pub fn write_segmentation(
     }
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use super::extension;
+
+    #[test]
+    fn exodus_names() {
+        for file in ["a.exo", "a.e", "a.e.1.0", "dir.d/a.e.16.03", "a.exo.2.1"] {
+            assert_eq!(extension(file), Some("exo"), "{file}");
+        }
+    }
+
+    #[test]
+    fn other_names() {
+        assert_eq!(extension("a.inp"), Some("inp"));
+        assert_eq!(extension("a.1.0"), Some("0"));
+        assert_eq!(extension("a.e.x.0"), Some("0"));
+        assert_eq!(extension("a"), None);
+    }
 }
