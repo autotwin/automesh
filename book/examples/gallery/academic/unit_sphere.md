@@ -605,13 +605,14 @@ figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 | Octa-Loop level 3, before fix | 0.7.7 | 512 | 0.23492 | 111 | 0.384 | 0.749 |
 | Octa-Loop level 3, after fix | fix | 512 | 0.23492 | 111 | 0.534 | 0.767 |
 | Octa-Loop level 7, before fix | 0.7.7 | 131,072 | 0.01473 | 1,415 | 0.439 | 0.816 |
-| Octa-Loop level 7, after fix | fix | 131,072 | 0.01473 | 1,415 | 0.441 | 0.816 |
+| Octa-Loop level 7, after fix | fix | 131,072 | 0.01473 | 111 | 0.548 | 0.774 |
 
 The before-fix rows and figures come from `conspire` 0.7.7.  The after-fix
-rows and figures come from a build of `conspire` with the fix of
-[Update 2](#update-2-2026-09-30), which is not yet released.  The marching
-cubes mesh comes from 0.7.7 in both sets.  See
-[Update 3](#update-3-2026-09-30).
+rows and figures come from a build of `conspire` with the fixes of
+[Update 2](#update-2-2026-09-30) and [Update 4](#update-4-2026-09-30), which
+are not yet released.  The marching cubes mesh comes from 0.7.7 in both sets.
+See [Update 3](#update-3-2026-09-30).  Level 7 changes again in Update 4, from
+1,415 elements to 111.
 
 **Before the fix (`conspire` 0.7.7).**
 
@@ -649,7 +650,8 @@ Figure: The same three meshes after the fix.  The marching cubes mesh on the
 left is unchanged, from `conspire` 0.7.7.  The Octa-Loop level 3 mesh (center)
 is now symmetric across the coordinate planes, and its minimum scaled
 Jacobian rises from 0.384 to 0.534.  Level 7 (right) is also symmetric, and
-its quality changes by 0.002 in the minimum.  The figure is produced by
+its octree is coarser: 111 elements where it had 1,415 (see
+[Update 4](#update-4-2026-09-30)).  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ![unit_sphere_control_meshes_cut.png](unit_sphere_control_meshes_cut.png)
@@ -686,7 +688,7 @@ also lags Sculpt's.
 | Octa-Loop level 3, before fix | 0.7.7 | 111 | 0.384 | 0.749 |
 | Octa-Loop level 3, after fix | fix | 111 | 0.534 | 0.767 |
 | Octa-Loop level 7, before fix | 0.7.7 | 1,415 | 0.439 | 0.816 |
-| Octa-Loop level 7, after fix | fix | 1,415 | 0.441 | 0.816 |
+| Octa-Loop level 7, after fix | fix | 111 | 0.548 | 0.774 |
 
 **Octa-Loop level 3:**
 
@@ -696,7 +698,8 @@ later experiments refuted.  It stays visible for the record.  The
 [Update 2](#update-2-2026-09-30) corrects two conclusions of that update.
 Everything in the two Octa-Loop lists and the Observations describes
 `conspire` 0.7.7 and the before-fix figures.  The table and the figures above
-also show the fix, from [Update 3](#update-3-2026-09-30).
+also show the fix, from [Update 3](#update-3-2026-09-30) and
+[Update 4](#update-4-2026-09-30).
 
 1. The Octa-Loop level 3 mesh (center panel) is visibly not symmetric across
    the $xy$, $yz$, and $zx$ planes, unlike the other meshes on this page.
@@ -922,12 +925,15 @@ the rerun, the installed `automesh` reproduced the old rows exactly: 111
 elements with 0.384 and 0.749 at level 3, and 1,415 with 0.439 and 0.816 at
 level 7.
 
+In this update, "fit fix" means the fix of Update 2.  Update 4 adds a second
+fix.
+
 | mesh | `conspire` | elements | MSJ min | MSJ mean | max edge ratio | max skew | mirror mismatch |
 | :--- | :--- | ---: | ---: | ---: | ---: | ---: | :--- |
 | Octa-Loop level 3 | 0.7.7 | 111 | 0.384 | 0.749 | 4.22 | 0.481 | 0.2348, 0.2348, 0.2725 |
-| Octa-Loop level 3 | fix | 111 | **0.534** | **0.767** | 4.15 | 0.300 | **0, 0, 0** |
+| Octa-Loop level 3 | fit fix | 111 | **0.534** | **0.767** | 4.15 | 0.300 | **0, 0, 0** |
 | Octa-Loop level 7 | 0.7.7 | 1,415 | 0.439 | 0.816 | 3.61 | 0.679 | 0.0143, 0.0143, 0.0143 |
-| Octa-Loop level 7 | fix | 1,415 | 0.441 | 0.816 | 3.60 | 0.678 | **0, 0, 0** |
+| Octa-Loop level 7 | fit fix | 1,415 | 0.441 | 0.816 | 3.60 | 0.678 | **0, 0, 0** |
 
 The mirror mismatch is the largest distance from a reflected node to the
 nearest node, for the $x$, $y$, and $z$ reflections, measured on the nodes
@@ -938,9 +944,11 @@ that `automesh` wrote.
    by 0.018, and the largest skew falls from 0.481 to 0.300.  The element
    count does not change.  The center panel of the first after-fix figure
    shows the symmetric mesh.
-2. **Level 7 changes in symmetry only.**  The mismatch falls from 0.0143 to
+2. ~~**Level 7 changes in symmetry only.**  The mismatch falls from 0.0143 to
    exactly 0.  The quality changes by 0.002 in the minimum and not at all in
-   the mean.
+   the mean.~~  The mismatch does fall from 0.0143 to exactly 0, and the
+   quality changes by 0.002 in the minimum with the fit fix alone.  A second
+   defect, in [Update 4](#update-4-2026-09-30), changes level 7 much more.
 3. **Level 3 gets less accurate in volume.**  The input surface encloses
    4.0926, which is 2.30% below the exact $4\pi/3 \approx 4.1888$.  The old
    mesh encloses 4.1909, which is 2.40% above the surface and 0.05% above the
@@ -959,6 +967,81 @@ that `automesh` wrote.
    panel titles, it reproduced the three before-fix figures that were
    committed to this repository, byte for byte.  The titles of both sets now
    say "before fix" or "after fix."
+
+#### Update 4, 2026-09-30
+
+A reader noticed that the Octa-Loop level 7 mesh refines more near one pair of
+opposite poles than near the other two.  The surface is symmetric under every
+swap of the axes, so all six poles should match.  They did not, before the fit
+fix and after it.  A second defect in `conspire` causes this.  The released
+0.7.8 has it too.
+
+1. **The pattern.**  Within 25° of each pole, the before-fix mesh has 231
+   elements at $+x$ and at $-x$.  It has 39, 39, 39, and 40 at $+y$, $-y$, $+z$,
+   and $-z$.  The smallest element volume near $\pm x$ is 0.00022, against
+   0.0032 near the other poles.  The fit fix leaves this pattern: 231, 231, 39,
+   39, 40, and 39.  The input is not the cause.  Swapping any two axes maps its
+   vertices onto vertices within $10^{-7}$, and the four facets at each pole
+   have the same area, $2.771 \times 10^{-6}$.  By the node coordinates, the
+   refined pair is $\pm x$.
+2. **The cause: rays lost in the shape diameter function.**  The function casts
+   31 rays from the centroid of each facet and drops any hit on the facet
+   itself.  The search returns only the nearest hit.  A facet that stands nearly
+   perpendicular to a coordinate axis accepts its own plane at
+   $t \approx 4 \times 10^{-17}$, because the ray test scales its tolerance with
+   the facet's extent along that axis.  That hit is the nearest, so the filter
+   drops the ray and the real hit, 2.0 away, is never reported.  At the four
+   facets of each $\pm x$ pole, all 31 rays are lost.  At each facet of the
+   other poles, 30 of 31 are lost and 1 survives.  A facet with no rays gets
+   thickness 0.
+3. **The effect on the octree.**  The shape diameter at the $\pm x$ pole
+   vertices is 0.0000, and it is 0.4713 on the next ring.  The valid value is
+   1.8953, and the other poles reach 1.4136 at the lowest.  The octree takes its
+   depth from the smallest positive value.  So it gets 5 levels where 3 suffice,
+   and it refines most around $\pm x$.
+4. **The fix.**  A new search returns the nearest hit on any facet but one, and
+   the shape diameter function uses it, so the facet that casts the ray is never
+   a candidate.  The shape diameter is then 1.8953 to 1.8954 at all six poles.
+   The largest difference between a vertex and its axis-swapped partner falls
+   from 1.4136 to 0.0000.
+
+| level 7 mesh | elements | MSJ min | MSJ mean | max edge ratio | max skew | volume | elements within 25° of $+x$, $-x$, $+y$, $-y$, $+z$, $-z$ | axis-swap mismatch |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | :--- | ---: |
+| before fix, `conspire` 0.7.7 | 1,415 | 0.439 | 0.816 | 3.61 | 0.679 | 4.2036 | 231, 231, 39, 39, 39, 40 | 0.132 |
+| fit fix only | 1,415 | 0.441 | 0.816 | 3.60 | 0.678 | 4.2039 | 231, 231, 39, 39, 40, 39 | 0.134 |
+| both fixes | 111 | 0.548 | 0.774 | 3.75 | 0.375 | 4.3067 | 7, 7, 7, 7, 7, 8 | 0.000 |
+
+The axis-swap mismatch is the largest distance from an element center to the
+nearest element center after swapping two axes.  The 8 at $-z$ is one element
+center on the 25° boundary, and the 0.000 shows that the element set is the same
+under every swap.
+
+![unit_sphere_level7.png](unit_sphere_level7.png)
+
+Figure: The three Octa-Loop level 7 meshes, painted by the minimum scaled
+Jacobian, in the same view as the figures above.  Left: before the fix.  Center:
+the fit fix only.  The small elements crowd the limbs, where the $\pm x$ poles
+sit.  Right: both fixes.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+![unit_sphere_level7_cut.png](unit_sphere_level7_cut.png)
+
+Figure: A cut through the middle of the same three meshes, at $z = 0$.  The
+figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+5. **A cost.**  The level 7 mesh now has 111 elements, the same count as the
+   level 3 mesh.  Its volume is 4.3067, which is 2.8% above the exact
+   $4\pi/3 \approx 4.1888$.  Before, it was 4.2036, which is 0.36% above.  The
+   extra refinement had improved the volume by accident.  The level 3 mesh is
+   0.71% above.
+6. **What does not change.**  The Octa-Loop level 3 mesh is the same, with 111
+   elements and the same quality.  The shape diameter fix does not change the
+   marching cubes $n = 160$ mesh either.  With that fix alone, the mesh has the
+   same 25,815 elements, quality, and mirror mismatch as with the released
+   `conspire`.  The marching cubes results on this page stand.
+7. **Status.**  The fix is a separate change on a local branch of `conspire`, and
+   it is not released.  The after-fix rows of the table and the after-fix
+   figures above use both fixes.
 
 ## Marching Cubes Surface Smoothing
 
@@ -1196,10 +1279,13 @@ for L in 03 07; do
 done
 ```
 
-The after-fix meshes need `automesh` built on `conspire` with the fix of
-[Update 2](#update-2-2026-09-30), which is not yet released.  With the
-released `automesh`, `unit_sphere_mesh.py` writes the unsuffixed Octa-Loop
-meshes with the before-fix result.  See [Update 3](#update-3-2026-09-30).
+The after-fix meshes need `automesh` built on `conspire` with the fixes of
+[Update 2](#update-2-2026-09-30) and [Update 4](#update-4-2026-09-30), which
+are not yet released.  With the released `automesh`, `unit_sphere_mesh.py`
+writes the unsuffixed Octa-Loop meshes with the before-fix result.  The level 7
+figure of Update 4 also reads `unit_sphere_control_loop07_fit_fix.inp` and
+`.csv`.  A build with the fit fix only makes them.  See
+[Update 3](#update-3-2026-09-30).
 
 The generated meshes, segmentations, and metrics are not stored with the
 book.  Only the figures are.

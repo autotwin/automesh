@@ -16,13 +16,17 @@
     unit_sphere_control_meshes_cut.png  the same meshes, cut at z = 0
     unit_sphere_control_meshes_pre_fix.png      the same meshes, pre-fix Octa-Loop
     unit_sphere_control_meshes_cut_pre_fix.png  the pre-fix meshes, cut at z = 0
+    unit_sphere_level7.png       the three Octa-Loop level 7 meshes: before, fit fix, both fixes
+    unit_sphere_level7_cut.png   the same meshes, cut at z = 0
     unit_sphere_smooth_meshes.png       the octree meshes of the n = 160 surface, smoothed
     unit_sphere_smooth_meshes_cut.png   the same meshes, cut at z = 0
     unit_sphere_smooth_quality.png      quality histograms of the same three meshes
 
 The `_pre_fix` figures read `unit_sphere_control_loopNN_pre_fix.inp` and
 `.csv`.  Those files come from `automesh` built with `conspire` 0.7.7, before
-the fix of the Control Study.  See the Reproduce section of unit_sphere.md.
+the fix of the Control Study.  The level 7 figure also reads
+`unit_sphere_control_loop07_fit_fix.inp` and `.csv`, which come from a build
+with the fit fix only.  See the Reproducibility section of unit_sphere.md.
 
 Example
 -------
@@ -42,7 +46,8 @@ unit_sphere_meshers_cut.png, unit_sphere_quality.png,
 unit_sphere_control.png, unit_sphere_control_surfaces.png,
 unit_sphere_control_pre_fix.png, unit_sphere_control_meshes.png,
 unit_sphere_control_meshes_cut.png, unit_sphere_control_meshes_pre_fix.png,
-unit_sphere_control_meshes_cut_pre_fix.png, unit_sphere_smooth_meshes.png,
+unit_sphere_control_meshes_cut_pre_fix.png, unit_sphere_level7.png,
+unit_sphere_level7_cut.png, unit_sphere_smooth_meshes.png,
 unit_sphere_smooth_meshes_cut.png, and unit_sphere_smooth_quality.png.
 """
 
@@ -87,6 +92,11 @@ CONTROL_PANELS_PRE_FIX = (
     ("octree, n=160 marching cubes", "unit_sphere_octree_n160"),
     ("Octa-Loop level 3, before fix", "unit_sphere_control_loop03_pre_fix"),
     ("Octa-Loop level 7, before fix", "unit_sphere_control_loop07_pre_fix"),
+)
+LEVEL7_PANELS = (
+    ("Octa-Loop level 7, before fix", "unit_sphere_control_loop07_pre_fix"),
+    ("Octa-Loop level 7, fit fix only", "unit_sphere_control_loop07_fit_fix"),
+    ("Octa-Loop level 7, both fixes", "unit_sphere_control_loop07"),
 )
 SMOOTH_PANELS = (
     ("octree, no smoothing", "unit_sphere_octree_n160"),
@@ -528,6 +538,12 @@ def main() -> None:
             output="unit_sphere_control_meshes_cut_pre_fix.png"
             if cut
             else "unit_sphere_control_meshes_pre_fix.png",
+            cut=cut,
+        )
+        meshes_plot(
+            here=here,
+            panels=LEVEL7_PANELS,
+            output="unit_sphere_level7_cut.png" if cut else "unit_sphere_level7.png",
             cut=cut,
         )
         meshes_plot(
