@@ -1,0 +1,45 @@
+/* Every figure: a box that sets the figure and its caption apart from
+ * body text. The caption is left-aligned and slightly smaller than body
+ * text. Only its "Figure 5.1.2-1:" label (added at build time by
+ * scripts/figure_number.py) is bold, since most captions run
+ * several sentences.
+ *
+ * Colors come from mdbook's own theme variables, so the box follows the
+ * theme selector. The light theme's --table-header-bg is hsl(0, 0%, 80%),
+ * the original #ccc gray. The border mixes 15% black into that color.
+ */
+main figure {
+    background-color: var(--table-header-bg);
+    border: 1px solid color-mix(in srgb, var(--table-header-bg), black 15%);
+    padding: 15px;
+    margin: 15px auto;
+    max-width: 90%;
+}
+
+main figure img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto 10px;
+}
+
+main figcaption {
+    font-style: normal;
+    font-size: 0.9em;
+    color: var(--fg);
+    text-align: left;
+    margin-top: 5px;
+}
+
+main figcaption strong {
+    font-weight: bold;
+}
+
+/* Rust's --table-header-bg, #b3a497, reads as a dark tan behind
+ * figures. Rust figures use the theme's blockquote gray instead,
+ * --quote-bg, hsl(60, 5%, 75%), so they match the page's note boxes.
+ */
+.rust main figure {
+    background-color: var(--quote-bg);
+    border-color: color-mix(in srgb, var(--quote-bg), black 15%);
+}
