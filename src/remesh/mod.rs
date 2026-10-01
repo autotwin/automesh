@@ -66,7 +66,7 @@ pub fn remesh(
     mode: Option<MeshRemeshCommands>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&input, quiet, true)?;
+    let mesh = read_mesh(&input, quiet)?;
     let mesh = apply_remeshing(mesh, mode_or_default(mode), quiet)?;
     write_mesh(&output, mesh, quiet)
 }

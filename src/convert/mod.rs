@@ -6,7 +6,7 @@ use clap::Subcommand;
 
 #[derive(Subcommand)]
 pub enum ConvertSubcommand {
-    /// Converts mesh file types (exo | inp | stl | vtu) -> (exo | inp | mesh | stl | vtu)
+    /// Converts mesh file types (exo | inp | off | stl | vtu) -> (exo | inp | mesh | off | stl | vtu)
     Mesh(ConvertMeshArgs),
     /// Converts segmentation file types (npy | spn) -> (npy | spn | vti)
     Segmentation(ConvertSegmentationArgs),
@@ -14,11 +14,11 @@ pub enum ConvertSubcommand {
 
 #[derive(clap::Args)]
 pub struct ConvertMeshArgs {
-    /// Mesh input file (exo | inp | stl | vtu)
+    /// Mesh input file (exo | inp | off | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Mesh output file (exo | inp | mesh | stl | vtu)
+    /// Mesh output file (exo | inp | mesh | off | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 }
@@ -47,7 +47,7 @@ pub struct ConvertSegmentationArgs {
 }
 
 pub fn convert_mesh(args: ConvertMeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    let mesh = read_mesh(&args.input, quiet, true)?;
+    let mesh = read_mesh(&args.input, quiet)?;
     write_mesh(&args.output, mesh, quiet)
 }
 
@@ -59,6 +59,6 @@ pub fn convert_segmentation(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet, true)?;
+    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet)?;
     write_segmentation(&output, &voxels, quiet)
 }

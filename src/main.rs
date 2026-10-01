@@ -4,6 +4,7 @@ use std::{
     time::Instant,
 };
 
+mod agglomerate;
 mod convert;
 mod defeature;
 mod diff;
@@ -13,10 +14,12 @@ mod io;
 mod log;
 mod mesh;
 mod metrics;
+mod partition;
 mod remesh;
 mod segment;
 mod smooth;
 
+use agglomerate::{AgglomerateArgs, agglomerate};
 use convert::{ConvertSubcommand, convert_mesh, convert_segmentation};
 use defeature::defeature;
 use diff::diff;
@@ -24,6 +27,7 @@ use error::ErrorWrapper;
 use extract::extract;
 use mesh::{Element, MeshSubcommand};
 use metrics::{MetricsArgs, metrics};
+use partition::{PartitionArgs, partition};
 use remesh::{MeshRemeshCommands, remesh};
 use segment::{SegmentArgs, segment};
 use smooth::{SmoothArgs, smooth};
@@ -72,7 +76,11 @@ struct Args {
 }
 
 #[derive(Subcommand)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
+    /// Partitions a mesh and agglomerates each part into one polyhedral element
+    Agglomerate(AgglomerateArgs),
+
     /// Converts between mesh or segmentation file types
     Convert {
         #[command(subcommand)]
@@ -185,13 +193,16 @@ enum Commands {
     /// Quality metrics for an existing finite element mesh
     Metrics(MetricsArgs),
 
+    /// Partitions a mesh into parts, written as one exo file per part
+    Partition(PartitionArgs),
+
     /// Applies isotropic remeshing to an existing mesh [default mode: uniform]
     Remesh {
-        /// Mesh input file (exo | inp | stl | vtu)
+        /// Mesh input file (exo | inp | off | stl | vtu)
         #[arg(long, short, value_name = "FILE")]
         input: String,
 
-        /// Mesh output file (exo | inp | mesh | stl | vtu)
+        /// Mesh output file (exo | inp | mesh | off | stl | vtu)
         #[arg(long, short, value_name = "FILE")]
         output: String,
 
@@ -219,7 +230,11 @@ fn main() -> Result<(), ErrorWrapper> {
         log::write_log(&about!());
         log::write_log("");
     }
+    if args.command.is_some() {
+        io::title(quiet);
+    }
     let result = match args.command {
+        Some(Commands::Agglomerate(args)) => agglomerate(args, quiet),
         Some(Commands::Convert { subcommand }) => match subcommand {
             ConvertSubcommand::Mesh(args) => convert_mesh(args, quiet),
             ConvertSubcommand::Segmentation(args) => convert_segmentation(
@@ -268,6 +283,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MeshSubcommand::Tri(args) => mesh::mesh(Element::Triangles, args, quiet),
         },
         Some(Commands::Metrics(args)) => metrics(args, quiet),
+        Some(Commands::Partition(args)) => partition(args, quiet),
         Some(Commands::Remesh {
             input,
             output,

@@ -18,7 +18,7 @@ pub fn extract(
     zmax: usize,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet, true)?;
+    let voxels = read_segmentation(&input, nelx, nely, nelz, quiet)?;
     let extracted = voxels.extract([xmin..xmax + 1, ymin..ymax + 1, zmin..zmax + 1]);
     write_segmentation(&output, &extracted, quiet)
 }

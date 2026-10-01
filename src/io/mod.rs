@@ -49,17 +49,15 @@ fn done(time: Instant, quiet: bool) {
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
 }
 
-/// Reads a finite element mesh (exo | inp | mesh | stl | vtu) into a conspire mesh.
-pub fn read_mesh(file: &str, quiet: bool, show_title: bool) -> Result<Mesh<3>, ErrorWrapper> {
-    if show_title {
-        title(quiet);
-    }
+/// Reads a finite element mesh (exo | inp | mesh | off | stl | vtu) into a conspire mesh.
+pub fn read_mesh(file: &str, quiet: bool) -> Result<Mesh<3>, ErrorWrapper> {
     let time = begin("Reading", file, quiet);
     let extension = extension(file);
     let mesh = match extension {
         Some("inp") => Mesh::try_from(MeshInput::Abaqus(file))?,
         Some("exo") => Mesh::try_from(MeshInput::Exodus(file))?,
         Some("mesh") => Mesh::try_from(MeshInput::Medit(file))?,
+        Some("off") => Mesh::try_from(MeshInput::Off(file))?,
         Some("vtu") => Mesh::try_from(MeshInput::VtkUnstructured(file))?,
         Some("stl") => Mesh::from(Tessellation::try_from(Path::new(file))?),
         _ => return Err(invalid_input(file, extension)),
@@ -68,8 +66,23 @@ pub fn read_mesh(file: &str, quiet: bool, show_title: bool) -> Result<Mesh<3>, E
     Ok(mesh)
 }
 
-/// Writes a conspire mesh to a finite element file (exo | inp | mesh | vtu | stl).
+/// Writes a conspire mesh to a finite element file (exo | inp | mesh | off | vtu | stl).
 pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWrapper> {
+    write_mesh_threads(
+        file,
+        mesh,
+        std::thread::available_parallelism().map_or(1, |threads| threads.get()),
+        quiet,
+    )
+}
+
+/// Writes a conspire mesh using the given number of threads where the format supports it.
+pub fn write_mesh_threads(
+    file: &str,
+    mesh: Mesh<3>,
+    threads: usize,
+    quiet: bool,
+) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mWriting\x1b[0m {file}");
     let time = Instant::now();
     let extension = extension(file);
@@ -77,9 +90,10 @@ pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWra
         Some("inp") => mesh.write(MeshOutput::Abaqus(file))?,
         Some("exo") => mesh.write(MeshOutput::Exodus(ExodusFormat::Netcdf4 {
             path: file,
-            threads: std::thread::available_parallelism().map_or(1, |threads| threads.get()),
+            threads,
         }))?,
         Some("mesh") => mesh.write(MeshOutput::Medit(file))?,
+        Some("off") => mesh.write(MeshOutput::Off(file))?,
         Some("vtu") => mesh.write(MeshOutput::Vtk(Vtk::UnstructuredGrid(Compression::Off(
             file,
         ))))?,
@@ -87,6 +101,15 @@ pub fn write_mesh(file: &str, mesh: Mesh<3>, quiet: bool) -> Result<(), ErrorWra
         _ => return Err(invalid_output(file, extension)),
     } // Output::Vtk(Vtk::UnstructuredGrid(Compression::Off(path)))
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    Ok(())
+}
+
+/// Writes a conspire mesh as an Exodus file whatever the file extension, without echoing.
+pub fn write_exodus(file: &str, mesh: Mesh<3>, threads: usize) -> Result<(), ErrorWrapper> {
+    mesh.write(MeshOutput::Exodus(ExodusFormat::Netcdf4 {
+        path: file,
+        threads,
+    }))?;
     Ok(())
 }
 
@@ -105,18 +128,13 @@ pub fn nel(
 }
 
 /// Reads a segmentation (npy | spn) into voxels.
-#[allow(clippy::too_many_arguments)]
 pub fn read_segmentation(
     file: &str,
     nelx: Option<usize>,
     nely: Option<usize>,
     nelz: Option<usize>,
     quiet: bool,
-    show_title: bool,
 ) -> Result<Voxels<u8>, ErrorWrapper> {
-    if show_title {
-        title(quiet);
-    }
     let time = begin("Reading", file, quiet);
     let extension = extension(file);
     let voxels = match extension {

@@ -11,7 +11,7 @@ pub fn diff(
     nelz: Option<usize>,
     quiet: bool,
 ) -> Result<(), ErrorWrapper> {
-    let voxels_1 = read_segmentation(&input[0], nelx, nely, nelz, quiet, true)?;
-    let voxels_2 = read_segmentation(&input[1], nelx, nely, nelz, quiet, false)?;
+    let voxels_1 = read_segmentation(&input[0], nelx, nely, nelz, quiet)?;
+    let voxels_2 = read_segmentation(&input[1], nelx, nely, nelz, quiet)?;
     write_segmentation(&output, &voxels_1.diff(&voxels_2), quiet)
 }
