@@ -1284,8 +1284,43 @@ The after-fix meshes need `automesh` built on `conspire` with the fixes of
 are not yet released.  With the released `automesh`, `unit_sphere_mesh.py`
 writes the unsuffixed Octa-Loop meshes with the before-fix result.  The level 7
 figure of Update 4 also reads `unit_sphere_control_loop07_fit_fix.inp` and
-`.csv`.  A build with the fit fix only makes them.  See
+`.csv`.  The commands below make them.  See
 [Update 3](#update-3-2026-09-30).
+
+The fit-fix mesh comes from `automesh` built on the `fit-mirror-symmetry`
+branch of `conspire`, which holds the fixes of
+[#222](https://github.com/mrbuche/conspire.rs/pull/222) and
+[#223](https://github.com/mrbuche/conspire.rs/pull/223).  The released
+`automesh` pins `conspire` 0.7.7, so the build uses a patch and one import
+change.  `conspire` moved `Dualization` from `ntree` to `mesh`.
+
+```sh
+git clone https://github.com/mrbuche/conspire.rs ~/conspire-fit-fix
+git -C ~/conspire-fit-fix checkout fit-mirror-symmetry
+
+mkdir ~/automesh-fit-fix
+cp -R ~/autotwin/automesh/{Cargo.toml,Cargo.lock,build.rs,src} ~/automesh-fit-fix/
+cd ~/automesh-fit-fix
+printf '\n[patch.crates-io]\nconspire = { path = "../conspire-fit-fix" }\n' >> Cargo.toml
+perl -pi -e 's/mesh::\{Class, Fitting, Mesh, Tessellation\}/mesh::{Class, Dualization, Fitting, Mesh, Tessellation}/; s/CurvatureSizing, Dualization, Octree/CurvatureSizing, Octree/' src/mesh/mod.rs
+cargo update -p conspire
+cargo build --release
+
+cd ~/autotwin/automesh/book/examples/gallery/academic
+~/automesh-fit-fix/target/release/automesh mesh hex -i octa_loop07.stl \
+  -o unit_sphere_control_loop07_fit_fix.inp \
+  --metrics unit_sphere_control_loop07_fit_fix.csv -q
+```
+
+Only level 7 needs a fit-fix file.  The shape diameter fix does not change level
+3, so the unsuffixed level 3 mesh is also its fit-fix mesh.  The commands
+reproduce the `_fit_fix` files of this page byte for byte, with 1,415 elements
+and a minimum scaled Jacobian of 0.441.
+
+The unsuffixed after-fix meshes need all three changes together:
+[#221](https://github.com/mrbuche/conspire.rs/pull/221), #222, and #223.  No
+branch on the remote holds them together yet.  Both #221 and #222 add code at
+the same place in `bvh/base/mod.rs`, so combining them takes a manual merge.
 
 The generated meshes, segmentations, and metrics are not stored with the
 book.  Only the figures are.
