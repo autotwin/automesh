@@ -19,7 +19,6 @@ pub fn extension(file: &str) -> Option<&str> {
     }
 }
 
-/// Sculpt and Nemesis write one Exodus file per process, named `<name>.e.<count>.<rank>`.
 fn is_decomposed_exodus(file: &str) -> bool {
     let mut parts = file.rsplit('.');
     let is_number = |part: Option<&str>| {
