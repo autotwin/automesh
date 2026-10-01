@@ -51,11 +51,11 @@ volume $4\pi/3 \approx 4.1888$.
 The voxel volume falls short at every $n$ in the table, and the shortfall
 shrinks as $n$ grows.
 
-![unit_sphere_voxels.png](unit_sphere_voxels.png)
+<figure>
+    <img src="unit_sphere_v2_voxels.png" alt="voxel segmentations of the sphere for n = 10, 40, and 160" />
+    <figcaption>The segmentations for $n = 10$ (left), $n = 40$ (middle), and $n = 160$ (right), in voxel units.  The figure is produced by <code>unit_sphere_v2_meshes.py</code>.</figcaption>
+</figure>
 
-Figure: The segmentations for $n = 10$ (left), $n = 40$ (middle), and
-$n = 160$ (right), in voxel units.  The figure is produced by
-[`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ## Marching Cubes
 
@@ -112,15 +112,11 @@ For a closed, connected, orientable surface, $\chi = 2 - 2g$, where $g$ is
 the genus, the number of handles.  Here $\chi = 2$, so $g = 0$, and each
 surface is topologically a sphere.
 
-![unit_sphere_marching_cubes.png](unit_sphere_marching_cubes.png)
+<figure>
+    <img src="unit_sphere_v2_surfaces.png" alt="marching cubes surfaces of the sphere for n = 10, 40, and 160" />
+    <figcaption>The marching cubes surfaces for $n = 10$ (left), $n = 40$ (middle), and $n = 160$ (right), scaled to the unit sphere.  A binary mask places every vertex at the midpoint of a cube edge, so the surface cannot round off the steps.  The steps shrink as $n$ grows, but the rings around each pole remain visible even at $n = 160$.  The figure is produced by <code>unit_sphere_v2_meshes.py</code>.</figcaption>
+</figure>
 
-Figure: The marching cubes surfaces for $n = 10$ (left), $n = 40$ (middle),
-and $n = 160$ (right), scaled to the unit sphere.  
-A binary mask places every vertex at the
-midpoint of a cube edge, so the surface cannot round off the steps.  The
-steps shrink as $n$ grows, but the rings around each pole remain visible
-even at $n = 160$.  The figure is produced by
-[`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ### Convergence
 
@@ -129,14 +125,11 @@ The script
 [`unit_sphere_figures.py`](#unit_sphere_figurespy) also computes both
 volumes at every $n$ from 4 to 160, 157 values in all.
 
-![unit_sphere_convergence.png](unit_sphere_convergence.png)
+<figure>
+    <img src="unit_sphere_convergence.png" alt="volume and volume error of the voxel sphere against n" />
+    <figcaption>The volume (left) and the magnitude of its error (right) against $n$, for the voxels and for the marching cubes surface.  Thin lines connect every $n$ from 4 to 160.  Markers show the five values of $n$ in the tables. On the left, the dotted line marks the exact volume $4\pi/3$, and a few values at $n \le 7$ fall off the scale.  On the right, the gray guides have slopes of −1 and −2.</figcaption>
+</figure>
 
-Figure: The volume (left) and the magnitude of its error (right) against
-$n$, for the voxels and for the marching cubes surface.  Thin lines connect
-every $n$ from 4 to 160.  Markers show the five values of $n$ in the tables.
-On the left, the dotted line marks the exact volume $4\pi/3$, and a few
-values at $n \le 7$ fall off the scale.  On the right, the gray guides have
-slopes of −1 and −2.
 
 Both volumes settle onto $4\pi/3$, but neither settles smoothly.  The **voxel
 error** changes sign 46 times, and 25 of the 157 voxel volumes exceed
@@ -414,14 +407,11 @@ From $n = 20$ on, every surface gives the same 7,827 nodes and 6,768
 elements, 96 more of each than the baseline, or about 1.4%.  The worst
 element is better than the baseline's at every $n$.
 
-![unit_sphere_sculpt.png](unit_sphere_sculpt.png)
+<figure>
+    <img src="unit_sphere_v2_sculpt.png" alt="Sculpt meshes of Octa-Loop level 3 and the n = 10 and n = 160 marching cubes surfaces" />
+    <figcaption>The Sculpt meshes of Octa-Loop level 3 (left), the marching cubes surface for $n = 10$ (middle), and for $n = 160$ (right), on the same grid. Each hex is painted by its Minimum Scaled Jacobian, on a fixed scale from 0 to 1.  In all three, the best hexes form bands, and the worst sit where those bands meet.  The figure is produced by <code>unit_sphere_v2_meshes.py</code>.</figcaption>
+</figure>
 
-Figure: The Sculpt meshes of Octa-Loop level 3 (left), the marching cubes
-surface for $n = 10$ (middle), and for $n = 160$ (right), on the same grid.
-Each element is painted by its Minimum Scaled Jacobian, on a fixed scale from
-0 to 1.  In all three, the best elements form bands of regular hexes, and the
-worst sit where those bands meet.  The figure is produced by
-[`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 The difference between the middle and right panels comes from the size of a
 voxel step against the size of a Sculpt cell, about 0.095.
@@ -434,16 +424,11 @@ voxel step against the size of a Sculpt cell, about 0.095.
 * From $n = 20$ on, a cell spans about two voxels or more, and the mesh stops
   changing.
 
-![unit_sphere_sculpt_cut.png](unit_sphere_sculpt_cut.png)
+<figure>
+    <img src="unit_sphere_v2_sculpt_cut.png" alt="the same three Sculpt meshes cut at z = 0" />
+    <figcaption>A cut through the middle of the same three meshes, at $z = 0$, on the same 0 to 1 scale.  Every hex is clipped at the plane, and the lower half stays.  The Sculpt grid has a cell boundary at $z = 0$, so the interior of the cut is flat.  Near the surface, smoothing moves some nodes off the plane, so 66, 60, and 42 hexes cross it, from left to right.  The interior is a regular grid of hexes near 1.0.  The low values form a ring one hex deep at the boundary.  The figure is produced by <code>unit_sphere_v2_meshes.py</code>.</figcaption>
+</figure>
 
-Figure: A cut through the middle of the same three meshes, at $z = 0$, on
-the same 0 to 1 scale.  Only the elements whose centers lie below the plane
-are drawn.  The Sculpt grid has a cell boundary at $z = 0$, so the interior
-of the cut is flat.  Near the surface, smoothing moves some nodes off the
-plane, and a few elements cross it: 72, 60, and 48 from left to right.  The
-interior is a regular grid of elements near 1.0.  The low values form a ring
-one element deep at the boundary.  The figure is produced by
-[`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 The run used Sculpt 16.08, from Cubit 16.08.  `automesh` 0.4.8 cannot read
 Sculpt's Exodus files.  Sculpt writes single-precision coordinates, and
@@ -457,3 +442,32 @@ minimum (0.343) and mean (0.888) as Sculpt.
 [^conspire226]: conspire issue #226, "Exodus reader: accept single-precision
     (float) coordinates, as Sculpt writes."
     <https://github.com/mrbuche/conspire.rs/issues/226>
+
+### `automesh`
+
+`automesh mesh hex` meshes the $n = 10$ marching cubes surface in two ways.
+The uniform mesh uses the Sculpt cell size, $2 \times 1.240409 / 26 \approx
+0.095416$, so its lattice matches the Sculpt grid.  The adaptive mesh uses the
+defaults.  Both runs use `automesh` 0.4.9, built on `conspire` 0.7.9.
+
+```sh
+automesh mesh hex -i unit_sphere_v2_n010.stl -o uniform.inp \
+  -u 0.095416 --metrics uniform.csv
+automesh mesh hex -i unit_sphere_v2_n010.stl -o adaptive.inp \
+  --metrics adaptive.csv
+```
+
+<figure id="fig-v2-meshes">
+    <img src="unit_sphere_v2_meshes.png" alt="the n = 10 marching cubes surface and its uniform and adaptive automesh meshes" />
+    <figcaption>(left) marching cubes surface mesh <code>unit_sphere_v2_n010.stl</code>, (center) <code>automesh</code> uniform, (right) <code>automesh</code> adaptive.</figcaption>
+</figure>
+
+<figure>
+    <img src="unit_sphere_v2_meshes_cut.png" alt="the same surface and meshes cut at z = 0" />
+    <figcaption>Cut plane $z = 0$ of meshes in <a href="#fig-v2-meshes">Figure</a>.</figcaption>
+</figure>
+
+<figure>
+    <img src="unit_sphere_v2_quality.png" alt="quality histograms of the Sculpt, uniform, and adaptive meshes" />
+    <figcaption></figcaption>
+</figure>
