@@ -19,8 +19,15 @@ level = 0
 [output.html]
 edit-url-template = "https://github.com/autotwin/automesh/edit/main/{path}"
 git-repository-url = "https://github.com/autotwin/automesh"
+additional-css = ["theme/figures.css"]
 
 [preprocessor.cmdrun]
 
 [preprocessor.katex]
 after = ["links"]
+
+# Numbers every <figure> as "Figure <section>-<n>".  Runs after cmdrun, so a
+# figure that a cmdrun script prints gets numbered too.
+[preprocessor.figure-number]
+command = "python3 scripts/figure_number.py"
+after = ["cmdrun"]
