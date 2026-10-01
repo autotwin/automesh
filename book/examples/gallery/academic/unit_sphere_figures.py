@@ -10,12 +10,19 @@
     unit_sphere_meshers_cut.png  the same meshes, cut at z = 0
     unit_sphere_quality.png      quality histograms of the n = 160 meshes
     unit_sphere_control.png      quality histograms of the octree control study
+    unit_sphere_control_pre_fix.png     the same, with the pre-fix Octa-Loop meshes
     unit_sphere_control_surfaces.png    the control study's three input surfaces
     unit_sphere_control_meshes.png      the control study's three octree meshes
     unit_sphere_control_meshes_cut.png  the same meshes, cut at z = 0
+    unit_sphere_control_meshes_pre_fix.png      the same meshes, pre-fix Octa-Loop
+    unit_sphere_control_meshes_cut_pre_fix.png  the pre-fix meshes, cut at z = 0
     unit_sphere_smooth_meshes.png       the octree meshes of the n = 160 surface, smoothed
     unit_sphere_smooth_meshes_cut.png   the same meshes, cut at z = 0
     unit_sphere_smooth_quality.png      quality histograms of the same three meshes
+
+The `_pre_fix` figures read `unit_sphere_control_loopNN_pre_fix.inp` and
+`.csv`.  Those files come from `automesh` built with `conspire` 0.7.7, before
+the fix of the Control Study.  See the Reproduce section of unit_sphere.md.
 
 Example
 -------
@@ -33,7 +40,9 @@ unit_sphere_convergence.png, unit_sphere_sculpt.png,
 unit_sphere_sculpt_cut.png, unit_sphere_meshers.png,
 unit_sphere_meshers_cut.png, unit_sphere_quality.png,
 unit_sphere_control.png, unit_sphere_control_surfaces.png,
-unit_sphere_control_meshes.png, unit_sphere_control_meshes_cut.png, unit_sphere_smooth_meshes.png,
+unit_sphere_control_pre_fix.png, unit_sphere_control_meshes.png,
+unit_sphere_control_meshes_cut.png, unit_sphere_control_meshes_pre_fix.png,
+unit_sphere_control_meshes_cut_pre_fix.png, unit_sphere_smooth_meshes.png,
 unit_sphere_smooth_meshes_cut.png, and unit_sphere_smooth_quality.png.
 """
 
@@ -71,8 +80,13 @@ MESHER_PANELS = (
 )
 CONTROL_PANELS = (
     ("octree, n=160 marching cubes", "unit_sphere_octree_n160"),
-    ("Octa-Loop level 3", "unit_sphere_control_loop03"),
-    ("Octa-Loop level 7", "unit_sphere_control_loop07"),
+    ("Octa-Loop level 3, after fix", "unit_sphere_control_loop03"),
+    ("Octa-Loop level 7, after fix", "unit_sphere_control_loop07"),
+)
+CONTROL_PANELS_PRE_FIX = (
+    ("octree, n=160 marching cubes", "unit_sphere_octree_n160"),
+    ("Octa-Loop level 3, before fix", "unit_sphere_control_loop03_pre_fix"),
+    ("Octa-Loop level 7, before fix", "unit_sphere_control_loop07_pre_fix"),
 )
 SMOOTH_PANELS = (
     ("octree, no smoothing", "unit_sphere_octree_n160"),
@@ -86,8 +100,13 @@ QUALITY_MESHES = (
 )
 CONTROL_MESHES = (
     ("octree, n=160 marching cubes", "unit_sphere_octree_n160.csv"),
-    ("octree, Octa-Loop level 3", "unit_sphere_control_loop03.csv"),
-    ("octree, Octa-Loop level 7", "unit_sphere_control_loop07.csv"),
+    ("Octa-Loop level 3, after fix", "unit_sphere_control_loop03.csv"),
+    ("Octa-Loop level 7, after fix", "unit_sphere_control_loop07.csv"),
+)
+CONTROL_MESHES_PRE_FIX = (
+    ("octree, n=160 marching cubes", "unit_sphere_octree_n160.csv"),
+    ("Octa-Loop level 3, before fix", "unit_sphere_control_loop03_pre_fix.csv"),
+    ("Octa-Loop level 7, before fix", "unit_sphere_control_loop07_pre_fix.csv"),
 )
 SMOOTH_MESHES = (
     ("octree, no smoothing", "unit_sphere_octree_n160.csv"),
@@ -505,6 +524,14 @@ def main() -> None:
         )
         meshes_plot(
             here=here,
+            panels=CONTROL_PANELS_PRE_FIX,
+            output="unit_sphere_control_meshes_cut_pre_fix.png"
+            if cut
+            else "unit_sphere_control_meshes_pre_fix.png",
+            cut=cut,
+        )
+        meshes_plot(
+            here=here,
             panels=SMOOTH_PANELS,
             output="unit_sphere_smooth_meshes_cut.png"
             if cut
@@ -513,6 +540,9 @@ def main() -> None:
         )
     quality_plot(here=here, meshes=QUALITY_MESHES, output="unit_sphere_quality.png")
     quality_plot(here=here, meshes=CONTROL_MESHES, output="unit_sphere_control.png")
+    quality_plot(
+        here=here, meshes=CONTROL_MESHES_PRE_FIX, output="unit_sphere_control_pre_fix.png"
+    )
     quality_plot(
         here=here, meshes=SMOOTH_MESHES, output="unit_sphere_smooth_quality.png"
     )

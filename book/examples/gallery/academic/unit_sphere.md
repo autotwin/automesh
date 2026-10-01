@@ -599,35 +599,72 @@ staircase shows as concentric terrace rings around the top pole.  Octa-Loop
 level 3 shows its 512 flat facets.  Octa-Loop level 7 looks smooth.  The
 figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
-| surface | facets | facet edge (mean) | elements | MSJ min | MSJ mean |
-| :--- | ---: | ---: | ---: | ---: | ---: |
-| marching cubes, $n = 160$ | 964,568 | 0.00616 | 25,815 | −0.792 | 0.755 |
-| Octa-Loop level 3 | 512 | 0.23492 | 111 | 0.384 | 0.749 |
-| Octa-Loop level 7 | 131,072 | 0.01473 | 1,415 | 0.439 | 0.816 |
+| surface | `conspire` | facets | facet edge (mean) | elements | MSJ min | MSJ mean |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: |
+| marching cubes, $n = 160$ | 0.7.7 | 964,568 | 0.00616 | 25,815 | −0.792 | 0.755 |
+| Octa-Loop level 3, before fix | 0.7.7 | 512 | 0.23492 | 111 | 0.384 | 0.749 |
+| Octa-Loop level 3, after fix | fix | 512 | 0.23492 | 111 | 0.534 | 0.767 |
+| Octa-Loop level 7, before fix | 0.7.7 | 131,072 | 0.01473 | 1,415 | 0.439 | 0.816 |
+| Octa-Loop level 7, after fix | fix | 131,072 | 0.01473 | 1,415 | 0.441 | 0.816 |
+
+The before-fix rows and figures come from `conspire` 0.7.7.  The after-fix
+rows and figures come from a build of `conspire` with the fix of
+[Update 2](#update-2-2026-09-30), which is not yet released.  The marching
+cubes mesh comes from 0.7.7 in both sets.  See
+[Update 3](#update-3-2026-09-30).
+
+**Before the fix (`conspire` 0.7.7).**
+
+![unit_sphere_control_meshes_pre_fix.png](unit_sphere_control_meshes_pre_fix.png)
+
+Figure: The three `automesh` octree meshes shown with the element minimum
+scaled Jacobian, before the fix.  The $n = 160$ marching cubes surface (left),
+Octa-Loop level 3 (center), and Octa-Loop level 7 (right).  The marching cubes
+mesh has several small dark clusters of poor elements; neither control does.
+The Octa-Loop level 3 mesh is not symmetric across the coordinate planes.  The
+figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+![unit_sphere_control_meshes_cut_pre_fix.png](unit_sphere_control_meshes_cut_pre_fix.png)
+
+Figure: A cut through the middle of the same three meshes, at $z = 0$, on
+the same scale, before the fix.  Only the elements whose centers lie below the
+plane are drawn.  The clusters from the full view sit at the boundary, dense
+knots of small elements; both controls stay coarse and regular throughout.
+The figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+![unit_sphere_control_pre_fix.png](unit_sphere_control_pre_fix.png)
+
+Figure: Element quality of the octree meshing three surfaces, before the fix:
+the $n = 160$ marching cubes surface (solid, orange), Octa-Loop level 3
+(dashed, blue), and Octa-Loop level 7 (dotted, green).  Each panel is a
+histogram with a log scale on the count.  Only the marching cubes curve
+reaches below zero.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+**After the fix.**
 
 ![unit_sphere_control_meshes.png](unit_sphere_control_meshes.png)
 
-Figure: The three `automesh` octree meshes shown with the element minimum scaled
-Jacobian. The $n = 160$ marching cubes surface (left), Octa-Loop level 3 (center), and
-Octa-Loop level 7 (right).  The marching cubes mesh has several small dark
-clusters of poor elements; neither control does.  The figure is produced by
+Figure: The same three meshes after the fix.  The marching cubes mesh on the
+left is unchanged, from `conspire` 0.7.7.  The Octa-Loop level 3 mesh (center)
+is now symmetric across the coordinate planes, and its minimum scaled
+Jacobian rises from 0.384 to 0.534.  Level 7 (right) is also symmetric, and
+its quality changes by 0.002 in the minimum.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ![unit_sphere_control_meshes_cut.png](unit_sphere_control_meshes_cut.png)
 
-Figure: A cut through the middle of the same three meshes, at $z = 0$, on
-the same scale.  Only the elements whose centers lie below the plane are
-drawn.  The clusters from the full view sit at the boundary, dense knots of
-small elements; both controls stay coarse and regular throughout.  The
-figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
+Figure: A cut through the middle of the same three meshes after the fix, at
+$z = 0$, on the same scale as the before-fix cut.  The marching cubes mesh is
+unchanged.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ![unit_sphere_control.png](unit_sphere_control.png)
 
-Figure: Element quality of the octree meshing three surfaces: the $n = 160$
-marching cubes surface (solid, orange), Octa-Loop level 3 (dashed, blue),
-and Octa-Loop level 7 (dotted, green).  Each panel is a histogram with a log
-scale on the count.  Only the marching cubes curve reaches below zero.  The
-figure is produced by
+Figure: Element quality of the same three meshes after the fix, in the same
+styles and scales as the before-fix figure.  The Octa-Loop level 3 elements
+now come in symmetric groups of equal quality, so that curve has fewer and
+taller bars.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 Neither control mesh inverts an element.  Both stay at or above Sculpt's own
@@ -643,12 +680,23 @@ fixed-size lattice and never calls the octree or the shape diameter
 function, so it says nothing about why the uniform lattice's own quality
 also lags Sculpt's.
 
+| surface | `conspire` | elements | MSJ min | MSJ mean |
+| :--- | :--- | ---: | ---: | ---: |
+| marching cubes, $n = 160$ | 0.7.7 | 25,815 | −0.792 | 0.755 |
+| Octa-Loop level 3, before fix | 0.7.7 | 111 | 0.384 | 0.749 |
+| Octa-Loop level 3, after fix | fix | 111 | 0.534 | 0.767 |
+| Octa-Loop level 7, before fix | 0.7.7 | 1,415 | 0.439 | 0.816 |
+| Octa-Loop level 7, after fix | fix | 1,415 | 0.441 | 0.816 |
+
 **Octa-Loop level 3:**
 
 **Correction, 2026-09-30.**  Text struck through below states a cause that
 later experiments refuted.  It stays visible for the record.  The
 [Update](#update-2026-09-30) after the Observations gives the evidence.
 [Update 2](#update-2-2026-09-30) corrects two conclusions of that update.
+Everything in the two Octa-Loop lists and the Observations describes
+`conspire` 0.7.7 and the before-fix figures.  The table and the figures above
+also show the fix, from [Update 3](#update-3-2026-09-30).
 
 1. The Octa-Loop level 3 mesh (center panel) is visibly not symmetric across
    the $xy$, $yz$, and $zx$ planes, unlike the other meshes on this page.
@@ -850,12 +898,67 @@ Update 1 state the conclusions that this update replaces.
    times a nearest-point query, against 1.46 to 1.84 times for two walks.
    End-to-end times vary from $-3$% to $+12$% in single runs, because the
    optimizer takes a different path once the targets change.
-5. **Status and limits.**  `automesh` still pins `conspire` 0.7.7, so the
+5. **Status and limits.**  `automesh` still pins `conspire` 0.7.7.  ~~So the
    tables on this page keep their 0.7.7 values until the fix ships.  Then
-   the scripts must run again.  The constraint covers mirror planes
+   the scripts must run again.~~  [Update 3](#update-3-2026-09-30) reruns
+   the two Octa-Loop rows with the fix.  The constraint covers mirror planes
    perpendicular to the coordinate axes.  It does not cover rotational
    symmetry.  The second `fit` of `--snap` runs unconstrained, and the
    effect of `--snap` has not been measured.
+
+#### Update 3, 2026-09-30
+
+This update reruns the two Octa-Loop meshes with the fix of Update 2.  It
+adds the after-fix rows to the table and the three after-fix figures.  The
+before-fix rows and figures stay beside them for comparison.
+
+`automesh` 0.4.7 pins `conspire` 0.7.7.  So the rerun used a scratch copy of
+`automesh` built against the `conspire` branch of Update 2.  The branch moved
+`Dualization` from `ntree` to `mesh`, and `automesh` needed that two-line
+import change to compile.  The repository source did not change.
+The copy meshed both surfaces through `hex_write` in
+[`unit_sphere_mesh.py`](#unit_sphere_meshpy), with default options.  Before
+the rerun, the installed `automesh` reproduced the old rows exactly: 111
+elements with 0.384 and 0.749 at level 3, and 1,415 with 0.439 and 0.816 at
+level 7.
+
+| mesh | `conspire` | elements | MSJ min | MSJ mean | max edge ratio | max skew | mirror mismatch |
+| :--- | :--- | ---: | ---: | ---: | ---: | ---: | :--- |
+| Octa-Loop level 3 | 0.7.7 | 111 | 0.384 | 0.749 | 4.22 | 0.481 | 0.2348, 0.2348, 0.2725 |
+| Octa-Loop level 3 | fix | 111 | **0.534** | **0.767** | 4.15 | 0.300 | **0, 0, 0** |
+| Octa-Loop level 7 | 0.7.7 | 1,415 | 0.439 | 0.816 | 3.61 | 0.679 | 0.0143, 0.0143, 0.0143 |
+| Octa-Loop level 7 | fix | 1,415 | 0.441 | 0.816 | 3.60 | 0.678 | **0, 0, 0** |
+
+The mirror mismatch is the largest distance from a reflected node to the
+nearest node, for the $x$, $y$, and $z$ reflections, measured on the nodes
+that `automesh` wrote.
+
+1. **Level 3 improves in symmetry and in quality.**  The mesh is now
+   exactly symmetric.  The minimum scaled Jacobian rises by 0.150, the mean
+   by 0.018, and the largest skew falls from 0.481 to 0.300.  The element
+   count does not change.  The center panel of the first after-fix figure
+   shows the symmetric mesh.
+2. **Level 7 changes in symmetry only.**  The mismatch falls from 0.0143 to
+   exactly 0.  The quality changes by 0.002 in the minimum and not at all in
+   the mean.
+3. **Level 3 gets less accurate in volume.**  The input surface encloses
+   4.0926, which is 2.30% below the exact $4\pi/3 \approx 4.1888$.  The old
+   mesh encloses 4.1909, which is 2.40% above the surface and 0.05% above the
+   sphere.  The two errors nearly cancelled.  The new mesh encloses 4.2187,
+   which is 3.08% above the surface and 0.71% above the sphere.  At level 7,
+   the volume goes from 4.2036 to 4.2039, which is 0.37% above the surface.
+   The cause at level 3 is not isolated.
+4. **The table now mixes two `conspire` builds.**  The marching cubes row,
+   and the marching cubes curve of the quality histogram, still come from
+   `conspire` 0.7.7.  Rerunning them with the fix would change every
+   marching cubes result on this page, so this update leaves them alone.
+   The smoothing section and its figures are unchanged.
+5. **The before-fix figures are reproducible.**  `unit_sphere_figures.py`
+   draws both sets.  It reads the saved before-fix meshes,
+   `unit_sphere_control_loopNN_pre_fix.inp` and `.csv`.  With the original
+   panel titles, it reproduced the three before-fix figures that were
+   committed to this repository, byte for byte.  The titles of both sets now
+   say "before fix" or "after fix."
 
 ## Marching Cubes Surface Smoothing
 
@@ -1081,6 +1184,22 @@ meshes take about two of those minutes, most of it in the adaptive octree.
 `unit_sphere_smooth.py` adds 4 minutes 20 seconds, for its 35 octree meshes.  The timing table in
 [Why Lewiner?](#why-lewiner) depends on the machine.  Every other number on
 the page comes out the same on each run.
+
+The Control Study also draws the Octa-Loop meshes from before the fix.  Those
+meshes come from `automesh` built on `conspire` 0.7.7, which is the released
+build.  Make them with the released `automesh`.
+
+```sh
+for L in 03 07; do
+  automesh mesh hex -i octa_loop$L.stl -o unit_sphere_control_loop${L}_pre_fix.inp \
+    --metrics unit_sphere_control_loop${L}_pre_fix.csv -q
+done
+```
+
+The after-fix meshes need `automesh` built on `conspire` with the fix of
+[Update 2](#update-2-2026-09-30), which is not yet released.  With the
+released `automesh`, `unit_sphere_mesh.py` writes the unsuffixed Octa-Loop
+meshes with the before-fix result.  See [Update 3](#update-3-2026-09-30).
 
 The generated meshes, segmentations, and metrics are not stored with the
 book.  Only the figures are.
