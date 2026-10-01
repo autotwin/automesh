@@ -8,7 +8,10 @@
     unit_sphere_sculpt_cut.png   the same meshes, cut at z = 0
     unit_sphere_meshers.png      Sculpt and automesh meshes of the n = 160 surface
     unit_sphere_meshers_cut.png  the same meshes, cut at z = 0
+    unit_sphere_meshers_fix.png  the same, with the automesh meshes after the fix
+    unit_sphere_meshers_cut_fix.png  the after-fix meshes, cut at z = 0
     unit_sphere_quality.png      quality histograms of the n = 160 meshes
+    unit_sphere_quality_fix.png  the same, with the automesh meshes after the fix
     unit_sphere_control.png      quality histograms of the octree control study
     unit_sphere_control_pre_fix.png     the same, with the pre-fix Octa-Loop meshes
     unit_sphere_control_surfaces.png    the control study's three input surfaces
@@ -42,7 +45,9 @@ Output
 unit_sphere_voxels.png, unit_sphere_marching_cubes.png,
 unit_sphere_convergence.png, unit_sphere_sculpt.png,
 unit_sphere_sculpt_cut.png, unit_sphere_meshers.png,
-unit_sphere_meshers_cut.png, unit_sphere_quality.png,
+unit_sphere_meshers_cut.png, unit_sphere_meshers_fix.png,
+unit_sphere_meshers_cut_fix.png, unit_sphere_quality.png,
+unit_sphere_quality_fix.png,
 unit_sphere_control.png, unit_sphere_control_surfaces.png,
 unit_sphere_control_pre_fix.png, unit_sphere_control_meshes.png,
 unit_sphere_control_meshes_cut.png, unit_sphere_control_meshes_pre_fix.png,
@@ -80,8 +85,13 @@ SCULPT_PANELS = (
 )
 MESHER_PANELS = (
     ("Sculpt", "unit_sphere_sculpt_n160"),
-    ("automesh, uniform lattice", "unit_sphere_uniform_n160"),
-    ("automesh, adaptive octree", "unit_sphere_octree_n160"),
+    ("automesh uniform, before fix", "unit_sphere_uniform_n160"),
+    ("automesh octree, before fix", "unit_sphere_octree_n160"),
+)
+MESHER_PANELS_FIX = (
+    ("Sculpt", "unit_sphere_sculpt_n160"),
+    ("automesh uniform, after fix", "unit_sphere_uniform_n160_fix"),
+    ("automesh octree, after fix", "unit_sphere_octree_n160_fix"),
 )
 CONTROL_PANELS = (
     ("octree, n=160 marching cubes", "unit_sphere_octree_n160"),
@@ -105,8 +115,13 @@ SMOOTH_PANELS = (
 )
 QUALITY_MESHES = (
     ("Sculpt", "unit_sphere_sculpt_n160.csv"),
-    ("automesh, uniform lattice", "unit_sphere_uniform_n160.csv"),
-    ("automesh, adaptive octree", "unit_sphere_octree_n160.csv"),
+    ("automesh uniform, before fix", "unit_sphere_uniform_n160.csv"),
+    ("automesh octree, before fix", "unit_sphere_octree_n160.csv"),
+)
+QUALITY_MESHES_FIX = (
+    ("Sculpt", "unit_sphere_sculpt_n160.csv"),
+    ("automesh uniform, after fix", "unit_sphere_uniform_n160_fix.csv"),
+    ("automesh octree, after fix", "unit_sphere_octree_n160_fix.csv"),
 )
 CONTROL_MESHES = (
     ("octree, n=160 marching cubes", "unit_sphere_octree_n160.csv"),
@@ -526,6 +541,14 @@ def main() -> None:
         )
         meshes_plot(
             here=here,
+            panels=MESHER_PANELS_FIX,
+            output="unit_sphere_meshers_cut_fix.png"
+            if cut
+            else "unit_sphere_meshers_fix.png",
+            cut=cut,
+        )
+        meshes_plot(
+            here=here,
             panels=CONTROL_PANELS,
             output="unit_sphere_control_meshes_cut.png"
             if cut
@@ -555,6 +578,9 @@ def main() -> None:
             cut=cut,
         )
     quality_plot(here=here, meshes=QUALITY_MESHES, output="unit_sphere_quality.png")
+    quality_plot(
+        here=here, meshes=QUALITY_MESHES_FIX, output="unit_sphere_quality_fix.png"
+    )
     quality_plot(here=here, meshes=CONTROL_MESHES, output="unit_sphere_control.png")
     quality_plot(
         here=here, meshes=CONTROL_MESHES_PRE_FIX, output="unit_sphere_control_pre_fix.png"

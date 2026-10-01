@@ -484,7 +484,15 @@ automesh mesh hex -i unit_sphere_mc_n160.stl -o unit_sphere_octree_n160.inp \
 ```
 
 The table gives the element count and the worst and mean Minimum Scaled
-Jacobian (MSJ) of each mesh.
+Jacobian (MSJ) of each mesh.  The section shows the `automesh` meshes twice.
+The first set comes from `conspire` 0.7.7.  The second set comes from
+`conspire` with the tie fix of
+[#222](https://github.com/mrbuche/conspire.rs/pull/222).  The shape diameter
+fix ([#221](https://github.com/mrbuche/conspire.rs/pull/221)) and the mirror
+symmetry fix ([#225](https://github.com/mrbuche/conspire.rs/pull/225)) change
+none of these meshes.
+
+**Before the fix (`conspire` 0.7.7).**
 
 <table>
 <thead>
@@ -505,13 +513,13 @@ Jacobian (MSJ) of each mesh.
 
 ![unit_sphere_meshers.png](unit_sphere_meshers.png)
 
-Figure: The three meshes of the $n = 160$ surface: Sculpt (left), the
-`automesh` uniform lattice (middle), and the `automesh` adaptive octree
-(right).  Each element is painted by its Minimum Scaled Jacobian, on the same
-0 to 1 scale as the Sculpt figures.  Sculpt's boundary elements form regular
-bands.  The lattice's boundary elements are irregular, with dark patches of
-low quality.  The octree's boundary elements are large and coarse, except in
-dense clusters of small elements.  The figure is produced by
+Figure: The three meshes of the $n = 160$ surface, before the fix: Sculpt
+(left), the `automesh` uniform lattice (middle), and the `automesh` adaptive
+octree (right).  Each element is painted by its Minimum Scaled Jacobian, on
+the same 0 to 1 scale as the Sculpt figures.  Sculpt's boundary elements form
+regular bands.  The lattice's boundary elements are irregular, with dark
+patches of low quality.  The octree's boundary elements are large and coarse,
+except in dense clusters of small elements.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ![unit_sphere_meshers_cut.png](unit_sphere_meshers_cut.png)
@@ -526,11 +534,11 @@ The figure is produced by [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 ![unit_sphere_quality.png](unit_sphere_quality.png)
 
-Figure: Element quality of the three meshes of the $n = 160$ surface: Sculpt
-(solid, orange), the `automesh` uniform lattice (dashed, blue), and the
-`automesh` adaptive octree (dotted, green).  Each panel is a histogram with a
-log scale on the count.  The octree's tail below zero holds its 23 inverted
-elements.  The figure is produced by
+Figure: Element quality of the three meshes of the $n = 160$ surface, before
+the fix: Sculpt (solid, orange), the `automesh` uniform lattice (dashed,
+blue), and the `automesh` adaptive octree (dotted, green).  Each panel is a
+histogram with a log scale on the count.  The octree's tail below zero holds
+its 23 inverted elements.  The figure is produced by
 [`unit_sphere_figures.py`](#unit_sphere_figurespy).
 
 Sculpt makes the better mesh at every $n$.  Its worst element stays between
@@ -545,6 +553,94 @@ marching cubes facets, so its element count grows with $n$, from 8,243 to
 worst element drops sharply from $n = 40$ on, to 0.032 and then 0.010.  At
 $n = 160$, 23 elements are inverted, and the worst has a Minimum Scaled
 Jacobian of −0.792.  None are inverted at $n = 10$ to 80.
+
+**After the fix.**
+
+The after-fix meshes use `conspire` with the tie fix of
+[#222](https://github.com/mrbuche/conspire.rs/pull/222).  They have the same
+element counts as the before-fix meshes, because the fix does not touch the
+background meshes.  It changes how the fit pulls the new boundary layer onto
+the surface.
+
+<table>
+<thead>
+<tr><th rowspan="2" style="text-align:right">$n$</th>
+<th colspan="2" style="text-align:center">Sculpt</th>
+<th colspan="2" style="text-align:center">automesh uniform</th>
+<th colspan="2" style="text-align:center">automesh octree</th></tr>
+<tr><th style="text-align:right">elements</th><th style="text-align:center">MSJ min / mean</th><th style="text-align:right">elements</th><th style="text-align:center">MSJ min / mean</th><th style="text-align:right">elements</th><th style="text-align:center">MSJ min / mean</th></tr>
+</thead>
+<tbody>
+<tr><td style="text-align:right">10</td><td style="text-align:right">6,912</td><td style="text-align:center">0.388 / 0.885</td><td style="text-align:right">6,024</td><td style="text-align:center">0.161 / 0.827</td><td style="text-align:right">8,243</td><td style="text-align:center">0.114 / 0.693</td></tr>
+<tr><td style="text-align:right">20</td><td style="text-align:right">6,768</td><td style="text-align:center">0.404 / 0.900</td><td style="text-align:right">5,984</td><td style="text-align:center">0.123 / 0.840</td><td style="text-align:right">9,983</td><td style="text-align:center">0.027 / 0.708</td></tr>
+<tr><td style="text-align:right">40</td><td style="text-align:right">6,768</td><td style="text-align:center">0.420 / 0.902</td><td style="text-align:right">5,840</td><td style="text-align:center">0.130 / 0.836</td><td style="text-align:right">14,767</td><td style="text-align:center">0.039 / 0.740</td></tr>
+<tr><td style="text-align:right">80</td><td style="text-align:right">6,768</td><td style="text-align:center">0.401 / 0.901</td><td style="text-align:right">5,825</td><td style="text-align:center">0.126 / 0.824</td><td style="text-align:right">15,223</td><td style="text-align:center">0.007 / 0.754</td></tr>
+<tr><td style="text-align:right">160</td><td style="text-align:right">6,768</td><td style="text-align:center">0.427 / 0.901</td><td style="text-align:right">5,789</td><td style="text-align:center">0.100 / 0.819</td><td style="text-align:right">25,815</td><td style="text-align:center">−0.959 / 0.760</td></tr>
+</tbody>
+</table>
+
+![unit_sphere_meshers_fix.png](unit_sphere_meshers_fix.png)
+
+Figure: The same three meshes after the fix.  Sculpt (left) is unchanged.  The
+`automesh` uniform lattice (middle) and adaptive octree (right) look much as
+before.  The lattice's boundary elements are still irregular, with dark
+patches of low quality.  The octree's boundary elements are still large and
+coarse, except in the same dense clusters of small elements.  The differences
+are in the numbers of the table.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+![unit_sphere_meshers_cut_fix.png](unit_sphere_meshers_cut_fix.png)
+
+Figure: A cut through the middle of the same three meshes after the fix, at $z
+= 0$, on the same scale as the before-fix cut.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+![unit_sphere_quality_fix.png](unit_sphere_quality_fix.png)
+
+Figure: Element quality of the same three meshes after the fix, in the same
+styles and scales as the before-fix figure.  The octree's tail below zero now
+holds 6 inverted elements, where it held 23.  The figure is produced by
+[`unit_sphere_figures.py`](#unit_sphere_figurespy).
+
+The ranking does not change.  Sculpt still makes the better mesh at every $n$,
+and the octree still does worse than the lattice.  The fix does not make the
+`automesh` meshes better as a group.  It moves the worst elements around.
+
+The lattice keeps its element counts, 6,024 to 5,789.  Its worst element goes
+from 0.154, 0.097, 0.119, 0.126, and 0.102 to 0.161, 0.123, 0.130, 0.126, and
+0.100.  That is higher at $n = 10$ to 40, equal at $n = 80$, and lower by
+0.002 at $n = 160$.  Its mean stays within 0.006 of the before-fix mean.  Its
+aspect ratio reaches 9.8 to 11.8, against 9.3 to 13.1 before.
+
+The octree keeps its element counts, 8,243 to 25,815.  Its worst element goes
+from 0.088, 0.102, 0.032, 0.010, and −0.792 to 0.114, 0.027, 0.039, 0.007, and
+−0.959.  That is higher at $n = 10$ and 40, and lower at $n = 20$, 80, and
+160.  At $n = 160$, 6 elements are inverted, against 23 before, and the worst
+has a Minimum Scaled Jacobian of −0.959.  None are inverted at $n = 10$ to 80.
+Its mean stays between 0.69 and 0.76, within 0.005 of the before-fix mean.
+Its largest aspect ratio rises from 14.0 to 44.0 at $n = 80$ and falls from
+31.1 to 17.5 at $n = 160$.
+
+The tie fix changes the targets that pull the boundary layer onto the surface.
+A marching cubes surface has many closest points on shared edges and vertices,
+so its targets change, and the optimizer takes a different path.  A different
+path gives a different worst element, in either direction.  The element counts
+do not change, because the octree does not.
+
+**Before and after.**
+
+| $n$ | mesher | elements | MSJ min | MSJ mean | inverted | max edge ratio |
+| ---: | :--- | ---: | ---: | ---: | ---: | ---: |
+| 10 | uniform | 6,024 | 0.154 → 0.161 | 0.830 → 0.827 | 0 → 0 | 12.70 → 11.80 |
+| 20 | uniform | 5,984 | 0.097 → 0.123 | 0.838 → 0.840 | 0 → 0 | 13.06 → 9.75 |
+| 40 | uniform | 5,840 | 0.119 → 0.130 | 0.838 → 0.836 | 0 → 0 | 9.89 → 9.83 |
+| 80 | uniform | 5,825 | 0.126 → 0.126 | 0.827 → 0.824 | 0 → 0 | 9.46 → 10.78 |
+| 160 | uniform | 5,789 | 0.102 → 0.100 | 0.825 → 0.819 | 0 → 0 | 9.32 → 9.93 |
+| 10 | octree | 8,243 | 0.088 → 0.114 | 0.695 → 0.693 | 0 → 0 | 17.75 → 12.76 |
+| 20 | octree | 9,983 | 0.102 → 0.027 | 0.711 → 0.708 | 0 → 0 | 12.71 → 11.69 |
+| 40 | octree | 14,767 | 0.032 → 0.039 | 0.742 → 0.740 | 0 → 0 | 11.11 → 8.67 |
+| 80 | octree | 15,223 | 0.010 → 0.007 | 0.754 → 0.754 | 0 → 0 | 13.97 → 43.95 |
+| 160 | octree | 25,815 | −0.792 → −0.959 | 0.755 → 0.760 | 23 → 6 | 31.11 → 17.49 |
 
 ### Control Study
 
@@ -1290,7 +1386,7 @@ figure of Update 4 also reads `unit_sphere_control_loop07_fit_fix.inp` and
 The fit-fix mesh comes from `automesh` built on the `fit-mirror-symmetry`
 branch of `conspire`, which holds the fixes of
 [#222](https://github.com/mrbuche/conspire.rs/pull/222) and
-[#223](https://github.com/mrbuche/conspire.rs/pull/223).  The released
+[#225](https://github.com/mrbuche/conspire.rs/pull/225).  The released
 `automesh` pins `conspire` 0.7.7, so the build uses a patch and one import
 change.  `conspire` moved `Dualization` from `ntree` to `mesh`.
 
@@ -1317,8 +1413,29 @@ Only level 7 needs a fit-fix file.  The shape diameter fix does not change level
 reproduce the `_fit_fix` files of this page byte for byte, with 1,415 elements
 and a minimum scaled Jacobian of 0.441.
 
+The same build makes the after-fix marching cubes meshes of the Mesh section.
+Run this in the book's directory, with the `automesh` of the commands above.
+
+```sh
+CELL=0.095416
+for n in 010 020 040 080 160; do
+  ~/automesh-fit-fix/target/release/automesh mesh hex -i unit_sphere_mc_n$n.stl \
+    -o unit_sphere_uniform_n${n}_fix.inp -u $CELL \
+    --metrics unit_sphere_uniform_n${n}_fix.csv -q
+  ~/automesh-fit-fix/target/release/automesh mesh hex -i unit_sphere_mc_n$n.stl \
+    -o unit_sphere_octree_n${n}_fix.inp \
+    --metrics unit_sphere_octree_n${n}_fix.csv -q
+done
+```
+
+The tie fix of [#222](https://github.com/mrbuche/conspire.rs/pull/222) alone
+makes these meshes.  All 20 files are byte for byte the same as the ones from
+a build with all three changes.  The before-fix meshes of the Mesh section are
+the unsuffixed `unit_sphere_uniform_nNNN` and `unit_sphere_octree_nNNN` files,
+which `unit_sphere_mesh.py` writes with the released `automesh`.
+
 The unsuffixed after-fix meshes need all three changes together:
-[#221](https://github.com/mrbuche/conspire.rs/pull/221), #222, and #223.  No
+[#221](https://github.com/mrbuche/conspire.rs/pull/221), #222, and #225.  No
 branch on the remote holds them together yet.  Both #221 and #222 add code at
 the same place in `bvh/base/mod.rs`, so combining them takes a manual merge.
 
