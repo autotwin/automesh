@@ -458,7 +458,12 @@ def hexes_plot(*, meshes: tuple, output: Path, cut: bool) -> None:
     fig = plt.figure(figsize=(5 * len(meshes), 5))
     for index, (title, stem) in enumerate(meshes, start=1):
         mesh_draw(
-            fig=fig, position=index, title=title, stem=stem, cut=cut, columns=len(meshes)
+            fig=fig,
+            position=index,
+            title=title,
+            stem=stem,
+            cut=cut,
+            columns=len(meshes),
         )
     colorbar_add(fig=fig)
     fig.savefig(output, dpi=DPI)
@@ -565,7 +570,9 @@ def main() -> None:
         }
         sculpt = sculpts[f"n{N:03d}"]
         rows = (("Sculpt", sculpt),) + meshes
-        print(f"{'mesh':>9}  {'hexes':>8}  {'MSJ min':>8}  {'MSJ mean':>8}  {'inverted':>8}")
+        print(
+            f"{'mesh':>9}  {'hexes':>8}  {'MSJ min':>8}  {'MSJ mean':>8}  {'inverted':>8}"
+        )
         for title, stem in rows:
             msj = np.genfromtxt(stem.with_suffix(".csv"), delimiter=",", names=True)[
                 "minimum_scaled_jacobian"
@@ -576,7 +583,10 @@ def main() -> None:
             )
         quality_plot(
             meshes=tuple(
-                (f"{label} ({len(np.genfromtxt(stem.with_suffix('.csv'), delimiter=',', names=True)):,} hexes)", stem)
+                (
+                    f"{label} ({len(np.genfromtxt(stem.with_suffix('.csv'), delimiter=',', names=True)):,} hexes)",
+                    stem,
+                )
                 for label, stem in (
                     ("Sculpt", sculpt),
                     ("automesh uniform", meshes[0][1]),
