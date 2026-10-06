@@ -4,7 +4,6 @@ use std::{
     time::Instant,
 };
 
-mod agglomerate;
 mod convert;
 mod defeature;
 mod diff;
@@ -19,7 +18,6 @@ mod remesh;
 mod segment;
 mod smooth;
 
-use agglomerate::{AgglomerateArgs, agglomerate};
 use convert::{ConvertSubcommand, convert_mesh, convert_segmentation};
 use defeature::defeature;
 use diff::diff;
@@ -78,9 +76,6 @@ struct Args {
 #[derive(Subcommand)]
 #[allow(clippy::large_enum_variant)]
 enum Commands {
-    /// Partitions a mesh and agglomerates each part into one polyhedral element
-    Agglomerate(AgglomerateArgs),
-
     /// Converts between mesh or segmentation file types
     Convert {
         #[command(subcommand)]
@@ -234,7 +229,6 @@ fn main() -> Result<(), ErrorWrapper> {
         io::title(quiet);
     }
     let result = match args.command {
-        Some(Commands::Agglomerate(args)) => agglomerate(args, quiet),
         Some(Commands::Convert { subcommand }) => match subcommand {
             ConvertSubcommand::Mesh(args) => convert_mesh(args, quiet),
             ConvertSubcommand::Segmentation(args) => convert_segmentation(
