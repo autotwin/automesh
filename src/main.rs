@@ -65,11 +65,16 @@ struct Args {
     command: Option<Commands>,
 
     /// Mirror terminal output to a log file
-    #[arg(global = true, long, value_name = "FILE")]
+    #[arg(
+        global = true,
+        help_heading = "Global options",
+        long,
+        value_name = "FILE"
+    )]
     log: Option<String>,
 
     /// Pass to quiet the terminal output
-    #[arg(action, global = true, long, short)]
+    #[arg(action, global = true, help_heading = "Global options", long, short)]
     quiet: bool,
 }
 
