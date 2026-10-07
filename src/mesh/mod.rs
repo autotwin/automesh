@@ -541,10 +541,11 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
         } else {
             Balancing::Weak(args.levels)
         };
+        let tolerance = args.tolerance.map(Length::meters);
         if polyhedral {
-            tessellation.octree_background(balancing, args.scale)
+            tessellation.octree_background(balancing, args.scale, tolerance)
         } else {
-            tessellation.dual_background(balancing, args.scale)
+            tessellation.dual_background(balancing, args.scale, tolerance)
         }
     }?;
     let (elements, nodes) = retained(&background, &classes);
