@@ -132,6 +132,38 @@ fn mesh_hexdom_to_vtu() {
     assert_nonempty(&output);
 }
 
+/// Size of the vtu a cut path writes for the sphere, with an optional `--tolerance`.
+fn cut_size(element: &str, tolerance: Option<&str>) -> u64 {
+    let (input, output) = (sphere(), out("vtu"));
+    let mut args = vec![
+        "mesh",
+        element,
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "5",
+    ];
+    if let Some(tolerance) = tolerance {
+        args.extend(["-t", tolerance]);
+    }
+    run(&args);
+    std::fs::metadata(&output)
+        .expect("output file was not created")
+        .len()
+}
+
+#[test]
+fn mesh_hexdom_tolerance_refines() {
+    assert!(cut_size("hexdom", Some("0.001")) > cut_size("hexdom", None));
+}
+
+#[test]
+fn mesh_poly_tolerance_refines() {
+    assert!(cut_size("poly", Some("0.001")) > cut_size("poly", None));
+}
+
 #[test]
 fn mesh_tet_to_vtu() {
     let output = out("vtu");
