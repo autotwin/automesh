@@ -953,3 +953,41 @@ fn partition_as_polyhedra_rejects_unsupported_output() {
         .expect("failed to spawn automesh");
     assert!(!result.status.success());
 }
+
+/// Runs `mesh <element>` on the sphere tessellation with extra flags, asserting failure.
+fn assert_stl_rejects(element: &str, flags: &[&str]) {
+    let output = out("vtu");
+    let status = Command::new(BIN)
+        .args([
+            "mesh",
+            element,
+            "-i",
+            sphere().to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
+        .args(flags)
+        .arg("--quiet")
+        .status()
+        .expect("failed to spawn automesh");
+    assert!(!status.success(), "mesh {element} accepted {flags:?}");
+}
+
+#[test]
+fn mesh_hex_stl_rejects_levels() {
+    assert_stl_rejects("hex", &["-l", "3"]);
+}
+
+#[test]
+fn mesh_tet_stl_rejects_levels() {
+    assert_stl_rejects("tet", &["-l", "3"]);
+}
+
+#[test]
+fn mesh_stl_rejects_segmentation_flags() {
+    for element in ["hex", "tet", "hexdom", "poly"] {
+        assert_stl_rejects(element, &["-r", "1", "2"]);
+        assert_stl_rejects(element, &["-d", "5"]);
+        assert_stl_rejects(element, &["-x", "3"]);
+    }
+}

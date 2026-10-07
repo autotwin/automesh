@@ -219,7 +219,33 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
     write_mesh(&args.output, mesh, quiet)
 }
 
+/// Rejects flags that a tessellation (stl) input would otherwise silently ignore.
+///
+/// Segmentation flags have no meaning without voxels, and only `mesh poly`
+/// reads `--levels`, since dualization requires 2:1 balancing.
+fn reject_ignored(args: &MeshArgs, element: &Element) -> Result<(), ErrorWrapper> {
+    if args.remove.is_some()
+        || args.defeature.is_some()
+        || args.nelx.is_some()
+        || args.nely.is_some()
+        || args.nelz.is_some()
+    {
+        return Err(ErrorWrapper::from(
+            "Segmentation flags (remove, defeature, nelx, nely, nelz) do not apply to tessellation (stl) inputs",
+        ));
+    }
+    if matches!(element, Element::Hexahedra | Element::Tetrahedra) && args.levels != 1 {
+        return Err(ErrorWrapper::from(
+            "Dualization requires 2:1 balancing, so levels applies to mesh poly only",
+        ));
+    }
+    Ok(())
+}
+
 pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    if extension(&args.input) == Some("stl") && !matches!(element, Element::Triangles) {
+        reject_ignored(&args, &element)?;
+    }
     match (&element, extension(&args.input)) {
         (Element::Hexahedra, Some("stl")) => return hexahedralize(args, quiet),
         (Element::Tetrahedra, Some("stl")) => return tetrahedralize(args, quiet),
