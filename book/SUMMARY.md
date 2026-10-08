@@ -57,8 +57,7 @@
 # Theory
 
 - [Isosurfaces](theory/isosurface.md)
-  - [Introduction](theory/isosurface/introduction.md) <!-- DRAFT -->
-  - [Status](theory/isosurface/status.md) <!-- DRAFT -->
+  - [Introduction](theory/isosurface/introduction.md)
   - [Marching Cubes](theory/isosurface/marching_cubes.md)
   - [Dual Contouring](theory/isosurface/dual_contouring.md)
 - [Subdivision](theory/subdivision.md)

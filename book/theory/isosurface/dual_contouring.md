@@ -2,13 +2,13 @@
 
 Dual Contouring (DC) was originally proposed by Ju *et al.*[^Ju_2002] in 2002.
 
-DC improves upon the MC algorithm.  DC uses the dual grid of the voxel data, locating nodes of the surface *within* the voxel, rather than on the edge of the voxel (as done with MC).
+DC improves upon the Marching Cubes algorithm.  DC uses the dual grid of the voxel data, locating nodes of the surface *within* the voxel, rather than on the edge of the voxel (as done with Marching Cubes).
 
-Boris[^Boris_2025] created a figure, reproduced below, that illustrates the differences between MC and DC.
+Boris[^Boris_2025] created a figure, reproduced below, that illustrates the differences between Marching Cubes and DC.
 
 ![](../../fig/Boris_MC_DC.png)
 
-Figure: Reproduction of the figure from Boris[^Boris_2025], illustrating, in two dimensions, the differences between MC and DC.  White circle are outside points.  Black circles are inside points.  In MC, the red points indicate surface vertices at edge intersections.  In DC, the red points indicate surface vertices within a voxel.
+Figure: Reproduction of the figure from Boris[^Boris_2025], illustrating, in two dimensions, the differences between Marching Cubes and DC.  White circle are outside points.  Black circles are inside points.  In Marching Cubes, the red points indicate surface vertices at edge intersections.  In DC, the red points indicate surface vertices within a voxel.
 
 ## Advantages
 
@@ -16,7 +16,7 @@ Figure: Reproduction of the figure from Boris[^Boris_2025], illustrating, in two
 
 ## Disadvantages
 
-* More complicated than MC since DC uses both position and normal (gradient) information at voxel edges to locate the surface intersection.
+* More complicated than Marching Cubes since DC uses both position and normal (gradient) information at voxel edges to locate the surface intersection.
 * "...unable to guarantee 2-manifold and watertight meshes due to the fact that it produces only one vertex for each grid cube." "DC is that it does not guarantee 2-manifold and intersection-free surfaces. A polygonal mesh is considered as being 2-manifold if each edge of the mesh is shared by only two faces, and if the neighborhood of each vertex of the mesh is the topological equivalent of a disk." [^Rashid_2016]
 
 ## References

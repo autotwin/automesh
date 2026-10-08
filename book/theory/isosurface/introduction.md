@@ -1,7 +1,5 @@
 # Introduction
 
-> **DRAFT.** Not yet reviewed.
-
 Isosurfacing is a method to extract the surface from a three-dimensional
 scalar field. A scalar field $\phi = \phi(x, y, z): \mathbb{R}^3 \mapsto
 \mathbb{R}$ assigns a scalar value to every point in three-dimensional
@@ -21,25 +19,23 @@ void. `automesh` already works this way — [`mesh tri`](../../cli/mesh.md)
 produces isosurfaces of the **material boundaries**, plural, and the
 cuberille implementation below emits a face wherever two face-adjacent
 voxels' labels differ, whichever two labels they are. Any isosurfacing
-method `automesh` adds needs to preserve that: a method that only finds
+method in `automesh` needs to preserve that: a method that only finds
 the outer material/void boundary would be a regression, not an upgrade.
-See [Status](status.md#multi-material-interfaces) for how Marching Cubes
-and Dual Contouring stand on this.
+See [Marching Cubes](marching_cubes.md#multi-material-interfaces) for how
+Marching Cubes stands on this.
 
 ## Three approaches, not two
 
 Marching Cubes and Dual Contouring are the two isosurfacing algorithms
-most often cited in the literature, covered in detail two pages from here.
-But a third, older approach exists, and it is the one `automesh` uses
-today.
+most often cited in the literature, covered in detail on the next two pages.
+But a third, older approach exists, and it is the default in `automesh`.
 
-### Cuberille: what `mesh tri` actually does
+### Cuberille: the `mesh tri` default
 
-`automesh mesh tri` builds its output surface through conspire's
-`Tessellation::from<Voxels>` (`geometry/mesh/tessellation/from/grid/mod.rs`
-in `conspire.rs`). The algorithm walks the grid once and, for every pair of
-face-adjacent voxels whose labels differ, emits a quad face exactly on the
-voxel boundary between them — no interpolation, no gradient information.
+By default, `automesh mesh tri` (`--cubes cuberille`) builds its output
+surface by walking the grid once. For every pair of face-adjacent voxels
+whose labels differ, the algorithm emits a quad face exactly on the voxel
+boundary between them — no interpolation, no gradient information.
 Each quad splits into two triangles, coincident vertices weld together, and
 any resulting non-manifold "pinch" vertex is duplicated to restore a clean
 2-manifold. The result is the exact voxel-boundary surface: axis-aligned,
@@ -51,11 +47,11 @@ slices. It predates both Marching Cubes (1987) and Dual Contouring (2002).
 
 ### Why it matters for `mesh tri`
 
-Cuberille's stair-stepping is why `mesh tri` output is typically smoothed
+Cuberille's stair-stepping is why cuberille output is typically smoothed
 afterward — `mesh tri smooth` chains Laplace or Taubin smoothing directly
 onto it, and `mesh tri smooth remesh` can follow that with remeshing. The
-voxel-boundary surface is a faithful but blocky starting point; smoothing,
-not the isosurfacing step itself, is what currently produces a
+voxel-boundary surface is a faithful but blocky starting point. With
+cuberille, smoothing, not the isosurfacing step itself, produces a
 visually smooth result.
 
 Marching Cubes and Dual Contouring take the opposite approach: both
@@ -63,9 +59,9 @@ interpolate a smoother surface *during* extraction, at the cost of losing
 the guarantee that every output vertex sits exactly on a voxel boundary.
 [Marching Cubes](marching_cubes.md) interpolates along voxel edges. [Dual
 Contouring](dual_contouring.md) places a vertex inside each voxel, using
-gradient information to better preserve sharp features. `conspire` `main` has implemented Marching Cubes, and `automesh` does not
-expose it yet. Neither `conspire` nor `automesh` implements Dual
-Contouring. See [Status](status.md) for the details.
+gradient information to better preserve sharp features. Marching Cubes is
+available through `mesh tri --cubes marching`. `automesh` does not implement
+Dual Contouring.
 
 ## References
 
