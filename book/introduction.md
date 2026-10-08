@@ -2,23 +2,27 @@
 
 `automesh` is an open-source Rust software program that uses a **segmentation**,
 typically generated from a 3D image stack,
-to create a finite element **mesh**,
-composed either of hexahedral (volumetric)
-or triangular (isosurface) elements.
+or a **tessellation** (a triangular surface)
+to create a finite element **mesh**.
+
+* The volumetric elements are hexahedral, tetrahedral,
+hex-dominant, or polyhedral.
+* The surface elements are triangular (isosurface).
 
 `automesh` **converts** between
-segmentation formats (`.npy`, `.spn`)
+segmentation formats (`.npy`, `.spn`, `.vti`)
 and
-mesh formats (`.exo`, `.inp`, `.mesh`, `.stl`, `.vtu`).
+mesh formats (`.exo`, `.inp`, `.mesh`, `.off`, `.stl`, `.vtu`).
 
 `automesh` can **defeature** voxel domains,
-apply Laplacian and Taubin **smoothing**,
+apply Laplacian and Taubin **smoothing**, with an optional hierarchical mode,
 and output mesh quality **metrics**.
 
-`automesh` can also **segment** a mesh back into a voxel domain, **remesh** a
-triangular surface with uniform or curvature-adaptive sizing, **extract** a
-sub-range of voxels from a segmentation, and **diff** two segmentations to
-show where they differ.
+`automesh` can also **extract** a sub-range of voxels from a segmentation,
+**diff** two segmentations to show where they differ, **segment** a mesh back
+into a voxel domain, **remesh** a triangular surface with uniform or
+curvature-adaptive sizing, and **partition** a mesh into parts written as one
+`.exo` file per part.
 
 ## Segmentation
 
@@ -90,7 +94,8 @@ Figure: Illustration of the patient coordinate system, left figure from Terpsma 
 `automesh` writes several mesh formats: `.exo`, the EXODUS II finite element
 data model;[^Schoof_1994] `.inp`, the Abaqus input format;[^Dassault] `.mesh`,
 the Medit format;[^Frey_2001] `.off`, the Object File Format used by
-Geomview;[^Phillips_1993] and `.vtu`, the VTK XML UnstructuredGrid
+Geomview;[^Phillips_1993] `.stl`, the STL format for triangular surfaces in
+3D;[^3D_Systems_1989] and `.vtu`, the VTK XML UnstructuredGrid
 format.[^Kitware]
 
 ## References
@@ -112,5 +117,7 @@ format.[^Kitware]
 [^Frey_2001]: Frey PJ. MEDIT: an interactive mesh visualization software. Institut National de Recherche en Informatique et en Automatique (INRIA); 2001 Dec. Technical Report RT-0253. [link](https://inria.hal.science/inria-00069921)
 
 [^Phillips_1993]: Phillips M, Levy S, Munzner T. Geomview: An interactive geometry viewer. Notices of the American Mathematical Society. 1993 Oct;40:985-8. See also: Phillips M, et al. Geomview Manual, Geomview version 1.9 for Unix. 2007 Apr. [link](http://www.geomview.org/docs/geomview.pdf)
+
+[^3D_Systems_1989]: 3D Systems Inc. StereoLithography Interface Specification. 1989 Oct. See also: Library of Congress. STL (StereoLithography) File Format Family, Sustainability of Digital Formats, fdd000504. [link](https://www.loc.gov/preservation/digital/formats/fdd/fdd000504.shtml)
 
 [^Kitware]: Kitware Inc. VTK File Formats. [link](https://docs.vtk.org/en/v9.3.1/design_documents/VTKFileFormats.html)
