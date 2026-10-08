@@ -26,6 +26,12 @@ It picks each triangulation so that two cubes sharing a face agree on that face.
 This removes the cracks that the original table can produce.
 `automesh` uses this variant.
 
+A binary field needs one further caution.
+It takes only the values `0` and `1`, so the level `0.5` equals the field value at the saddle of an ambiguous face.
+At such a tie, the Lewiner method can leave an edge shared by more than two triangles.
+The tie arises only where the segmentation contains an ambiguous configuration.
+The [unit sphere](../../examples/gallery/academic/unit_sphere_v2.md) does not create this pathology.
+
 ## Marching Cubes in `automesh`
 
 `mesh tri --cubes marching` extracts the surface of each material separately.

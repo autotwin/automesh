@@ -19,7 +19,14 @@ Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
 uv run --with numpy unit_sphere_segmentation.py
-uv run --with numpy --with scikit-image unit_sphere_marching_cubes.py
+for n in 10 20 40 80 160; do
+  s=$(python3 -c "print(1/$n)")
+  t=$(python3 -c "print(-($n + 0.5)/$n)")
+  automesh mesh tri -i unit_sphere_n$(printf %03d $n).npy \\
+    -o unit_sphere_mc_n$(printf %03d $n).stl --cubes marching \\
+    --xscale $s --yscale $s --zscale $s \\
+    --xtranslate $t --ytranslate $t --ztranslate $t
+done
 uv run --with numpy unit_sphere_comparison.py
 
 Output

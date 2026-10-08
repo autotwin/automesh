@@ -4,7 +4,8 @@
 The script
 
 1. builds the segmentation of a sphere of radius `n = 10` voxels,
-2. runs marching cubes on it and scales the surface to the unit sphere,
+2. runs `automesh mesh tri --cubes marching` on it, which scales the surface to
+   the unit sphere,
 3. meshes the surface with `automesh mesh hex`, on a uniform lattice and
    with the adaptive default, and
 4. draws the surface (left), the uniform mesh (center), and the adaptive
@@ -21,8 +22,7 @@ stays.  The script prints the `automesh` version and a table of each mesh.
 Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
-uv run --with numpy --with scikit-image --with matplotlib \
-  unit_sphere_v2_meshes.py
+uv run --with numpy --with matplotlib unit_sphere_v2_meshes.py
 
 Output
 ------
@@ -39,11 +39,9 @@ import numpy as np
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import LightSource, Normalize
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-from scipy.io import netcdf_file
-from skimage import measure
 
 N = 10
-CELL = 2 * 1.240409 / 26
+CELL = 0.095416
 HEX_FACES = (
     (0, 1, 5, 4),
     (1, 2, 6, 5),
@@ -96,30 +94,43 @@ def sphere(*, radius: int) -> np.ndarray:
     return (x * x + y * y + z * z <= radius * radius).astype(np.uint8)
 
 
-def surface_make(*, radius: int) -> np.ndarray:
-    """Returns the outward-wound triangles of the unit sphere, shape (faces, 3, 3)."""
-    padded = np.pad(sphere(radius=radius), 1)
-    vertices, faces, _, _ = measure.marching_cubes(padded, level=0.5)
-    vertices = (vertices - (radius + 1)) / radius
-    return vertices[faces[:, ::-1]]
-
-
-def stl_write(*, path: Path, triangles: np.ndarray) -> None:
-    """Writes a binary STL."""
-    normals = np.cross(
-        triangles[:, 1] - triangles[:, 0], triangles[:, 2] - triangles[:, 0]
-    )
-    normals /= np.linalg.norm(normals, axis=1, keepdims=True)
+def stl_read(*, path: Path) -> np.ndarray:
+    """Reads a binary STL, returns the triangles, shape (faces, 3, 3)."""
+    data = np.fromfile(path, dtype=np.uint8)
     record = np.dtype(
         [("normal", "<f4", 3), ("vertices", "<f4", (3, 3)), ("attribute", "<u2")]
     )
-    data = np.zeros(len(triangles), dtype=record)
-    data["normal"] = normals
-    data["vertices"] = triangles
-    with path.open("wb") as file:
-        file.write(b"unit sphere, marching cubes".ljust(80, b" "))
-        file.write(np.uint32(len(triangles)).tobytes())
-        file.write(data.tobytes())
+    return np.frombuffer(data[84:].tobytes(), dtype=record)["vertices"].astype(float)
+
+
+def surface_write(*, radius: int, path: Path) -> None:
+    """Writes the outward-wound unit sphere surface of `radius` to the STL `path`.
+
+    `automesh` pads the segmentation, runs marching cubes at level 0.5, and
+    scales by 1/radius and then translates by -(radius + 0.5)/radius.  Voxel i
+    spans [i, i + 1], so the sphere center, at voxel index `radius`, sits at
+    radius + 0.5.  The file is the one `automesh mesh tri` writes, so the
+    meshes below start from the same input as the commands on the page.
+    """
+    scale = 1.0 / radius
+    translate = -(radius + 0.5) / radius
+    with tempfile.TemporaryDirectory() as scratch:
+        npy = Path(scratch) / "sphere.npy"
+        np.save(npy, sphere(radius=radius))
+        command = ["automesh", "mesh", "tri", "-i", str(npy), "-o", str(path)]
+        command += ["--cubes", "marching", "-q"]
+        for axis in "xyz":
+            command += [f"--{axis}scale", repr(scale)]
+            command += [f"--{axis}translate", repr(translate)]
+        subprocess.run(command, check=True)
+
+
+def surface_make(*, radius: int) -> np.ndarray:
+    """Returns the outward-wound triangles of the unit sphere, shape (faces, 3, 3)."""
+    with tempfile.TemporaryDirectory() as scratch:
+        path = Path(scratch) / "sphere.stl"
+        surface_write(radius=radius, path=path)
+        return stl_read(path=path)
 
 
 def automesh_run(*, stl: Path, name: str, uniform: float | None) -> Path:
@@ -133,42 +144,17 @@ def automesh_run(*, stl: Path, name: str, uniform: float | None) -> Path:
     return stl.parent / name
 
 
-def exodus_read(*, path: Path) -> tuple:
-    """Returns the node coordinates and hex connectivity of a Sculpt Exodus file."""
-    with netcdf_file(path, "r", mmap=False) as exodus:
-        points = np.stack(
-            [exodus.variables[f"coord{axis}"][:] for axis in "xyz"], axis=1
-        ).astype(float)
-        hexes = exodus.variables["connect1"][:].astype(int)
-    return points, hexes
-
-
-def inp_write(*, path: Path, points: np.ndarray, hexes: np.ndarray) -> None:
-    """Writes a hex mesh as an Abaqus input file, with 1-based numbering."""
-    lines = ["*NODE"]
-    lines += [
-        f"{i}, {x:.9e}, {y:.9e}, {z:.9e}" for i, (x, y, z) in enumerate(points, 1)
-    ]
-    lines.append("*ELEMENT, TYPE=C3D8R, ELSET=EB1")
-    lines += [f"{i}, " + ", ".join(map(str, h)) for i, h in enumerate(hexes, 1)]
-    path.write_text("\n".join(lines) + "\n")
-
-
 def sculpt_metrics(*, exodus: Path, scratch: Path) -> Path:
-    """Rewrites a Sculpt mesh as `.inp`, runs `automesh metrics`, returns the stem."""
-    points, hexes = exodus_read(path=exodus)
+    """Converts a Sculpt mesh to `.inp`, runs `automesh metrics`, returns the stem."""
     stem = scratch / exodus.name.removesuffix(".e.1.0")
-    inp_write(path=stem.with_suffix(".inp"), points=points, hexes=hexes)
     subprocess.run(
-        [
-            "automesh",
-            "metrics",
-            "-i",
-            str(stem.with_suffix(".inp")),
-            "-o",
-            str(stem.with_suffix(".csv")),
-            "-q",
-        ],
+        ["automesh", "convert", "mesh", "-i", str(exodus)]
+        + ["-o", str(stem.with_suffix(".inp")), "-q"],
+        check=True,
+    )
+    subprocess.run(
+        ["automesh", "metrics", "-i", str(stem.with_suffix(".inp"))]
+        + ["-o", str(stem.with_suffix(".csv")), "-q"],
         check=True,
     )
     return stem
@@ -470,12 +456,12 @@ def hexes_plot(*, meshes: tuple, output: Path, cut: bool) -> None:
     plt.close(fig)
 
 
-def minima_mark(*, ax, values: list) -> None:
+def minima_mark(*, ax, values: list, styles: tuple = HISTOGRAM) -> None:
     """Marks the minimum of each series on the x-axis, with its value above.
 
     The labels stagger in height, so minima that sit close together do not overlap.
     """
-    for index, (v, style) in enumerate(zip(values, HISTOGRAM, strict=True)):
+    for index, (v, style) in enumerate(zip(values, styles, strict=True)):
         ax.plot(
             [v.min()],
             [0.0],
@@ -501,10 +487,11 @@ def minima_mark(*, ax, values: list) -> None:
         )
 
 
-def quality_plot(*, meshes: tuple, output: Path) -> None:
+def quality_plot(*, meshes: tuple, output: Path, styles: tuple = HISTOGRAM) -> None:
     """Draws the four quality histograms.
 
     Each mesh is a label and the path of its `.csv` file, without the extension.
+    `styles` gives one line style per mesh.
     """
     data = [
         (label, np.genfromtxt(stem.with_suffix(".csv"), delimiter=",", names=True))
@@ -520,10 +507,10 @@ def quality_plot(*, meshes: tuple, output: Path) -> None:
             ax.set_xscale("log")
         else:
             bins = np.linspace(lo, hi, 41)
-        for (label, _), v, style in zip(data, values, HISTOGRAM, strict=True):
-            ax.hist(v, bins=bins, histtype="step", alpha=0.75, label=label, **style)
+        for (label, _), v, style in zip(data, values, styles, strict=True):
+            ax.hist(v, bins=bins, histtype="step", label=label, **{"alpha": 0.75, **style})
         if key == "minimum_scaled_jacobian":
-            minima_mark(ax=ax, values=values)
+            minima_mark(ax=ax, values=values, styles=styles)
         ax.set_yscale("log")
         ax.set_title(title, color=INK, fontsize=11)
         ax.set_xlabel(title, color=INK, fontsize=9)
@@ -537,12 +524,12 @@ def quality_plot(*, meshes: tuple, output: Path) -> None:
         handles,
         labels,
         loc="upper center",
-        ncol=len(labels),
+        ncol=3 if len(labels) <= 3 else 2,
         frameon=False,
         fontsize=9,
         bbox_to_anchor=(0.5, 1.0),
     )
-    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.93))
+    fig.tight_layout(rect=(0.0, 0.0, 1.0, 0.93 if len(labels) <= 3 else 0.87))
     fig.savefig(output, dpi=DPI)
     plt.close(fig)
 
@@ -553,10 +540,10 @@ def main() -> None:
         ["automesh", "--version"], check=True, capture_output=True, text=True
     ).stdout.strip()
     print(version)
-    triangles = surface_make(radius=N)
     with tempfile.TemporaryDirectory() as scratch:
         stl = Path(scratch) / f"unit_sphere_v2_n{N:03d}.stl"
-        stl_write(path=stl, triangles=triangles)
+        surface_write(radius=N, path=stl)
+        triangles = stl_read(path=stl)
         meshes = (
             ("uniform", automesh_run(stl=stl, name="uniform", uniform=CELL)),
             ("adaptive", automesh_run(stl=stl, name="adaptive", uniform=None)),

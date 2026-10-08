@@ -15,7 +15,9 @@ The script
 6. for each mesh, draws the smoothed surface, the mesh, and the mesh cut at
    z = 0, at the iteration count where its minimum scaled Jacobian peaks up to
    `LIMIT` iterations, in `unit_sphere_v2_smooth_uniform.png` and
-   `unit_sphere_v2_smooth_adaptive.png`.
+   `unit_sphere_v2_smooth_adaptive.png`, and
+7. draws the four quality histograms of those two meshes together in
+   `unit_sphere_v2_smooth_quality.png`.
 
 Taubin smoothing with the default parameters inflates this surface slowly.  At
 `LIMIT` = 300 iterations the enclosed volume is 6.8% above the sphere's.  The
@@ -28,13 +30,13 @@ keeps only the figures.
 Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
-uv run --with numpy --with scipy --with scikit-image --with matplotlib \
-  unit_sphere_v2_smooth.py
+uv run --with numpy --with matplotlib unit_sphere_v2_smooth.py
 
 Output
 ------
 unit_sphere_v2_smooth_sweep.png, unit_sphere_v2_smooth_uniform.png,
-unit_sphere_v2_smooth_adaptive.png, and a table on the terminal.
+unit_sphere_v2_smooth_adaptive.png, unit_sphere_v2_smooth_quality.png, and a table
+on the terminal.
 """
 
 import argparse
@@ -59,8 +61,9 @@ from unit_sphere_v2_meshes import (
     colorbar_add,
     mesh_draw,
     polygons_draw,
-    stl_write,
-    surface_make,
+    quality_plot,
+    sculpt_metrics,
+    surface_write,
 )
 
 ITERATIONS = (
@@ -71,6 +74,11 @@ EXACT = 4.0 * np.pi / 3.0
 WORKERS = 3
 LIMIT = 300
 MUTED = "#8a8a85"
+
+
+def count(*, stem: Path) -> int:
+    """Returns the number of hexes in the `.csv` file of a mesh."""
+    return len(np.genfromtxt(stem.with_suffix(".csv"), delimiter=",", names=True))
 
 
 def stl_read(*, path: Path) -> np.ndarray:
@@ -223,7 +231,7 @@ def sweep_plot(*, rows: list, output: Path) -> None:
         va="bottom",
     )
     ax.set_xlim(0, 1300)
-    ax.set_ylim(top=0.54)
+    ax.set_ylim(top=0.7)
     ax.set_ylabel("Minimum Scaled Jacobian", color=INK)
     ax.legend(frameon=False, loc="upper left")
     counts.set_yscale("log")
@@ -268,7 +276,7 @@ def main() -> None:
         scratch = args.scratch or Path(temporary)
         scratch.mkdir(parents=True, exist_ok=True)
         stl = scratch / f"unit_sphere_v2_n{N:03d}.stl"
-        stl_write(path=stl, triangles=surface_make(radius=N))
+        surface_write(radius=N, path=stl)
         cache = scratch / "rows.json"
         done = (
             {r["iterations"]: r for r in json.loads(cache.read_text())}
@@ -285,6 +293,7 @@ def main() -> None:
         rows = [done[i] for i in sorted(iterations)]
         table_print(rows=rows)
         sweep_plot(rows=rows, output=here / "unit_sphere_v2_smooth_sweep.png")
+        best_meshes = []
         for name, _ in CASES:
             peak = peak_find(rows=rows, name=name, limit=LIMIT)
             best = peak_find(rows=rows, name=name)
@@ -299,6 +308,34 @@ def main() -> None:
                 name=name,
                 output=here / f"unit_sphere_v2_smooth_{name}.png",
             )
+            best_meshes.append(
+                (
+                    f"automesh {name}, {peak['iterations']} iterations",
+                    scratch / f"{name}_iter{peak['iterations']:03d}",
+                )
+            )
+        sculpt = sculpt_metrics(
+            exodus=here / f"unit_sphere_sculpt_n{N:03d}.e.1.0", scratch=scratch
+        )
+        before = {"alpha": 0.4, "linewidth": 1.0}
+        series = [(f"Sculpt ({count(stem=sculpt):,} hexes)", sculpt, HISTOGRAM[0])]
+        for style, (name, _), (label, best) in zip(
+            HISTOGRAM[1:], CASES, best_meshes, strict=True
+        ):
+            zero = scratch / f"{name}_iter000"
+            series += [
+                (
+                    f"automesh {name}, no smoothing ({count(stem=zero):,} hexes)",
+                    zero,
+                    {**style, **before},
+                ),
+                (f"{label} ({count(stem=best):,} hexes)", best, style),
+            ]
+        quality_plot(
+            meshes=tuple((label, stem) for label, stem, _ in series),
+            output=here / "unit_sphere_v2_smooth_quality.png",
+            styles=tuple(style for _, _, style in series),
+        )
 
 
 if __name__ == "__main__":

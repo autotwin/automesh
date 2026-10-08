@@ -22,7 +22,7 @@ Two other sections build unit spheres by other methods.
 
 ## Segmentation
 
-The script [`unit_sphere_segmentation.py`](#unit_sphere_segmentationpy) builds
+The script `unit_sphere_segmentation.py` builds
 a sphere of radius $n$ voxels.  The sphere sits at the center of a cube of
 $2n+1$ voxels per side.  A voxel is inside when its center satisfies
 $x^2 + y^2 + z^2 \le n^2$.  An inside voxel has value `1`, and every other
@@ -60,27 +60,40 @@ shrinks as $n$ grows.
 ## Marching Cubes
 
 Marching cubes turns a grid of values into a triangulated surface at one
-level of those values.  The script
-[`unit_sphere_marching_cubes.py`](#unit_sphere_marching_cubespy) wraps the
-implementation in [scikit-image](https://scikit-image.org),
-`skimage.measure.marching_cubes`, with the method of Lewiner
-*et al.*[^Lewiner2003]  For each segmentation, the script
+level of those values.  The command `automesh mesh tri --cubes marching` runs
+the method of Lewiner *et al.*[^Lewiner2003]  For each segmentation, `automesh`
 
 1. pads the segmentation by one voxel of zeros, so the surface closes,
 2. runs marching cubes at level `0.5`, halfway between outside (`0`) and
    inside (`1`),
-3. reverses each face, so every triangle winds outward (see
-   [Pitfalls](#pitfalls)),
-4. translates and scales the vertices to a unit sphere (see
-   [Transform](#transform)), and
-5. writes a binary STL.
+3. winds every triangle outward, and
+4. scales and translates the vertices to a unit sphere (see
+   [Transform](#transform)).
+
+The command below meshes the $n = 10$ segmentation.  The scale is $1/n$ and
+the translation is $-(n + 0.5)/n$ in each direction.
 
 ```sh
-uv run --with numpy --with scikit-image unit_sphere_marching_cubes.py
+automesh mesh tri -i unit_sphere_n010.npy -o unit_sphere_mc_n010.stl --cubes marching \
+    --xscale 0.1 --yscale 0.1 --zscale 0.1 \
+    --xtranslate -1.05 --ytranslate -1.05 --ztranslate -1.05
 ```
 
-It then checks each surface.  $v$, $e$, and $f$ count the vertices, edges,
-and faces.  The volume is the signed volume that the faces enclose.  The
+The loop below makes the surface for each of the five segmentations.
+
+```sh
+for n in 10 20 40 80 160; do
+  s=$(python3 -c "print(1/$n)")
+  t=$(python3 -c "print(-($n + 0.5)/$n)")
+  automesh mesh tri -i unit_sphere_n$(printf %03d $n).npy \
+    -o unit_sphere_mc_n$(printf %03d $n).stl --cubes marching \
+    --xscale $s --yscale $s --zscale $s \
+    --xtranslate $t --ytranslate $t --ztranslate $t
+done
+```
+
+The surfaces below have the following counts.  $v$, $e$, and $f$ count the
+vertices, edges, and faces.  The volume is the signed volume that the faces enclose.  The
 error compares that volume with the exact volume $4\pi/3 \approx 4.1888$.
 
 | $n$ | $v$ | $e$ | $f$ | volume | error |
@@ -98,8 +111,8 @@ holds at every $n$ from 4 to 160.  Marching cubes cuts each corner of the
 voxel staircase with a flat triangle, and every cut removes a small
 volume.
 
-The script also runs five surface integrity checks.  All five surfaces give
-the same result on every check.
+Five integrity checks run on the five surfaces.  All five surfaces give the
+same result on every check.
 
 * **Closed.**  No edge is open.  An open edge belongs to one face only.
 * **Manifold.**  No edge is pinched.  A pinched edge belongs to more than two
@@ -122,11 +135,12 @@ surface is topologically a sphere.
 
 
 The script
-[`unit_sphere_figures.py`](#unit_sphere_figurespy) also computes both
-volumes at every $n$ from 4 to 160, 157 values in all.
+`unit_sphere_v2_convergence.py` computes both
+volumes at every $n$ from 4 to 160, 157 values in all.  It runs
+`automesh mesh tri --cubes marching` once per $n$.
 
 <figure>
-    <img src="unit_sphere_convergence.png" alt="volume and volume error of the voxel sphere against n" />
+    <img src="unit_sphere_v2_convergence.png" alt="volume and volume error of the voxel sphere against n" />
     <figcaption>The volume (left) and the magnitude of its error (right) against $n$, for the voxels and for the marching cubes surface.  Thin lines connect every $n$ from 4 to 160.  Markers show the five values of $n$ in the tables. On the left, the dotted line marks the exact volume $4\pi/3$, and a few values at $n \le 7$ fall off the scale.  On the right, the gray guides have slopes of −1 and −2.</figcaption>
 </figure>
 
@@ -160,63 +174,21 @@ Chernyaev extended the table to 33 cases.[^Chernyaev1995]  His table
 resolves each ambiguity with the trilinear interpolant of the eight corner
 values, the smooth function the samples define inside the cube.  Lewiner
 *et al.* gave an efficient and complete implementation of that
-table.[^Lewiner2003]
-[scikit-image](https://scikit-image.org/docs/stable/api/skimage.measure.html#skimage.measure.marching_cubes)
-uses the Lewiner method by default.[^skimage]
+table.[^Lewiner2003]  `automesh` uses the Lewiner method.
 
-The list below separates what the Lewiner method adds from what the
-scikit-image implementation gives either method.  Each item says where the
-evidence comes from.
-
-**What the Lewiner method adds**
-
-1. **Topology that matches the data.**  The 33-case table resolves face and
-   interior ambiguities with the trilinear interpolant.  The surface then
-   has the topology of the interpolant's level set, so neighboring cubes
-   always agree.  *From the paper.*[^Lewiner2003]
-
-**What the scikit-image implementation gives either method**
-
-2. **Watertight.**  No edge is open, at any $n$.  The one-voxel pad keeps
-   the surface closed where the sphere touches the edge of the grid.
-   *Measured here.*
-3. **Manifold.**  Every edge belongs to exactly two faces, at any $n$.
-   *Measured here.*
-4. **Consistently oriented.**  No two faces traverse an edge in the same
-   direction, and the signed volume is positive once the faces are reversed.
-   *Measured here.*
-5. **An indexed mesh.**  The output is an array of vertices and an array of
-   faces that index into it.  Neighboring triangles share vertices, so the
-   mesh needs no welding.  *From the API.*
-6. **Normals and values.**  The call also returns a normal at each vertex,
-   from the gradient of the data, and the data value there.  *From the API.*
-
-For the unit sphere the two methods agree.  At every $n$ they return the
-same triangles, and they take the same time.  The time below is the fastest
-of five runs, on the machine that built this page.
-
-| $n$ | Lewiner (ms) | Lorensen (ms) | same triangles |
-| ---: | ---: | ---: | :---: |
-| 10 | 0.49 | 0.49 | yes |
-| 20 | 1.99 | 2.03 | yes |
-| 40 | 9.19 | 9.41 | yes |
-| 80 | 48.10 | 49.52 | yes |
-| 160 | 285.98 | 296.59 | yes |
+The Lewiner method is better than the original table because neighboring
+cubes always agree.  Each ambiguity is resolved from the data, so two cubes
+that share a face choose the same connection across it.  The surface then
+has the topology of the interpolant's level set.
 
 The sphere reaches no ambiguous case, so the Lewiner method has nothing to
-resolve.  On data that do reach such cases, the two methods can return
-surfaces of different topology.  Newman and Yi illustrate each ambiguous
-case and survey the methods that resolve them.[^Newman2006]
+resolve here.  On data that do reach such cases, the original table can
+return a surface of different topology.  Newman and Yi illustrate each
+ambiguous case and survey the methods that resolve them.[^Newman2006]
 
 ### Pitfalls
 
-1. **Winding.**  scikit-image returns vertices in array-axis order.  The
-   segmentation has axes $(x, y, z)$, so the vertices come back as
-   $(x, y, z)$ too.  With the default `gradient_direction="descent"`, the
-   returned normals point outward, but every triangle winds inward.  The
-   signed volume is then negative.  The script reverses each face, which
-   makes the winding agree with the normals.
-2. **Exact ties on a binary mask.**  On a mask of 0 and 1, level 0.5 is
+1. **Exact ties on a binary mask.**  On a mask of 0 and 1, level 0.5 is
    exactly the saddle value of an ambiguous face.  The Lewiner method can
    then pinch an edge between four faces.  A level slightly off 0.5, such
    as 0.49, avoids the tie.  The unit sphere has no pinched edge at any
@@ -224,18 +196,19 @@ case and survey the methods that resolve them.[^Newman2006]
 
 ## Transform
 
-Marching cubes returns vertices in voxel units.  After the one-voxel pad, the
-sphere center sits at $(n+1, n+1, n+1)$.  Two operations map the surface to a
-unit sphere at the origin.
+Marching cubes returns vertices in voxel units.  Voxel $i$ spans $[i, i+1]$,
+so the voxel at index $n$ spans $[n, n+1]$.  That voxel is the center of the
+sphere, so the center sits at its midpoint, $(n+0.5, n+0.5, n+0.5)$.  Two
+operations map the surface to a unit sphere at the origin.
 
-1. **Translate** by $-(n+1)$.  The shift is a whole number of voxels, so it
-   is exact.
-2. **Scale** by $1/n$.
+1. **Scale** by $1/n$, which makes the radius 1.
+2. **Translate** by $-(n+0.5)/n$, which moves the center $(n+0.5)/n$ to the
+   origin.
 
-`automesh` applies the same two operations in the other order.  Its
-`--xscale` and `--xtranslate` options scale first and translate second.  The
-same map in the `automesh` order scales by $1/n$ and then translates by
-$-(n+1)/n$.  Both orders give the same coordinates.
+The `--xscale` and `--xtranslate` options of `automesh` scale first and
+translate second, in that order.  The translation must use $n + 0.5$.  A
+translation of $-(n+1)/n$ treats the center as the upper face of voxel $n$,
+at $n + 1$.  It leaves the surface off center by $0.5/n$ in each direction.
 
 The vertex radii show how close the surface comes to the unit sphere.  The
 coefficient of variation, CoV $= \text{std} / \text{mean}$, measures how
@@ -273,7 +246,7 @@ $$
 d_H(M, S) = \max \left\{ \sup_{p \in M} d(p, S), \; \sup_{q \in S} d(q, M) \right\}.
 $$
 
-The script [`unit_sphere_comparison.py`](#unit_sphere_comparisonpy) computes the
+The script `unit_sphere_comparison.py` computes the
 first term exactly.  A point $p$ lies $d(p, S) = \big| |p| - 1 \big|$ from
 the unit sphere.  Over a triangle, $|p|$ is convex.  Its largest value sits at
 a vertex, and its smallest sits at the point of the triangle closest to the
@@ -309,7 +282,7 @@ $n^2$, so in terms of triangles the distance falls only as $f^{-1/2}$.
 
 The volume converges, as the [Convergence](#convergence) section shows.  The
 surface area does not converge.  The script
-[`unit_sphere_comparison.py`](#unit_sphere_comparisonpy) adds up the areas of
+`unit_sphere_comparison.py` adds up the areas of
 the marching cubes triangles.  The error compares that area with the exact
 area $4\pi \approx 12.5664$.
 
@@ -334,7 +307,7 @@ area.
 
 ### Triangle Quality
 
-The script [`unit_sphere_comparison.py`](#unit_sphere_comparisonpy) also runs
+The script `unit_sphere_comparison.py` also runs
 `automesh metrics` on each surface.  The
 [Triangular Metrics](../../../theory/metrics_triangular.md) page defines its
 measures.
@@ -430,25 +403,16 @@ voxel step against the size of a Sculpt cell, about 0.095.
 </figure>
 
 
-The run used Sculpt 16.08, from Cubit 16.08.  `automesh` 0.4.8 cannot read
-Sculpt's Exodus files.  Sculpt writes single-precision coordinates, and
-`conspire` 0.7.9 reads only double precision.[^conspire226]  So the script
-[`unit_sphere_mesh.py`](#unit_sphere_meshpy) rewrites each Sculpt mesh as an
-Abaqus `.inp` file, which `automesh` reads.  Exodus and Abaqus number the eight
-nodes of a hex the same way, so the rewrite keeps every element intact.  For
-the baseline mesh, `automesh metrics` on the rewritten file gives the same
-minimum (0.343) and mean (0.888) as Sculpt.
-
-[^conspire226]: conspire issue #226, "Exodus reader: accept single-precision
-    (float) coordinates, as Sculpt writes."
-    <https://github.com/mrbuche/conspire.rs/issues/226>
+The run used Sculpt 16.08, from Cubit 16.08.  `automesh` reads Sculpt's Exodus
+files directly, and `automesh metrics` gives the same minimum (0.343) and mean
+(0.888) as Sculpt for the baseline mesh.
 
 ### `automesh`
 
 `automesh mesh hex` meshes the $n = 10$ marching cubes surface in two ways.
 The uniform mesh uses the Sculpt cell size, $2 \times 1.240409 / 26 \approx
 0.095416$, so its lattice matches the Sculpt grid.  The adaptive mesh uses the
-defaults.  Both runs use `automesh` 0.4.9, built on `conspire` 0.7.9.
+defaults.
 
 ```sh
 automesh mesh hex -i unit_sphere_v2_n010.stl -o uniform.inp \
@@ -469,7 +433,7 @@ automesh mesh hex -i unit_sphere_v2_n010.stl -o adaptive.inp \
 
 <figure>
     <img src="unit_sphere_v2_quality.png" alt="quality histograms of the Sculpt, uniform, and adaptive meshes" />
-    <figcaption></figcaption>
+    <figcaption>Quality measures for Sculpt (baseline) and <code>automesh</code> uniform and adaptive, both without prior smoothing of the marching cubes surface.</figcaption>
 </figure>
 
 ### Taubin Smoothing
@@ -487,52 +451,110 @@ fiftieth from 350 to 1,000.  Each smoothed surface gets a uniform mesh with the
 Sculpt cell size and an adaptive mesh with the defaults.
 
 ```sh
-automesh smooth -i unit_sphere_v2_n010.stl -o smooth.stl --iterations 28
+automesh smooth -i unit_sphere_v2_n010.stl -o smooth.stl --iterations 260
 automesh mesh hex -i smooth.stl -o uniform.inp -u 0.095416 --metrics uniform.csv
 automesh mesh hex -i smooth.stl -o adaptive.inp --metrics adaptive.csv
 ```
 
 <figure id="fig-v2-smooth-sweep">
     <img src="unit_sphere_v2_smooth_sweep.png" alt="minimum scaled Jacobian and hex count of the uniform and adaptive meshes against the number of Taubin smoothing iterations" />
-    <figcaption>Minimum Scaled Jacobian (top) and hex count (bottom) of the <code>automesh</code> uniform and adaptive meshes of the $n = 10$ surface, against the number of Taubin smoothing iterations.  Filled stars mark the peak up to 300 iterations.  The hollow star marks the adaptive peak over the whole sweep.  The vertical line at 300 iterations marks a surface volume 6.8% above the sphere's.  The x-axis is linear to 10 iterations and logarithmic beyond.</figcaption>
+    <figcaption>Minimum Scaled Jacobian (top) and hex count (bottom) of the <code>automesh</code> uniform and adaptive meshes of the $n = 10$ surface, against the number of Taubin smoothing iterations.  Stars mark the peak of each series up to 300 iterations.  Each peak is also the highest value of the whole sweep.  The vertical line at 300 iterations marks a surface volume 6.8% above the sphere's.  The x-axis is linear to 10 iterations and logarithmic beyond.</figcaption>
 </figure>
 
 **Uniform.**  The minimum rises with scatter from 0.161 at 0 iterations to
-0.459 at 250 iterations.  The mean rises from 0.827 to 0.891.  Up to 300
+0.613 at 260 iterations.  The mean rises from 0.827 to 0.901.  Up to 300
 iterations the hex count stays between 5,747 and 6,150, against 6,024 without
-smoothing.  The peak is a plateau: 0.451, 0.459, and 0.459 at 240, 250, and 260
-iterations.  The minimum then falls to 0.364 at 300 iterations and scatters
-between 0.354 and 0.442 up to 1,000.
+smoothing.  The peak is a plateau: 0.613, 0.612, and 0.612 at 260, 270, and 280
+iterations, against 0.574 and 0.575 at 240 and 250.  The minimum then falls to
+0.483 at 300 iterations and scatters between 0.459 and 0.510 up to 1,000.
 
 **Adaptive.**  The hex count falls from 8,243 at 0 iterations to 243 at 1
-iteration.  From 33 to 700 iterations it stays at 111 hexes.  The minimum peaks
-at 0.443 at 28 iterations, on 183 hexes.  Counts of 23, 25, 26, and 28
-iterations all fall within 0.006 of that peak, so it is a plateau, not a sharp
-maximum.  The 111-hex meshes start lower, at 0.205 at 34 iterations, and climb
-to 0.340 at 240.  One mesh beats the peak: 0.497 at 800 iterations on 150
-hexes.  Its surface encloses 5.064, which is 20.9% above the sphere's volume.
+iteration.  From 34 to 700 iterations it stays at 111 hexes.  The minimum peaks
+at 0.564 at 11 iterations, on 207 hexes.  The peak is a spike, not a plateau.
+The minimum is 0.367 at 10 iterations and 0.395 at 12.  The next highest minimum
+is 0.544 at 51 iterations, on 111 hexes.  The 111-hex meshes start at 0.323 at
+34 iterations and scatter between 0.299 and 0.544 up to 700.
 
 **Surface drift.**  The defaults inflate this surface, because $|\mu|$ exceeds
-$\lambda$.  The mean vertex radius grows from 0.9992 at 0 iterations to 1.0199 at
-250 and 1.0862 at 1,000.  The enclosed volume is 4.178 at 28 iterations, 0.3%
-below $4\pi/3 \approx 4.1888$.  It is 4.417 at 250 iterations, 5.4% above, and
+$\lambda$.  The mean vertex radius grows from 0.9992 at 0 iterations to 1.0207 at
+260 and 1.0862 at 1,000.  The enclosed volume is 4.126 at 11 iterations, 1.5%
+below $4\pi/3 \approx 4.1888$.  It is 4.428 at 260 iterations, 5.7% above, and
 5.322 at 1,000, 27.1% above.  The peak search therefore stops at 300
 iterations.
 
 **Odd and even counts.**  An odd count ends on a shrink step and an even count
 on an inflate step, so neighboring counts give different surfaces.  The
 enclosed volume is 4.115 at 1 iteration and 4.149 at 2.  The adaptive minimum is
-0.261 at 1 iteration and 0.103 at 2.  The uniform minimum is 0.230 at 3
-iterations and 0.162 at 4.
+0.328 at 1 iteration and 0.085 at 2.  The uniform minimum is 0.223 at 3
+iterations and 0.266 at 4.
 
 None of the 270 meshes has an inverted hex.
 
 <figure id="fig-v2-smooth-uniform">
-    <img src="unit_sphere_v2_smooth_uniform.png" alt="the smoothed n = 10 surface, its uniform mesh, and the mesh cut at z = 0, after 250 Taubin smoothing iterations" />
-    <figcaption>After 250 Taubin smoothing iterations, the peak of the uniform minimum up to 300 iterations (0.459, against 0.161 without smoothing): the smoothed $n = 10$ surface (left), the uniform mesh (center), and the mesh cut at $z = 0$ (right).</figcaption>
+    <img src="unit_sphere_v2_smooth_uniform.png" alt="the smoothed n = 10 surface, its uniform mesh, and the mesh cut at z = 0, after 260 Taubin smoothing iterations" />
+    <figcaption>After 260 Taubin smoothing iterations, the peak of the uniform minimum up to 300 iterations (0.613, against 0.161 without smoothing): the smoothed $n = 10$ surface (left), the uniform mesh (center), and the mesh cut at $z = 0$ (right).</figcaption>
 </figure>
 
 <figure id="fig-v2-smooth-adaptive">
-    <img src="unit_sphere_v2_smooth_adaptive.png" alt="the smoothed n = 10 surface, its adaptive mesh, and the mesh cut at z = 0, after 28 Taubin smoothing iterations" />
-    <figcaption>After 28 Taubin smoothing iterations, the peak of the adaptive minimum up to 300 iterations (0.443, against 0.114 without smoothing): the smoothed $n = 10$ surface (left), the adaptive mesh (center), and the mesh cut at $z = 0$ (right).</figcaption>
+    <img src="unit_sphere_v2_smooth_adaptive.png" alt="the smoothed n = 10 surface, its adaptive mesh, and the mesh cut at z = 0, after 11 Taubin smoothing iterations" />
+    <figcaption>After 11 Taubin smoothing iterations, the peak of the adaptive minimum up to 300 iterations (0.564, against 0.086 without smoothing): the smoothed $n = 10$ surface (left), the adaptive mesh (center), and the mesh cut at $z = 0$ (right).</figcaption>
 </figure>
+
+### Quality After Smoothing
+
+The figure below compares the two best meshes of the sweep with the same meshes
+before smoothing and with the Sculpt baseline.  The uniform mesh comes from the
+surface smoothed 260 times, with a minimum of 0.613.  The adaptive mesh comes from
+the surface smoothed 11 times, with a minimum of 0.564.  Without smoothing, the
+minima are 0.161 and 0.086.  The Sculpt minimum is 0.388.
+
+<figure>
+    <img src="unit_sphere_v2_smooth_quality.png" alt="quality histograms of the best uniform and adaptive automesh meshes after Taubin smoothing" />
+    <figcaption>Quality measures for the <code>automesh</code> uniform mesh after 260 Taubin smoothing iterations and the adaptive mesh after 11, the best Minimum Scaled Jacobian of each, against the same meshes without smoothing (faint lines) and the Sculpt mesh for $n = 10$.  The figure is produced by <code>unit_sphere_v2_smooth.py</code>.</figcaption>
+</figure>
+
+| input | nodes | elements | minimum quality | mean quality |
+| :--- | ---: | ---: | ---: | ---: |
+| <span style="color:#eb6834">Octa-Loop level 3 (baseline)</span> | <span style="color:#eb6834">7,731</span> | <span style="color:#eb6834">6,672</span> | <span style="color:#eb6834">0.343</span> | <span style="color:#eb6834">0.888</span> |
+| <span style="color:#eb6834">marching cubes, $n = 10$</span> | <span style="color:#eb6834">8,007</span> | <span style="color:#eb6834">6,912</span> | <span style="color:#eb6834">0.388</span> | <span style="color:#eb6834">0.885</span> |
+| automesh uniform, before smoothing | 7,035 | 6,024 | 0.161 | 0.827 |
+| automesh adaptive, before smoothing | 10,016 | 8,243 | 0.086 | 0.694 |
+| automesh uniform, best result with smoothing (260 iterations) | 7,120 | 6,121 | 0.613 | 0.901 |
+| automesh adaptive, best result with smoothing (11 iterations) | 288 | 207 | 0.564 | 0.793 |
+
+The quality is the minimum scaled Jacobian, as in the Sculpt table.  The first two
+rows, the Sculpt meshes of the [Sculpt](#sculpt) section, are the reference.
+Smoothing raises the uniform minimum from 0.161 to 0.613 and the adaptive minimum
+from 0.086 to 0.564.  Of the two best meshes, the uniform mesh has the higher
+minimum, by 0.049, and the higher mean, by 0.108.
+
+The adaptive mesh has 207 hexes, 3.4% of the uniform count, so its histograms
+sit about a factor of 30 lower.  Compare the shapes of the curves, not their
+heights.
+
+The two minima differ in how robust they are.  The uniform value belongs to a
+plateau: 0.613, 0.612, and 0.612 at 260, 270, and 280 iterations.  The adaptive
+value belongs to a spike: 0.367 at 10 iterations, 0.564 at 11, and 0.395 at 12.
+A small change in the iteration count would lose the adaptive result.
+
+[^Lewiner2003]: Thomas Lewiner, Hélio Lopes, Antônio Wilson Vieira, and
+    Geovan Tavares.  "Efficient implementation of Marching Cubes' cases with
+    topological guarantees."  *Journal of Graphics Tools* 8(2) (2003) 1–15.
+    <https://doi.org/10.1080/10867651.2003.10487582>
+
+[^Lorensen1987]: William E. Lorensen and Harvey E. Cline.  "Marching cubes: A
+    high resolution 3D surface construction algorithm."  *ACM SIGGRAPH
+    Computer Graphics* 21(4) (1987) 163–169.
+    <https://doi.org/10.1145/37402.37422>
+
+[^Chernyaev1995]: Evgeni V. Chernyaev.  *Marching Cubes 33: Construction of
+    topologically correct isosurfaces.*  Technical Report CN/95-17, CERN,
+    1995.
+
+[^Newman2006]: Timothy S. Newman and Hong Yi.  "A survey of the marching
+    cubes algorithm."  *Computers & Graphics* 30(5) (2006) 854–879.
+    <https://doi.org/10.1016/j.cag.2006.07.021>
+
+[^Ericson2005]: Christer Ericson.  *Real-Time Collision Detection.*  Morgan
+    Kaufmann, 2005.  Section 5.1.5, the closest point on a triangle to a
+    point.
