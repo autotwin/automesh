@@ -892,14 +892,15 @@ fn hex_source() -> PathBuf {
 }
 
 #[test]
-fn agglomerate_to_exo_and_vtu() {
+fn partition_as_polyhedra_to_exo_and_vtu() {
     let source = hex_source();
     [("rcb", "exo"), ("rib", "exo"), ("rcb", "vtu")]
         .into_iter()
         .for_each(|(method, extension)| {
             let output = out(extension);
             run(&[
-                "agglomerate",
+                "partition",
+                "--as-polyhedra",
                 "-i",
                 source.to_str().unwrap(),
                 "-o",
@@ -914,11 +915,12 @@ fn agglomerate_to_exo_and_vtu() {
 }
 
 #[test]
-fn agglomerate_box_to_exo() {
+fn partition_as_polyhedra_box_to_exo() {
     let source = hex_source();
     let output = out("exo");
     run(&[
-        "agglomerate",
+        "partition",
+        "--as-polyhedra",
         "-i",
         source.to_str().unwrap(),
         "-o",
@@ -934,11 +936,12 @@ fn agglomerate_box_to_exo() {
 }
 
 #[test]
-fn agglomerate_rejects_unsupported_output() {
+fn partition_as_polyhedra_rejects_unsupported_output() {
     let source = hex_source();
     let result = Command::new(BIN)
         .args([
-            "agglomerate",
+            "partition",
+            "--as-polyhedra",
             "-i",
             source.to_str().unwrap(),
             "-o",
@@ -949,4 +952,42 @@ fn agglomerate_rejects_unsupported_output() {
         .output()
         .expect("failed to spawn automesh");
     assert!(!result.status.success());
+}
+
+/// Runs `mesh <element>` on the sphere tessellation with extra flags, asserting failure.
+fn assert_stl_rejects(element: &str, flags: &[&str]) {
+    let output = out("vtu");
+    let status = Command::new(BIN)
+        .args([
+            "mesh",
+            element,
+            "-i",
+            sphere().to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
+        .args(flags)
+        .arg("--quiet")
+        .status()
+        .expect("failed to spawn automesh");
+    assert!(!status.success(), "mesh {element} accepted {flags:?}");
+}
+
+#[test]
+fn mesh_hex_stl_rejects_levels() {
+    assert_stl_rejects("hex", &["-l", "3"]);
+}
+
+#[test]
+fn mesh_tet_stl_rejects_levels() {
+    assert_stl_rejects("tet", &["-l", "3"]);
+}
+
+#[test]
+fn mesh_stl_rejects_segmentation_flags() {
+    for element in ["hex", "tet", "hexdom", "poly"] {
+        assert_stl_rejects(element, &["-r", "1", "2"]);
+        assert_stl_rejects(element, &["-d", "5"]);
+        assert_stl_rejects(element, &["-x", "3"]);
+    }
 }

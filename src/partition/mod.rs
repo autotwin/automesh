@@ -1,10 +1,10 @@
 use super::{
     ErrorWrapper,
-    io::{extension, invalid_output, read_mesh, write_exodus},
+    io::{extension, invalid_output, read_mesh, write_exodus, write_mesh_threads},
 };
 use clap::{Args, ValueEnum};
 use conspire::geometry::mesh::{Mesh, Partition};
-use std::{sync::Mutex, thread, time::Instant};
+use std::{sync::Mutex, thread, thread::available_parallelism, time::Instant};
 
 /// Parsed by clap, so a misspelled method fails before any work starts.
 #[derive(Clone, Copy, Debug, ValueEnum)]
@@ -49,7 +49,7 @@ impl PartitionOptions {
         match self.threads {
             Some(0) => Err(ErrorWrapper::from("Threads must be positive")),
             Some(threads) => Ok(threads),
-            None => Ok(std::thread::available_parallelism().map_or(1, |threads| threads.get())),
+            None => Ok(available_parallelism().map_or(1, |threads| threads.get())),
         }
     }
 
@@ -116,18 +116,33 @@ pub struct PartitionArgs {
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
+    /// Agglomerate each part into one polyhedral element, written as a single file
+    #[arg(long)]
+    pub as_polyhedra: bool,
+
     #[command(flatten)]
     pub options: PartitionOptions,
 }
 
 pub fn partition(args: PartitionArgs, quiet: bool) -> Result<(), ErrorWrapper> {
-    match extension(&args.output) {
-        Some("exo") => {}
-        other => return Err(invalid_output(&args.output, other)),
+    match (extension(&args.output), args.as_polyhedra) {
+        (Some("exo"), _) | (Some("vtu"), true) => {}
+        (other, _) => return Err(invalid_output(&args.output, other)),
     }
     let threads = args.options.threads()?;
     let mesh = read_mesh(&args.input, quiet)?;
     let partition = args.options.split(&mesh, quiet)?;
+    if args.as_polyhedra {
+        crate::echo!(
+            quiet,
+            "   \x1b[1;96mAgglomerating\x1b[0m [{} polyhedra]",
+            partition.number_of_parts()
+        );
+        let time = Instant::now();
+        let agglomerated = partition.agglomerate(&mesh).map_err(ErrorWrapper::from)?;
+        crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+        return write_mesh_threads(&args.output, agglomerated, threads, quiet);
+    }
     let parts = (0..partition.number_of_parts())
         .filter(|&part| !partition.part_elements(part).is_empty())
         .collect::<Vec<_>>();
