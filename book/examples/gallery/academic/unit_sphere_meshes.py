@@ -9,8 +9,8 @@ The script
 3. meshes the surface with `automesh mesh hex`, on a uniform lattice and
    with the adaptive default, and
 4. draws the surface (left), the uniform mesh (center), and the adaptive
-   mesh (right) in `unit_sphere_v2_meshes.png`, and
-5. draws the same three, cut at z = 0, in `unit_sphere_v2_meshes_cut.png`.
+   mesh (right) in `unit_sphere_meshes.png`, and
+5. draws the same three, cut at z = 0, in `unit_sphere_meshes_cut.png`.
 
 A cut clips every triangle, quad, and hex at the plane z = 0 and keeps the lower
 half.  Each hex that meets the plane contributes its cross-section, painted by
@@ -22,11 +22,11 @@ stays.  The script prints the `automesh` version and a table of each mesh.
 Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
-uv run --with numpy --with matplotlib unit_sphere_v2_meshes.py
+uv run --with numpy --with matplotlib unit_sphere_meshes.py
 
 Output
 ------
-unit_sphere_v2_meshes.png, unit_sphere_v2_meshes_cut.png, and a table on the
+unit_sphere_meshes.png, unit_sphere_meshes_cut.png, and a table on the
 terminal.
 """
 
@@ -405,7 +405,12 @@ def surfaces_plot(*, output: Path) -> None:
 
 
 def figure_plot(
-    *, triangles: np.ndarray, meshes: tuple, output: Path, cut: bool
+    *,
+    triangles: np.ndarray,
+    meshes: tuple,
+    output: Path,
+    cut: bool,
+    surface_title: str | None = None,
 ) -> None:
     """Draws the surface and the meshes side by side.
 
@@ -413,7 +418,7 @@ def figure_plot(
     the extension.  Each element takes its color from its Minimum Scaled
     Jacobian.  With `cut`, every triangle and hex is clipped at z = 0, and the
     lower half stays.  The surface's normals flip, so the camera sees the inside
-    of its lower half.
+    of its lower half.  `surface_title` replaces the default title of the surface.
     """
     fig = plt.figure(figsize=(15, 5))
     ax = fig.add_subplot(1, 3, 1, projection="3d")
@@ -426,7 +431,11 @@ def figure_plot(
         keep = [i for i, c in enumerate(clipped) if c is not None]
         shown, normals = [clipped[i] for i in keep], -normals[keep]
     polygons_draw(ax=ax, polygons=shown, normals=normals, values=None)
-    axes_set(ax=ax, title=f"marching cubes, n = {N} ({len(triangles):,} triangles)")
+    axes_set(
+        ax=ax,
+        title=surface_title
+        or f"marching cubes, n = {N} ({len(triangles):,} triangles)",
+    )
     for index, (title, stem) in enumerate(meshes, start=2):
         mesh_draw(fig=fig, position=index, title=title, stem=stem, cut=cut)
     colorbar_add(fig=fig)
@@ -541,7 +550,7 @@ def main() -> None:
     ).stdout.strip()
     print(version)
     with tempfile.TemporaryDirectory() as scratch:
-        stl = Path(scratch) / f"unit_sphere_v2_n{N:03d}.stl"
+        stl = Path(scratch) / f"unit_sphere_mc_n{N:03d}.stl"
         surface_write(radius=N, path=stl)
         triangles = stl_read(path=stl)
         meshes = (
@@ -580,23 +589,23 @@ def main() -> None:
                     ("automesh adaptive", meshes[1][1]),
                 )
             ),
-            output=here / "unit_sphere_v2_quality.png",
+            output=here / "unit_sphere_quality.png",
         )
-        voxels_plot(output=here / "unit_sphere_v2_voxels.png")
-        surfaces_plot(output=here / "unit_sphere_v2_surfaces.png")
+        voxels_plot(output=here / "unit_sphere_voxels.png")
+        surfaces_plot(output=here / "unit_sphere_surfaces.png")
         panels = (
             ("Octa-Loop level 3", sculpts["octa03"]),
             (f"n = {N}", sculpt),
             ("n = 160", sculpts["n160"]),
         )
         for output, cut in (
-            ("unit_sphere_v2_sculpt.png", False),
-            ("unit_sphere_v2_sculpt_cut.png", True),
+            ("unit_sphere_sculpt.png", False),
+            ("unit_sphere_sculpt_cut.png", True),
         ):
             hexes_plot(meshes=panels, output=here / output, cut=cut)
         for output, cut in (
-            ("unit_sphere_v2_meshes.png", False),
-            ("unit_sphere_v2_meshes_cut.png", True),
+            ("unit_sphere_meshes.png", False),
+            ("unit_sphere_meshes_cut.png", True),
         ):
             figure_plot(
                 triangles=triangles, meshes=meshes, output=here / output, cut=cut

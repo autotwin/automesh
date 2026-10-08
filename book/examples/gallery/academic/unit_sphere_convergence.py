@@ -11,17 +11,17 @@ For every n from 4 to 160, the script
 
 It prints the sign changes, the number of volumes above 4 pi / 3, and the
 log-log slope of each error, and draws both volumes and both errors in
-`unit_sphere_v2_convergence.png`.  The surfaces live in a scratch directory.
+`unit_sphere_convergence.png`.  The surfaces live in a scratch directory.
 Only the figure stays.
 
 Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
-uv run --with numpy --with matplotlib unit_sphere_v2_convergence.py
+uv run --with numpy --with matplotlib unit_sphere_convergence.py
 
 Output
 ------
-unit_sphere_v2_convergence.png and a table on the terminal.
+unit_sphere_convergence.png and a table on the terminal.
 """
 
 import subprocess
@@ -165,4 +165,4 @@ def convergence_plot(*, output: Path) -> None:
 
 
 if __name__ == "__main__":
-    convergence_plot(output=Path(__file__).resolve().parent / "unit_sphere_v2_convergence.png")
+    convergence_plot(output=Path(__file__).resolve().parent / "unit_sphere_convergence.png")

@@ -37,7 +37,6 @@
 - [Gallery](examples/gallery/gallery.md)
   - [Academic Models](examples/gallery/academic.md)
     - [Unit Sphere](examples/gallery/academic/unit_sphere.md)
-    - [Unit Sphere v2](examples/gallery/academic/unit_sphere_v2.md)
     - [Representative Volume Element (RVE)](examples/gallery/academic/rve.md)
     - [Bone](examples/gallery/academic/bone.md)
   - [Industry Models](examples/gallery/industry.md)

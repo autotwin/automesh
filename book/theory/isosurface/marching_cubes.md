@@ -30,7 +30,7 @@ A binary field needs one further caution.
 It takes only the values `0` and `1`, so the level `0.5` equals the field value at the saddle of an ambiguous face.
 At such a tie, the Lewiner method can leave an edge shared by more than two triangles.
 The tie arises only where the segmentation contains an ambiguous configuration.
-The [unit sphere](../../examples/gallery/academic/unit_sphere_v2.md) does not create this pathology.
+The [unit sphere](../../examples/gallery/academic/unit_sphere.md) does not create this pathology.
 
 ## Marching Cubes in `automesh`
 
