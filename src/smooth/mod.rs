@@ -62,7 +62,7 @@ pub struct SmoothArgs {
     #[command(subcommand)]
     pub remeshing: Option<MeshRemeshSubcommand>,
 
-    /// Mesh input file (exo | inp | off | stl | vtu)
+    /// Mesh input file (exo | inp | mesh | off | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 

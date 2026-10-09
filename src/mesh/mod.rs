@@ -5,7 +5,7 @@ use super::{
     remesh::apply_remesh_subcommand,
     smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
-use clap::Subcommand;
+use clap::{Command, Subcommand};
 use conspire::{
     geometry::{
         Coordinate, Coordinates,
@@ -33,6 +33,24 @@ pub enum MeshSubcommand {
     Tet(MeshArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshArgs),
+}
+
+/// Narrows the input help, shared by the mesh subcommands, to the inputs each one accepts.
+pub fn input_help(command: Command) -> Command {
+    command.mut_subcommand("mesh", |mesh| {
+        ["hexdom", "poly", "tet"]
+            .into_iter()
+            .fold(mesh, |mesh, name| {
+                mesh.mut_subcommand(name, |subcommand| {
+                    subcommand.mut_arg("input", |input| input.help("Tessellation (stl) input file"))
+                })
+            })
+            .mut_subcommand("tri", |subcommand| {
+                subcommand.mut_arg("input", |input| {
+                    input.help("Segmentation (npy | spn) input file")
+                })
+            })
+    })
 }
 
 #[derive(clap::Args)]

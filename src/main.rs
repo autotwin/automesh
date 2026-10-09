@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, FromArgMatches, Parser, Subcommand};
 use std::{
     env::consts::{ARCH, OS},
     time::Instant,
@@ -184,7 +184,7 @@ enum Commands {
         zmax: usize,
     },
 
-    /// Creates a finite element mesh from a segmentation
+    /// Creates a finite element mesh from a segmentation or tessellation
     Mesh {
         #[command(subcommand)]
         subcommand: MeshSubcommand,
@@ -198,7 +198,7 @@ enum Commands {
 
     /// Applies isotropic remeshing to an existing mesh [default mode: uniform]
     Remesh {
-        /// Mesh input file (exo | inp | off | stl | vtu)
+        /// Mesh input file (exo | inp | mesh | off | stl | vtu)
         #[arg(long, short, value_name = "FILE")]
         input: String,
 
@@ -220,7 +220,8 @@ enum Commands {
 
 fn main() -> Result<(), ErrorWrapper> {
     let time = Instant::now();
-    let args = Args::parse();
+    let args = Args::from_arg_matches(&mesh::input_help(Args::command()).get_matches())
+        .unwrap_or_else(|error| error.exit());
     let quiet = args.quiet;
     if let Some(path) = &args.log {
         let logfile = log::set_logfile(path)?;
