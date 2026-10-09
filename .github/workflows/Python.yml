@@ -23,7 +23,7 @@ jobs:
       - name: Python
         uses: actions/setup-python@v7
         with:
-          python-version: 3.14
+          python-version: 3.15
       - name: Dependencies
         run: pip install build maturin twine
       - name: Source
@@ -51,7 +51,7 @@ jobs:
     - name: Python
       uses: actions/setup-python@v7
       with:
-        python-version: 3.14
+        python-version: 3.15
     - name: Dependencies
       run: pip install build maturin twine
     - name: Wheel
@@ -73,7 +73,7 @@ jobs:
       uses: actions/setup-python@v7
       with:
         check-latest: true
-        python-version: 3.14
+        python-version: 3.15
     - name: Dependencies
       run: pip install twine
     - name: Wheels
