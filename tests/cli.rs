@@ -985,3 +985,69 @@ fn partition_as_polyhedra_rejects_unsupported_output() {
         .expect("failed to spawn automesh");
     assert!(!result.status.success());
 }
+
+/// The help printed for the given args.
+fn help(args: &[&str]) -> String {
+    let result = Command::new(BIN)
+        .args(args)
+        .arg("--help")
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(result.status.success(), "help failed: automesh {args:?}");
+    String::from_utf8(result.stdout).expect("help is not utf-8")
+}
+
+/// The description of the input option, which is on the same or the next line of the help.
+fn input_help(args: &[&str]) -> String {
+    let text = help(args);
+    let start = text.find("-i, --input <FILE>").expect("no input option");
+    let mut lines = text[start..].lines();
+    let description = lines.next().unwrap().split("<FILE>").nth(1).unwrap().trim();
+    if description.is_empty() {
+        lines.next().unwrap().trim().to_string()
+    } else {
+        description.to_string()
+    }
+}
+
+#[test]
+fn help_says_mesh_is_made_from_a_tessellation_too() {
+    assert!(
+        help(&[]).contains("Creates a finite element mesh from a segmentation or tessellation")
+    );
+}
+
+#[test]
+fn help_lists_mesh_among_the_mesh_inputs() {
+    for args in [
+        &["convert", "mesh"][..],
+        &["metrics"],
+        &["remesh"],
+        &["segment"],
+        &["smooth"],
+    ] {
+        assert!(
+            input_help(args).contains("(exo | inp | mesh | off | stl | vtu)"),
+            "automesh {args:?}"
+        );
+    }
+    assert!(
+        help(&["convert", "mesh"]).contains(
+            "(exo | inp | mesh | off | stl | vtu) -> (exo | inp | mesh | off | stl | vtu)"
+        )
+    );
+}
+
+#[test]
+fn mesh_help_names_the_inputs_each_mode_accepts() {
+    let hex = input_help(&["mesh", "hex"]);
+    assert!(hex.contains("Segmentation (npy | spn) or tessellation (stl)"));
+    for mode in ["hexdom", "poly", "tet"] {
+        let text = input_help(&["mesh", mode]);
+        assert!(text.contains("Tessellation (stl) input file"), "{mode}");
+        assert!(!text.contains("Segmentation"), "{mode}");
+    }
+    let tri = input_help(&["mesh", "tri"]);
+    assert!(tri.contains("Segmentation (npy | spn) input file"));
+    assert!(!tri.contains("tessellation"));
+}
