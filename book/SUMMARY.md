@@ -36,6 +36,7 @@
   - [Smooth: Python Visualization](examples/smoothing/python_visualization.md)
 - [Gallery](examples/gallery/gallery.md)
   - [Academic Models](examples/gallery/academic.md)
+    - [Unit Sphere](examples/gallery/academic/unit_sphere.md)
     - [Representative Volume Element (RVE)](examples/gallery/academic/rve.md)
     - [Bone](examples/gallery/academic/bone.md)
   - [Industry Models](examples/gallery/industry.md)
@@ -55,6 +56,9 @@
 # Theory
 
 - [Isosurfaces](theory/isosurface.md)
+  - [Introduction](theory/isosurface/introduction.md)
+  - [Marching Cubes](theory/isosurface/marching_cubes.md)
+  - [Dual Contouring](theory/isosurface/dual_contouring.md)
 - [Subdivision](theory/subdivision.md)
 - [Hexahedral Meshing from a Surface](theory/hex_from_surface.md)
   - [Octree Construction](theory/hex_from_surface/octree_construction.md)

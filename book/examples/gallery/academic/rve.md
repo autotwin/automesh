@@ -7,7 +7,7 @@ properties of the whole material.
 
 This example uses a unit cube of bulk material.  Three spherical pores sit in
 the interior. [Cubit](https://cubit.sandia.gov) creates the geometry and the
-tetrahedral comparison meshes; see [Reference](#reference) for the journal file
+tetrahedral comparison meshes; see [References](#references) for the journal file
 and [Downloads](#downloads) for the files themselves.
 
 ![rve_geometry.png](rve_geometry.png)
@@ -110,7 +110,7 @@ tighter aspect ratio, topping out near 3 while the hex mesh reaches about 4.5.
 Element volume separates the two most clearly.  The hex mesh carries a long
 tail of larger elements, which is the adaptive coarsening away from the pores.
 
-# Reference
+# References
 
 ## Cubit
 
