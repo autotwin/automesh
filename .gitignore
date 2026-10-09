@@ -34,6 +34,7 @@ uv.lock
 *.spn
 *.stl
 *.vtk
+*.vtu
 
 # but keep the downloadable example meshes the book links to.  All other
 # .stl under book/ are regenerable figure inputs, linked externally, or already
