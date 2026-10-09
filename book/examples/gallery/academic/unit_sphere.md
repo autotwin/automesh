@@ -401,7 +401,10 @@ voxel step against the size of a Sculpt cell, about 0.095.
 </figure>
 
 
-The run used Sculpt 16.08, from Cubit 16.08.  `automesh` reads Sculpt's Exodus
+The run used Sculpt 16.08, from Cubit 16.08.  The files `unit_sphere_sculpt_*.e.1.0`
+are Sculpt outputs, and the repository does not contain them.  The scripts of
+this page read them from this directory, so regenerating the Sculpt figures and
+table requires running the Sculpt commands above.  `automesh` reads Sculpt's Exodus
 files directly, and `automesh metrics` gives the same minimum (0.343) and mean
 (0.888) as Sculpt for the baseline mesh.
 
