@@ -4,6 +4,8 @@ use std::{
     time::Instant,
 };
 
+#[cfg(feature = "agglomerate")]
+mod agglomerate;
 mod convert;
 mod defeature;
 mod diff;
@@ -18,6 +20,8 @@ mod remesh;
 mod segment;
 mod smooth;
 
+#[cfg(feature = "agglomerate")]
+use agglomerate::{AgglomerateArgs, agglomerate};
 use convert::{ConvertSubcommand, convert_mesh, convert_segmentation};
 use defeature::defeature;
 use diff::diff;
@@ -81,6 +85,10 @@ struct Args {
 #[derive(Subcommand)]
 #[allow(clippy::large_enum_variant)]
 enum Commands {
+    /// Joins elements with a very small critical time step to their neighbors as polyhedra
+    #[cfg(feature = "agglomerate")]
+    Agglomerate(AgglomerateArgs),
+
     /// Converts between mesh or segmentation file types
     Convert {
         #[command(subcommand)]
@@ -234,6 +242,8 @@ fn main() -> Result<(), ErrorWrapper> {
         io::title(quiet);
     }
     let result = match args.command {
+        #[cfg(feature = "agglomerate")]
+        Some(Commands::Agglomerate(args)) => agglomerate(args, quiet),
         Some(Commands::Convert { subcommand }) => match subcommand {
             ConvertSubcommand::Mesh(args) => convert_mesh(args, quiet),
             ConvertSubcommand::Segmentation(args) => convert_segmentation(
