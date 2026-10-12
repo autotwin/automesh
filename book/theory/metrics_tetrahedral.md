@@ -67,11 +67,11 @@ Tetrahedral metrics.  Leading values are from `automesh`.  All values agree with
 </figcaption>
 </figure>
 
+<figure>
+
 [simple_tetrahedron](./simple_tetrahedron.png) | [right-handed_tetrahedron](./right-handed_tetrahedron.png) | [left-handed_tetrahedron](./left-handed_tetrahedron.png)
 :---: | :---: | :---:
 [![simple_tetrahedron](./simple_tetrahedron.png)](./simple_tetrahedron.png) | [![right-handed_tetrahedron](./right-handed_tetrahedron.png)](./right-handed_tetrahedron.png) | [![left-handed_tetrahedron](./left-handed_tetrahedron.png)](./left-handed_tetrahedron.png)
-
-<figure>
 
 [degenerate_tetrahedron](./degenerate_tetrahedron.png) | [random_tetrahedron](./random_tetrahedron.png) | [regular_tetrahedron](./regular_tetrahedron.png)
 :---: | :---: | :---:
