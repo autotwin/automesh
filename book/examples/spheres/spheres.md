@@ -56,7 +56,7 @@ These segmentations are saved to
 
 `automesh` is used to convert the `.npy` segmentations into `.inp` meshes.
 
-<details>
+<details open>
 <summary>The <code>radius=1</code> command and output</summary>
 
 ```sh
@@ -66,7 +66,7 @@ automesh mesh hex -i spheres_radius_1.npy -o spheres_radius_1.inp
 
 </details>
 
-<details>
+<details open>
 <summary>The <code>radius=3</code> command and output</summary>
 
 ```sh
@@ -76,7 +76,7 @@ automesh mesh hex -i spheres_radius_3.npy -o spheres_radius_3.inp
 
 </details>
 
-<details>
+<details open>
 <summary>The <code>radius=5</code> command and output</summary>
 
 ```sh
