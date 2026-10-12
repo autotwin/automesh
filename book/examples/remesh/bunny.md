@@ -79,7 +79,7 @@ preserved through remeshing.
 The target edge length sets the triangle size.  A smaller `--size` produces more,
 smaller triangles; a larger `--size` produces fewer, larger triangles.
 
-<details>
+<details open>
 <summary>The uniform <code>remesh</code> commands</summary>
 
 ```sh
@@ -101,7 +101,7 @@ edges so much, so reaching a coarse target from a dense input takes several
 passes.  At the same target `-s 0.006`, five iterations barely coarsen the
 69,451-triangle input, while twenty iterations reach the target:
 
-<details>
+<details open>
 <summary>The iteration <code>remesh</code> commands</summary>
 
 ```sh
@@ -131,7 +131,7 @@ A wide edge-length spread (`--minimum 0.002 --maximum 0.040`) with a low
 `--tolerance` accentuates this: only the highest-curvature regions are refined to
 the minimum, while everything smooth relaxes toward the maximum.
 
-<details>
+<details open>
 <summary>The uniform and adaptive <code>remesh</code> commands</summary>
 
 ```sh
@@ -166,7 +166,7 @@ Its effect on the facet count is **not monotonic** — and this is the part that
 easy to get backwards.  Sweeping the tolerance at fixed
 `--minimum 0.002 --maximum 0.040 -n 25` gives a U-shaped curve:
 
-<details>
+<details open>
 <summary>The three tolerance <code>remesh</code> commands</summary>
 
 ```sh
@@ -213,7 +213,7 @@ facets); a large gradation allows a rapid transition, keeping the refinement
 localized to the features (fewer facets).  Using the same baseline as above
 (`--minimum 0.002 --maximum 0.040 -n 25 -t 0.02`):
 
-<details>
+<details open>
 <summary>The two gradation <code>remesh</code> commands</summary>
 
 ```sh
