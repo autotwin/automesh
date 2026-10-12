@@ -39,13 +39,20 @@ automesh mesh hex -i sphere_n10.stl -o sphere_hex.inp --scale 8
 <!-- cmdrun automesh mesh hex -i sphere_n10.stl -o sphere_hex.inp --scale 8 | ansifilter -->
 ```
 
+<figure>
+
 triangular surface (856 facets) | all-hexahedral (393 elements)
 :---: | :---:
 ![sphere_tri.png](sphere_tri.png) | ![sphere_hex.png](sphere_hex.png)
 
-Figure: The remeshed triangular **surface** (left) and the solid
+<figcaption>
+
+The remeshed triangular **surface** (left) and the solid
 all-hexahedral **volume** dualized from it (right).  The surface only bounds
 the sphere; the hex mesh fills its interior.
+
+</figcaption>
+</figure>
 
 ## Choosing `--scale`
 

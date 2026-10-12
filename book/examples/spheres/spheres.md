@@ -9,9 +9,16 @@ is included [below](#source).
 Objective: Create very coarse spheres of three successively more refined
 resolutions, `radius=1`, `radius=3`, and `radius=5`, as shown below:
 
+<figure>
+
 ![spheres.png](spheres.png)
 
-Figure: Sphere segmentations at selected resolutions, shown in the voxel domain.
+<figcaption>
+
+Sphere segmentations at selected resolutions, shown in the voxel domain.
+
+</figcaption>
+</figure>
 
 The `radius=1` case has the following data structure,
 

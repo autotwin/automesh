@@ -51,13 +51,20 @@ single integer:
 The resulting finite element mesh is visualized is shown in the following
 figure:
 
+<figure>
+
 ![single.png](single.png)
 
-Figure: The `single.png` visualization, (left) lattice node numbers, (right)
+<figcaption>
+
+The `single.png` visualization, (left) lattice node numbers, (right)
 mesh node numbers.  Lattice node numbers appear in gray, with `(x, y, z)`
 indices in parenthesis.  The right-hand rule is used.  Lattice coordinates
 start at `(0, 0, 0)`, and proceed along the `x-axis`, then
 the `y-axis`, and then the `z-axis`.
+
+</figcaption>
+</figure>
 
 The finite element mesh local node numbering map to the following global node
 numbers identically,
@@ -90,10 +97,17 @@ meshes.
 
 where the segmentation `11` denotes block `11` in the finite element mesh.
 
+<figure>
+
 ![double_x.png](double_x.png)
 
-Figure: Mesh composed of a single block with two elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with two elements, propagating along
 the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ### Double Y
 
@@ -104,10 +118,17 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 where the segmentation `11` denotes block `11` in the finite element mesh.
 
+<figure>
+
 ![double_y.png](double_y.png)
 
-Figure: Mesh composed of a single block with two elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with two elements, propagating along
 the `y-axis`, (left) lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Triple
 
@@ -119,10 +140,17 @@ the `y-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 where the segmentation `11` denotes block `11` in the finite element mesh.
 
+<figure>
+
 ![triple_x.png](triple_x.png)
 
-Figure: Mesh composed of a single block with three elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with three elements, propagating along
 the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Quadruple
 
@@ -135,10 +163,17 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 where the segmentation `11` denotes block `11` in the finite element mesh.
 
+<figure>
+
 ![quadruple_x.png](quadruple_x.png)
 
-Figure: Mesh composed of a single block with four elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with four elements, propagating along
 the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Quadruple with Voids
 
@@ -151,11 +186,18 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 where the segmentation `99` denotes block `99` in the finite element mesh, and segmentation `0` is excluded from the mesh.
 
+<figure>
+
 ![quadruple_2_voids_x.png](quadruple_2_voids_x.png)
 
-Figure: Mesh composed of a single block with two elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with two elements, propagating along
 the `x-axis` and two voids, (left) lattice node numbers, (right) mesh node
 numbers.
+
+</figcaption>
+</figure>
 
 ## Quadruple with Two Blocks
 
@@ -169,11 +211,18 @@ numbers.
 where the segmentation `100` and `101` denotes block `100` and `101`,
 respectively in the finite element mesh.
 
+<figure>
+
 ![quadruple_2_blocks.png](quadruple_2_blocks.png)
 
-Figure: Mesh composed of two blocks with two elements elements each,
+<figcaption>
+
+Mesh composed of two blocks with two elements elements each,
 propagating along the `x-axis`, (left) lattice node numbers, (right) mesh
 node numbers.
+
+</figcaption>
+</figure>
 
 ## Quadruple with Two Blocks and Void
 
@@ -187,11 +236,18 @@ node numbers.
 where the segmentation `102` and `103` denotes block `102` and `103`,
 respectively, in the finite element mesh, and segmentation `0` is excluded from the mesh.
 
+<figure>
+
 ![quadruple_2_blocks_void.png](quadruple_2_blocks_void.png)
 
-Figure: Mesh composed of one block with two elements, a second block with one
+<figcaption>
+
+Mesh composed of one block with two elements, a second block with one
 element, and a void, propagating along the `x-axis`, (left) lattice node
 numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Cube
 
@@ -208,10 +264,17 @@ numbers, (right) mesh node numbers.
 
 where the segmentation `11` denotes block `11` in the finite element mesh.
 
+<figure>
+
 ![cube.png](cube.png)
 
-Figure: Mesh composed of one block with eight elements, (left) lattice node
+<figcaption>
+
+Mesh composed of one block with eight elements, (left) lattice node
 numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Cube with Multi Blocks and Void
 
@@ -230,11 +293,18 @@ where the segmentation `82`, `2`, `31` and `44` denotes block `82`, `2`, `31`
 and `44`, respectively, in the finite element mesh, and segmentation `0` will
 be included from the finite element mesh.
 
+<figure>
+
 ![cube_multi.png](cube_multi.png)
 
-Figure: Mesh composed of four blocks (block `82` has one element, block `2`
+<figcaption>
+
+Mesh composed of four blocks (block `82` has one element, block `2`
 has three elements, block `31` has one element, and block `44` has one
 element), (left) lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Cube with Inclusion
 
@@ -268,10 +338,17 @@ element), (left) lattice node numbers, (right) mesh node numbers.
 11   #  _ 3  _ 3  _ 3
 ````
 
+<figure>
+
 ![cube_with_inclusion.png](cube_with_inclusion.png)
 
-Figure: Mesh composed of 26 voxels of (block `11`) and one voxel inslusion
+<figcaption>
+
+Mesh composed of 26 voxels of (block `11`) and one voxel inslusion
 (block `88`), (left) lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Bracket
 
@@ -297,9 +374,16 @@ Figure: Mesh composed of 26 voxels of (block `11`) and one voxel inslusion
 where the segmentation `1` denotes block `1` in the finite element mesh,
 and segmentation `0` is excluded from the mesh.
 
+<figure>
+
 ![bracket.png](bracket.png)
 
-Figure: Mesh composed of a L-shaped bracket in the `xy` plane.
+<figcaption>
+
+Mesh composed of a L-shaped bracket in the `xy` plane.
+
+</figcaption>
+</figure>
 
 ## Letter F
 
@@ -323,10 +407,17 @@ Figure: Mesh composed of a L-shaped bracket in the `xy` plane.
 
 where the segmentation `11` denotes block `11` in the finite element mesh.
 
+<figure>
+
 ![letter_f.png](letter_f.png)
 
-Figure: Mesh composed of a single block with eight elements, (left) lattice
+<figcaption>
+
+Mesh composed of a single block with eight elements, (left) lattice
 node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 ## Letter F in 3D
 
@@ -396,18 +487,32 @@ node numbers, (right) mesh node numbers.
 which corresponds to `--nelx 4`, `--nely 5`, and `--nelz  3` in the
 [command line interface](../../cli.md).
 
+<figure>
+
 ![letter_f_3d.png](letter_f_3d.png)
 
-Figure: Mesh composed of a single block with thirty-nine elements, (left)
+<figcaption>
+
+Mesh composed of a single block with thirty-nine elements, (left)
 lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 The shape of the solid segmentation is more easily seen without the
 lattice and element nodes, and with decreased opacity, as shown below:
 
+<figure>
+
 ![letter_f_3d_alt.png](letter_f_3d_alt.png)
 
-Figure: Mesh composed of a single block with thirty-nine elements, shown
+<figcaption>
+
+Mesh composed of a single block with thirty-nine elements, shown
 with decreased opacity and without lattice and element node numbers.
+
+</figcaption>
+</figure>
 
 ## Sparse
 
@@ -541,13 +646,27 @@ with decreased opacity and without lattice and element node numbers.
 
 where the segmentation `1` denotes block `1` and segmentation `2` denotes block `2` in the finite eelement mesh (with segmentation `0` excluded).
 
+<figure>
+
 ![sparse.png](sparse.png)
 
-Figure: Sparse mesh composed of two materials at random voxel locations.
+<figcaption>
+
+Sparse mesh composed of two materials at random voxel locations.
+
+</figcaption>
+</figure>
+
+<figure>
 
 ![sparse_alt.png](sparse_alt.png)
 
-Figure: Sparse mesh composed of two materials at random voxel locations, shown with decreased opactity and without lattice and element node numbers.
+<figcaption>
+
+Sparse mesh composed of two materials at random voxel locations, shown with decreased opactity and without lattice and element node numbers.
+
+</figcaption>
+</figure>
 
 ## Source
 

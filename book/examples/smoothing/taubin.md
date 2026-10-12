@@ -24,18 +24,32 @@ checked into the repository.
 
 The two-material `sphere_res_1cm_noised.inp` file is visualized below with and without a midplane cut.
 
+<figure>
+
 iso | iso midplane | `xz` midplane
 :---: | :---: | :---:
 ![sphere_10k.png](sphere_10k.png) | ![sphere_10k_iso_midplane.png](sphere_10k_iso_midplane.png) | ![sphere_10k_xz_midplane.png](sphere_10k_xz_midplane.png)
 ![sphere_10k_noised.png](sphere_10k_noised.png) | ![sphere_10k_iso_midplane_noised.png](sphere_10k_iso_midplane_noised.png) | ![sphere_10k_xz_midplane_noised.png](sphere_10k_xz_midplane_noised.png)
 
-Figure: (Top row) sphere original configuration.  (Bottom row) noised sphere configuration, with normal random nodal displacement of the coordinates where $x > 0$.
+<figcaption>
+
+(Top row) sphere original configuration.  (Bottom row) noised sphere configuration, with normal random nodal displacement of the coordinates where $x > 0$.
+
+</figcaption>
+</figure>
 
 ## Taubin example
 
+<figure>
+
 ![sphere_surface_w_noise.png](sphere_surface_w_noise.png)
 
-Figure: Excerpt from Taubin[^Taubin_1995b], Figure 3, showing a surface mesh original configuration, and after 10, 50, and 200 steps.
+<figcaption>
+
+Excerpt from Taubin[^Taubin_1995b], Figure 3, showing a surface mesh original configuration, and after 10, 50, and 200 steps.
+
+</figcaption>
+</figure>
 
 ## automesh
 
@@ -55,13 +69,20 @@ automesh smooth -i sphere_res_1cm_noised.inp -o s50.exo -n 50
 automesh smooth -i sphere_res_1cm_noised.inp -o s200.exo -n 200
 ```
 
+<figure>
+
 front | iso | `xz` midplane
 :---: | :---: | :---:
 ![s10.png](s10.png) | ![s10_iso.png](s10_iso.png) | ![s10_iso_half.png](s10_iso_half.png)
 ![s50.png](s50.png) | ![s50_iso.png](s50_iso.png) | ![s50_iso_half.png](s50_iso_half.png)
 ![s200.png](s200.png) | ![s200_iso.png](s200_iso.png) | ![s200_iso_half.png](s200_iso_half.png)
 
-Figure. Smoothing results after 10 (top row), 50 (middle row), and 200 (bottom row) iterations.
+<figcaption>
+
+Smoothing results after 10 (top row), 50 (middle row), and 200 (bottom row) iterations.
+
+</figcaption>
+</figure>
 
 The results demonstrate that our implementation of Taubin smoothing on volumetric meshes composed of hexahedral elements performs well. All smoothing operations completed within 7.5 ms. Unlike Laplace smoothing, which drastically reduces volume (e.g., -16% in 10 iterations), Taubin smoothing preserves volumes (e.g., +1% in 200 iterations).  Thus, the noise in the $x > 0$ hemisphere was effectively removed, with very small volumetric change. The $x < 0$ hemisphere did not degrade from its original configuration.
 

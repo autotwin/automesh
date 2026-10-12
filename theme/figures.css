@@ -43,3 +43,17 @@ main figcaption strong {
     background-color: var(--quote-bg);
     border-color: color-mix(in srgb, var(--quote-bg), black 15%);
 }
+
+main figure > p,
+main figcaption > p {
+    margin: 0;
+}
+
+main figure .table-wrapper {
+    margin-bottom: 10px;
+}
+
+main figure table:has(img) {
+    width: 100%;
+    table-layout: fixed;
+}

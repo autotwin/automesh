@@ -97,6 +97,8 @@ quality tri all element area global draw mesh list detail
 
 We verify the following element qualities:
 
+<figure>
+
 file  |  `e`  | ${\rm ER}_{\max}$ | $\hat{J}_{\min}$ | ${\rm skew_{\max}}$  | area | $\theta_{\min}$ (deg)
 :---: | :---: | :---: | :---: | :---: | :---: | :---:
 `A`   |   1   | 1.508 [1.508] | 0.761 [0.761] | 0.313 [0.331] | 0.610 [0.610] | 41.2 [41.2]
@@ -116,11 +118,16 @@ file  |  `e`  | ${\rm ER}_{\max}$ | $\hat{J}_{\min}$ | ${\rm skew_{\max}}$  | ar
 `D`   |   1   | 1.000 [1.000] | 1.000 [1.000] | 0.000 [0.000] | 0.433 [0.433] | 60.0 [60.0]
 `E`   |   1   | 1.256 [1.256] | 0.869 [0.869] | 0.187 [0.187] | 3.273 [3.273] | 48.8 [48.8]
 
-Figure: Triangle metrics.
+<figcaption>
+
+Triangle metrics.
 Leading values are from `automesh`.
 Values in [brackets] are from an independent Python calculation, (see [`metrics_triangular.py`](#metrics_triangularpy)) and agree with `automesh` in double precision with a tolerance of less than `2.22e-15`.
 Except for edge ratio, all values were also verified with Cubit.
 Cubit uses the term *Aspect Ratio*; it is **not the same** as Edge Ratio.
+
+</figcaption>
+</figure>
 
 * File `A` is `single_valence_04_noise2.inp`.
 * File `B` is `one_facet.stl`.

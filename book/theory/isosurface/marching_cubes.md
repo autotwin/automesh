@@ -14,11 +14,18 @@ The result is a crack, or an edge shared by more than two triangles.
 
 > **Manifold:** "The mesh forms a 2D manifold if the local topology is everywhere equivalent to a disc; that is, if the neighborhood of every feature consists of a connected ring of polygons forming a single surface (see Figure 2 of Luebke[^Luebke_2001] reproduced below). In a triangulated mesh displaying manifold topology, exactly two triangles share every edge, and every triangle shares an edge with exactly three neighboring triangles. A 2D manifold with boundary permits boundary edges, which belong to only one triangle."
 
+<figure>
+
 manifold | non-manifold
 :---: | :---:
 ![](../../fig/Luebke_2001_manifold.png) | ![](../../fig/Luebke_2001_non-manifold.png)
 
-Figure: Reproduction of Luebke[^Luebke_2001] Figure 2 (left) showing a manifold mesh, and Figure 3 (right) showing a non-manifold mesh because of (a) an edge shared by more than two triangles, (b) a vertex shared by two unconnected sets of triangles, and (c) a T-junction vertex.
+<figcaption>
+
+Reproduction of Luebke[^Luebke_2001] Figure 2 (left) showing a manifold mesh, and Figure 3 (right) showing a non-manifold mesh because of (a) an edge shared by more than two triangles, (b) a vertex shared by two unconnected sets of triangles, and (c) a T-junction vertex.
+
+</figcaption>
+</figure>
 
 Lewiner *et al.*[^Lewiner_2003] resolve the ambiguous cases.
 Their algorithm adds the missing cases to the original table.

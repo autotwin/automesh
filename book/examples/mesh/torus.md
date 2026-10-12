@@ -68,15 +68,22 @@ automesh mesh hex -r 0 -i torus.npy -o torus_raw.inp
 <!-- cmdrun automesh mesh hex -r 0 -i torus.npy -o torus_raw.inp | ansifilter -->
 ```
 
+<figure>
+
 raw (3,552 elements) | smoothed (3,552 elements)
 :---: | :---:
 ![torus_raw.png](torus_raw.png) | ![torus_smooth.png](torus_smooth.png)
 
-Figure: The same 3,552-element hexahedral mesh before (left) and after
+<figcaption>
+
+The same 3,552-element hexahedral mesh before (left) and after
 (right) 20 iterations of Taubin smoothing, chained directly onto meshing.
 Smoothing does not change the element or node count — it only relocates
 nodes — so the voxel "staircasing" on the left becomes a smoothed
 torus on the right.
+
+</figcaption>
+</figure>
 
 ## Smoothing's Effect on Element Quality
 

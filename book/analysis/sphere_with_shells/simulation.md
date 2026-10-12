@@ -35,11 +35,18 @@ and $\alpha(t) = 0$ is zero otherwise.  This pulse, referred to as the **bump fu
 
 With $\alpha_{\max} := 8.0$ krad/s^2, and $\Delta t := 8.0$ ms, we can create the angular acceleration boundary condition (with corresponding angular velocity) [^Carlsen_2021] plots:
 
+<figure>
+
 | Angular Acceleration | Angular Velocity |
 | :---: | :---: |
 | ![](img/AngAccel.png) | ![](img/AngVel.png) |
 
-Figure: Angular acceleration and corresponding angular velocity time history.
+<figcaption>
+
+Angular acceleration and corresponding angular velocity time history.
+
+</figcaption>
+</figure>
 
 * [Angular acceleration tabulated data](https://1drv.ms/u/s!ApVSeeLlvsE8g_4xLyBDaZDDXvh7iw?e=iikM6v&download=1):  The standardized angular acceleration load curve has column data as (time, magnitude) in (sec, krad/s^2).  The function used to generated the curve, from Equation (1) of [^Carlsen_2021], is
 * [Angular velocity tabulated data](https://1drv.ms/u/s!ApVSeeLlvsE8g_4yrDrMBjYM28vt6A?e=reeUyW&download=1):  The angular velocity curve has column data as (time, magnitude) in (sec, rad/s).
@@ -59,9 +66,16 @@ view from 0 0 100
 graphics clip manipulation off
 ```
 
+<figure>
+
 ![tracers_sr_2_3_4.png](img/tracers_sr_2_3_4.png)
 
-Figure: Tracer numbers `[0, 1, 2, ... 11]` at $\Delta x$ distance `[0, 1, 2, ... 11]` centimeters from point `(0, 0, 0)` along the x-axis at resolutions `sr2`, `sr3`, and `sr4` (top to bottom, respectively).
+<figcaption>
+
+Tracer numbers `[0, 1, 2, ... 11]` at $\Delta x$ distance `[0, 1, 2, ... 11]` centimeters from point `(0, 0, 0)` along the x-axis at resolutions `sr2`, `sr3`, and `sr4` (top to bottom, respectively).
+
+</figcaption>
+</figure>
 
 ## Materials
 
@@ -241,15 +255,24 @@ figio rigid_body_ang_kinematics.yml
 
 verify that the rigid body input values were successfully reflected in the output:
 
+<figure>
+
 angular acceleration | angular velocity | angular position
 :---: | :---: | :---:
 ![img/sr2_angular_acceleration_z.svg](img/sr2_angular_acceleration_z.svg) | ![img/sr2_angular_velocity_z.svg](img/sr2_angular_velocity_z.svg) | ![img/sr2_angular_position_z.svg](img/sr2_angular_position_z.svg)
 
-Figure: Rigid body (block 3) kinematics for `sr2`, the `sphere_resolution_2.exo` model.  The time history traces appear the same for the `sr3` and `sr4` models.
+<figcaption>
+
+Rigid body (block 3) kinematics for `sr2`, the `sphere_resolution_2.exo` model.  The time history traces appear the same for the `sr3` and `sr4` models.
+
+</figcaption>
+</figure>
 
 ### Deformable Body
 
 The following figure shows the maximum principal log strain for various resolutions and selected times.
+
+<figure>
 
 resolution | 2 vox/cm | 4 vox/cm | 10 vox/cm
 ---------- | -------- | -------- | ---------
@@ -272,7 +295,12 @@ recipe | [log_strain_sr2.yml](recipes/log_strain_sr2.yml) | [log_strain_sr3.yml]
 rate of deformation | ![rate_of_deformation_sr2.svg](img/rate_of_deformation_sr2.svg) | ![rate_of_deformation_sr3.svg](img/rate_of_deformation_sr3.svg) | ![rate_of_deformation_sr4.svg](img/rate_of_deformation_sr4.svg)
 recipe | [rate_of_deformation_sr2.yml](recipes/rate_of_deformation_sr2.yml) | [rate_of_deformation_sr3.yml](recipes/rate_of_deformation_sr3.yml) | [rate_of_deformation_sr4.yml](recipes/rate_of_deformation_sr4.yml)
 
-Figure:  Voxel mesh midline section, with contour plot of maximum principal log strain at selected times from 0.000 s to 0.020 s (1,000 Hz sample rate, $\Delta t$ = 0.001 s), and tracer plots at 1 cm interval along the $x$-axis for displacement magnitude, log strain, and rate of deformation (4,000 Hz acquisition rate, $\Delta t$ = 0.00025 s).
+<figcaption>
+
+Voxel mesh midline section, with contour plot of maximum principal log strain at selected times from 0.000 s to 0.020 s (1,000 Hz sample rate, $\Delta t$ = 0.001 s), and tracer plots at 1 cm interval along the $x$-axis for displacement magnitude, log strain, and rate of deformation (4,000 Hz acquisition rate, $\Delta t$ = 0.00025 s).
+
+</figcaption>
+</figure>
 
 ## References
 
