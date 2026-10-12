@@ -49,7 +49,7 @@ length of the input, which regularizes the surface at its existing resolution:
 the triangles become more uniform in size and shape while the facet count stays
 close to the input.
 
-<details>
+<details open>
 <summary>The default <code>remesh</code> command</summary>
 
 ```sh
