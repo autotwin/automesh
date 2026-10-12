@@ -88,8 +88,6 @@ automesh mesh hex -i spheres_radius_5.npy -o spheres_radius_5.inp
 
 ## Mesh
 
-The `spheres_radius_1.inp` file:
-
 <details>
 <summary>The <code>spheres_radius_1.inp</code> file</summary>
 
