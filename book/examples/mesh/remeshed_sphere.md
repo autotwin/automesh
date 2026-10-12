@@ -23,7 +23,7 @@ turns that triangular **surface** into a solid all-hexahedral **volume**.
 from the [Remesh: Unit Sphere](../remesh/sphere.md) example on its
 `sphere_radius_1.stl` input:
 
-<details>
+<details open>
 <summary>The <code>remesh</code> command</summary>
 
 ```sh
@@ -39,7 +39,7 @@ automesh remesh -i sphere_radius_1.stl -o sphere_n10.stl uniform -n 10
 mesh.  The `--scale` option sets the octree refinement depth — how finely
 the bounding box is subdivided before the surface is captured:
 
-<details>
+<details open>
 <summary>The <code>mesh hex</code> command and output</summary>
 
 ```sh
