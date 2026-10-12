@@ -44,9 +44,7 @@ connectivity and overall shape unchanged:
 
 </details>
 
-```sh
 <!-- cmdrun python torus.py > /dev/null -->
-```
 
 ## Chained: `mesh hex smooth`
 
@@ -55,7 +53,7 @@ an intermediate file. With chaining, it's one command and no intermediate
 file — `smooth` runs immediately on the mesh `mesh hex` just built, in
 memory:
 
-<details>
+<details open>
 <summary>The chained <code>mesh hex smooth</code> command and output</summary>
 
 ```sh
@@ -73,7 +71,7 @@ automesh mesh hex -r 0 -i torus.npy -o torus_smooth.inp smooth
 
 For comparison, the unsmoothed mesh:
 
-<details>
+<details open>
 <summary>The unsmoothed <code>mesh hex</code> command and output</summary>
 
 ```sh
