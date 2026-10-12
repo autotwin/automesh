@@ -616,6 +616,9 @@ tracks this, with the bone as the benchmark.
 The inputs are not committed.  See [Downloads](#downloads) to get them.  From
 this directory:
 
+<details>
+<summary>The commands that regenerate the figures and tables</summary>
+
 ```sh
 PVPYTHON=/Applications/ParaView-5.10.1.app/Contents/bin/pvpython
 
@@ -691,6 +694,8 @@ python3 bone_sweep.py bone_sweep.tsv
 cp path/to/bone/finalMesh.vtk reproduced_bone.vtk
 python3 bone_baseline_compare.py reproduced_bone.vtk bone.vtk
 ```
+
+</details>
 
 The histogram commands print the extremes in the tables above.
 
