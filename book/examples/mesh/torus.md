@@ -126,7 +126,7 @@ line, but running it always fails on this torus, exactly as documented in
 [Mesh](../../cli/mesh.md#mesh-hex-smooth) — `remesh` requires triangular
 connectivity, and a hex mesh has none:
 
-<details>
+<details open>
 <summary>The <code>mesh hex smooth remesh</code> command</summary>
 
 ```sh
@@ -135,7 +135,7 @@ automesh mesh hex -r 0 -i torus.npy -o torus_bad.inp smooth remesh
 
 </details>
 
-<details>
+<details open>
 <summary>The error message</summary>
 
 ```sh
