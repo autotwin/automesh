@@ -75,6 +75,11 @@ Sphere segmentations with cutting plane of (left) `spheres_resolution_1.npy` and
 
 ### `spheres_cont.py`
 
+<details>
+<summary><code>spheres_cont.py</code></summary>
+
 ```python
 <!-- cmdrun cat sphere_with_shells/spheres_cont.py -->
 ```
+
+</details>
