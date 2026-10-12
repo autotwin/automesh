@@ -72,7 +72,7 @@ tighter, bell-shaped distribution centered near the mean edge length.
 A larger target edge length produces fewer, larger triangles; a smaller target
 edge length produces many more, smaller triangles.
 
-<details>
+<details open>
 <summary>The coarse and fine <code>remesh</code> commands</summary>
 
 ```sh
