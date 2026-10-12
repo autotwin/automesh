@@ -26,7 +26,7 @@ once with the [`obj_to_binary_stl.py` helper](#helper-obj-to-binary-stl) (shown
 at the end of this page), producing `stanford_bunny.stl`.  All commands on this
 page use that converted file.
 
-<details>
+<details open>
 <summary>The OBJ to STL conversion command</summary>
 
 ```sh
