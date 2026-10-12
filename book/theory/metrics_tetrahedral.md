@@ -147,9 +147,14 @@ face | nodes
 
 ### `metrics_tetrahedral.py`
 
+<details>
+<summary><code>metrics_tetrahedral.py</code></summary>
+
 ```python
 <!-- cmdrun cat metrics_tetrahedral.py -->
 ```
+
+</details>
 
 ## References
 
