@@ -169,9 +169,14 @@ face | nodes
 
 ### `metrics_triangular.py`
 
+<details>
+<summary><code>metrics_triangular.py</code></summary>
+
 ```python
 <!-- cmdrun cat metrics_triangular.py -->
 ```
+
+</details>
 
 ## References
 
