@@ -373,7 +373,7 @@ element), (left) lattice node numbers, (right) mesh node numbers.
 
 ## Cube with Inclusion
 
-<details open>
+<details>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
