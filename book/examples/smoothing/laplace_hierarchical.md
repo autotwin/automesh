@@ -14,17 +14,31 @@ To come.
 
 To begin to examine hierarchical control, we consider the [Bracket](../unit_tests/unit_tests.md#bracket) example.
 
+<figure>
+
 ![../unit_tests/bracket.png](../unit_tests/bracket.png)
 
-Figure: The **Bracket** example.
+<figcaption>
+
+The **Bracket** example.
+
+</figcaption>
+</figure>
 
 #### Laplace Smoothing without Hierarchical Control
 
 As a baseline, let's examine what Laplace smoothing, $\lambda = 0.3$, *without* hierarchical control performs.
 
+<figure>
+
 ![bracket_laplace_iter_100.gif](bracket_laplace_iter_100.gif)
 
-Figure: The `Bracket` test problem (left) original configuration, (right) subject to `[1, 2, 3, 4, 5, 10, 20, 30, 100`] iterations of Laplace smoothing.  Animation created with [Ezgif](https://ezgif.com/).
+<figcaption>
+
+The `Bracket` test problem (left) original configuration, (right) subject to `[1, 2, 3, 4, 5, 10, 20, 30, 100`] iterations of Laplace smoothing.  Animation created with [Ezgif](https://ezgif.com/).
+
+</figcaption>
+</figure>
 
 As an example, the nodal positions after 10 iterations are as follows:
 
@@ -127,9 +141,16 @@ node_hierarchy: NodeHierarchy = (
 )
 ```
 
+<figure>
+
 ![bracket_laplace_hc_iter_100.gif](bracket_laplace_hc_iter_100.gif)
 
-Figure: The `Bracket` test problem (left) original configuration, (right) subject to `[1, 2, 3, 4, 5, 10, 20, 30, 100`] iterations of Laplace smoothing with hierarchical control.  Animation created with [Ezgif](https://ezgif.com/).
+<figcaption>
+
+The `Bracket` test problem (left) original configuration, (right) subject to `[1, 2, 3, 4, 5, 10, 20, 30, 100`] iterations of Laplace smoothing with hierarchical control.  Animation created with [Ezgif](https://ezgif.com/).
+
+</figcaption>
+</figure>
 
 As an example, the nodal positions after 10 iterations are as follows:
 

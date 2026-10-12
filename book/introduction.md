@@ -31,18 +31,32 @@ into a *class* that represents some subject of interest.  For example, in the
 image below, the image pixels are classified into classes of sky, trees, cat,
 grass, and cow.
 
+<figure>
+
 ![fig/cs231n_semantic_segmentation.png](fig/cs231n_semantic_segmentation.png)
 
-Figure: Example of semantic segmentation, from Li *et al.*[^Li_2017]
+<figcaption>
+
+Example of semantic segmentation, from Li *et al.*[^Li_2017]
+
+</figcaption>
+</figure>
 
 * **Semantic segmentation** does not differentiate between objects of the same class.
 * **Instance segmentation** does differentiate between objects of the same class.
 
 These two concepts are shown below:
 
+<figure>
+
 ![fig/semantic_vs_instance.png](fig/semantic_vs_instance.png)
 
-Figure: Distinction between semantic segmentation and instance segmentation, from Lin *et al.*[^Lin_2014]
+<figcaption>
+
+Distinction between semantic segmentation and instance segmentation, from Lin *et al.*[^Lin_2014]
+
+</figcaption>
+</figure>
 
 Both segmentation types, semantic and instance, can be used with `automesh`.  However, `automesh` operates on a 3D segmentation, not a 2D segmentation, as present in a digital image.  To obtain a 3D segmentation, two or more images are stacked to compose a volume.
 
@@ -50,16 +64,30 @@ The structured volume of a stack of pixels composes a volumetric unit called a v
 
 The figure below illustrates the concept of stacked images:
 
+<figure>
+
 ![fig/stack_reconstruction.png](fig/stack_reconstruction.png)
 
-Figure: Example of stacking several images to create a 3D representation, from Bit *et al.*[^Bit_2017]
+<figcaption>
+
+Example of stacking several images to create a 3D representation, from Bit *et al.*[^Bit_2017]
+
+</figcaption>
+</figure>
 
 The digital image sources are frequently medical images, obtained by CT or MR, though `automesh` can be used for any subject that can be represented as a stacked segmentation.  Anatomical regions are classified into categories.  For example, in the image below, ten unique integers have been used to represent
 bone, disc, vasculature, airway/sinus, membrane, cerebral spinal fluid, white matter, gray matter, muscle, and skin.
 
+<figure>
+
 ![fig/sibl_bob_mid-sagittal.png](fig/sibl_bob_mid-sagittal.png)
 
-Figure: Example of a 3D voxel model, segmented into 10 categories, from Terpsma *et al.*[^Terpsma_2020]
+<figcaption>
+
+Example of a 3D voxel model, segmented into 10 categories, from Terpsma *et al.*[^Terpsma_2020]
+
+</figcaption>
+</figure>
 
 Given a 3D segmentation, for any image slice that composes it, the pixels have been classified
 into categories that are designated with unique, non-negative integers.
@@ -83,11 +111,18 @@ stack order of the data in the SPN file.  `automesh` takes this as the
 For subjects that are human anatomy, we use the *Patient Coordinate System* (PCS), which directs the
 `x`, `y`, and `z` axes to the `left`, `posterior`, and `superior`, as shown below:
 
+<figure>
+
 | Patient Coordinate System: | Left, Posterior, Superior $\mapsto$ (x, y, z)
 | :--: | :--:
 | ![fig/Terpsma_2020_Figure_C-4.png](fig/Terpsma_2020_Figure_C-4.png) | ![fig/patient_coordinate_system.png](fig/patient_coordinate_system.png)
 
-Figure: Illustration of the patient coordinate system, left figure from Terpsma *et al.*[^Terpsma_2020] and right figure from Sharma.[^Sharma_2021]
+<figcaption>
+
+Illustration of the patient coordinate system, left figure from Terpsma *et al.*[^Terpsma_2020] and right figure from Sharma.[^Sharma_2021]
+
+</figcaption>
+</figure>
 
 ## Mesh
 

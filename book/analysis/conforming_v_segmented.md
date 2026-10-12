@@ -63,9 +63,16 @@ file | `md5` checksum | size
 
 The model has 12 blocks composing the various anatomy of the head and brain, shown below.
 
+<figure>
+
 ![All_Hex_Dec](fig/All_Hex_Dec.png)
 
-**Figure: RMU brain model `All_Hex_Dec.exo`**
+<figcaption>
+
+RMU brain model `All_Hex_Dec.exo`
+
+</figcaption>
+</figure>
 
 With this conforming mesh, we create segmented meshes with the `segment` command, for example,
 
@@ -81,25 +88,60 @@ The output files have the naming convention `test_x_y.exo` where
 * `y` is the element length in mm,
 * and `0p8` means `0.8 mm`.
 
+<figure>
+
 ![test_1_1.png](fig/test_1_1.png)
 
-**Figure: `test_1_1.exo` created with options `--grid 1 --size 1`**
+<figcaption>
+
+`test_1_1.exo` created with options `--grid 1 --size 1`
+
+</figcaption>
+</figure>
+
+<figure>
 
 ![test_1_2.png](fig/test_1_2.png)
 
-**Figure: `test_1_2.exo` created with options `--grid 1 --size 2`**
+<figcaption>
+
+`test_1_2.exo` created with options `--grid 1 --size 2`
+
+</figcaption>
+</figure>
+
+<figure>
 
 ![test_1_3.png](fig/test_1_3.png)
 
-**Figure: `test_1_3.exo` created with options `--grid 1 --size 3`**
+<figcaption>
+
+`test_1_3.exo` created with options `--grid 1 --size 3`
+
+</figcaption>
+</figure>
+
+<figure>
 
 ![test_2_1.png](fig/test_2_1.png)
 
-**Figure: `test_2_1.exo` created with options `--grid 2 --size 1`**
+<figcaption>
+
+`test_2_1.exo` created with options `--grid 2 --size 1`
+
+</figcaption>
+</figure>
+
+<figure>
 
 ![test_3_0p8.png](fig/test_3_0p8.png)
 
-**Figure: `test_3_0p8.exo` created with options `--grid 3 --size 0.8`**
+<figcaption>
+
+`test_3_0p8.exo` created with options `--grid 3 --size 0.8`
+
+</figcaption>
+</figure>
 
 ## Comparison
 

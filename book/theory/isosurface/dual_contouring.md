@@ -6,9 +6,16 @@ DC improves upon the Marching Cubes algorithm.  DC uses the dual grid of the vox
 
 Boris[^Boris_2025] created a figure, reproduced below, that illustrates the differences between Marching Cubes and DC.
 
+<figure>
+
 ![](../../fig/Boris_MC_DC.png)
 
-Figure: Reproduction of the figure from Boris[^Boris_2025], illustrating, in two dimensions, the differences between Marching Cubes and DC.  White circle are outside points.  Black circles are inside points.  In Marching Cubes, the red points indicate surface vertices at edge intersections.  In DC, the red points indicate surface vertices within a voxel.
+<figcaption>
+
+Reproduction of the figure from Boris[^Boris_2025], illustrating, in two dimensions, the differences between Marching Cubes and DC.  White circle are outside points.  Black circles are inside points.  In Marching Cubes, the red points indicate surface vertices at edge intersections.  In DC, the red points indicate surface vertices within a voxel.
+
+</figcaption>
+</figure>
 
 ## Advantages
 

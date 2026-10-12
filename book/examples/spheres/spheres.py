@@ -138,5 +138,5 @@ if SHOW:
     plt.show()
 
 if SAVE:
-    fig.savefig(bb, dpi=DPI)
+    fig.savefig(bb, dpi=DPI, bbox_inches="tight")
     print(f"Saved: {bb}")
