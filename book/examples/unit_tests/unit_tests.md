@@ -26,7 +26,7 @@ mesh consisting of one block consisting of a single element.  The NumPy input
 [single.npy](https://github.com/autotwin/automesh/raw/main/tests/input/single.npy)
 contains the following segmentation:
 
-<details>
+<details open>
 <summary>The <code>single.npy</code> segmentation</summary>
 
 ```python
@@ -54,7 +54,7 @@ where the segmentation `11` denotes block `11` in the finite element mesh.
 Equivalently, the [single.spn](https://raw.githubusercontent.com/autotwin/automesh/main/tests/input/single.spn) contains a
 single integer:
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -110,7 +110,7 @@ meshes.
 
 ### Double X
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -136,7 +136,7 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 ### Double Y
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -162,7 +162,7 @@ the `y-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 ## Triple
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -189,7 +189,7 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 ## Quadruple
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -217,7 +217,7 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
 ## Quadruple with Voids
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -246,7 +246,7 @@ numbers.
 
 ## Quadruple with Two Blocks
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -276,7 +276,7 @@ node numbers.
 
 ## Quadruple with Two Blocks and Void
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -306,7 +306,7 @@ numbers, (right) mesh node numbers.
 
 ## Cube
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -338,7 +338,7 @@ numbers, (right) mesh node numbers.
 
 ## Cube with Multi Blocks and Void
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
@@ -373,7 +373,7 @@ element), (left) lattice node numbers, (right) mesh node numbers.
 
 ## Cube with Inclusion
 
-<details>
+<details open>
 <summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
