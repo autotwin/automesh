@@ -617,7 +617,7 @@ The inputs are not committed.  See [Downloads](#downloads) to get them.  From
 this directory:
 
 <details>
-<summary>The commands that regenerate the figures and tables</summary>
+<summary>The commands that regenerate the figures and tables follow:</summary>
 
 ```sh
 PVPYTHON=/Applications/ParaView-5.10.1.app/Contents/bin/pvpython
