@@ -92,7 +92,7 @@ More iterations make the triangles more uniform, but with strongly diminishing
 returns.  The sphere is remeshed at the default target edge length for a range of
 `--iterations` values, one output per value:
 
-<details>
+<details open>
 <summary>The six <code>remesh</code> commands, one per iteration count</summary>
 
 ```sh
