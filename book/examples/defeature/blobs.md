@@ -10,9 +10,14 @@ The segmentation file `blobs.npy` was then used as the input to `automesh`
 with the **defeature** command.  The output file `blobs_defeatured.npy` is
 shown in the right of the figure.  The threshold was set to 20 voxels.
 
+<details>
+<summary>The <code>defeature</code> command</summary>
+
 ```sh
 automesh defeature -i blobs.npy -o blobs_defeatured.npy -m 20
 ```
+
+</details>
 
 Both the segmentation files, original and defeatured, were then converted to a
 mesh and visualized in [Hexalab](https://www.hexalab.net).
@@ -34,6 +39,11 @@ the **defeature** command, (right) the output defeatured segmentation
 
 ### `defeature.py`
 
+<details>
+<summary><code>defeature.py</code></summary>
+
 ```python
 <!-- cmdrun cat ../../defeature/defeature.py -->
 ```
+
+</details>
