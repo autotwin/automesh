@@ -85,7 +85,7 @@ The finite element mesh local node numbering map to the following global node
 numbers identically,
 $S_{\rm{local}} = \{1, 2, 4, 3, 5, 6, 8, 7\}$ and $S_{\rm{local}} = S_{\rm{global}}$:
 
-<details>
+<details open>
 <summary>The local-to-global node map</summary>
 
 ```bash
