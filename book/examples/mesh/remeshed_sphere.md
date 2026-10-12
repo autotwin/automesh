@@ -23,9 +23,14 @@ turns that triangular **surface** into a solid all-hexahedral **volume**.
 from the [Remesh: Unit Sphere](../remesh/sphere.md) example on its
 `sphere_radius_1.stl` input:
 
+<details>
+<summary>The <code>remesh</code> command</summary>
+
 ```sh
 automesh remesh -i sphere_radius_1.stl -o sphere_n10.stl uniform -n 10
 ```
+
+</details>
 <!-- cmdrun automesh remesh -i ../remesh/sphere_radius_1.stl -o sphere_n10.stl uniform -n 10 > /dev/null -->
 
 ## Dualizing to Hexahedra
@@ -34,10 +39,15 @@ automesh remesh -i sphere_radius_1.stl -o sphere_n10.stl uniform -n 10
 mesh.  The `--scale` option sets the octree refinement depth — how finely
 the bounding box is subdivided before the surface is captured:
 
+<details>
+<summary>The <code>mesh hex</code> command and output</summary>
+
 ```sh
 automesh mesh hex -i sphere_n10.stl -o sphere_hex.inp --scale 8
 <!-- cmdrun automesh mesh hex -i sphere_n10.stl -o sphere_hex.inp --scale 8 | ansifilter -->
 ```
+
+</details>
 
 <figure>
 
@@ -107,6 +117,11 @@ the triangular surface (`sphere_n10.stl`) and the hexahedral mesh
 (`sphere_hex.inp`, extracting its exterior quad faces) and renders both with
 a matched camera:
 
+<details>
+<summary><code>sphere_hex_figures.py</code></summary>
+
 ```python
 <!-- cmdrun cat sphere_hex_figures.py -->
 ```
+
+</details>
