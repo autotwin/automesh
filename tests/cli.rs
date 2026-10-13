@@ -1111,20 +1111,32 @@ fn agglomerate_joins_elements() {
 
 #[cfg(feature = "agglomerate")]
 #[test]
-fn agglomerate_rejects_exodus_output_for_now() {
+fn agglomerate_writes_the_same_mesh_to_exodus_as_to_vtu() {
     let source = coarse_tets();
-    let message = failure(&[
-        "agglomerate",
+    let (exodus, vtu, from_exodus) = (out("exo"), out("vtu"), out("vtu"));
+    for output in [&exodus, &vtu] {
+        run(&[
+            "agglomerate",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-s",
+            "1.01",
+            "-m",
+            "1.01",
+        ]);
+    }
+    run(&[
+        "convert",
+        "mesh",
         "-i",
-        source.to_str().unwrap(),
+        exodus.to_str().unwrap(),
         "-o",
-        out("exo").to_str().unwrap(),
-        "-s",
-        "2",
-        "-m",
-        "1.2",
+        from_exodus.to_str().unwrap(),
     ]);
-    assert!(message.contains("not supported yet"), "{message}");
+    assert!(number_of_cells(&vtu) < number_of_cells(&source));
+    assert_eq!(number_of_cells(&from_exodus), number_of_cells(&vtu));
 }
 
 #[cfg(feature = "agglomerate")]

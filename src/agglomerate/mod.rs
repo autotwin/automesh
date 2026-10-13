@@ -19,7 +19,7 @@ pub struct AgglomerateArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Agglomerated mesh output file (vtu)
+    /// Agglomerated mesh output file (exo | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -55,12 +55,7 @@ pub struct AgglomerateArgs {
 impl AgglomerateArgs {
     fn validate(&self) -> Result<(), ErrorWrapper> {
         match extension(&self.output) {
-            Some("vtu") => {}
-            Some("exo") => {
-                return Err(ErrorWrapper::from(
-                    "Exodus output of an agglomerated mesh is not supported yet, use vtu",
-                ));
-            }
+            Some("exo") | Some("vtu") => {}
             other => return Err(invalid_output(&self.output, other)),
         }
         if self.reference.is_some_and(|reference| reference <= 0.0) {
