@@ -1051,3 +1051,108 @@ fn mesh_help_names_the_inputs_each_mode_accepts() {
     assert!(tri.contains("Segmentation (npy | spn) input file"));
     assert!(!tri.contains("tessellation"));
 }
+
+#[cfg(feature = "agglomerate")]
+fn coarse_tets() -> PathBuf {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "tet",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--uniform",
+        "0.8",
+    ]);
+    output
+}
+
+#[cfg(feature = "agglomerate")]
+fn number_of_cells(file: &Path) -> usize {
+    let text = std::fs::read_to_string(file).expect("failed to read the vtu");
+    let start = text.find("NumberOfCells=\"").expect("no cell count") + 15;
+    text[start..]
+        .split('"')
+        .next()
+        .and_then(|count| count.parse().ok())
+        .expect("unreadable cell count")
+}
+
+#[cfg(feature = "agglomerate")]
+fn failure(args: &[&str]) -> String {
+    let result = Command::new(BIN)
+        .args(args)
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success(), "should fail: automesh {args:?}");
+    String::from_utf8_lossy(&result.stderr).into_owned()
+}
+
+#[cfg(feature = "agglomerate")]
+#[test]
+fn agglomerate_joins_elements() {
+    let source = coarse_tets();
+    let output = out("vtu");
+    run(&[
+        "agglomerate",
+        "-i",
+        source.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "1.01",
+        "-m",
+        "1.01",
+    ]);
+    assert_nonempty(&output);
+    assert!(number_of_cells(&output) < number_of_cells(&source));
+}
+
+#[cfg(feature = "agglomerate")]
+#[test]
+fn agglomerate_writes_the_same_mesh_to_exodus_as_to_vtu() {
+    let source = coarse_tets();
+    let (exodus, vtu, from_exodus) = (out("exo"), out("vtu"), out("vtu"));
+    for output in [&exodus, &vtu] {
+        run(&[
+            "agglomerate",
+            "-i",
+            source.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-s",
+            "1.01",
+            "-m",
+            "1.01",
+        ]);
+    }
+    run(&[
+        "convert",
+        "mesh",
+        "-i",
+        exodus.to_str().unwrap(),
+        "-o",
+        from_exodus.to_str().unwrap(),
+    ]);
+    assert!(number_of_cells(&vtu) < number_of_cells(&source));
+    assert_eq!(number_of_cells(&from_exodus), number_of_cells(&vtu));
+}
+
+#[cfg(feature = "agglomerate")]
+#[test]
+fn agglomerate_rejects_a_step_reduction_of_one() {
+    let source = coarse_tets();
+    let message = failure(&[
+        "agglomerate",
+        "-i",
+        source.to_str().unwrap(),
+        "-o",
+        out("vtu").to_str().unwrap(),
+        "-s",
+        "1",
+        "-m",
+        "1.2",
+    ]);
+    assert!(message.contains("greater than one"), "{message}");
+}
