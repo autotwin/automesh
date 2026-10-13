@@ -8,7 +8,7 @@ use std::{path::Path, time::Instant};
 
 #[derive(clap::Args)]
 pub struct ImproveArgs {
-    /// Hexahedral mesh input file (exo | inp | mesh | vtu)
+    /// Mesh input file (exo | inp | mesh | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
@@ -31,7 +31,7 @@ pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let time = Instant::now();
     crate::echo!(
         quiet,
-        "   \x1b[1;96mImproving\x1b[0m the scaled Jacobian of the hexahedra"
+        "   \x1b[1;96mImproving\x1b[0m the minimum scaled Jacobian"
     );
     mesh.improve_scaled_jacobian(&target)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());

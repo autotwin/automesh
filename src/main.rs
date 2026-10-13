@@ -192,7 +192,7 @@ enum Commands {
         subcommand: MeshSubcommand,
     },
 
-    /// Improves the scaled Jacobian of a hexahedral mesh while fitting a target surface
+    /// Improves the minimum scaled Jacobian of an existing mesh while fitting a target surface
     Improve(ImproveArgs),
 
     /// Quality metrics for an existing finite element mesh
