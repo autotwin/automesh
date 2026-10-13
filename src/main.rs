@@ -9,6 +9,7 @@ mod defeature;
 mod diff;
 mod error;
 mod extract;
+mod improve;
 mod io;
 mod log;
 mod mesh;
@@ -23,6 +24,7 @@ use defeature::defeature;
 use diff::diff;
 use error::ErrorWrapper;
 use extract::extract;
+use improve::{ImproveArgs, improve};
 use mesh::{Element, MeshSubcommand};
 use metrics::{MetricsArgs, metrics};
 use partition::{PartitionArgs, partition};
@@ -190,6 +192,9 @@ enum Commands {
         subcommand: MeshSubcommand,
     },
 
+    /// Improves the minimum scaled Jacobian of an existing mesh while fitting a target surface
+    Improve(ImproveArgs),
+
     /// Quality metrics for an existing finite element mesh
     Metrics(MetricsArgs),
 
@@ -283,6 +288,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MeshSubcommand::Tet(args) => mesh::mesh(Element::Tetrahedra, args, quiet),
             MeshSubcommand::Tri(args) => mesh::mesh(Element::Triangles, args, quiet),
         },
+        Some(Commands::Improve(args)) => improve(args, quiet),
         Some(Commands::Metrics(args)) => metrics(args, quiet),
         Some(Commands::Partition(args)) => partition(args, quiet),
         Some(Commands::Remesh {
