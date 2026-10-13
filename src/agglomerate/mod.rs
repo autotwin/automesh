@@ -1,6 +1,6 @@
 use super::{
     ErrorWrapper,
-    io::{extension, invalid_output, read_mesh, write_mesh_threads},
+    io::{extension, invalid_output, read_mesh, write_mesh},
 };
 use clap::Args;
 use conspire::{
@@ -11,7 +11,7 @@ use conspire::{
         block::element::DEFAULT_STABILIZATION,
     },
 };
-use std::{thread::available_parallelism, time::Instant};
+use std::time::Instant;
 
 #[derive(Args)]
 pub struct AgglomerateArgs {
@@ -19,7 +19,7 @@ pub struct AgglomerateArgs {
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
-    /// Agglomerated mesh output file (exo | vtu)
+    /// Agglomerated mesh output file (vtu)
     #[arg(long, short, value_name = "FILE")]
     pub output: String,
 
@@ -50,23 +50,17 @@ pub struct AgglomerateArgs {
     /// Weight of the part of the stiffness taken from the tetrahedra of the element
     #[arg(default_value_t = DEFAULT_STABILIZATION, long, value_name = "WEIGHT")]
     pub stabilization: f64,
-
-    /// Number of threads used to write the output
-    #[arg(long, short = 'j', value_name = "NUM")]
-    pub threads: Option<usize>,
 }
 
 impl AgglomerateArgs {
-    fn threads(&self) -> Result<usize, ErrorWrapper> {
-        match self.threads {
-            Some(0) => Err(ErrorWrapper::from("Threads must be positive")),
-            Some(threads) => Ok(threads),
-            None => Ok(available_parallelism().map_or(1, |threads| threads.get())),
-        }
-    }
     fn validate(&self) -> Result<(), ErrorWrapper> {
         match extension(&self.output) {
-            Some("exo") | Some("vtu") => {}
+            Some("vtu") => {}
+            Some("exo") => {
+                return Err(ErrorWrapper::from(
+                    "Exodus output of an agglomerated mesh is not supported yet, use vtu",
+                ));
+            }
             other => return Err(invalid_output(&self.output, other)),
         }
         if self.reference.is_some_and(|reference| reference <= 0.0) {
@@ -102,7 +96,6 @@ impl AgglomerateArgs {
 
 pub fn agglomerate(args: AgglomerateArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     args.validate()?;
-    let threads = args.threads()?;
     let mesh = read_mesh(&args.input, quiet)?;
     crate::echo!(
         quiet,
@@ -126,16 +119,23 @@ pub fn agglomerate(args: AgglomerateArgs, quiet: bool) -> Result<(), ErrorWrappe
             },
         })
         .map_err(ErrorWrapper::from)?;
+    let mut sizes = vec![0; agglomerated.merged.scores.len()];
+    agglomerated
+        .merged
+        .elements_parts
+        .iter()
+        .for_each(|&part| sizes[part] += 1);
     crate::echo!(
         quiet,
-        "        \x1b[1;92mDone\x1b[0m {:?} [{} polyhedra, {} unresolved]",
+        "        \x1b[1;92mDone\x1b[0m {:?} [{} elements joined into {} polyhedra, {} unresolved]",
         time.elapsed(),
-        agglomerated.time_scales().len(),
+        sizes.iter().filter(|&&size| size > 1).sum::<usize>(),
+        sizes.iter().filter(|&&size| size > 1).count(),
         agglomerated.merged.unresolved.len()
     );
     let mesh = agglomerated
         .merged
         .mesh(&mesh)
         .map_err(ErrorWrapper::from)?;
-    write_mesh_threads(&args.output, mesh, threads, quiet)
+    write_mesh(&args.output, mesh, quiet)
 }
