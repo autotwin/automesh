@@ -11,13 +11,15 @@ use conspire::{
         Coordinate, Coordinates,
         grid::{Gradient, MarchingCubes, Voxels},
         mesh::{
-            Class, Connectivity, Finish, Fitting, Freedom, Marching, Mesh, Placement, Tessellation,
+            Class, Connectivity, ExodusFormat, Finish, Fitting, Freedom, Marching, Mesh,
+            Output as MeshOutput, Placement, Tessellation, Vtk,
         },
         ntree::{
             Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing, SeparationSizing,
         },
         segmentation::Segmentation,
     },
+    io::{Write, write::Compression},
     math::{Tensor, TensorVec},
     units::Length,
 };
@@ -380,6 +382,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         mesh.number_of_nodes()
     );
 
+    write_interior(&mesh, &args.output, quiet)?;
     crate::echo!(
         quiet,
         "   \x1b[1;96mBuffering\x1b[0m hexahedra onto geometry"
@@ -522,6 +525,7 @@ fn tetrahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         mesh.number_of_nodes()
     );
 
+    write_interior(&mesh, &args.output, quiet)?;
     crate::echo!(
         quiet,
         "   \x1b[1;96mBuffering\x1b[0m tetrahedra onto geometry"
@@ -714,6 +718,35 @@ fn marching(voxels: &Voxels<u8>) -> Result<Mesh<3>, ErrorWrapper> {
         connectivities.push(Connectivity::Triangular(faces.into()));
     }
     Ok(Mesh::from((connectivities, coordinates)))
+}
+
+/// Temporary debugging aid: writes the mesh as it stands before buffering to
+/// the output path with `interior_` prepended to the file name. Every format
+/// but stl, which consumes the mesh to write it, is supported.
+fn write_interior(mesh: &Mesh<3>, output: &str, quiet: bool) -> Result<(), ErrorWrapper> {
+    let path = Path::new(output);
+    let name = format!(
+        "interior_{}",
+        path.file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or(output)
+    );
+    let file = path.with_file_name(name).to_string_lossy().into_owned();
+    crate::echo!(quiet, "     \x1b[1;96mWriting\x1b[0m {file}");
+    match extension(&file) {
+        Some("inp") => mesh.write(MeshOutput::Abaqus(&file))?,
+        Some("exo") => mesh.write(MeshOutput::Exodus(ExodusFormat::Netcdf4 {
+            path: &file,
+            threads: std::thread::available_parallelism().map_or(1, |threads| threads.get()),
+        }))?,
+        Some("mesh") => mesh.write(MeshOutput::Medit(&file))?,
+        Some("off") => mesh.write(MeshOutput::Off(&file))?,
+        Some("vtu") => mesh.write(MeshOutput::Vtk(Vtk::UnstructuredGrid(Compression::Off(
+            &file,
+        ))))?,
+        _ => crate::echo!(quiet, "    interior mesh not written (unsupported format)"),
+    }
+    Ok(())
 }
 
 /// Applies per-axis scaling (before translation) to the mesh coordinates.
