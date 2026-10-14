@@ -122,6 +122,7 @@ def main():
                         metavar=("CSV", "LABEL"),
                         help="an `automesh metrics` CSV and its legend label; "
                              "give it one to three times")
+    parser.add_argument("--title", help="a figure title above the legend")
     args = parser.parse_args()
     if len(args.mesh) > len(SERIES):
         parser.error(f"at most {len(SERIES)} meshes")
@@ -134,9 +135,13 @@ def main():
         panel_plot(ax=ax, series=[(label, m[key]) for label, m in meshes],
                    title=title, log_x=(key == "maximum edge ratio"))
 
+    top = 1.0
+    if args.title:
+        fig.suptitle(args.title, color=INK, fontsize=13, y=0.995)
+        top = 0.955
     handles, labels = axes.flat[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", ncol=len(labels),
-               frameon=False, fontsize=9, bbox_to_anchor=(0.5, 1.0))
+               frameon=False, fontsize=9, bbox_to_anchor=(0.5, top))
     fig.tight_layout(rect=[0, 0, 1, 0.93])
     fig.savefig(args.out_svg, facecolor=SURFACE)
     for label, metrics in meshes:

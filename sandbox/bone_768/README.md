@@ -15,3 +15,8 @@ These images test `automesh improve` from draft PR #800 at `6c8890c`, built agai
 
 - `uniform_improve_below06.jpg` shows only the elements below 0.6, colored by reversed YlOrRd on 0.3 to 0.6.  It comes from `low_render.py`, run with ParaView's `pvpython` and the flags `--ylorrd --vmin 0.3`.
 - `uniform_improve_histograms.png` comes from `bone_quality_histograms.py` on the Bone page.
+
+The next three images compare `improve` as shipped against `improve` with the fixes in `msj_fixes.diff`, on the uniform lattice and the adaptive octree, both rebuilt with `--snap`.
+
+- `uniform_fixes_histograms.png` and `octree_improve_histograms.png` come from `bone_quality_histograms.py`, with `--title` naming the mesh.
+- `octree_improve_below06.jpg` comes from `low_render.py`, with the same flags as the uniform render.
