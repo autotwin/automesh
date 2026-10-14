@@ -132,7 +132,7 @@ Subtracting it leaves two things unchanged.
   \item \textbf{The gradient.}
     The derivative of a constant is zero, so $\nabla \mathcal{L}$ is the same.
     L-BFGS picks the same search direction.
-  \item \textbf{Every energy difference.}
+  \item \textbf{Every difference in $\mathcal{L}$.}
     The constant cancels in $\mathcal{L}(\text{new}) - \mathcal{L}(\text{old})$.
     The Armijo condition compares exactly this difference, so it accepts the same step lengths.
 \end{itemize}
@@ -147,6 +147,8 @@ As shipped, the ratchet accepts 2 levels and stops at 0.319.
 With fixes 1 and 2, it accepts 18 levels and reaches 0.470.
 It then stops at $\Theta = 0.48$ after all 20 sweeps of that level.
 That limit is separate from the stall test.
+With 50 sweeps, it reaches 0.480.
+With 200, it reaches 0.490.
 
 \begin{figure}[h]
   \centering
@@ -164,7 +166,7 @@ That limit is separate from the stall test.
     A mesh with ten times the hexes carries about ten times the constant.
     Lowering \texttt{STALL} to $10^{-9}$ moves the octree past 0.32, but a larger mesh would bring the stall back.
     Fix 2 removes the dependence on mesh size.
-  \item \textbf{The energy has a direct meaning.}
+  \item \textbf{$\mathcal{L}$ has a direct meaning.}
     After fix 2, $\mathcal{L} = 0$ exactly when every hex meets $\Theta$.
     The value of $\mathcal{L}$ shows how much work remains.
 \end{itemize}
