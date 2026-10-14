@@ -39,6 +39,7 @@ import matplotlib
 matplotlib.use("svg")
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter
 
 # The first series stays orange, the second blue, and the third green.
 SERIES = [
@@ -76,6 +77,10 @@ def panel_plot(*, ax, series, title, log_x=False):
         lo = max(lo, 1e-3)
         bins = np.logspace(np.log10(lo), np.log10(hi), 41)
         ax.set_xscale("log")
+        ticks = [t for t in (2, 4, 6, 8, 10, 20, 30) if lo <= t <= hi]
+        ax.xaxis.set_major_locator(FixedLocator(ticks))
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda t, _: f"{t:g}"))
+        ax.xaxis.set_minor_formatter(NullFormatter())
     else:
         bins = np.linspace(lo, hi, 41)
     # Unfilled outlines with alpha on the line, so crossing outlines blend.
