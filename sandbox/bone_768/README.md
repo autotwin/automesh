@@ -20,3 +20,5 @@ The next three images compare `improve` as shipped against `improve` with the fi
 
 - `uniform_fixes_histograms.png` and `octree_improve_histograms.png` come from `bone_quality_histograms.py`, with `--title` naming the mesh.
 - `octree_improve_below06.jpg` comes from `low_render.py`, with the same flags as the uniform render.
+
+`fix2_note.tex` and `fix2_note.pdf` explain fix 2 in `msj_fixes.diff`, with numbers from the `msj` debug logs on the snapped octree.  `fix2_note_figures.py` writes its three figures, `fix2_term.pdf`, `fix2_ratio.pdf`, and `fix2_ratchet.pdf`.  `hexopt_psi.py` writes the per-hex term figure in `hexopt_energy_note.pdf`, as `hexopt_psi.pdf` and `hexopt_psi.png`.
