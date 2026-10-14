@@ -2,16 +2,16 @@
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
+\usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 \hypersetup{colorlinks=true, linkcolor=blue!60!black, urlcolor=blue!60!black}
 
-\newcommand{\eb}{\bar{e}}
-\newcommand{\SJ}{\mathit{SJ}}
+\newcommand{\Jh}{\hat{J}}
 \newcommand{\ReHQJ}{\mathit{ReHQJ}}
 
-\title{ReHQJ: the HexOpt Paper and conspire}
+\title{ReHQJ: the HexOpt Paper and \texttt{conspire}}
 \author{autotwin/automesh issue \#768}
 \date{October 14, 2026}
 
@@ -24,44 +24,74 @@ This note compares the HexOpt objective in two sources.
 
 \begin{itemize}[leftmargin=*]\sloppy
   \item \textbf{Paper.} H.~Tong and Y.~J.~Zhang, ``Fast and Robust Hexahedral Mesh Optimization via Augmented Lagrangian, L-BFGS, and Line Search,'' \href{https://arxiv.org/pdf/2410.11656}{arXiv:2410.11656}, Equations~(2.5), (2.6), (2.8), and (2.9).
-  \item \textbf{conspire.} Branch \texttt{msj} at commit \texttt{515c78cee}, draft \href{https://github.com/mrbuche/conspire.rs/pull/251}{mrbuche/conspire.rs\#251}, file \texttt{src/\allowbreak geometry/\allowbreak mesh/\allowbreak quality/\allowbreak improve/\allowbreak msj/\allowbreak mod.rs}, functions \texttt{evaluate} and \texttt{terms}.
+  \item \textbf{\texttt{conspire}.} Branch \texttt{msj} at commit \texttt{515c78cee}, draft \href{https://github.com/mrbuche/conspire.rs/pull/251}{mrbuche/conspire.rs\#251}, file \texttt{src/\allowbreak geometry/\allowbreak mesh/\allowbreak quality/\allowbreak improve/\allowbreak msj/\allowbreak mod.rs}, functions \texttt{evaluate} and \texttt{terms}.
 \end{itemize}
 
-$h$ is one hex element of the mesh $H$, and $\eb$ is its average edge length.
-$\SJ(h)$ is the minimum of the scaled Jacobian over nine points of $h$: its eight corners and its body center (paper, Section~2.1).
-$J(h)$ is the minimum of the Jacobian over the same nine points.
-conspire computes both minimums in \texttt{terms}, each over all nine points.
-$\Theta$ is the threshold.
-Both sources hold $\eb$ fixed when they take the gradient.
+$h$ is one hex element of the mesh $H$, and $\ell(h)$ is its average edge length.
+$J(h)$ is the minimum of the Jacobian $\det(\mathbf{e}_0, \mathbf{e}_1, \mathbf{e}_2)$ over nine points of $h$: its eight corners and its body center (paper, Section~2.1).
+At a corner, $\mathbf{e}_0$, $\mathbf{e}_1$, and $\mathbf{e}_2$ are the three edge vectors that meet there.
+At the center, they join the centers of opposite faces.
+$\Jh(h)$ is the minimum of the scaled Jacobian $\det(\hat{\mathbf{e}}_0, \hat{\mathbf{e}}_1, \hat{\mathbf{e}}_2)$ over the same nine points, where $\hat{\mathbf{e}}_k = \mathbf{e}_k / |\mathbf{e}_k|$.
+The two minimums can occur at different points, so $\Jh(h)$ is in general not $J(h)$ divided by a product of lengths.
+\texttt{conspire} computes both minimums in \texttt{terms}, each over all nine points.
+$\Theta \in [0, 1]$ is the threshold for the minimum scaled Jacobian $\Jh$.
+Both sources hold $\ell$ fixed when they take the gradient.
+
+This note's notation differs from the paper's in four symbols.
+Subscripts $\mathrm{p}$ and $\mathrm{c}$ mark the paper's and \texttt{conspire}'s forms of $\psi$.
+
+\begin{center}
+\small
+\begin{tabular}{lccp{7.2cm}}
+  \toprule
+  quantity & paper & this note & remark \\
+  \midrule
+  per-hex term & $\ReHQJ(h, \Theta)$ & $\psi(h)$ & consistent with $\psi$, the Helmholtz free energy density in continuum mechanics \\
+  scaled Jacobian & $\mathit{SJ}(h)$ & $\Jh(h)$ & shorter, derives from normalization $\hat{(\cdot)}$ \\
+  average edge length & $\bar{e}$ & $\ell$ & $\bar{e}^2$ can be confused with $e^{-2}$ \\
+  augmented Lagrangian & $L$ & $\mathcal{L}$ & conventional symbol for a Lagrangian \\
+  \bottomrule
+\end{tabular}
+\end{center}
 
 \section*{Definitions}
 
-The paper calls the per-hex term $\ReHQJ(h, \Theta)$.
-This note writes it as $\psi(h)$, with subscript $\mathrm{p}$ for the paper and $\mathrm{c}$ for conspire.
 Both sources use the same term for an inverted hex:
-\begin{equation*}
-  \psi_{\mathrm{p}}(h) = \psi_{\mathrm{c}}(h) = J(h) / \eb, \qquad J(h) \le 0.
-\end{equation*}
+\begin{equation}
+  \psi_{\mathrm{p}}(h) = \psi_{\mathrm{c}}(h) = J(h) / \ell, \qquad J(h) \le 0.
+\end{equation}
 For $J(h) > 0$, the paper defines
-\begin{equation*}
+\begin{equation}
   \psi_{\mathrm{p}}(h) =
   \begin{cases}
-    \eb^2 \, \SJ(h), & \SJ(h) \le \Theta, \\
-    \Theta, & \SJ(h) > \Theta,
+    \ell^2 \, \Jh(h), & \Jh(h) \le \Theta, \\
+    \Theta, & \Jh(h) > \Theta,
   \end{cases}
-\end{equation*}
-and conspire implements
-\begin{equation*}
-  \psi_{\mathrm{c}}(h) = \eb^2 \min\bigl(\SJ(h), \Theta\bigr).
-\end{equation*}
-The two differ only above $\Theta$, where $\psi_{\mathrm{p}} = \Theta$ and $\psi_{\mathrm{c}} = \Theta \, \eb^2$.
-$\psi_{\mathrm{c}}$ is one expression: $\eb^2$ times $\SJ$ clamped at $\Theta$.
-$\psi_{\mathrm{p}}$ has no such form unless $\eb = 1$.
+\end{equation}
+and \texttt{conspire} implements
+\begin{equation}
+  \psi_{\mathrm{c}}(h) = \ell^2 \min\bigl(\Jh(h), \Theta\bigr).
+\end{equation}
+The two differ only above $\Theta$, where $\psi_{\mathrm{p}} = \Theta$ and $\psi_{\mathrm{c}} = \Theta \, \ell^2$.
+$\psi_{\mathrm{c}}$ is one expression: $\ell^2$ times $\Jh$ clamped at $\Theta$.
+$\psi_{\mathrm{p}}$ has no such form unless $\ell = 1$.
+Figure~\ref{fig:psi} plots both forms.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.9\textwidth]{hexopt_psi.pdf}
+  \caption{The per-hex term $\psi$, with $\ell = 1.253$, the median on the snapped bone octree, and $\Theta = 0.32$.
+    The braces mark the two domains.
+    For an inverted hex, $J \le 0$, both forms are $J/\ell$, plotted against $J$.
+    For $J > 0$, both forms follow $\ell^2 \hat J$ up to $\Theta$, plotted against $\hat J$.
+    Above $\Theta$, $\psi_{\mathrm{c}}$ stays at $\Theta\,\ell^2 = 0.502$, and $\psi_{\mathrm{p}}$ drops to $\Theta = 0.32$.}
+  \label{fig:psi}
+\end{figure}
 
 \section*{Units}
 
-$J = \det(e_0, e_1, e_2)$, where each edge vector has units of length.
-$\SJ$ and $\Theta$ have no units.
+$J$ has units of length$^3$, since each $\mathbf{e}_k$ has units of length.
+$\Jh$ and $\Theta$ have no units.
 
 \begin{center}
 \begin{tabular}{lcc}
@@ -69,30 +99,32 @@ $\SJ$ and $\Theta$ have no units.
   case & $\psi_{\mathrm{p}}$ & $\psi_{\mathrm{c}}$ \\
   \midrule
   $J \le 0$ & length$^2$ & length$^2$ \\
-  $J > 0$, $\SJ \le \Theta$ & length$^2$ & length$^2$ \\
-  $\SJ > \Theta$ & \textbf{none} & length$^2$ \\
+  $J > 0$, $\Jh \le \Theta$ & length$^2$ & length$^2$ \\
+  $\Jh > \Theta$ & \textbf{none} & length$^2$ \\
   \bottomrule
 \end{tabular}
 \end{center}
 
 \section*{The minimized function}
 
-At each threshold $\Theta$, conspire minimizes
-\begin{equation*}
-  L = -\sum_{h \in H} \psi_{\mathrm{c}}(h) + \sum_{i} \Bigl[ \lambda_i \, r_i + \frac{\rho}{2} \, r_i^2 \Bigr].
-\end{equation*}
+At each threshold $\Theta$, \texttt{conspire} minimizes the augmented Lagrangian
+\begin{equation}
+  \mathcal{L} = -\sum_{h \in H} \psi_{\mathrm{c}}(h) + \sum_{i} \Bigl[ \lambda_i \, r_i + \frac{\rho}{2} \, r_i^2 \Bigr]. \label{eq:L}
+\end{equation}
 \begin{itemize}[leftmargin=*]
   \item The first sum has one term per hex, with $\psi_{\mathrm{c}}$ as defined above.
-  \item The second sum is an augmented Lagrangian that holds the boundary on the target STL.
-    $r_i = n_i \cdot x - d_i$ is the signed distance from a boundary node $x$ to the plane of one STL triangle.
+  \item The second sum holds the boundary on the target STL, with a multiplier term and a quadratic penalty.
+    $r_i = (\mathbf{n}_i \cdot \mathbf{x}) - d_i$ is the signed distance from a boundary node $\mathbf{x}$ to the plane of one STL triangle.
+    $\mathbf{n}_i$ is the triangle's unit normal, and $d_i = \mathbf{n}_i \cdot \mathbf{y}$ for any vertex $\mathbf{y}$ of that triangle.
+    $\lambda_i$ is the Lagrange multiplier for plane $i$, and $\rho$ is the penalty coefficient.
     Each boundary node gets up to four planes: the plane of its closest triangle, plus the planes of nearby triangles whose normals differ from those already kept by more than $30^\circ$.
-  \item After each L-BFGS run, conspire updates each multiplier, $\lambda_i \leftarrow \lambda_i + \rho \, r_i$.
+  \item After each L-BFGS run, \texttt{conspire} updates each multiplier, $\lambda_i \leftarrow \lambda_i + \rho \, r_i$.
     $\rho$ starts at 100 and doubles each time the mesh meets $\Theta$ with the boundary on the STL.
   \item $r_i$ and $\lambda_i$ have units of length, and $\rho$ has none.
     Both constraint terms have units of length$^2$.
 \end{itemize}
 The paper's Equation~(2.8) has the same structure.
-Its constraint is $Z_k - Z^t_k$, the offset from each boundary vertex to its closest point on the target surface.
+Its constraint is $\mathbf{Z}_k - \mathbf{Z}^t_k$, the offset from each boundary vertex to its closest point on the target surface.
 Its Equation~(2.9) updates the multipliers the same way, and it doubles $\rho$ each time the minimum scaled Jacobian reaches $\Theta$.
 The paper's $L$ uses $\psi_{\mathrm{p}}$ in place of $\psi_{\mathrm{c}}$. The next section returns to that difference.
 
@@ -100,29 +132,29 @@ The paper's $L$ uses $\psi_{\mathrm{p}}$ in place of $\psi_{\mathrm{c}}$. The ne
 
 \begin{enumerate}[leftmargin=*]
   \item \textbf{Continuity.}
-    At $\SJ = \Theta$, both forms below $\Theta$ give $\Theta \, \eb^2$.
+    At $\Jh = \Theta$, both forms below $\Theta$ give $\Theta \, \ell^2$.
     Above $\Theta$, $\psi_{\mathrm{c}}$ gives the same value, so it is continuous at $\Theta$.
-    Above $\Theta$, $\psi_{\mathrm{p}}$ gives $\Theta$, so it jumps by $\Theta (\eb^2 - 1)$ unless $\eb = 1$.
+    Above $\Theta$, $\psi_{\mathrm{p}}$ gives $\Theta$, so it jumps by $\Theta (\ell^2 - 1)$ unless $\ell = 1$.
     Neither form is differentiable at $\Theta$.
     The slope drops to zero there in both, by design.
 
   \item \textbf{The sign of the jump.}
-    $L$, above, sums $-\psi$ over all hexes.
-    Under $\psi_{\mathrm{p}}$, a hex that rises above $\Theta$ changes $L$ by $+\Theta (\eb^2 - 1)$.
-    For $\eb > 1$, $L$ rises.
-    The Armijo condition requires $L$ to fall, so the jump counts against every step that lifts such a hex above $\Theta$.
-    For $\eb < 1$, $L$ falls, so the jump rewards the crossing instead.
+    $\mathcal{L}$ in Equation~\eqref{eq:L} sums $-\psi$ over all hexes.
+    Under $\psi_{\mathrm{p}}$, a hex that rises above $\Theta$ changes $\mathcal{L}$ by $+\Theta (\ell^2 - 1)$.
+    For $\ell > 1$, $\mathcal{L}$ rises.
+    The Armijo condition requires $\mathcal{L}$ to fall, so the jump counts against every step that lifts such a hex above $\Theta$.
+    For $\ell < 1$, $\mathcal{L}$ falls, so the jump rewards the crossing instead.
     The sign depends on the length unit of the mesh.
     \begin{itemize}
-      \item On the snapped bone octree in the reference frame, $\eb$ runs from 0.644 to 2.81, with a median of 1.253.
-        The same mesh has hexes on both sides of $\eb = 1$.
-      \item On the scale-5 bone mesh in the STL's own units, $\eb$ runs from 0.009 to 0.034.
+      \item On the snapped bone octree in the reference frame, $\ell$ runs from 0.644 to 2.81, with a median of 1.253.
+        The same mesh has hexes on both sides of $\ell = 1$.
+      \item On the scale-5 bone mesh in the STL's own units, $\ell$ runs from 0.009 to 0.034.
     \end{itemize}
-    Under $\psi_{\mathrm{c}}$, the crossing changes $L$ by zero.
+    Under $\psi_{\mathrm{c}}$, the crossing changes $\mathcal{L}$ by zero.
 
   \item \textbf{Units.}
     $\psi_{\mathrm{c}}$ has units of length$^2$ in every case.
-    conspire's types enforce this: each term is a \texttt{Quantity<Area>}.
+    \texttt{conspire}'s types enforce this: each term is a \texttt{Quantity<Area>}.
 \end{enumerate}
 
 For a hex that stays above $\Theta$ through a step, both forms are constants.
