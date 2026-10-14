@@ -27,7 +27,11 @@ This note compares the per-hex objective of HexOpt in two sources.
   \item \textbf{conspire.} Branch \texttt{msj} at commit \texttt{515c78cee}, draft \href{https://github.com/mrbuche/conspire.rs/pull/251}{mrbuche/conspire.rs\#251}, file \texttt{src/\allowbreak geometry/\allowbreak mesh/\allowbreak quality/\allowbreak improve/\allowbreak msj/\allowbreak mod.rs}, function \texttt{terms}.
 \end{itemize}
 
-$J$ is the Jacobian, $\SJ$ is the scaled Jacobian, $\eb$ is the hex's average edge length, and $\Theta$ is the threshold.
+$h$ is one hex element of the mesh $H$, and $\eb$ is its average edge length.
+$\SJ(h)$ is the minimum of the scaled Jacobian over nine points of $h$: its eight corners and its body center (paper, Section~2.1).
+$J(h)$ is the minimum of the Jacobian over the same nine points.
+conspire computes both minimums in \texttt{terms}, each over all nine points.
+$\Theta$ is the threshold.
 Both sources hold $\eb$ fixed when they take the gradient.
 
 \section*{Definitions}
