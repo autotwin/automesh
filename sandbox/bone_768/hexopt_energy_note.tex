@@ -20,11 +20,11 @@
 
 \section*{Sources}
 
-This note compares the per-hex objective of HexOpt in two sources.
+This note compares the HexOpt objective in two sources.
 
 \begin{itemize}[leftmargin=*]\sloppy
-  \item \textbf{Paper.} H.~Tong and Y.~J.~Zhang, ``Fast and Robust Hexahedral Mesh Optimization via Augmented Lagrangian, L-BFGS, and Line Search,'' \href{https://arxiv.org/pdf/2410.11656}{arXiv:2410.11656}, Equations~(2.5) and (2.6).
-  \item \textbf{conspire.} Branch \texttt{msj} at commit \texttt{515c78cee}, draft \href{https://github.com/mrbuche/conspire.rs/pull/251}{mrbuche/conspire.rs\#251}, file \texttt{src/\allowbreak geometry/\allowbreak mesh/\allowbreak quality/\allowbreak improve/\allowbreak msj/\allowbreak mod.rs}, function \texttt{terms}.
+  \item \textbf{Paper.} H.~Tong and Y.~J.~Zhang, ``Fast and Robust Hexahedral Mesh Optimization via Augmented Lagrangian, L-BFGS, and Line Search,'' \href{https://arxiv.org/pdf/2410.11656}{arXiv:2410.11656}, Equations~(2.5), (2.6), (2.8), and (2.9).
+  \item \textbf{conspire.} Branch \texttt{msj} at commit \texttt{515c78cee}, draft \href{https://github.com/mrbuche/conspire.rs/pull/251}{mrbuche/conspire.rs\#251}, file \texttt{src/\allowbreak geometry/\allowbreak mesh/\allowbreak quality/\allowbreak improve/\allowbreak msj/\allowbreak mod.rs}, functions \texttt{evaluate} and \texttt{terms}.
 \end{itemize}
 
 $h$ is one hex element of the mesh $H$, and $\eb$ is its average edge length.
@@ -36,25 +36,27 @@ Both sources hold $\eb$ fixed when they take the gradient.
 
 \section*{Definitions}
 
-The paper defines
+The paper calls the per-hex term $\ReHQJ(h, \Theta)$.
+This note writes it as $\psi(h)$, with subscript $\mathrm{p}$ for the paper and $\mathrm{c}$ for conspire.
+Both sources use the same term for an inverted hex:
 \begin{equation*}
-  \ReHQJ_{\text{paper}}(h, \Theta) =
+  \psi_{\mathrm{p}}(h) = \psi_{\mathrm{c}}(h) = J(h) / \eb, \qquad J(h) \le 0.
+\end{equation*}
+For $J(h) > 0$, the paper defines
+\begin{equation*}
+  \psi_{\mathrm{p}}(h) =
   \begin{cases}
-    J(h) / \eb, & J(h) \le 0, \\
-    \SJ(h) \, \eb^2, & J(h) > 0,\ \SJ(h) \le \Theta, \\
-    \Theta, & \SJ(h) > \Theta.
+    \eb^2 \, \SJ(h), & \SJ(h) \le \Theta, \\
+    \Theta, & \SJ(h) > \Theta,
   \end{cases}
 \end{equation*}
-conspire implements
+and conspire implements
 \begin{equation*}
-  \ReHQJ_{\text{conspire}}(h, \Theta) =
-  \begin{cases}
-    J(h) / \eb, & J(h) \le 0, \\
-    \SJ(h) \, \eb^2, & J(h) > 0,\ \SJ(h) \le \Theta, \\
-    \Theta \, \eb^2, & \SJ(h) > \Theta.
-  \end{cases}
+  \psi_{\mathrm{c}}(h) = \eb^2 \min\bigl(\SJ(h), \Theta\bigr).
 \end{equation*}
-The two differ only in the third case.
+The two differ only above $\Theta$, where $\psi_{\mathrm{p}} = \Theta$ and $\psi_{\mathrm{c}} = \Theta \, \eb^2$.
+$\psi_{\mathrm{c}}$ is one expression: $\eb^2$ times $\SJ$ clamped at $\Theta$.
+$\psi_{\mathrm{p}}$ has no such form unless $\eb = 1$.
 
 \section*{Units}
 
@@ -64,7 +66,7 @@ $\SJ$ and $\Theta$ have no units.
 \begin{center}
 \begin{tabular}{lcc}
   \toprule
-  case & paper & conspire \\
+  case & $\psi_{\mathrm{p}}$ & $\psi_{\mathrm{c}}$ \\
   \midrule
   $J \le 0$ & length$^2$ & length$^2$ \\
   $J > 0$, $\SJ \le \Theta$ & length$^2$ & length$^2$ \\
@@ -73,23 +75,40 @@ $\SJ$ and $\Theta$ have no units.
 \end{tabular}
 \end{center}
 
+\section*{The minimized function}
+
+At each threshold $\Theta$, conspire minimizes
+\begin{equation*}
+  L = -\sum_{h \in H} \psi_{\mathrm{c}}(h) + \sum_{i} \Bigl[ \lambda_i \, r_i + \frac{\rho}{2} \, r_i^2 \Bigr].
+\end{equation*}
+\begin{itemize}[leftmargin=*]
+  \item The first sum has one term per hex, with $\psi_{\mathrm{c}}$ as defined above.
+  \item The second sum is an augmented Lagrangian that holds the boundary on the target STL.
+    $r_i = n_i \cdot x - d_i$ is the signed distance from a boundary node $x$ to the plane of one STL triangle.
+    Each boundary node gets up to four planes: the plane of its closest triangle, plus the planes of nearby triangles whose normals differ from those already kept by more than $30^\circ$.
+  \item After each L-BFGS run, conspire updates each multiplier, $\lambda_i \leftarrow \lambda_i + \rho \, r_i$.
+    $\rho$ starts at 100 and doubles each time the mesh meets $\Theta$ with the boundary on the STL.
+  \item $r_i$ and $\lambda_i$ have units of length, and $\rho$ has none.
+    Both constraint terms have units of length$^2$.
+\end{itemize}
+The paper's Equation~(2.8) has the same structure.
+Its constraint is $Z_k - Z^t_k$, the offset from each boundary vertex to its closest point on the target surface.
+Its Equation~(2.9) updates the multipliers the same way, and it doubles $\rho$ each time the minimum scaled Jacobian reaches $\Theta$.
+The paper's $L$ uses $\psi_{\mathrm{p}}$ in place of $\psi_{\mathrm{c}}$. The next section returns to that difference.
+
 \section*{Behavior at the threshold}
 
 \begin{enumerate}[leftmargin=*]
   \item \textbf{Continuity.}
-    At $\SJ = \Theta$, the second case gives $\Theta \, \eb^2$.
-    The conspire form gives the same value, so the objective is continuous at $\Theta$.
-    The paper's form gives $\Theta$, so the objective jumps by $\Theta (\eb^2 - 1)$ unless $\eb = 1$.
+    At $\SJ = \Theta$, both forms below $\Theta$ give $\Theta \, \eb^2$.
+    Above $\Theta$, $\psi_{\mathrm{c}}$ gives the same value, so it is continuous at $\Theta$.
+    Above $\Theta$, $\psi_{\mathrm{p}}$ gives $\Theta$, so it jumps by $\Theta (\eb^2 - 1)$ unless $\eb = 1$.
     Neither form is differentiable at $\Theta$.
     The slope drops to zero there in both, by design.
 
   \item \textbf{The sign of the jump.}
-    The minimized function is
-    \begin{equation*}
-      L = -\sum_{h} \ReHQJ(h, \Theta) + \cdots,
-    \end{equation*}
-    as in Equation~(2.8).
-    Under the paper's form, a hex that rises above $\Theta$ changes $L$ by $+\Theta (\eb^2 - 1)$.
+    $L$, above, sums $-\psi$ over all hexes.
+    Under $\psi_{\mathrm{p}}$, a hex that rises above $\Theta$ changes $L$ by $+\Theta (\eb^2 - 1)$.
     For $\eb > 1$, $L$ rises.
     The Armijo condition requires $L$ to fall, so the jump counts against every step that lifts such a hex above $\Theta$.
     For $\eb < 1$, $L$ falls, so the jump rewards the crossing instead.
@@ -99,10 +118,10 @@ $\SJ$ and $\Theta$ have no units.
         The same mesh has hexes on both sides of $\eb = 1$.
       \item On the scale-5 bone mesh in the STL's own units, $\eb$ runs from 0.009 to 0.034.
     \end{itemize}
-    Under the conspire form, the crossing changes $L$ by zero.
+    Under $\psi_{\mathrm{c}}$, the crossing changes $L$ by zero.
 
   \item \textbf{Units.}
-    Under the conspire form, all three cases have units of length$^2$.
+    $\psi_{\mathrm{c}}$ has units of length$^2$ in every case.
     conspire's types enforce this: each term is a \texttt{Quantity<Area>}.
 \end{enumerate}
 
