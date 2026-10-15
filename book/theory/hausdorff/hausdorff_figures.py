@@ -239,22 +239,77 @@ def section(triangles):
     ]
 
 
-def draw_3d(ax, c, title):
-    a_edges = [c["nodes"][q + [q[0]]] for q in c["quads"]]
+ELEVATION = 20
+AZIMUTH = -60
+EYE = np.array(
+    [
+        np.cos(np.radians(ELEVATION)) * np.cos(np.radians(AZIMUTH)),
+        np.cos(np.radians(ELEVATION)) * np.sin(np.radians(AZIMUTH)),
+        np.sin(np.radians(ELEVATION)),
+    ]
+)
+
+
+def front(face):
+    """True when the outward (Newell) normal of a planar or warped polygon faces the viewer."""
+    normal = np.zeros(3)
+    for p, q in zip(face, np.roll(face, -1, axis=0)):
+        normal += np.cross(p, q)
+    return normal @ EYE > 0
+
+
+def key(point):
+    return tuple(np.round(point, 9))
+
+
+def edge_visibility(faces):
+    """Splits polygon edges into visible and hidden, by the faces that share them."""
+    edges = {}
+    for face in faces:
+        facing = front(face)
+        for p, q in zip(face, np.roll(face, -1, axis=0)):
+            k = tuple(sorted((key(p), key(q))))
+            edges.setdefault(k, [p, q, False])
+            edges[k][2] |= facing
+    visible = [[p, q] for p, q, seen in edges.values() if seen]
+    hidden = [[p, q] for p, q, seen in edges.values() if not seen]
+    return visible, hidden, set(edges)
+
+
+def lines(ax, segments, **style):
+    if segments:
+        ax.add_collection3d(Line3DCollection(segments, **style))
+
+
+def draw_surface(ax, outlines, triangles, samples, color, marker, title):
+    """Draws a closed surface with hidden lines dashed and light.
+
+    Outlines are the element faces (quadrilaterals or triangles).  Triangle
+    edges that are not outline edges are the quadrilateral splits, drawn thin.
+    """
+    visible, hidden, outline_keys = edge_visibility(outlines)
+    split_visible, split_hidden, _ = edge_visibility(triangles)
+    split_visible = [e for e in split_visible if tuple(sorted(map(key, e))) not in outline_keys]
+    split_hidden = [e for e in split_hidden if tuple(sorted(map(key, e))) not in outline_keys]
+    dashed = (0, (3, 2))
+    lines(ax, hidden, colors=color, linewidths=0.6, alpha=0.4, linestyles=dashed)
+    lines(ax, split_hidden, colors=color, linewidths=0.4, alpha=0.25, linestyles=dashed)
     ax.add_collection3d(
         Poly3DCollection(
-            c["a_triangles"], facecolor=MESH, alpha=0.12, edgecolor="none"
+            [t for t in triangles if front(t)], facecolor=color, alpha=0.12, edgecolor="none"
         )
     )
-    split = [np.vstack([t, t[:1]]) for t in c["a_triangles"]]
-    ax.add_collection3d(Line3DCollection(split, colors=MESH, linewidths=0.4, alpha=0.6))
-    ax.add_collection3d(Line3DCollection(a_edges, colors=MESH, linewidths=1.2))
-    ax.scatter(*c["a_samples"].T, color=MESH, s=10, depthshade=False)
+    lines(ax, split_visible, colors=color, linewidths=0.5, alpha=0.7)
+    lines(ax, visible, colors=color, linewidths=1.2)
+    shown = {key(p) for face in outlines if front(face) for p in face}
+    seen = np.array([key(p) in shown for p in samples])
+    ax.scatter(*samples[~seen].T, color=color, s=8, marker=marker, alpha=0.35, depthshade=False)
+    ax.scatter(*samples[seen].T, color=color, s=10, marker=marker, depthshade=False)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
     ax.set_zlim(0, 1.3)
     ax.set_box_aspect((1, 1, 1.3))
-    ax.view_init(elev=20, azim=-60)
+    ax.view_init(elev=ELEVATION, azim=AZIMUTH)
     ax.set_axis_off()
     ax.set_title(title, fontsize=10, color=INK, y=0.98)
 
@@ -317,8 +372,24 @@ def main():
         (spike_m, "mesh spike", (1.0, f"{spike_m['continuous_b_to_a']:.3f} to A, not sampled")),
     ]
     for row, (c, label, missed) in enumerate(rows):
-        draw_3d(figure.add_subplot(2, 3, 3 * row + 1, projection="3d"), c, f"{label}: mesh A")
-        draw_3d_b(figure.add_subplot(2, 3, 3 * row + 2, projection="3d"), c, f"{label}: tessellation B")
+        draw_surface(
+            figure.add_subplot(2, 3, 3 * row + 1, projection="3d", computed_zorder=False),
+            [c["nodes"][q] for q in c["quads"]],
+            c["a_triangles"],
+            c["a_samples"],
+            MESH,
+            "o",
+            f"{label}: mesh A",
+        )
+        draw_surface(
+            figure.add_subplot(2, 3, 3 * row + 2, projection="3d", computed_zorder=False),
+            c["b_triangles"],
+            c["b_triangles"],
+            c["b_samples"],
+            TESSELLATION,
+            "s",
+            f"{label}: tessellation B",
+        )
         draw_section(figure.add_subplot(2, 3, 3 * row + 3), c, missed)
     handles = [
         plt.Line2D([], [], color=MESH, linewidth=2, marker="o", markersize=5, label="mesh A, boundary nodes"),
@@ -328,24 +399,6 @@ def main():
     figure.legend(handles=handles, loc="lower center", ncol=3, frameon=False, fontsize=9)
     figure.tight_layout(rect=(0, 0.05, 1, 1), h_pad=2.5)
     figure.savefig(HERE / "hausdorff_cases.png", dpi=150)
-
-
-def draw_3d_b(ax, c, title):
-    b_edges = [np.vstack([t, t[:1]]) for t in c["b_triangles"]]
-    ax.add_collection3d(
-        Poly3DCollection(
-            c["b_triangles"], facecolor=TESSELLATION, alpha=0.12, edgecolor="none"
-        )
-    )
-    ax.add_collection3d(Line3DCollection(b_edges, colors=TESSELLATION, linewidths=1.0))
-    ax.scatter(*c["b_samples"].T, color=TESSELLATION, s=10, marker="s", depthshade=False)
-    ax.set_xlim(0, 1)
-    ax.set_ylim(0, 1)
-    ax.set_zlim(0, 1.3)
-    ax.set_box_aspect((1, 1, 1.3))
-    ax.view_init(elev=20, azim=-60)
-    ax.set_axis_off()
-    ax.set_title(title, fontsize=10, color=INK, y=0.98)
 
 
 if __name__ == "__main__":

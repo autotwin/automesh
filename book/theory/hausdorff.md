@@ -101,6 +101,7 @@ The two spike cases.
 Mesh $\mathcal{A}$ is blue, with its boundary nodes as dots.
 Thin blue lines split each boundary quadrilateral into the two triangles described under [Surface Triangulation](#surface-triangulation).
 Tessellation $\mathcal{B}$ is orange, with its vertices as squares.
+Light dashed lines and faded markers lie on the far side of a surface, hidden from this view.
 The right column cuts both surfaces with the diagonal plane $x = y$.
 That plane passes through the moved point, two cube edges, and every sample that lies on the diagonal.
 The hollow circle marks the point that lies farthest from the other surface without being a sample.
