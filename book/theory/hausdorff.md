@@ -3,6 +3,12 @@
 The Hausdorff distance measures the worst-case gap between two surfaces.
 It is the largest distance from any point on one surface to the nearest point on the other.
 [`automesh hausdorff`](../cli/hausdorff.md) uses it to compare the surface of a finite element mesh with the tessellation (STL) it came from.
+The [Hausdorff](../cli/hausdorff.md) page of the CLI Reference covers the command's options, output files, and console summary.
+
+```sh
+automesh hausdorff --help
+<!-- cmdrun automesh hausdorff --help -->
+```
 
 Consider two closed and bounded continuous surfaces, $\mathcal{A}$ on the subject body and $\mathcal{B}$.
 Their discrete counterparts are the boundary $\partial \Omega_h$ of the mesh $\Omega_h$ and the tessellation surface $\Gamma_h$.
