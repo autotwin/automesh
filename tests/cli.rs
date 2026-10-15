@@ -991,3 +991,119 @@ fn mesh_stl_rejects_segmentation_flags() {
         assert_stl_rejects(element, &["-x", "3"]);
     }
 }
+
+const SPIKE: f64 = 0.3;
+const TOLERANCE: f64 = 1e-12;
+
+fn signed_distances(path: &Path) -> Vec<f64> {
+    std::fs::read_to_string(path)
+        .expect("distance file was not created")
+        .lines()
+        .skip(1)
+        .map(|row| row.rsplit(',').next().unwrap().trim().parse().unwrap())
+        .collect()
+}
+
+fn extreme(distances: &[f64]) -> f64 {
+    distances.iter().copied().fold(
+        0.0,
+        |extreme, s| if s.abs() > extreme.abs() { s } else { extreme },
+    )
+}
+
+fn assert_hausdorff(mesh: &str, tessellation: &str, a_to_b: f64, b_to_a: f64) {
+    let output = out("csv");
+    run(&[
+        "hausdorff",
+        "-a",
+        input(mesh).to_str().unwrap(),
+        "-b",
+        input(tessellation).to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    let prefix = output.with_extension("");
+    let prefix = prefix.to_str().unwrap();
+    let found = extreme(&signed_distances(Path::new(&format!(
+        "{prefix}_A_to_B.csv"
+    ))));
+    assert!(
+        (found - a_to_b).abs() < TOLERANCE,
+        "A to B: {found} != {a_to_b}"
+    );
+    let found = extreme(&signed_distances(Path::new(&format!(
+        "{prefix}_B_to_A.csv"
+    ))));
+    assert!(
+        (found - b_to_a).abs() < TOLERANCE,
+        "B to A: {found} != {b_to_a}"
+    );
+}
+
+#[test]
+#[ignore = "automesh hausdorff lands with #761"]
+fn hausdorff_tessellation_spike() {
+    assert_hausdorff(
+        "hausdorff_cube_hex1.inp",
+        "hausdorff_cube_spike.stl",
+        0.0,
+        SPIKE,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet6.inp",
+        "hausdorff_cube_spike.stl",
+        0.0,
+        SPIKE,
+    );
+}
+
+#[test]
+#[ignore = "automesh hausdorff lands with #761"]
+fn hausdorff_tessellation_dimple() {
+    assert_hausdorff(
+        "hausdorff_cube_hex1.inp",
+        "hausdorff_cube_dimple.stl",
+        0.0,
+        -SPIKE,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet6.inp",
+        "hausdorff_cube_dimple.stl",
+        0.0,
+        -SPIKE,
+    );
+}
+
+#[test]
+#[ignore = "automesh hausdorff lands with #761"]
+fn hausdorff_mesh_spike() {
+    assert_hausdorff(
+        "hausdorff_cube_hex8_spike.inp",
+        "hausdorff_cube.stl",
+        SPIKE,
+        0.0,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet48_spike.inp",
+        "hausdorff_cube.stl",
+        SPIKE,
+        0.0,
+    );
+}
+
+#[test]
+#[ignore = "automesh hausdorff lands with #761"]
+fn hausdorff_mesh_dimple() {
+    assert_hausdorff(
+        "hausdorff_cube_hex8_dimple.inp",
+        "hausdorff_cube.stl",
+        -SPIKE,
+        0.0,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet48_dimple.inp",
+        "hausdorff_cube.stl",
+        -SPIKE,
+        0.0,
+    );
+}
