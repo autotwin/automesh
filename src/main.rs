@@ -9,6 +9,7 @@ mod defeature;
 mod diff;
 mod error;
 mod extract;
+mod hausdorff;
 mod io;
 mod log;
 mod mesh;
@@ -23,6 +24,7 @@ use defeature::defeature;
 use diff::diff;
 use error::ErrorWrapper;
 use extract::extract;
+use hausdorff::{HausdorffArgs, hausdorff};
 use mesh::{Element, MeshSubcommand};
 use metrics::{MetricsArgs, metrics};
 use partition::{PartitionArgs, partition};
@@ -184,6 +186,24 @@ enum Commands {
         zmax: usize,
     },
 
+    /// Signed distances between a mesh surface and a tessellation surface
+    ///
+    /// Measures the Hausdorff distance between the surface of a hexahedral or
+    /// tetrahedral mesh (A) and a tessellation (B). Writes one file per
+    /// direction: PREFIX_A_to_B.csv, from each boundary node of the mesh to the
+    /// tessellation, and PREFIX_B_to_A.csv, from each vertex of the
+    /// tessellation to the mesh. A positive signed distance lies outside the
+    /// other surface. A negative one lies inside.
+    ///
+    /// Each surface must be closed, consistently wound, and outward. The
+    /// command rejects either input otherwise.
+    ///
+    /// The tessellation must be in the same frame as the mesh. The scale and
+    /// translate options of `automesh mesh` transform the output mesh only. A
+    /// mesh made with them must be compared with an STL transformed the same
+    /// way.
+    Hausdorff(HausdorffArgs),
+
     /// Creates a finite element mesh from a segmentation
     Mesh {
         #[command(subcommand)]
@@ -282,6 +302,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MeshSubcommand::Tet(args) => mesh::mesh(Element::Tetrahedra, args, quiet),
             MeshSubcommand::Tri(args) => mesh::mesh(Element::Triangles, args, quiet),
         },
+        Some(Commands::Hausdorff(args)) => hausdorff(args, quiet),
         Some(Commands::Metrics(args)) => metrics(args, quiet),
         Some(Commands::Partition(args)) => partition(args, quiet),
         Some(Commands::Remesh {
