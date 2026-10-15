@@ -182,9 +182,27 @@ The Hausdorff distance itself is unsigned, so $h_h$ uses $\lvert s \rvert$.
 It ignores the facet normals stored in the STL file, because some writers leave them zero or wrong.
 
 **Known limit.**
-Near a sharp convex edge or vertex, the normal of one triangle can give the wrong sign.
+When $\boldsymbol{p}$ lies on an edge or a vertex, more than one triangle contains it, and their normals can disagree.
+Near a sharp convex edge or vertex, the normal of one triangle can then give the wrong sign.
 Angle-weighted pseudonormals would remove this error.
 `conspire` does not provide them today.
+
+<figure>
+
+![hausdorff_sign.png](hausdorff/hausdorff_sign.png)
+
+<figcaption>
+
+Sign convention, in cross-section.
+Left: each sample $\boldsymbol{x}$ (blue) has its closest point $\boldsymbol{p}$ (hollow) inside a face.
+The sign of $(\boldsymbol{x} - \boldsymbol{p}) \cdot \boldsymbol{n}$ gives $s = +d$ above the face and $s = -d$ below it.
+Right: a tip with a 40° interior angle.
+The sample lies outside, and its closest point is the tip, which both faces contain.
+The normal $\boldsymbol{n}_2$ gives the right sign, but $\boldsymbol{n}_1$ gives the wrong one, so the result depends on which face the search returns.
+The angle-weighted pseudonormal (dashed) averages the two normals and gives the right sign.
+
+</figcaption>
+</figure>
 
 <!-- TODO: update after the 2026-10-15 discussion of questions Q2 and Q3 with @mrbuche (automesh#761). -->
 
@@ -224,6 +242,24 @@ The sign convention needs a well-defined inside and outside for each surface.
 * **Consistently wound.** The two triangles that share an edge must traverse it in opposite directions.
 * **Outward.** The surface must enclose a positive volume. A negative volume means every normal points inward, so the surface is inside out.
 
+<figure>
+
+![hausdorff_surface_checks.png](hausdorff/hausdorff_surface_checks.png)
+
+<figcaption>
+
+The surface checks.
+The first four panels show two triangles that share an edge, seen face on.
+Arrows inside each triangle follow its node order.
+A dotted circle marks a normal out of the page, and a crossed circle marks a normal into the page.
+The last panel shows a closed surface in cross-section.
+Red marks the part that fails.
+The hole in the second panel is drawn wide for clarity.
+In an STL, the two copies of a vertex can differ only in the last bit.
+
+</figcaption>
+</figure>
+
 A surface that fails any check stops the command with an error.
 Fix the input upstream, then rerun.
 
@@ -245,6 +281,23 @@ An inverted element on the boundary falls into one of three cases.
 | Mirrored boundary elements | some elements listed in left-handed order | wound inconsistently along each edge where a mirrored face meets a normal one | rejects the mesh: it fails the consistently wound check |
 | Tangled boundary elements | smoothing that folds an element, so $\hat{J}_{\min} < 0$ at some corners | consistently wound and outward, but folded | accepts the mesh, writes both files, and reports the number of boundary elements with $\hat{J}_{\min} < 0$ |
 
+<figure>
+
+![hausdorff_inverted.png](hausdorff/hausdorff_inverted.png)
+
+<figcaption>
+
+The inverted element cases, drawn with a 2 × 2 patch of quadrilaterals as the 2D analogue of hexahedra.
+Black arrows inside each element follow its node order.
+Each boundary edge carries the normal that its element's node order implies.
+A blue normal points out, and a red normal points in.
+Red fill marks a mirrored element, which lists its nodes in left-handed (clockwise) order.
+In the last panel, the top-right corner node has moved from $(1, 1)$ to $(0.65, 0.65)$.
+The node order is still right-handed, but the scaled Jacobian at that corner is $-0.69$.
+
+</figcaption>
+</figure>
+
 `automesh` does not flip a mirrored mesh to repair it.
 A mirrored mesh points to a bug upstream, such as in the writer that produced it, and a silent flip would hide that bug.
 
@@ -257,4 +310,37 @@ Rejecting a tangled mesh would block this diagnostic exactly when you need it, s
 
 The tessellation and the mesh must use the same frame of reference.
 `automesh hausdorff` does not check this.
-See [Frame of Reference](../cli/hausdorff.md#frame-of-reference).
+The transform options of `automesh mesh`, such as `--xscale` and `--xtranslate`, move the output mesh but leave the input STL where it was.
+A mesh made with them no longer shares a frame with its own input.
+
+<figure>
+
+![hausdorff_frame.png](hausdorff/hausdorff_frame.png)
+
+<figcaption>
+
+A mesh made with `--xscale 2 --xtranslate 1` (blue, 16 boundary nodes), compared with a tessellation of the unit circle (orange, dashed, 64 segments).
+Left: the tessellation as read.
+The frames differ, and $H = 2.000$ measures the transform, not the mesh.
+Right: the same tessellation with the same transform applied.
+$H = 0.036$ now measures the faceting of the 16-node mesh.
+The file name on the right follows the rule proposed in [#802](https://github.com/autotwin/automesh/issues/802).
+
+</figcaption>
+</figure>
+
+Today you must transform the tessellation yourself before you compare.
+See [Frame of Reference](../cli/hausdorff.md#frame-of-reference) on the CLI page.
+Two open issues change this workflow:
+
+* [#802](https://github.com/autotwin/automesh/issues/802) has `automesh mesh` write the transformed tessellation next to its output whenever an STL input meets non-default transform options. The file name records the transform, for example `bone_scale_0.001_0.001_0.001_translate_0_0_-12.5.stl`. You then pass that file to `--tessellation` directly.
+* [#801](https://github.com/autotwin/automesh/issues/801) lets `--tessellation` read `off`, `exo`, `inp`, `mesh`, and `vtu` as well as `stl`. A tessellation that you transform in another tool can then come back in any of those formats. The indexed formats also store each shared vertex once, so they cannot fail the closed check from round-off, as described under [Surface Checks](#surface-checks).
+
+<details>
+<summary><code>hausdorff_diagrams.py</code></summary>
+
+```python
+<!-- cmdrun cat hausdorff/hausdorff_diagrams.py -->
+```
+
+</details>
