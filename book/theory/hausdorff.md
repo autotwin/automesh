@@ -149,7 +149,7 @@ automesh hausdorff --mesh cube_hex8_dimple.inp --tessellation cube.stl --output 
 The mesh-to-tessellation file has one row per boundary node, 26 of the grid's 27 nodes.
 The `node` column numbers the rows from 1 to 26.
 The `reference node` column holds each node's label in `cube_hex8_dimple.inp`.
-Node 14 sits at $(0.5, 0.5, 0.5)$, the center of the cube, where all eight hexahedra meet.
+Node 14 of `cube_hex8_dimple.inp` sits at $(0.5, 0.5, 0.5)$, the center of the cube, where all eight hexahedra meet.
 It lies on no exterior face, so it is not a boundary node and has no row.
 The two columns therefore agree through row 13.
 From row 14 on, `reference node` runs one ahead of `node`.
