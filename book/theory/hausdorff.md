@@ -281,6 +281,22 @@ The split runs along the shorter diagonal:
 * If $\lVert \boldsymbol{x}_{n_1} - \boldsymbol{x}_{n_3} \rVert < \lVert \boldsymbol{x}_{n_0} - \boldsymbol{x}_{n_2} \rVert$, the triangles are $[n_0, n_1, n_3]$ and $[n_1, n_2, n_3]$.
 * Otherwise, the triangles are $[n_0, n_1, n_2]$ and $[n_0, n_2, n_3]$.
 
+<figure>
+
+![hausdorff_split.png](hausdorff/hausdorff_split.png)
+
+<figcaption>
+
+The shorter-diagonal split, with one panel for each case of the rule.
+Each quadrilateral $[n_0, n_1, n_2, n_3]$ shows its chosen diagonal solid and the other diagonal dashed.
+The two shades mark the two triangles, each labeled with its node list.
+Left: $n_1$–$n_3$ is shorter, 1.70 against 2.73.
+Center: $n_0$–$n_2$ is shorter, 2.08 against 2.66.
+Right: an isosceles trapezoid has two diagonals of exactly equal length, 1.84 each, so the rule picks $n_0$–$n_2$.
+
+</figcaption>
+</figure>
+
 Both triangles keep the winding of the quadrilateral, so their normals point outward.
 
 The rule picks the shorter diagonal for two reasons.
