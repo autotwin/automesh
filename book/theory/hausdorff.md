@@ -385,6 +385,7 @@ A mesh made with them no longer shares a frame with its own input.
 A mesh made with `--xscale 2 --xtranslate 1` (blue, 16 boundary nodes), compared with a tessellation of the unit circle (orange, dashed, 64 segments).
 Left: the tessellation as read.
 The frames differ, and $H = 2.000$ measures the transform, not the mesh.
+The arrow marks that largest gap, from the circle at $x = 1$ to the tip of the mesh at $x = 3$.
 Right: the same tessellation with the same transform applied.
 $H = 0.036$ now measures the faceting of the 16-node mesh.
 The file name on the right records the transform: the scale $(2, 1, 1)$, then the translation $(1, 0, 0)$.

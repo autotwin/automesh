@@ -298,6 +298,9 @@ def frame_figure():
         note(ax, (1.0, -1.15), label, TESSELLATION, ha="center", va="top")
         ax.set_xlim(-1.3, 3.3)
         ax.set_ylim(-1.75, 1.5)
+        if surface is raw:
+            arrow(ax, (1.0, 0.0), (3.0, 0.0), INK, width=1.0, style="<|-|>")
+            note(ax, (2.0, 0.08), r"$H = 2$", INK, ha="center", va="bottom", fontsize=9)
         ax.set_aspect("equal")
         ax.set_title(title, fontsize=10, color=INK)
         ax.set_xticks(range(-1, 4))
