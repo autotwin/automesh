@@ -3,7 +3,7 @@
 The Hausdorff distance measures the worst-case gap between two surfaces.
 It is the largest distance from any point on one surface to the nearest point on the other.
 [`automesh hausdorff`](../cli/hausdorff.md) uses it to compare the surface of a finite element mesh with the tessellation (STL) it came from.
-The [Hausdorff](../cli/hausdorff.md) page of the CLI Reference covers the command's options, output files, and console summary.
+The [Hausdorff](../cli/hausdorff.md) page of the CLI Reference covers the command's options and output files.
 
 Consider two closed and bounded continuous surfaces, $\mathcal{A}$ on the subject body and $\mathcal{B}$.
 Their discrete counterparts are the boundary $\partial \Omega_h$ of the mesh $\Omega_h$ and the tessellation surface $\Gamma_h$.
@@ -393,7 +393,6 @@ The file name on the right follows the rule proposed in [#802](https://github.co
 </figure>
 
 Today you must transform the tessellation yourself before you compare.
-See [Frame of Reference](../cli/hausdorff.md#frame-of-reference) on the CLI page.
 Two open issues change this workflow:
 
 * [#802](https://github.com/autotwin/automesh/issues/802) has `automesh mesh` write the transformed tessellation next to its output whenever an STL input meets non-default transform options. The file name records the transform, for example `bone_scale_0.001_0.001_0.001_translate_0_0_-12.5.stl`. You then pass that file to `--tessellation` directly.
