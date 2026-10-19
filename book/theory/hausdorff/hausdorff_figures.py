@@ -326,7 +326,7 @@ def draw_section(ax, c, missed):
     b = c["b_samples"][on(c["b_samples"])]
     ax.scatter(np.hypot(a[:, 0], a[:, 1]), a[:, 2], color=MESH, s=24, zorder=3)
     ax.scatter(
-        np.hypot(b[:, 0], b[:, 1]), b[:, 2], color=TESSELLATION, s=24, marker="s", zorder=3
+        np.hypot(b[:, 0], b[:, 1]), b[:, 2], color=TESSELLATION, s=24, marker="D", zorder=3
     )
     r = np.sqrt(0.5)
     ax.annotate(
@@ -387,13 +387,13 @@ def main():
             c["b_triangles"],
             c["b_samples"],
             TESSELLATION,
-            "s",
+            "D",
             f"{label}: tessellation B",
         )
         draw_section(figure.add_subplot(2, 3, 3 * row + 3), c, missed)
     handles = [
         plt.Line2D([], [], color=MESH, linewidth=2, marker="o", markersize=5, label="mesh A, boundary nodes"),
-        plt.Line2D([], [], color=TESSELLATION, linewidth=2, linestyle="--", marker="s", markersize=5, label="tessellation B, vertices"),
+        plt.Line2D([], [], color=TESSELLATION, linewidth=2, linestyle="--", marker="D", markersize=5, label="tessellation B, vertices"),
         plt.Line2D([], [], color=INK, linestyle="none", marker="o", markerfacecolor="white", markersize=6, label="worst point, not a sample"),
     ]
     figure.legend(handles=handles, loc="lower center", ncol=3, frameon=False, fontsize=9)
