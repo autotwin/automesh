@@ -46,6 +46,27 @@ $$
 
 $H$ is symmetric, so $H(\mathcal{A}, \mathcal{B}) = H(\mathcal{B}, \mathcal{A})$.
 
+Two examples in 2D show the two directed distances.
+Each pairs a unit circle with a circle of radius 1.1 that bulges out to 1.5 at the top.
+
+<figure>
+
+![hausdorff_circles.png](hausdorff/hausdorff_circles.png)
+
+<figcaption>
+
+The two directed distances, for circles in 2D.
+Mesh $\mathcal{A}$ is blue, and tessellation $\mathcal{B}$ is orange.
+Left: $\mathcal{B}$ has the bulge, and $\mathcal{A}$ is the unit circle inside it.
+The tip of the bulge lies 0.50 from $\mathcal{A}$, so $h(\mathcal{B} \rightarrow \mathcal{A}) = 0.50$.
+The top of $\mathcal{A}$ lies 0.35 from the side of the bulge, so $h(\mathcal{A} \rightarrow \mathcal{B}) = 0.35$.
+Everywhere else, the two circles are 0.10 apart.
+Right: the roles swap, so $\mathcal{A}$ has the bulge and $\mathcal{B}$ is the unit circle.
+In both examples, $H = 0.50$, the larger of the two directed distances.
+
+</figcaption>
+</figure>
+
 ## Discrete Setting
 
 `automesh` evaluates $d(\boldsymbol{a}, \mathcal{B})$ exactly, but only at a finite set of sample points.
