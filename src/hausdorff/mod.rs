@@ -69,7 +69,25 @@ pub fn hausdorff(args: HausdorffArgs, quiet: bool) -> Result<(), ErrorWrapper> {
             }),
         quiet,
     )?;
-    summarize("A to B", &distances, quiet);
+    let a_to_b = summarize("A to B", &distances, quiet);
+    let samples = tessellation.points();
+    let distances = boundary.surface.signed_distances(samples);
+    write_rows(
+        &suffixed(&prefix, "_B_to_A.csv"),
+        "vertex,x,y,z,signed distance",
+        samples
+            .iter()
+            .zip(distances.iter())
+            .enumerate()
+            .map(|(row, ([x, y, z], s))| format!("{},{x},{y},{z},{s}", row + 1)),
+        quiet,
+    )?;
+    let b_to_a = summarize("B to A", &distances, quiet);
+    crate::echo!(
+        quiet,
+        "   \x1b[1;96mHausdorff\x1b[0m H_h = {:e}",
+        a_to_b.max(b_to_a)
+    );
     Ok(())
 }
 

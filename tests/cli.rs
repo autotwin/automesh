@@ -1041,7 +1041,6 @@ fn assert_hausdorff(mesh: &str, tessellation: &str, a_to_b: f64, b_to_a: f64) {
 }
 
 #[test]
-#[ignore = "automesh hausdorff lands with #761"]
 fn hausdorff_tessellation_spike() {
     assert_hausdorff(
         "hausdorff_cube_hex1.inp",
@@ -1058,7 +1057,6 @@ fn hausdorff_tessellation_spike() {
 }
 
 #[test]
-#[ignore = "automesh hausdorff lands with #761"]
 fn hausdorff_tessellation_dimple() {
     assert_hausdorff(
         "hausdorff_cube_hex1.inp",
@@ -1075,7 +1073,6 @@ fn hausdorff_tessellation_dimple() {
 }
 
 #[test]
-#[ignore = "automesh hausdorff lands with #761"]
 fn hausdorff_mesh_spike() {
     assert_hausdorff(
         "hausdorff_cube_hex8_spike.inp",
@@ -1092,7 +1089,6 @@ fn hausdorff_mesh_spike() {
 }
 
 #[test]
-#[ignore = "automesh hausdorff lands with #761"]
 fn hausdorff_mesh_dimple() {
     assert_hausdorff(
         "hausdorff_cube_hex8_dimple.inp",
