@@ -9,6 +9,8 @@ automesh hausdorff --help
 <!-- cmdrun automesh hausdorff --help -->
 ```
 
+`--mesh` must hold only hexahedra or only tetrahedra, and `--tessellation` must hold triangles only.
+
 ## Output Files
 
 `--output` takes a prefix.
@@ -23,7 +25,7 @@ automesh hausdorff --help
 | `x,y,z` | node coordinates |
 | `signed distance` | the signed distance to the tessellation |
 
-`PREFIX_B_to_A.csv` has one row per vertex of the tessellation:
+`PREFIX_B_to_A.csv` has one row per vertex that a triangle of the tessellation uses:
 
 | Column | Meaning |
 | --- | --- |

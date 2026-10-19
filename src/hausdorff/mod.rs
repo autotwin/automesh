@@ -8,7 +8,7 @@ use super::{
     io::{extension, invalid_input, read_mesh},
 };
 use conspire::{
-    geometry::mesh::{Connectivity, Mesh, Tessellation, Verdict},
+    geometry::mesh::{Connectivity, Mesh, Verdict},
     math::FxHashMap,
 };
 use std::{
@@ -25,7 +25,7 @@ pub struct HausdorffArgs {
     #[arg(long, short = 'a', value_name = "FILE")]
     pub mesh: String,
 
-    /// Tessellation input file (stl)
+    /// Tessellation input file (exo | inp | mesh | off | stl | vtu)
     #[arg(long, short = 'b', value_name = "FILE")]
     pub tessellation: String,
 
@@ -54,8 +54,12 @@ pub fn hausdorff(args: HausdorffArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         .map(|&node| boundary.surface.points()[node])
         .collect::<Vec<_>>();
     let a_distances = tessellation.signed_distances(&a_samples);
-    let b_samples = tessellation.points();
-    let b_distances = boundary.surface.signed_distances(b_samples);
+    let b_samples = tessellation
+        .vertices()
+        .into_iter()
+        .map(|vertex| tessellation.points()[vertex])
+        .collect::<Vec<_>>();
+    let b_distances = boundary.surface.signed_distances(&b_samples);
     let a_to_b = Summary::from(a_distances.as_slice());
     let b_to_a = Summary::from(b_distances.as_slice());
     let hausdorff = a_to_b.maximum.max(b_to_a.maximum);
@@ -112,22 +116,43 @@ fn read_volume(file: &str, quiet: bool) -> Result<Mesh<3>, ErrorWrapper> {
 
 fn read_tessellation(file: &str, quiet: bool) -> Result<Surface, ErrorWrapper> {
     let extension = extension(file);
-    if extension != Some("stl") {
+    if !matches!(
+        extension,
+        Some("exo" | "inp" | "mesh" | "off" | "stl" | "vtu")
+    ) {
         return Err(invalid_input(file, extension));
     }
-    crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {file}");
-    let time = Instant::now();
-    let tessellation = Tessellation::try_from(Path::new(file))?;
-    let triangles = tessellation
-        .mesh()
+    let mesh = read_mesh(file, quiet)?;
+    if let Some(block) = mesh
+        .iter()
+        .find(|block| !matches!(block, Connectivity::Triangular(_)))
+    {
+        return Err(format!(
+            "Tessellation {file} holds {}; it must hold triangles only",
+            elements(block)
+        )
+        .into());
+    }
+    let triangles = mesh
         .connectivities()
         .iter()
         .flatten()
         .map(|triangle| [triangle[0], triangle[1], triangle[2]])
         .collect();
-    let surface = Surface::new(triangles, tessellation.mesh().coordinates().clone());
-    crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    Ok(surface)
+    Ok(Surface::new(triangles, mesh.coordinates().clone()))
+}
+
+fn elements(block: &Connectivity) -> &'static str {
+    match block {
+        Connectivity::Hexahedral(_) => "hexahedra",
+        Connectivity::Polygonal(_) => "polygons",
+        Connectivity::Polyhedral(_) => "polyhedra",
+        Connectivity::Pyramidal(_) => "pyramids",
+        Connectivity::Quadrilateral(_) => "quadrilaterals",
+        Connectivity::Tetrahedral(_) => "tetrahedra",
+        Connectivity::Triangular(_) => "triangles",
+        Connectivity::Wedge(_) => "wedges",
+    }
 }
 
 struct Boundary {
