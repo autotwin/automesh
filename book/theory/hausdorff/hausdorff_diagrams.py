@@ -1,8 +1,9 @@
 """Schematic diagrams for the Hausdorff Distance page.
 
-Writes four figures, each a 2D schematic:
+Writes five figures, each a 2D schematic:
 
 * hausdorff_sign.png: the sign convention, and its failure at a sharp tip;
+* hausdorff_split.png: the shorter-diagonal split of a quadrilateral, with a tie;
 * hausdorff_surface_checks.png: the closed, consistently wound, and outward checks;
 * hausdorff_inverted.png: the inverted element cases, drawn with quadrilaterals
   as the 2D analogue of hexahedra;
@@ -109,6 +110,62 @@ def sign_figure():
     blank(right, "known limit: a sharp convex tip")
     figure.tight_layout()
     figure.savefig(HERE / "hausdorff_sign.png", dpi=150)
+
+
+def split_panel(ax, quad, title):
+    n0, n1, n2, n3 = quad
+    first, second = np.linalg.norm(n1 - n3), np.linalg.norm(n0 - n2)
+    if first < second:
+        chosen, other = (n1, n3), (n0, n2)
+        triangles = ((n0, n1, n3), (n1, n2, n3))
+        names = (r"$[n_0, n_1, n_3]$", r"$[n_1, n_2, n_3]$")
+    else:
+        chosen, other = (n0, n2), (n1, n3)
+        triangles = ((n0, n1, n2), (n0, n2, n3))
+        names = (r"$[n_0, n_1, n_2]$", r"$[n_0, n_2, n_3]$")
+    for corners, alpha in zip(triangles, (FILL, 2 * FILL)):
+        ax.fill(*np.array(corners).T, color=MESH, alpha=alpha, linewidth=0)
+    for corners, name in zip(triangles, names):
+        centroid = np.mean(corners, axis=0)
+        direction = (other[1] - other[0]) / np.linalg.norm(other[1] - other[0])
+        offset = centroid - other[0]
+        side = offset - (offset @ direction) * direction
+        at = centroid + 0.22 * side / np.linalg.norm(side)
+        note(ax, at, name, MESH, ha="center", va="center", fontsize=8)
+    ax.plot(*np.vstack([quad, quad[:1]]).T, color=MESH, linewidth=1.8)
+    ax.plot(*np.array(chosen).T, color=MESH, linewidth=1.8)
+    ax.plot(*np.array(other).T, color=MUTED, linewidth=1.0, linestyle="--")
+    center = quad.mean(axis=0)
+    for k, point in enumerate(quad):
+        ax.scatter(*point, color=MESH, s=18, zorder=3)
+        outward = (point - center) / np.linalg.norm(point - center)
+        note(ax, point + 0.18 * outward, rf"$n_{k}$", INK, ha="center", va="center", fontsize=10)
+    note(
+        ax,
+        (center[0], quad[:, 1].min() - 0.35),
+        rf"$\| x_{{n_1}} - x_{{n_3}} \| = {first:.2f}$"
+        "\n"
+        rf"$\| x_{{n_0}} - x_{{n_2}} \| = {second:.2f}$",
+        INK,
+        ha="center",
+        va="top",
+    )
+    ax.set_xlim(quad[:, 0].min() - 0.5, quad[:, 0].max() + 0.5)
+    ax.set_ylim(quad[:, 1].min() - 0.85, quad[:, 1].max() + 0.4)
+    blank(ax, title)
+
+
+def split_figure():
+    figure, axes = plt.subplots(1, 3, figsize=(11, 3.8), facecolor="white")
+    quads = [
+        (np.array([[0.0, 0.0], [1.6, -0.1], [2.4, 1.3], [0.4, 1.1]]), r"$n_1$–$n_3$ shorter"),
+        (np.array([[0.0, 0.0], [2.0, 0.1], [1.7, 1.2], [-0.5, 1.0]]), r"$n_0$–$n_2$ shorter"),
+        (np.array([[0.0, 0.0], [1.8, 0.0], [1.4, 1.2], [0.4, 1.2]]), r"tie: $n_0$–$n_2$"),
+    ]
+    for ax, (quad, title) in zip(axes, quads):
+        split_panel(ax, quad, title)
+    figure.tight_layout()
+    figure.savefig(HERE / "hausdorff_split.png", dpi=150)
 
 
 def winding_arrows(ax, triangle, color):
@@ -319,6 +376,7 @@ def frame_figure():
 
 def main():
     sign_figure()
+    split_figure()
     surface_checks_figure()
     inverted_figure()
     frame_figure()
