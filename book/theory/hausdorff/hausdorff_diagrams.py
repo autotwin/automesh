@@ -38,6 +38,20 @@ def blank(ax, title):
     ax.set_title(title, fontsize=10, color=INK)
 
 
+def gridded(ax, title, xticks, yticks):
+    ax.set_aspect("equal")
+    ax.set_title(title, fontsize=10, color=INK)
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+    ax.grid(color="#dddddd", linewidth=0.6)
+    ax.set_axisbelow(True)
+    ax.set_xlabel("x", fontsize=9, color=MUTED)
+    ax.set_ylabel("y", fontsize=9, color=MUTED)
+    ax.tick_params(labelsize=8, colors=MUTED)
+    for spine in ax.spines.values():
+        spine.set_color("#bbbbbb")
+
+
 def arrow(ax, start, end, color=INK, width=1.2, style="-|>", linestyle="-"):
     ax.annotate(
         "",
@@ -386,7 +400,8 @@ def circles_figure():
         note(ax, (-b_label[0], -b_label[1]), r"$\mathcal{B}$", TESSELLATION, fontsize=12, ha="center", va="center")
         ax.set_xlim(-2.3, 2.3)
         ax.set_ylim(-1.8, 1.9)
-        blank(ax, title)
+        ticks = np.arange(-2.0, 2.01, 0.5)
+        gridded(ax, title, ticks, ticks[ticks <= 1.5])
     figure.tight_layout()
     figure.savefig(HERE / "hausdorff_circles.png", dpi=150, bbox_inches="tight")
     for (h_ab, h_ba), (_, _, title, _, _) in zip(values, cases):
@@ -416,17 +431,7 @@ def frame_figure():
         if surface is raw:
             arrow(ax, (1.0, 0.0), (3.0, 0.0), INK, width=1.0, style="<|-|>")
             note(ax, (2.0, 0.08), r"$H = 2$", INK, ha="center", va="bottom", fontsize=9)
-        ax.set_aspect("equal")
-        ax.set_title(title, fontsize=10, color=INK)
-        ax.set_xticks(range(-1, 4))
-        ax.set_yticks(range(-1, 2))
-        ax.grid(color="#dddddd", linewidth=0.6)
-        ax.set_axisbelow(True)
-        ax.set_xlabel("x", fontsize=9, color=MUTED)
-        ax.set_ylabel("y", fontsize=9, color=MUTED)
-        ax.tick_params(labelsize=8, colors=MUTED)
-        for spine in ax.spines.values():
-            spine.set_color("#bbbbbb")
+        gridded(ax, title, range(-1, 4), range(-1, 2))
     figure.tight_layout()
     figure.savefig(HERE / "hausdorff_frame.png", dpi=150)
     print(f"frame: mismatched H = {hausdorff(mesh, raw):.3f}, matched H = {hausdorff(mesh, transformed):.3f}")
