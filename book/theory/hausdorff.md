@@ -37,24 +37,6 @@ It carries the units of the mesh coordinates.
 It answers one question: from the worst-placed point on $\mathcal{A}$, how far away is the nearest point on $\mathcal{B}$?
 In general $h(\mathcal{A} \rightarrow \mathcal{B}) \ne h(\mathcal{B} \rightarrow \mathcal{A})$, which is why it is called directed.
 
-<figure>
-
-![hausdorff_point.png](hausdorff/hausdorff_point.png)
-
-<figcaption>
-
-Point-to-surface and directed distances, in 2D.
-Left: the closest point $\mathbf{b}^*$ on $\mathcal{B}$ (orange) to a point $\mathbf{a}$.
-The dotted circle of radius $d(\mathbf{a}, \mathcal{B})$ touches $\mathcal{B}$ only at $\mathbf{b}^*$.
-For the upper point, $\mathbf{b}^*$ lies inside a segment.
-For the lower point, it lies at a vertex.
-Center: the point on $\mathcal{A}$ (blue) that lies farthest from $\mathcal{B}$, at $x = 0.66$.
-Right: $d(\mathbf{a}, \mathcal{B})$ along $\mathcal{A}$.
-Its peak is the directed distance $h(\mathcal{A} \rightarrow \mathcal{B}) = 1.17$.
-
-</figcaption>
-</figure>
-
 **Hausdorff distance.**
 The Hausdorff distance is the larger of the two directed distances:
 
@@ -63,25 +45,6 @@ H(\mathcal{A}, \mathcal{B}) = \max\left( h(\mathcal{A} \rightarrow \mathcal{B}),
 $$
 
 $H$ is symmetric, so $H(\mathcal{A}, \mathcal{B}) = H(\mathcal{B}, \mathcal{A})$.
-Equivalently, $H$ is the smallest width $\varepsilon$ for which each surface lies inside a band of width $\varepsilon$ around the other.
-
-<figure>
-
-![hausdorff_directed.png](hausdorff/hausdorff_directed.png)
-
-<figcaption>
-
-The two directed distances and the band picture of $H$, in 2D.
-Left: a short curve $\mathcal{A}$ (blue) lies 0.15 above a longer curve $\mathcal{B}$ (orange).
-Every point of $\mathcal{A}$ lies within 0.15 of $\mathcal{B}$, so $h(\mathcal{A} \rightarrow \mathcal{B}) = 0.15$.
-Each end of $\mathcal{B}$ lies 0.90 from $\mathcal{A}$, so $h(\mathcal{B} \rightarrow \mathcal{A}) = 0.90$.
-$H$ takes the larger value, 0.90.
-Right: bands of width $H = 0.90$ around each curve.
-$\mathcal{B}$ fits inside the band of $\mathcal{A}$ (blue), and its ends touch the band's edge.
-$\mathcal{A}$ fits inside the band of $\mathcal{B}$ (orange), 0.75 inside its edge.
-
-</figcaption>
-</figure>
 
 ## Discrete Setting
 
@@ -110,23 +73,6 @@ $$
 The interior of a face can lie farther from the other surface than any of its corners.
 Node and vertex samples miss that gap.
 The [Unit Cube Example](#unit-cube-example) shows a gap of 0.257 that the samples miss.
-
-<figure>
-
-![hausdorff_sampled.png](hausdorff/hausdorff_sampled.png)
-
-<figcaption>
-
-Sampled against continuous directed distance, in 2D.
-Left: a polyline $\mathcal{A}_h$ (blue) with three nodes near an arc $\mathcal{B}$ (orange) of radius 2.
-The nodes lie 0.04, 0.06, and 0.05 from the arc.
-Right: $d(\mathbf{a}, \mathcal{B})$ along $\mathcal{A}_h$.
-The node samples (filled dots) give $h_h = 0.060$.
-The chords sag below the arc, so the continuous maximum is $h = 0.182$, at a point that is not a node (hollow dot).
-The samples miss two thirds of the gap.
-
-</figcaption>
-</figure>
 
 ## Unit Cube Example
 
