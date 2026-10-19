@@ -1,7 +1,11 @@
 """Schematic diagrams for the Hausdorff Distance page.
 
-Writes five figures, each a 2D schematic:
+Writes eight figures, each a 2D schematic:
 
+* hausdorff_point.png: the point-to-surface distance and the directed distance
+  as a profile along a curve;
+* hausdorff_directed.png: the two directed distances, and the band picture of H;
+* hausdorff_sampled.png: sampled against continuous directed distance;
 * hausdorff_sign.png: the sign convention, and the pseudonormal at a sharp tip;
 * hausdorff_split.png: the shorter-diagonal split of a quadrilateral, with a tie;
 * hausdorff_surface_checks.png: the closed, consistently wound, and outward checks;
@@ -335,6 +339,177 @@ def hausdorff(a, b):
     return max(polyline_distance(dense(a), b).max(), polyline_distance(dense(b), a).max())
 
 
+def closest(point, polyline):
+    best, at = np.inf, None
+    for a, b in zip(polyline[:-1], polyline[1:]):
+        ab = b - a
+        t = np.clip((point - a) @ ab / (ab @ ab), 0, 1)
+        candidate = a + t * ab
+        distance = np.linalg.norm(point - candidate)
+        if distance < best:
+            best, at = distance, candidate
+    return at, best
+
+
+def arc_length(polyline):
+    return np.concatenate([[0.0], np.cumsum(np.linalg.norm(np.diff(polyline, axis=0), axis=1))])
+
+
+def circle(ax, center, radius, color):
+    t = np.linspace(0, 2 * np.pi, 200)
+    ax.plot(center[0] + radius * np.cos(t), center[1] + radius * np.sin(t), color=color, linewidth=0.8, linestyle=":")
+
+
+def profile_axes(ax, xlabel, ylabel):
+    ax.set_xlabel(xlabel, fontsize=9, color=MUTED)
+    ax.set_ylabel(ylabel, fontsize=9, color=MUTED)
+    ax.tick_params(labelsize=8, colors=MUTED)
+    ax.grid(color="#dddddd", linewidth=0.6)
+    ax.set_axisbelow(True)
+    for spine in ax.spines.values():
+        spine.set_color("#bbbbbb")
+
+
+def point_figure():
+    figure, (left, middle, right) = plt.subplots(1, 3, figsize=(13, 3.9), facecolor="white")
+    b = np.array([[-1.8, 0.0], [-0.2, 0.35], [0.9, -0.45], [2.0, 0.2]])
+    left.plot(*b.T, color=TESSELLATION, linewidth=2)
+    left.scatter(*b.T, color=TESSELLATION, marker="s", s=16, zorder=3)
+    for a, label in (((-1.1, 1.0), "inside a segment"), ((1.25, -1.3), "at a vertex")):
+        a = np.array(a)
+        p, d = closest(a, b)
+        circle(left, a, d, INK)
+        left.plot(*zip(a, p), color=INK, linewidth=0.9)
+        left.scatter(*a, color=MESH, s=30, zorder=4)
+        left.scatter(*p, facecolor="white", edgecolor=INK, s=26, zorder=4)
+        note(left, a + (0.12, 0.05), r"$\mathbf{a}$", INK, fontsize=11)
+        note(left, p + (0.1, -0.22 if a[1] > 0 else 0.1), r"$\mathbf{b}^*$", INK, fontsize=11)
+        note(left, a + (0.0, d + 0.12) if a[1] > 0 else a - (0.0, d + 0.12), f"closest point {label}", MUTED, ha="center", va="bottom" if a[1] > 0 else "top")
+    note(left, (2.05, 0.25), r"$\mathcal{B}$", TESSELLATION, fontsize=12)
+    left.set_xlim(-2.0, 2.4)
+    left.set_ylim(-2.55, 2.3)
+    blank(left, r"$d(\mathbf{a}, \mathcal{B}) = \min_{\mathbf{b}} \, \| \mathbf{a} - \mathbf{b} \|$")
+
+    x = np.linspace(0.0, 4.0, 400)
+    a = np.column_stack([x, 1.15 + 0.45 * np.sin(1.5 * x + 0.2)])
+    b = np.array([[0.0, 0.2], [1.2, 0.5], [2.3, 0.3], [3.2, 0.75], [4.0, 0.55]])
+    distances = polyline_distance(a, b)
+    worst = int(np.argmax(distances))
+    p, d = closest(a[worst], b)
+    middle.plot(*a.T, color=MESH, linewidth=2)
+    middle.plot(*b.T, color=TESSELLATION, linewidth=2)
+    middle.plot(*zip(a[worst], p), color=INK, linewidth=1.0)
+    middle.scatter(*a[worst], color=MESH, s=30, zorder=4)
+    middle.scatter(*p, facecolor="white", edgecolor=INK, s=26, zorder=4)
+    note(middle, (a[worst] + p) / 2 + (0.08, 0.0), rf"$h = {d:.2f}$", INK, va="center")
+    note(middle, a[-1] + (0.05, 0.05), r"$\mathcal{A}$", MESH, fontsize=12)
+    note(middle, b[-1] + (0.05, -0.15), r"$\mathcal{B}$", TESSELLATION, fontsize=12)
+    middle.set_xlim(-0.2, 4.4)
+    middle.set_ylim(-0.1, 2.3)
+    blank(middle, r"the worst-placed point on $\mathcal{A}$")
+
+    s = arc_length(a)
+    right.plot(s, distances, color=MESH, linewidth=1.8)
+    right.axhline(d, color=INK, linewidth=0.9, linestyle="--")
+    right.scatter(s[worst], d, color=MESH, s=30, zorder=4)
+    note(right, (s[worst], d + 0.04), rf"$h(\mathcal{{A}} \rightarrow \mathcal{{B}}) = {d:.2f}$", INK, ha="center", va="bottom")
+    right.set_ylim(0, d * 1.3)
+    profile_axes(right, r"arc length along $\mathcal{A}$", r"$d(\mathbf{a}, \mathcal{B})$")
+    right.set_title(r"directed distance: the peak of the profile", fontsize=10, color=INK)
+    figure.tight_layout()
+    figure.savefig(HERE / "hausdorff_point.png", dpi=150)
+    print(f"point: h(A->B) = {d:.3f} at x = {a[worst][0]:.2f}")
+
+
+def directed_figure():
+    t = np.linspace(-1.4, 1.4, 200)
+    b = np.column_stack([t, 0.12 * t**2])
+    u = np.linspace(-0.5, 0.5, 80)
+    a = np.column_stack([u, 0.12 * u**2 + 0.15])
+    a_to_b = polyline_distance(a, b)
+    b_to_a = polyline_distance(b, a)
+    h_ab, h_ba = a_to_b.max(), b_to_a.max()
+    big = max(h_ab, h_ba)
+    figure, (left, right) = plt.subplots(1, 2, figsize=(11, 3.9), facecolor="white")
+    for ax in (left, right):
+        ax.plot(*b.T, color=TESSELLATION, linewidth=2)
+        ax.plot(*a.T, color=MESH, linewidth=2.4)
+        note(ax, b[-1] + (0.05, -0.05), r"$\mathcal{B}$", TESSELLATION, fontsize=12)
+        note(ax, a[0] + (-0.25, 0.08), r"$\mathcal{A}$", MESH, fontsize=12)
+    i = int(np.argmax(a_to_b))
+    p, _ = closest(a[i], b)
+    arrow(left, a[i], p, MESH, width=1.2)
+    note(left, (a[i][0] + 0.08, a[i][1] + 0.12), rf"$h(\mathcal{{A}} \rightarrow \mathcal{{B}}) = {h_ab:.2f}$", MESH, va="bottom")
+    j = int(np.argmax(b_to_a))
+    q, _ = closest(b[j], a)
+    arrow(left, b[j], q, TESSELLATION, width=1.2)
+    note(left, (b[j] + q) / 2 + (0.0, 0.18), rf"$h(\mathcal{{B}} \rightarrow \mathcal{{A}}) = {h_ba:.2f}$", TESSELLATION, ha="center", va="bottom")
+    note(left, (0.0, -0.6), rf"$H = \max({h_ab:.2f},\ {h_ba:.2f}) = {big:.2f}$", INK, ha="center", fontsize=10)
+    left.set_xlim(-1.8, 1.8)
+    left.set_ylim(-0.9, 1.0)
+    blank(left, "the two directed distances")
+
+    x, y = np.meshgrid(np.linspace(-2.4, 2.4, 480), np.linspace(-1.2, 1.5, 270))
+    grid = np.column_stack([x.ravel(), y.ravel()])
+    for curve, color in ((a, MESH), (b, TESSELLATION)):
+        field = polyline_distance(grid, curve).reshape(x.shape)
+        right.contourf(x, y, field, levels=[0, big], colors=[color], alpha=0.12)
+        right.contour(x, y, field, levels=[big], colors=[color], linewidths=0.9, linestyles="--")
+    right.scatter(*b[j], color=TESSELLATION, s=24, zorder=4)
+    note(right, b[j] + (-0.1, -0.12), "touches the band", MUTED, ha="right", va="top")
+    note(right, (0.0, -1.1), rf"bands of width $H = {big:.2f}$ around each curve", INK, ha="center", fontsize=9)
+    right.set_xlim(-2.4, 2.4)
+    right.set_ylim(-1.2, 1.5)
+    blank(right, r"each curve lies within $H$ of the other")
+    figure.tight_layout()
+    figure.savefig(HERE / "hausdorff_directed.png", dpi=150)
+    print(f"directed: h(A->B) = {h_ab:.3f}, h(B->A) = {h_ba:.3f}, H = {big:.3f}")
+
+
+def sampled_figure():
+    radius = 2.0
+    angles = np.linspace(np.radians(35), np.radians(145), 400)
+    b = np.column_stack([radius * np.cos(angles), radius * np.sin(angles)])
+    nodes = np.radians([140, 90, 40])
+    offsets = np.array([-0.04, 0.06, 0.05])
+    a = np.column_stack([(radius + offsets) * np.cos(nodes), (radius + offsets) * np.sin(nodes)])
+    fine = dense(a, per_edge=200)
+    fine = np.vstack([fine, a[-1]])
+    distances = polyline_distance(fine, b)
+    samples = polyline_distance(a, b)
+    h, h_h = distances.max(), samples.max()
+    worst = int(np.argmax(distances))
+    figure, (left, right) = plt.subplots(1, 2, figsize=(11, 3.9), facecolor="white")
+    left.plot(*b.T, color=TESSELLATION, linewidth=2)
+    left.plot(*a.T, color=MESH, linewidth=1.8)
+    left.scatter(*a.T, color=MESH, s=28, zorder=4)
+    p, _ = closest(fine[worst], b)
+    left.plot(*zip(fine[worst], p), color=INK, linewidth=1.0)
+    left.scatter(*fine[worst], facecolor="white", edgecolor=MESH, s=40, linewidth=1.4, zorder=5)
+    note(left, fine[worst] + (0.12, -0.08), "not a sample", MUTED, ha="left", va="top")
+    note(left, b[0] + (0.08, 0.0), r"$\mathcal{B}$", TESSELLATION, fontsize=12, va="center")
+    note(left, a[0] + (-0.1, -0.12), r"$\mathcal{A}_h$", MESH, fontsize=12, ha="right", va="top")
+    left.set_xlim(-2.0, 2.0)
+    left.set_ylim(0.9, 2.3)
+    blank(left, "samples at the nodes only")
+
+    s = arc_length(fine)
+    node_s = arc_length(a)
+    right.plot(s, distances, color=MESH, linewidth=1.8)
+    right.scatter(node_s, samples, color=MESH, s=28, zorder=4)
+    right.axhline(h, color=INK, linewidth=0.9, linestyle="--")
+    right.axhline(h_h, color=MESH, linewidth=0.9, linestyle=":")
+    note(right, (s[-1], h + 0.006), rf"$h = {h:.3f}$", INK, ha="right", va="bottom")
+    note(right, (0.3, h_h - 0.006), rf"$h_h = {h_h:.3f}$", MESH, ha="left", va="top")
+    right.scatter(s[worst], h, facecolor="white", edgecolor=MESH, s=40, linewidth=1.4, zorder=5)
+    right.set_ylim(0, h * 1.35)
+    profile_axes(right, r"arc length along $\mathcal{A}_h$", r"$d(\mathbf{a}, \mathcal{B})$")
+    right.set_title(r"the samples miss the peak: $h_h \leq h$", fontsize=10, color=INK)
+    figure.tight_layout()
+    figure.savefig(HERE / "hausdorff_sampled.png", dpi=150)
+    print(f"sampled: h_h = {h_h:.4f}, h = {h:.4f}")
+
+
 def frame_figure():
     scale, translate = np.array([2.0, 1.0]), np.array([1.0, 0.0])
     mesh = ellipse(16, scale, translate)
@@ -375,6 +550,9 @@ def frame_figure():
 
 
 def main():
+    point_figure()
+    directed_figure()
+    sampled_figure()
     sign_figure()
     split_figure()
     surface_checks_figure()
