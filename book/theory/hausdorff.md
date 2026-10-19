@@ -89,6 +89,33 @@ $$
 H_h = \max\left( h_h(\mathcal{A} \rightarrow \mathcal{B}),\ h_h(\mathcal{B} \rightarrow \mathcal{A}) \right) \le H(\mathcal{A}, \mathcal{B}).
 $$
 
+Each $s_i$ and $s_j$ can be positive or negative, but $h_h$ and $H_h$ take absolute values, so they are never negative.
+The circle examples from [Definitions](#definitions), redrawn as polygons, show this.
+
+<figure>
+
+![hausdorff_circles_discrete.png](hausdorff/hausdorff_circles_discrete.png)
+
+<figcaption>
+
+The circle examples as polygons, with the signed distance at every sample.
+Mesh $\mathcal{A}_h$ is blue, with nodes $\boldsymbol{x}_i$ as dots.
+Tessellation $\mathcal{B}_h$ is orange, with vertices $\boldsymbol{v}_j$ as squares.
+The unit circle has 24 samples, one every 15°.
+The bulged circle has 36 samples, one every 10°, with one at the tip of the bulge.
+Top: the sample with the largest $\lvert s \rvert$ in each direction, labeled with its signed distance.
+Bottom: every signed distance, plotted against the angle of its sample.
+The orange stems are shifted 2° to the right so that they do not hide the blue ones.
+Left: every node of $\mathcal{A}_h$ lies inside $\mathcal{B}_h$, so each $s_i$ is negative, from −0.10 to −0.35.
+Every vertex of $\mathcal{B}_h$ lies outside $\mathcal{A}_h$, so each $s_j$ is positive, from +0.10 to +0.50.
+The absolute values give $h_h(\mathcal{A} \rightarrow \mathcal{B}) = 0.35$ and $h_h(\mathcal{B} \rightarrow \mathcal{A}) = 0.50$, both positive.
+Right: the roles swap, and so do the signs.
+In both examples, $H_h = 0.50$.
+The 0.35 differs from the continuous 0.34, because the straight edges of the polygon cut inside the smooth bulge.
+
+</figcaption>
+</figure>
+
 The interior of a face can lie farther from the other surface than any of its corners.
 Node and vertex samples miss that gap.
 The [Unit Cube Example](#unit-cube-example) shows a gap of 0.257 that the samples miss.

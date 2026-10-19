@@ -1,8 +1,10 @@
 """Schematic diagrams for the Hausdorff Distance page.
 
-Writes six figures, each a 2D schematic:
+Writes seven figures, each a 2D schematic:
 
 * hausdorff_circles.png: the two directed distances on a circle with a bulge;
+* hausdorff_circles_discrete.png: the same circles as polygons, with the
+  signed distance at every sample;
 * hausdorff_sign.png: the sign convention, and the pseudonormal at a sharp tip;
 * hausdorff_split.png: the shorter-diagonal split of a quadrilateral, with a tie;
 * hausdorff_surface_checks.png: the closed, consistently wound, and outward checks;
@@ -17,6 +19,7 @@ Run: uv run --with numpy --with matplotlib python hausdorff_diagrams.py
 from pathlib import Path
 
 import matplotlib.pyplot as plt
+from matplotlib.path import Path as Polygon
 import numpy as np
 
 HERE = Path(__file__).parent
@@ -408,6 +411,82 @@ def circles_figure():
         print(f"circles, {title}: h(A->B) = {h_ab:.3f}, h(B->A) = {h_ba:.3f}")
 
 
+def polygon(radius, bump, width, step):
+    theta = np.radians(np.arange(0, 360, step))
+    away = np.abs(np.angle(np.exp(1j * (theta - np.pi / 2))))
+    r = radius + bump * np.exp(-((away / width) ** 2))
+    points = np.column_stack([r * np.cos(theta), r * np.sin(theta)])
+    return np.vstack([points, points[:1]]), np.degrees(theta)
+
+
+def signed(samples, other):
+    distances = polyline_distance(samples, other)
+    inside = Polygon(other).contains_points(samples)
+    return np.where(inside, -distances, distances)
+
+
+def discrete_circles_figure():
+    width = np.radians(12)
+    unit, unit_angles = polygon(1.0, 0.0, width, 15)
+    bump, bump_angles = polygon(1.1, 0.4, width, 10)
+    cases = [
+        ((unit, unit_angles), (bump, bump_angles), "tessellation bulges out"),
+        ((bump, bump_angles), (unit, unit_angles), "mesh bulges out"),
+    ]
+    figure, axes = plt.subplots(2, 2, figsize=(10, 8.6), facecolor="white", gridspec_kw={"height_ratios": [1.25, 1]})
+    for column, ((a, a_angles), (b, b_angles), title) in enumerate(cases):
+        top, bottom = axes[0, column], axes[1, column]
+        s_i = signed(a[:-1], b)
+        s_j = signed(b[:-1], a)
+        top.plot(*b.T, color=TESSELLATION, linewidth=1.6)
+        top.plot(*a.T, color=MESH, linewidth=1.6)
+        top.scatter(*b[:-1].T, color=TESSELLATION, marker="s", s=14, zorder=3)
+        top.scatter(*a[:-1].T, color=MESH, s=14, zorder=3)
+        i, j = int(np.argmax(np.abs(s_i))), int(np.argmax(np.abs(s_j)))
+        p, _ = closest(a[i], b)
+        q, _ = closest(b[j], a)
+        arrow(top, a[i], p, MESH, width=1.3)
+        arrow(top, b[j], q, TESSELLATION, width=1.3)
+        for start, end, value, color, at, ha in (
+            (a[i], p, s_i[i], MESH, (0.7, 1.55), "left"),
+            (b[j], q, s_j[j], TESSELLATION, (-0.7, 1.55), "right"),
+        ):
+            top.plot(*zip((start + end) / 2, at), color=color, linewidth=0.6)
+            note(top, at, rf"$s = {value:+.2f}$", color, ha=ha, va="center", fontsize=10)
+        top.set_xlim(-2.3, 2.3)
+        top.set_ylim(-1.5, 1.9)
+        ticks = np.arange(-2.0, 2.01, 0.5)
+        gridded(top, title, ticks, ticks[(ticks >= -1.5) & (ticks <= 1.5)])
+
+        bottom.axhline(0.0, color=MUTED, linewidth=0.8)
+        bottom.vlines(a_angles, 0, s_i, color=MESH, linewidth=1.2)
+        bottom.scatter(a_angles, s_i, color=MESH, s=16, zorder=3, label=r"$s_i$, nodes of $\mathcal{A}_h$")
+        bottom.vlines(b_angles + 2, 0, s_j, color=TESSELLATION, linewidth=1.2)
+        bottom.scatter(b_angles + 2, s_j, color=TESSELLATION, marker="s", s=16, zorder=3, label=r"$s_j$, vertices of $\mathcal{B}_h$")
+        h_ab, h_ba = np.abs(s_i).max(), np.abs(s_j).max()
+        note(bottom, (365, -0.56), rf"$h_h(\mathcal{{A}} \rightarrow \mathcal{{B}}) = {h_ab:.2f}$", MESH, ha="right", va="bottom", fontsize=9)
+        note(bottom, (365, -0.68), rf"$h_h(\mathcal{{B}} \rightarrow \mathcal{{A}}) = {h_ba:.2f}$", TESSELLATION, ha="right", va="bottom", fontsize=9)
+        note(bottom, (365, -0.80), rf"$H_h = {max(h_ab, h_ba):.2f}$", INK, ha="right", va="bottom", fontsize=9)
+        bottom.set_xlim(-10, 370)
+        bottom.set_ylim(-0.9, 0.65)
+        bottom.set_xticks(range(0, 361, 90))
+        profile_axes(bottom, "angle of the sample (degrees)", "signed distance $s$")
+        bottom.legend(fontsize=8, loc="lower left", frameon=False)
+        print(f"discrete, {title}: s_i in [{s_i.min():+.3f}, {s_i.max():+.3f}], s_j in [{s_j.min():+.3f}, {s_j.max():+.3f}], h_h(A->B) = {h_ab:.3f}, h_h(B->A) = {h_ba:.3f}")
+    figure.tight_layout()
+    figure.savefig(HERE / "hausdorff_circles_discrete.png", dpi=150, bbox_inches="tight")
+
+
+def profile_axes(ax, xlabel, ylabel):
+    ax.set_xlabel(xlabel, fontsize=9, color=MUTED)
+    ax.set_ylabel(ylabel, fontsize=9, color=MUTED)
+    ax.tick_params(labelsize=8, colors=MUTED)
+    ax.grid(color="#dddddd", linewidth=0.6)
+    ax.set_axisbelow(True)
+    for spine in ax.spines.values():
+        spine.set_color("#bbbbbb")
+
+
 def frame_figure():
     scale, translate = np.array([2.0, 1.0]), np.array([1.0, 0.0])
     mesh = ellipse(16, scale, translate)
@@ -439,6 +518,7 @@ def frame_figure():
 
 def main():
     circles_figure()
+    discrete_circles_figure()
     sign_figure()
     split_figure()
     surface_checks_figure()
