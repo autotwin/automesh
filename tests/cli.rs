@@ -1107,3 +1107,66 @@ fn hausdorff_mesh_dimple() {
         0.0,
     );
 }
+
+#[test]
+fn hausdorff_reference_node_labels() {
+    let mesh = out("inp");
+    let original = std::fs::read_to_string(input("hausdorff_cube_hex1.inp")).unwrap();
+    let mut labelled = String::new();
+    let mut section = "";
+    for line in original.lines() {
+        if line.starts_with('*') {
+            section = if line.starts_with("*Node") {
+                "node"
+            } else if line.starts_with("*Element") {
+                "element"
+            } else {
+                ""
+            };
+            labelled.push_str(line);
+        } else {
+            let fields = line.split(", ").collect::<Vec<_>>();
+            labelled.push_str(&match section {
+                "node" => format!(
+                    "{}, {}",
+                    100 + fields[0].parse::<usize>().unwrap(),
+                    fields[1..].join(", ")
+                ),
+                "element" => format!(
+                    "{}, {}",
+                    fields[0],
+                    fields[1..]
+                        .iter()
+                        .map(|node| (100 + node.parse::<usize>().unwrap()).to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                _ => line.to_string(),
+            });
+        }
+        labelled.push('\n');
+    }
+    std::fs::write(&mesh, labelled).unwrap();
+    let output = out("csv");
+    run(&[
+        "hausdorff",
+        "-a",
+        mesh.to_str().unwrap(),
+        "-b",
+        input("hausdorff_cube.stl").to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    let prefix = output.with_extension("");
+    let rows = std::fs::read_to_string(format!("{}_A_to_B.csv", prefix.to_str().unwrap()))
+        .expect("distance file was not created");
+    let mut lines = rows.lines();
+    assert_eq!(
+        lines.next(),
+        Some("node,reference node,x,y,z,signed distance")
+    );
+    let references = lines
+        .map(|row| row.split(',').nth(1).unwrap().parse::<usize>().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(references, (101..=108).collect::<Vec<_>>());
+}
