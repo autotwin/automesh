@@ -399,11 +399,12 @@ The file name on the right is the one `automesh mesh` writes for this transform.
 When the input is an STL and any transform option differs from its default, it also writes the input surface, moved by the same transform, next to the output mesh.
 The file name records all six values, as `<stem>_scale_<sx>_<sy>_<sz>_translate_<tx>_<ty>_<tz>.stl`.
 Each value is the shortest decimal that reads back to the exact number applied, so the name is an exact record of the transform.
+For the transform in the figure above, `--xscale 2 --xtranslate 1` on `surface.stl` also writes `surface_scale_2_1_1_translate_1_0_0.stl`.
 Pass that file to `--tessellation`:
 
 ```sh
-automesh mesh hex -i bone.stl -o bone.exo --xscale 0.001 --yscale 0.001 --zscale 0.001
-automesh hausdorff -a bone.exo -b bone_scale_0.001_0.001_0.001_translate_0_0_0.stl -o bone
+automesh mesh hex -i surface.stl -o surface.exo --xscale 2 --xtranslate 1
+automesh hausdorff -a surface.exo -b surface_scale_2_1_1_translate_1_0_0.stl -o surface
 ```
 
 A segmentation input has no input surface, so it gets no extra file.
