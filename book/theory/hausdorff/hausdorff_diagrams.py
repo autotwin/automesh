@@ -1,7 +1,8 @@
 """Schematic diagrams for the Hausdorff Distance page.
 
-Writes five figures, each a 2D schematic:
+Writes six figures, each a 2D schematic:
 
+* hausdorff_circles.png: the two directed distances on a circle with a bulge;
 * hausdorff_sign.png: the sign convention, and the pseudonormal at a sharp tip;
 * hausdorff_split.png: the shorter-diagonal split of a quadrilateral, with a tie;
 * hausdorff_surface_checks.png: the closed, consistently wound, and outward checks;
@@ -335,6 +336,63 @@ def hausdorff(a, b):
     return max(polyline_distance(dense(a), b).max(), polyline_distance(dense(b), a).max())
 
 
+def closest(point, polyline):
+    best, at = np.inf, None
+    for a, b in zip(polyline[:-1], polyline[1:]):
+        ab = b - a
+        t = np.clip((point - a) @ ab / (ab @ ab), 0, 1)
+        candidate = a + t * ab
+        distance = np.linalg.norm(point - candidate)
+        if distance < best:
+            best, at = distance, candidate
+    return at, best
+
+
+def bulged(radius, bump, width, count=720):
+    theta = np.linspace(0, 2 * np.pi, count + 1)
+    away = np.abs(np.angle(np.exp(1j * (theta - np.pi / 2))))
+    r = radius + bump * np.clip(1 - away / width, 0, None)
+    return np.column_stack([r * np.cos(theta), r * np.sin(theta)])
+
+
+def directed_arrow(ax, curve, other, color, label, at, ha):
+    distances = polyline_distance(curve, other)
+    worst = int(np.argmax(distances))
+    p, d = closest(curve[worst], other)
+    arrow(ax, curve[worst], p, color, width=1.4)
+    middle = (curve[worst] + p) / 2
+    ax.plot(*zip(middle, at), color=color, linewidth=0.6)
+    note(ax, at, label.format(d=d), color, ha=ha, va="center", fontsize=10)
+    return d
+
+
+def circles_figure():
+    width = np.radians(20)
+    figure, axes = plt.subplots(1, 2, figsize=(10, 5.2), facecolor="white")
+    inner, outer = (-0.65, 0.4), (-1.3, 0.95)
+    cases = [
+        (ellipse(720, np.ones(2), np.zeros(2)), bulged(1.1, 0.4, width), "tessellation bulges out", inner, outer),
+        (bulged(1.1, 0.4, width), ellipse(720, np.ones(2), np.zeros(2)), "mesh bulges out", outer, inner),
+    ]
+    values = []
+    for ax, (a, b, title, a_label, b_label) in zip(axes, cases):
+        ax.plot(*b.T, color=TESSELLATION, linewidth=2, solid_capstyle="round")
+        ax.plot(*a.T, color=MESH, linewidth=2, solid_capstyle="round")
+        h_ab = directed_arrow(ax, a, b, MESH, r"$h(\mathcal{{A}} \rightarrow \mathcal{{B}}) = {d:.2f}$", (0.75, 1.55), "left")
+        h_ba = directed_arrow(ax, b, a, TESSELLATION, r"$h(\mathcal{{B}} \rightarrow \mathcal{{A}}) = {d:.2f}$", (-0.75, 1.55), "right")
+        values.append((h_ab, h_ba))
+        note(ax, (0.0, -1.45), rf"$H = \max({h_ab:.2f},\ {h_ba:.2f}) = {max(h_ab, h_ba):.2f}$", INK, ha="center", va="top", fontsize=10)
+        note(ax, a_label, r"$\mathcal{A}$", MESH, fontsize=12, ha="center", va="center")
+        note(ax, (-b_label[0], -b_label[1]), r"$\mathcal{B}$", TESSELLATION, fontsize=12, ha="center", va="center")
+        ax.set_xlim(-2.3, 2.3)
+        ax.set_ylim(-1.8, 1.9)
+        blank(ax, title)
+    figure.tight_layout()
+    figure.savefig(HERE / "hausdorff_circles.png", dpi=150, bbox_inches="tight")
+    for (h_ab, h_ba), (_, _, title, _, _) in zip(values, cases):
+        print(f"circles, {title}: h(A->B) = {h_ab:.3f}, h(B->A) = {h_ba:.3f}")
+
+
 def frame_figure():
     scale, translate = np.array([2.0, 1.0]), np.array([1.0, 0.0])
     mesh = ellipse(16, scale, translate)
@@ -375,6 +433,7 @@ def frame_figure():
 
 
 def main():
+    circles_figure()
     sign_figure()
     split_figure()
     surface_checks_figure()
