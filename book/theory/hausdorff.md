@@ -24,8 +24,6 @@ $$
 d(\boldsymbol{a}, \mathcal{B}) = \min_{\boldsymbol{b} \in \mathcal{B}} d(\boldsymbol{a}, \boldsymbol{b}).
 $$
 
-On a tessellation, the closest point can lie inside a triangle, on an edge, or on a vertex.
-
 **Directed Hausdorff distance.**
 The directed distance $h(\mathcal{A} \rightarrow \mathcal{B})$ is the largest point-to-surface distance:
 
