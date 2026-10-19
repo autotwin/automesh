@@ -99,8 +99,8 @@ The circle examples from [Definitions](#definitions), redrawn as polygons, show 
 <figcaption>
 
 The circle examples as polygons, with the signed distance at every sample.
-Mesh $\mathcal{A}_h$ is blue, with nodes $\boldsymbol{x}_i$ as dots.
-Tessellation $\mathcal{B}_h$ is orange, with vertices $\boldsymbol{v}_j$ as squares.
+Mesh $\mathcal{A}_h$ is blue, with nodes $\boldsymbol{x}_i$ as squares.
+Tessellation $\mathcal{B}_h$ is orange, with vertices $\boldsymbol{v}_j$ as dots.
 The unit circle has 24 samples, one every 15°.
 The bulged circle has 36 samples, one every 10°, with one at the tip of the bulge.
 Top: the sample with the largest $\lvert s \rvert$ in each direction, labeled with its signed distance.
