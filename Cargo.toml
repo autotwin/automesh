@@ -22,3 +22,6 @@ rustdoc-args = ["--html-in-header", "docs/katex.html"]
 [profile.release]
 codegen-units = 1
 lto = true
+
+[patch.crates-io]
+conspire = { git = "https://github.com/mrbuche/conspire.rs", branch = "main" }
