@@ -171,7 +171,7 @@ cat dimple_B_to_A.csv
 ```
 
 Both files report $H_h = 0.3$, from the dimple node alone.
-The `max |s|` lines hold $h_h$ for each direction: 0.3 and 0, mesh to tessellation and tessellation to mesh, respectively.
+The `max |s|` lines hold $h_h$, the sampled directed distance, for each direction: 0.3 and 0, mesh to tessellation and tessellation to mesh, respectively.
 
 **Points between the samples.**
 The center of the mesh's top face is not a node in the tessellation spike case.
