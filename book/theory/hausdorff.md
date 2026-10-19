@@ -390,16 +390,13 @@ Left: the tessellation as read.
 The frames differ, and $H = 2.000$ measures the transform, not the mesh.
 Right: the same tessellation with the same transform applied.
 $H = 0.036$ now measures the faceting of the 16-node mesh.
-The file name on the right follows the rule proposed in [#802](https://github.com/autotwin/automesh/issues/802).
+The file name on the right records the transform: the scale $(2, 1, 1)$, then the translation $(1, 0, 0)$.
 
 </figcaption>
 </figure>
 
-Today you must transform the tessellation yourself before you compare.
+Transform the tessellation the same way as the mesh before you compare.
 `--tessellation` reads `exo`, `inp`, `mesh`, `off`, and `vtu` as well as `stl`, so a tessellation you transform in another tool can come back in any of those formats.
-An open issue changes this workflow:
-
-* [#802](https://github.com/autotwin/automesh/issues/802) has `automesh mesh` write the transformed tessellation next to its output whenever an STL input meets non-default transform options. The file name records the transform, for example `bone_scale_0.001_0.001_0.001_translate_0_0_-12.5.stl`. You then pass that file to `--tessellation` directly.
 
 <details>
 <summary><code>hausdorff_diagrams.py</code></summary>
