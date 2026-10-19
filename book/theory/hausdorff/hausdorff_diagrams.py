@@ -2,7 +2,7 @@
 
 Writes five figures, each a 2D schematic:
 
-* hausdorff_sign.png: the sign convention, and its failure at a sharp tip;
+* hausdorff_sign.png: the sign convention, and the pseudonormal at a sharp tip;
 * hausdorff_split.png: the shorter-diagonal split of a quadrilateral, with a tie;
 * hausdorff_surface_checks.png: the closed, consistently wound, and outward checks;
 * hausdorff_inverted.png: the inverted element cases, drawn with quadrilaterals
@@ -107,7 +107,7 @@ def sign_figure():
     )
     right.set_xlim(-2.2, 1.6)
     right.set_ylim(-1.75, 1.0)
-    blank(right, "known limit: a sharp convex tip")
+    blank(right, "a sharp convex tip")
     figure.tight_layout()
     figure.savefig(HERE / "hausdorff_sign.png", dpi=150)
 
