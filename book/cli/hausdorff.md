@@ -12,13 +12,13 @@ automesh hausdorff --help
 ## Example
 
 The example uses the unit cube from the [Unit Cube Example](../theory/hausdorff.md#unit-cube-example).
-The mesh [`hausdorff_cube_hex8_spike.inp`](hausdorff/hausdorff_cube_hex8_spike.inp) is a 2 × 2 × 2 grid of hexahedra.
+The mesh [`cube_hex8_spike.inp`](hausdorff/cube_hex8_spike.inp) is a 2 × 2 × 2 grid of hexahedra.
 Its top-center node sits at $z = 1.3$, which puts a spike of height 0.3 on the top face.
-The tessellation [`hausdorff_cube.stl`](hausdorff/hausdorff_cube.stl) is the unit cube, with 12 triangles and no spike.
+The tessellation [`cube.stl`](hausdorff/cube.stl) is the unit cube, with 12 triangles and no spike.
 
 ```sh
-automesh hausdorff --mesh hausdorff/hausdorff_cube_hex8_spike.inp --tessellation hausdorff/hausdorff_cube.stl --output hausdorff/spike
-<!-- cmdrun automesh hausdorff --mesh hausdorff/hausdorff_cube_hex8_spike.inp --tessellation hausdorff/hausdorff_cube.stl --output hausdorff/spike | ansifilter -->
+automesh hausdorff --mesh cube_hex8_spike.inp --tessellation cube.stl --output spike
+<!-- cmdrun cd hausdorff && automesh hausdorff --mesh cube_hex8_spike.inp --tessellation cube.stl --output spike | ansifilter -->
 ```
 
 The command writes `spike_A_to_B.csv` and `spike_B_to_A.csv`.
@@ -27,15 +27,15 @@ The spike tip is node 23 in the file and row 22 in `spike_A_to_B.csv`, because i
 It is the only node off the cube, at $s = +0.3$:
 
 ```sh
-grep "1.3," hausdorff/spike_A_to_B.csv
-<!-- cmdrun grep "1.3," hausdorff/spike_A_to_B.csv -->
+grep "1.3," spike_A_to_B.csv
+<!-- cmdrun cd hausdorff && grep "1.3," spike_A_to_B.csv -->
 ```
 
 Every vertex of the tessellation lies on the mesh surface, so each one has $s = 0$:
 
 ```sh
-cat hausdorff/spike_B_to_A.csv
-<!-- cmdrun cat hausdorff/spike_B_to_A.csv -->
+cat spike_B_to_A.csv
+<!-- cmdrun cd hausdorff && cat spike_B_to_A.csv -->
 ```
 
 ## Output Files
