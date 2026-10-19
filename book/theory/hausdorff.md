@@ -99,8 +99,8 @@ The circle examples from [Definitions](#definitions), redrawn as polygons, show 
 <figcaption>
 
 The circle examples as polygons, with the signed distance at every sample.
-Mesh $\mathcal{A}_h$ is blue, with nodes $\boldsymbol{x}_i$ as squares.
-Tessellation $\mathcal{B}_h$ is orange, with vertices $\boldsymbol{v}_j$ as dots.
+Mesh $\mathcal{A}_h$ is blue, with nodes $\boldsymbol{x}_i$ as dots.
+Tessellation $\mathcal{B}_h$ is orange, with vertices $\boldsymbol{v}_j$ as diamonds.
 The unit circle has 24 samples, one every 15°.
 The bulged circle has 36 samples, one every 10°, with one at the tip of the bulge.
 Top: the sample with the largest $\lvert s \rvert$ in each direction, labeled with its signed distance.
@@ -147,7 +147,7 @@ A spike moves it out to $z = 1.3$, and a dimple moves it in to $z = 0.7$.
 The two spike cases.
 Mesh $\mathcal{A}$ is blue, with its boundary nodes as dots.
 Thin blue lines split each boundary quadrilateral into the two triangles described under [Surface Triangulation](#surface-triangulation).
-Tessellation $\mathcal{B}$ is orange, with its vertices as squares.
+Tessellation $\mathcal{B}$ is orange, with its vertices as diamonds.
 Light dashed lines and faded markers lie on the far side of a surface, hidden from this view.
 The right column cuts both surfaces with the diagonal plane $x = y$.
 That plane passes through the moved point, two cube edges, and every sample that lies on the diagonal.
