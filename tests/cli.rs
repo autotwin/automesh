@@ -1186,6 +1186,9 @@ fn summary_value(summary: &[(String, String)], key: &str) -> f64 {
         .find(|(found, _)| found == key)
         .unwrap_or_else(|| panic!("no {key} in the summary"))
         .1
+        .split_whitespace()
+        .next()
+        .unwrap()
         .parse()
         .unwrap()
 }
@@ -1220,14 +1223,14 @@ fn hausdorff_summary_comments() {
             "H_h"
         ]
     );
-    assert_eq!(a_to_b[0].1, "A to B");
+    assert_eq!(a_to_b[0].1, "A to B (mesh to tessellation)");
     assert_eq!(a_to_b[1].1, "26");
     assert!((summary_value(&a_to_b, "max |s|") - SPIKE).abs() < TOLERANCE);
     assert!((summary_value(&a_to_b, "mean |s|") - SPIKE / 26.0).abs() < TOLERANCE);
     assert!((summary_value(&a_to_b, "rms |s|") - SPIKE / 26.0_f64.sqrt()).abs() < TOLERANCE);
     assert!((summary_value(&a_to_b, "H_h") - SPIKE).abs() < TOLERANCE);
     let b_to_a = summary(Path::new(&format!("{prefix}_B_to_A.csv")));
-    assert_eq!(b_to_a[0].1, "B to A");
+    assert_eq!(b_to_a[0].1, "B to A (tessellation to mesh)");
     assert_eq!(b_to_a[1].1, "8");
     assert_eq!(summary_value(&b_to_a, "max |s|"), 0.0);
     assert!((summary_value(&b_to_a, "H_h") - SPIKE).abs() < TOLERANCE);

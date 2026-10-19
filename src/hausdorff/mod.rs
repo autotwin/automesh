@@ -272,13 +272,26 @@ impl Summary {
         );
     }
     fn comments(&self, direction: &str, hausdorff: f64) -> Vec<String> {
+        let surfaces = match direction {
+            "A to B" => "mesh to tessellation",
+            _ => "tessellation to mesh",
+        };
         vec![
-            format!("direction = {direction}"),
+            format!("direction = {direction} ({surfaces})"),
             format!("samples = {}", self.samples),
-            format!("max |s| = {}", self.maximum),
-            format!("mean |s| = {}", self.mean),
-            format!("rms |s| = {}", self.rms),
-            format!("H_h = {hausdorff}"),
+            format!(
+                "max |s| = {} (max of the absolute value of signed distances)",
+                self.maximum
+            ),
+            format!(
+                "mean |s| = {} (mean of the absolute value of signed distances)",
+                self.mean
+            ),
+            format!(
+                "rms |s| = {} (root mean square of the absolute value of signed distances)",
+                self.rms
+            ),
+            format!("H_h = {hausdorff} (sampled Hausdorff distance)"),
         ]
     }
 }

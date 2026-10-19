@@ -55,14 +55,16 @@ They repeat the [Console Summary](#console-summary) for that file's direction, s
 
 | Key | Value |
 | --- | --- |
-| `direction` | `A to B` or `B to A` |
+| `direction` | `A to B (mesh to tessellation)` or `B to A (tessellation to mesh)` |
 | `samples` | the number of rows |
 | `max \|s\|` | the largest $\lvert s \rvert$, which is $h_h$ for this direction |
 | `mean \|s\|` | the mean of $\lvert s \rvert$ |
 | `rms \|s\|` | the root mean square of $\lvert s \rvert$ |
 | `H_h` | the sampled Hausdorff distance, the larger of the two `max \|s\|` values |
 
-Each line has the form `# key = value`.
+Each line has the form `# key = value`, and most lines add a description in parentheses after the value.
+The value is the first word after the `=`.
+For example, the line `# max |s| = 0.3 (max of the absolute value of signed distances)` has the value `0.3`.
 Both files carry the same `H_h`.
 $H_h$ is a lower bound on the continuous Hausdorff distance $H$, as [Discrete Setting](../theory/hausdorff.md#discrete-setting) explains.
 `automesh` does not report $H$.
