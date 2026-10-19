@@ -72,6 +72,7 @@ In both examples, $H = 0.50$, the larger of the two directed distances.
 * Mesh to tessellation: the samples are the boundary nodes $\boldsymbol{x}_i$ of $\Omega_h$, for $i = 1, \dots, N$.
 * Tessellation to mesh: the samples are the vertices $\boldsymbol{v}_j$ of $\Gamma_h$, for $j = 1, \dots, M$.
 
+Let $s_i$ and $s_j$ be the signed distances at $\boldsymbol{x}_i$ and $\boldsymbol{v}_j$, defined under [Sign Convention](#sign-convention).
 Each sample is a point on its surface.
 The maximum over a subset of points cannot exceed the maximum over the whole surface.
 Each sampled directed distance is therefore a lower bound:
@@ -79,10 +80,9 @@ Each sampled directed distance is therefore a lower bound:
 $$
 h_h(\mathcal{A} \rightarrow \mathcal{B}) = \max_{i} \lvert s_i \rvert \le h(\mathcal{A} \rightarrow \mathcal{B}),
 \qquad
-h_h(\mathcal{B} \rightarrow \mathcal{A}) = \max_{j} \lvert s_j \rvert \le h(\mathcal{B} \rightarrow \mathcal{A}),
+h_h(\mathcal{B} \rightarrow \mathcal{A}) = \max_{j} \lvert s_j \rvert \le h(\mathcal{B} \rightarrow \mathcal{A}).
 $$
 
-where $s_i$ and $s_j$ are the signed distances defined under [Sign Convention](#sign-convention).
 The sampled Hausdorff distance is
 
 $$
