@@ -146,8 +146,13 @@ automesh hausdorff --mesh cube_hex8_dimple.inp --tessellation cube.stl --output 
 <!-- cmdrun cd hausdorff && automesh hausdorff --mesh cube_hex8_dimple.inp --tessellation cube.stl --output dimple | ansifilter -->
 ```
 
-The mesh-to-tessellation file has one row per boundary node, 26 in all.
-The grid's 27th node, node 14, lies at the center of the grid and has no row.
+The mesh-to-tessellation file has one row per boundary node, 26 of the grid's 27 nodes.
+The `node` column numbers the rows from 1 to 26.
+The `reference node` column holds each node's label in `cube_hex8_dimple.inp`.
+Node 14 sits at $(0.5, 0.5, 0.5)$, the center of the cube, where all eight hexahedra meet.
+It lies on no exterior face, so it is not a boundary node and has no row.
+The two columns therefore agree through row 13.
+From row 14 on, `reference node` runs one ahead of `node`.
 Row 22 holds node 23, the top-center node, moved down to $z = 0.7$.
 It lies 0.3 below the top face of $\mathcal{B}$, inside the cube, so its signed distance is $-0.3$.
 The other 25 nodes lie on the cube, at $s = 0$.
