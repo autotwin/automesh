@@ -35,6 +35,15 @@ chained directly onto it, and a further `remesh` subcommand can be chained
 after that — `mesh tri smooth remesh` works fully, since a triangular mesh
 satisfies `remesh`'s connectivity requirement.
 
+The transform options `--xscale`, `--yscale`, `--zscale`, `--xtranslate`,
+`--ytranslate`, and `--ztranslate` move the output mesh only.  When the input
+is a tessellation (`stl`) and any of them differs from its default (a scale
+of 1 and a translation of 0 along each axis), `mesh` also writes the input
+surface, moved the same way, next to the output as
+`<stem>_scale_<sx>_<sy>_<sz>_translate_<tx>_<ty>_<tz>.stl`.
+[`hausdorff`](hausdorff.md) can then compare the mesh with that surface; see
+[Frame of Reference](../theory/hausdorff.md#frame-of-reference).
+
 ```sh
 automesh mesh --help
 <!-- cmdrun automesh mesh --help -->

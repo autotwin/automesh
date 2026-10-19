@@ -454,13 +454,28 @@ The frames differ, and $H = 2.000$ measures the transform, not the mesh.
 The arrow marks that largest gap, from the circle at $x = 1$ to the tip of the mesh at $x = 3$.
 Right: the same tessellation with the same transform applied.
 $H = 0.036$ now measures the faceting of the 16-node mesh.
-The file name on the right records the transform: the scale $(2, 1, 1)$, then the translation $(1, 0, 0)$.
+The file name on the right is the one `automesh mesh` writes for this transform.
 
 </figcaption>
 </figure>
 
-Transform the tessellation the same way as the mesh before you compare.
-`--tessellation` reads `exo`, `inp`, `mesh`, `off`, and `vtu` as well as `stl`, so a tessellation you transform in another tool can come back in any of those formats.
+`automesh mesh` writes the transformed tessellation for you.
+When the input is an STL and any transform option differs from its default (a scale of 1 and a translation of 0 along each axis), it also writes the input surface, moved by the same transform, next to the output mesh.
+The file name records all six values, as `<stem>_scale_<sx>_<sy>_<sz>_translate_<tx>_<ty>_<tz>.stl`.
+Each value is the shortest decimal that reads back to the exact number applied, so the name is an exact record of the transform.
+For the transform in the figure above, `--xscale 2 --xtranslate 1` on `surface.stl` also writes `surface_scale_2_1_1_translate_1_0_0.stl`.
+Pass that file to `--tessellation`:
+
+```sh
+automesh mesh hex -i surface.stl -o surface.exo --xscale 2 --xtranslate 1
+automesh hausdorff -a surface.exo -b surface_scale_2_1_1_translate_1_0_0.stl -o surface
+```
+
+A segmentation input has no input surface, so it gets no extra file.
+For a tessellation you transform in another tool, `--tessellation` also reads `exo`, `inp`, `mesh`, `off`, and `vtu`.
+
+A translation leaves every distance unchanged, and a uniform scale $s$ multiplies every distance by $s$.
+A non-uniform scale stretches distances by different amounts in different directions, so no single factor converts $H_h$ in the transformed frame back to the original frame.
 
 <details>
 <summary><code>hausdorff_diagrams.py</code></summary>
