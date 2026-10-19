@@ -351,7 +351,7 @@ def closest(point, polyline):
 def bulged(radius, bump, width, count=720):
     theta = np.linspace(0, 2 * np.pi, count + 1)
     away = np.abs(np.angle(np.exp(1j * (theta - np.pi / 2))))
-    r = radius + bump * np.clip(1 - away / width, 0, None)
+    r = radius + bump * np.exp(-((away / width) ** 2))
     return np.column_stack([r * np.cos(theta), r * np.sin(theta)])
 
 
@@ -367,7 +367,7 @@ def directed_arrow(ax, curve, other, color, label, at, ha):
 
 
 def circles_figure():
-    width = np.radians(20)
+    width = np.radians(12)
     figure, axes = plt.subplots(1, 2, figsize=(10, 5.2), facecolor="white")
     inner, outer = (-0.65, 0.4), (-1.3, 0.95)
     cases = [
