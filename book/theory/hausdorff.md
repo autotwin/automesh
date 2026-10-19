@@ -169,7 +169,7 @@ Positive means the sample lies outside the other surface, and negative means ins
 This matches the level-set convention and the [libigl](https://github.com/libigl/libigl) `signed_distance` convention.
 
 Let $\boldsymbol{p}$ be the closest point to the sample $\boldsymbol{x}$ on the other surface.
-Let $\boldsymbol{n}$ be the outward unit normal of the triangle that contains $\boldsymbol{p}$.
+Let $\boldsymbol{n}$ be the angle-weighted pseudonormal at $\boldsymbol{p}$, defined below.
 Then
 
 $$
@@ -179,14 +179,35 @@ $$
 A sample exactly on the surface has $s = 0$.
 The Hausdorff distance itself is unsigned, so $h_h$ uses $\lvert s \rvert$.
 
-`automesh` computes $\boldsymbol{n}$ from the triangle winding.
-It ignores the facet normals stored in the STL file, because some writers leave them zero or wrong.
+### Pseudonormal
 
-**Known limit.**
-When $\boldsymbol{p}$ lies on an edge or a vertex, more than one triangle contains it, and their normals can disagree.
-Near a sharp convex edge or vertex, the normal of one triangle can then give the wrong sign.
-Angle-weighted pseudonormals would remove this error.
-`conspire` does not provide them today.
+The closest point $\boldsymbol{p}$ can lie inside a triangle, on an edge, or on a vertex.
+Inside a triangle, one normal applies.
+On an edge or a vertex, two or more triangles contain $\boldsymbol{p}$, and their normals can disagree.
+Near a sharp edge or vertex, the normal of one of those triangles can give the wrong sign.
+The figure below shows this case.
+
+The angle-weighted pseudonormal of Bærentzen and Aanæs[^Baerentzen_2005] picks one normal for each case.
+Let $\boldsymbol{n}_i$ be the outward unit normal of triangle $i$.
+
+* **Face.** $\boldsymbol{p}$ lies inside triangle $i$. The pseudonormal is $\boldsymbol{n}_i$.
+* **Edge.** $\boldsymbol{p}$ lies on the edge that triangles $i$ and $j$ share. The pseudonormal is $\boldsymbol{n}_i + \boldsymbol{n}_j$.
+* **Vertex.** $\boldsymbol{p}$ lies on a vertex. The pseudonormal is $\sum_i \alpha_i \boldsymbol{n}_i$, summed over the triangles that meet at the vertex. Here $\alpha_i$ is the interior angle of triangle $i$ at that vertex.
+
+The edge case is the vertex rule with $\alpha_i = \alpha_j = \pi$, so the two normals carry equal weight.
+Bærentzen and Aanæs prove that this sign is correct for every sample.
+The proof needs a closed, consistently wound, manifold surface.
+The [Surface Checks](#surface-checks) reject any input that is not one.
+
+`automesh` classifies $\boldsymbol{p}$ by its barycentric coordinates $(\lambda_0, \lambda_1, \lambda_2)$ in the triangle that the closest-point search returns.
+A coordinate within $10^{-10}$ of 1 puts $\boldsymbol{p}$ on that vertex.
+Otherwise, a coordinate within $10^{-10}$ of 0 puts $\boldsymbol{p}$ on the opposite edge.
+Otherwise, $\boldsymbol{p}$ lies inside the triangle.
+The tolerance absorbs the round-off in $\boldsymbol{p}$.
+A closest point on an edge then gets the edge pseudonormal, whichever of the two triangles the search returned.
+
+`automesh` computes each $\boldsymbol{n}_i$ from the triangle winding.
+It ignores the facet normals stored in the STL file, because some writers leave them zero or wrong.
 
 <figure>
 
@@ -201,11 +222,17 @@ Right: a tip with a 40° interior angle.
 The sample lies outside, and its closest point is the tip, which both faces contain.
 The normal $\boldsymbol{n}_2$ gives the right sign, but $\boldsymbol{n}_1$ gives the wrong one, so the result depends on which face the search returns.
 The angle-weighted pseudonormal (dashed) averages the two normals and gives the right sign.
+`automesh` uses the pseudonormal.
 
 </figcaption>
 </figure>
 
-<!-- TODO: update after the 2026-10-15 discussion of questions Q2 and Q3 with @mrbuche (automesh#761). -->
+Two unit tests sweep samples around a tip with a 40° interior angle.
+One sweep covers the tip's edge, at 14 directions.
+The other covers a vertex at the tip's end, at 42 directions.
+In 10 of the 14 edge directions and 30 of the 42 vertex directions, one of the two side faces has a normal that gives the wrong sign.
+Both tests fail if `automesh` takes the sign from the normal of the triangle the search returns.
+Both pass with the pseudonormal.
 
 ## Surface Triangulation
 
@@ -345,3 +372,7 @@ Two open issues change this workflow:
 ```
 
 </details>
+
+## References
+
+[^Baerentzen_2005]: Bærentzen JA, Aanæs H. Signed distance computation using the angle weighted pseudonormal. *IEEE Transactions on Visualization and Computer Graphics*. 2005 May;11(3):243-253. [paper](https://doi.org/10.1109/TVCG.2005.49)

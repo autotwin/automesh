@@ -11,13 +11,32 @@ automesh hausdorff --help
 
 ## Example
 
-<!-- TODO: replace with a cmdrun example on a committed fixture once Part 1 lands. -->
+The example uses the unit cube from the [Unit Cube Example](../theory/hausdorff.md#unit-cube-example).
+The mesh [`hausdorff_cube_hex8_spike.inp`](hausdorff/hausdorff_cube_hex8_spike.inp) is a 2 × 2 × 2 grid of hexahedra.
+Its top-center node sits at $z = 1.3$, which puts a spike of height 0.3 on the top face.
+The tessellation [`hausdorff_cube.stl`](hausdorff/hausdorff_cube.stl) is the unit cube, with 12 triangles and no spike.
 
 ```sh
-automesh hausdorff --mesh sphere.exo --tessellation sphere.stl --output sphere
+automesh hausdorff --mesh hausdorff/hausdorff_cube_hex8_spike.inp --tessellation hausdorff/hausdorff_cube.stl --output hausdorff/spike
+<!-- cmdrun automesh hausdorff --mesh hausdorff/hausdorff_cube_hex8_spike.inp --tessellation hausdorff/hausdorff_cube.stl --output hausdorff/spike | ansifilter -->
 ```
 
-This command writes `sphere_A_to_B.csv` and `sphere_B_to_A.csv`.
+The command writes `spike_A_to_B.csv` and `spike_B_to_A.csv`.
+The mesh has 26 boundary nodes.
+The spike tip is node 23 in the file and row 22 in `spike_A_to_B.csv`, because interior node 14 has no row.
+It is the only node off the cube, at $s = +0.3$:
+
+```sh
+grep "1.3," hausdorff/spike_A_to_B.csv
+<!-- cmdrun grep "1.3," hausdorff/spike_A_to_B.csv -->
+```
+
+Every vertex of the tessellation lies on the mesh surface, so each one has $s = 0$:
+
+```sh
+cat hausdorff/spike_B_to_A.csv
+<!-- cmdrun cat hausdorff/spike_B_to_A.csv -->
+```
 
 ## Output Files
 
@@ -42,11 +61,10 @@ A prefix such as `results.v2` therefore writes `results_A_to_B.csv`.
 | `x,y,z` | node coordinates |
 | `signed distance` | $s_i$, the signed distance to the closest point on the tessellation |
 
-An Exodus file supplies `reference node` from its `node_num_map`, and an Abaqus file supplies it from its node labels.
-A file with no node numbering gets the 1-based node index instead.
+`automesh` takes `reference node` from `conspire`'s `Mesh::node_labels()`.
+An Exodus file supplies those labels from its `node_num_map`, and an Abaqus file supplies them from its `*Node` labels.
+A file with no node labels, such as Medit or VTU, gets the 1-based node index instead.
 The coordinates let you plot the file without the mesh.
-
-<!-- TODO: confirm the reference node source once mrbuche/conspire.rs#255 is released. -->
 
 ### Tessellation to Mesh
 
@@ -68,14 +86,17 @@ For a hexahedral mesh, `automesh` splits each boundary quadrilateral along its s
 
 A positive signed distance means the sample lies outside the other surface.
 A negative one means it lies inside.
-See [Sign Convention](../theory/hausdorff.md#sign-convention) for the definition and its known limit near sharp edges.
+The sign comes from the angle-weighted pseudonormal at the closest point, which stays correct at sharp edges and vertices.
+See [Sign Convention](../theory/hausdorff.md#sign-convention) for the definition.
 
 ## Console Summary
 
 For each direction, `automesh` prints the maximum, mean, and root mean square of $\lvert s \rvert$.
 It also prints the sampled Hausdorff distance $H_h$, the larger of the two maxima.
+The [Example](#example) shows the summary for the spike case.
+There, $h_h(\mathcal{A} \rightarrow \mathcal{B}) = 0.3$, $h_h(\mathcal{B} \rightarrow \mathcal{A}) = 0$, and $H_h = 0.3$.
 
-<!-- TODO: paste captured output once implemented. -->
+If any boundary element has $\hat{J}_{\min} < 0$, `automesh` also prints a warning with the count of those elements.
 
 ## Input Requirements
 
