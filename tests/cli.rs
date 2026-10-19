@@ -999,6 +999,7 @@ fn signed_distances(path: &Path) -> Vec<f64> {
     std::fs::read_to_string(path)
         .expect("distance file was not created")
         .lines()
+        .filter(|line| !line.starts_with('#'))
         .skip(1)
         .map(|row| row.rsplit(',').next().unwrap().trim().parse().unwrap())
         .collect()
@@ -1156,7 +1157,7 @@ fn hausdorff_reference_node_labels() {
     let prefix = output.with_extension("");
     let rows = std::fs::read_to_string(format!("{}_A_to_B.csv", prefix.to_str().unwrap()))
         .expect("distance file was not created");
-    let mut lines = rows.lines();
+    let mut lines = rows.lines().filter(|line| !line.starts_with('#'));
     assert_eq!(
         lines.next(),
         Some("node,reference node,x,y,z,signed distance")
@@ -1165,4 +1166,69 @@ fn hausdorff_reference_node_labels() {
         .map(|row| row.split(',').nth(1).unwrap().parse::<usize>().unwrap())
         .collect::<Vec<_>>();
     assert_eq!(references, (101..=108).collect::<Vec<_>>());
+}
+
+fn summary(path: &Path) -> Vec<(String, String)> {
+    std::fs::read_to_string(path)
+        .expect("distance file was not created")
+        .lines()
+        .map_while(|line| line.strip_prefix("# "))
+        .map(|line| {
+            let (key, value) = line.split_once(" = ").unwrap();
+            (key.to_string(), value.to_string())
+        })
+        .collect()
+}
+
+fn summary_value(summary: &[(String, String)], key: &str) -> f64 {
+    summary
+        .iter()
+        .find(|(found, _)| found == key)
+        .unwrap_or_else(|| panic!("no {key} in the summary"))
+        .1
+        .parse()
+        .unwrap()
+}
+
+#[test]
+fn hausdorff_summary_comments() {
+    let output = out("csv");
+    run(&[
+        "hausdorff",
+        "-a",
+        input("hausdorff_cube_hex8_spike.inp").to_str().unwrap(),
+        "-b",
+        input("hausdorff_cube.stl").to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    let prefix = output.with_extension("");
+    let prefix = prefix.to_str().unwrap();
+    let a_to_b = summary(Path::new(&format!("{prefix}_A_to_B.csv")));
+    let keys = a_to_b
+        .iter()
+        .map(|(key, _)| key.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        keys,
+        [
+            "direction",
+            "samples",
+            "max |s|",
+            "mean |s|",
+            "rms |s|",
+            "H_h"
+        ]
+    );
+    assert_eq!(a_to_b[0].1, "A to B");
+    assert_eq!(a_to_b[1].1, "26");
+    assert!((summary_value(&a_to_b, "max |s|") - SPIKE).abs() < TOLERANCE);
+    assert!((summary_value(&a_to_b, "mean |s|") - SPIKE / 26.0).abs() < TOLERANCE);
+    assert!((summary_value(&a_to_b, "rms |s|") - SPIKE / 26.0_f64.sqrt()).abs() < TOLERANCE);
+    assert!((summary_value(&a_to_b, "H_h") - SPIKE).abs() < TOLERANCE);
+    let b_to_a = summary(Path::new(&format!("{prefix}_B_to_A.csv")));
+    assert_eq!(b_to_a[0].1, "B to A");
+    assert_eq!(b_to_a[1].1, "8");
+    assert_eq!(summary_value(&b_to_a, "max |s|"), 0.0);
+    assert!((summary_value(&b_to_a, "H_h") - SPIKE).abs() < TOLERANCE);
 }

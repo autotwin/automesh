@@ -48,20 +48,29 @@ pub fn hausdorff(args: HausdorffArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         );
     }
     let prefix = Path::new(&args.output).with_extension("");
-    let samples = boundary
+    let a_samples = boundary
         .nodes
         .iter()
         .map(|&node| boundary.surface.points()[node])
         .collect::<Vec<_>>();
-    let distances = tessellation.signed_distances(&samples);
+    let a_distances = tessellation.signed_distances(&a_samples);
+    let b_samples = tessellation.points();
+    let b_distances = boundary.surface.signed_distances(b_samples);
+    let a_to_b = Summary::from(a_distances.as_slice());
+    let b_to_a = Summary::from(b_distances.as_slice());
+    let hausdorff = a_to_b.maximum.max(b_to_a.maximum);
+    a_to_b.echo("A to B", quiet);
+    b_to_a.echo("B to A", quiet);
+    crate::echo!(quiet, "   \x1b[1;96mHausdorff\x1b[0m H_h = {hausdorff:e}");
     let labels = mesh.node_labels();
     write_rows(
         &suffixed(&prefix, "_A_to_B.csv"),
+        &a_to_b.comments("A to B", hausdorff),
         "node,reference node,x,y,z,signed distance",
         boundary
             .nodes
             .iter()
-            .zip(samples.iter().zip(distances.iter()))
+            .zip(a_samples.iter().zip(a_distances.iter()))
             .enumerate()
             .map(|(row, (&node, ([x, y, z], s)))| {
                 let reference = labels.map_or(node + 1, |labels| labels[node]);
@@ -69,26 +78,17 @@ pub fn hausdorff(args: HausdorffArgs, quiet: bool) -> Result<(), ErrorWrapper> {
             }),
         quiet,
     )?;
-    let a_to_b = summarize("A to B", &distances, quiet);
-    let samples = tessellation.points();
-    let distances = boundary.surface.signed_distances(samples);
     write_rows(
         &suffixed(&prefix, "_B_to_A.csv"),
+        &b_to_a.comments("B to A", hausdorff),
         "vertex,x,y,z,signed distance",
-        samples
+        b_samples
             .iter()
-            .zip(distances.iter())
+            .zip(b_distances.iter())
             .enumerate()
             .map(|(row, ([x, y, z], s))| format!("{},{x},{y},{z},{s}", row + 1)),
         quiet,
-    )?;
-    let b_to_a = summarize("B to A", &distances, quiet);
-    crate::echo!(
-        quiet,
-        "   \x1b[1;96mHausdorff\x1b[0m H_h = {:e}",
-        a_to_b.max(b_to_a)
-    );
-    Ok(())
+    )
 }
 
 fn read_volume(file: &str, quiet: bool) -> Result<Mesh<3>, ErrorWrapper> {
@@ -220,6 +220,7 @@ fn suffixed(prefix: &Path, suffix: &str) -> PathBuf {
 
 fn write_rows(
     file: &Path,
+    comments: &[String],
     header: &str,
     rows: impl Iterator<Item = String>,
     quiet: bool,
@@ -227,6 +228,9 @@ fn write_rows(
     crate::echo!(quiet, "     \x1b[1;96mWriting\x1b[0m {}", file.display());
     let time = Instant::now();
     let mut writer = BufWriter::new(File::create(file)?);
+    for comment in comments {
+        writeln!(writer, "# {comment}")?;
+    }
     writeln!(writer, "{header}")?;
     for row in rows {
         writeln!(writer, "{row}")?;
@@ -236,16 +240,45 @@ fn write_rows(
     Ok(())
 }
 
-fn summarize(direction: &str, distances: &[f64], quiet: bool) -> f64 {
-    let count = distances.len() as f64;
-    let maximum = distances
-        .iter()
-        .fold(0.0_f64, |maximum, s| maximum.max(s.abs()));
-    let mean = distances.iter().map(|s| s.abs()).sum::<f64>() / count;
-    let rms = (distances.iter().map(|s| s * s).sum::<f64>() / count).sqrt();
-    crate::echo!(
-        quiet,
-        "   \x1b[1;96mHausdorff\x1b[0m {direction}: max |s| = {maximum:e}, mean |s| = {mean:e}, rms = {rms:e}"
-    );
-    maximum
+struct Summary {
+    samples: usize,
+    maximum: f64,
+    mean: f64,
+    rms: f64,
+}
+
+impl From<&[f64]> for Summary {
+    fn from(distances: &[f64]) -> Self {
+        let count = distances.len() as f64;
+        Self {
+            samples: distances.len(),
+            maximum: distances
+                .iter()
+                .fold(0.0_f64, |maximum, s| maximum.max(s.abs())),
+            mean: distances.iter().map(|s| s.abs()).sum::<f64>() / count,
+            rms: (distances.iter().map(|s| s * s).sum::<f64>() / count).sqrt(),
+        }
+    }
+}
+
+impl Summary {
+    fn echo(&self, direction: &str, quiet: bool) {
+        crate::echo!(
+            quiet,
+            "   \x1b[1;96mHausdorff\x1b[0m {direction}: max |s| = {:e}, mean |s| = {:e}, rms |s| = {:e}",
+            self.maximum,
+            self.mean,
+            self.rms
+        );
+    }
+    fn comments(&self, direction: &str, hausdorff: f64) -> Vec<String> {
+        vec![
+            format!("direction = {direction}"),
+            format!("samples = {}", self.samples),
+            format!("max |s| = {}", self.maximum),
+            format!("mean |s| = {}", self.mean),
+            format!("rms |s| = {}", self.rms),
+            format!("H_h = {hausdorff}"),
+        ]
+    }
 }

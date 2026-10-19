@@ -48,6 +48,34 @@ A directory in the prefix stays, so `-o out/part.csv` writes into `out/`.
 The rule drops everything after the last dot in the file name.
 A prefix such as `results.v2` therefore writes `results_A_to_B.csv`.
 
+### Summary Lines
+
+Each file starts with six comment lines, before the column header.
+They repeat the [Console Summary](#console-summary) for that file's direction, so each file records its own result.
+
+| Key | Value |
+| --- | --- |
+| `direction` | `A to B` or `B to A` |
+| `samples` | the number of rows |
+| `max \|s\|` | the largest $\lvert s \rvert$, which is $h_h$ for this direction |
+| `mean \|s\|` | the mean of $\lvert s \rvert$ |
+| `rms \|s\|` | the root mean square of $\lvert s \rvert$ |
+| `H_h` | the sampled Hausdorff distance, the larger of the two `max \|s\|` values |
+
+Each line has the form `# key = value`.
+Both files carry the same `H_h`.
+$H_h$ is a lower bound on the continuous Hausdorff distance $H$, as [Discrete Setting](../theory/hausdorff.md#discrete-setting) explains.
+`automesh` does not report $H$.
+
+NumPy's `loadtxt` and `genfromtxt` skip lines that start with `#` by default.
+pandas skips them only when told to:
+
+```python
+import pandas as pd
+
+rows = pd.read_csv("part_A_to_B.csv", comment="#")
+```
+
 ### Mesh to Tessellation
 
 `PREFIX_A_to_B.csv` has one row per boundary node of the mesh.
@@ -93,6 +121,7 @@ See [Sign Convention](../theory/hausdorff.md#sign-convention) for the definition
 
 For each direction, `automesh` prints the maximum, mean, and root mean square of $\lvert s \rvert$.
 It also prints the sampled Hausdorff distance $H_h$, the larger of the two maxima.
+The [Summary Lines](#summary-lines) at the top of each output file hold the same values.
 The [Example](#example) shows the summary for the spike case.
 There, $h_h(\mathcal{A} \rightarrow \mathcal{B}) = 0.3$, $h_h(\mathcal{B} \rightarrow \mathcal{A}) = 0$, and $H_h = 0.3$.
 
