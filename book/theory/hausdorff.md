@@ -390,16 +390,27 @@ Left: the tessellation as read.
 The frames differ, and $H = 2.000$ measures the transform, not the mesh.
 Right: the same tessellation with the same transform applied.
 $H = 0.036$ now measures the faceting of the 16-node mesh.
-The file name on the right follows the rule proposed in [#802](https://github.com/autotwin/automesh/issues/802).
+The file name on the right is the one `automesh mesh` writes for this transform.
 
 </figcaption>
 </figure>
 
-Today you must transform the tessellation yourself before you compare.
-`--tessellation` reads `exo`, `inp`, `mesh`, `off`, and `vtu` as well as `stl`, so a tessellation you transform in another tool can come back in any of those formats.
-An open issue changes this workflow:
+`automesh mesh` writes the transformed tessellation for you.
+When the input is an STL and any transform option differs from its default, it also writes the input surface, moved by the same transform, next to the output mesh.
+The file name records all six values, as `<stem>_scale_<sx>_<sy>_<sz>_translate_<tx>_<ty>_<tz>.stl`.
+Each value is the shortest decimal that reads back to the exact number applied, so the name is an exact record of the transform.
+Pass that file to `--tessellation`:
 
-* [#802](https://github.com/autotwin/automesh/issues/802) has `automesh mesh` write the transformed tessellation next to its output whenever an STL input meets non-default transform options. The file name records the transform, for example `bone_scale_0.001_0.001_0.001_translate_0_0_-12.5.stl`. You then pass that file to `--tessellation` directly.
+```sh
+automesh mesh hex -i bone.stl -o bone.exo --xscale 0.001 --yscale 0.001 --zscale 0.001
+automesh hausdorff -a bone.exo -b bone_scale_0.001_0.001_0.001_translate_0_0_0.stl -o bone
+```
+
+A segmentation input has no input surface, so it gets no extra file.
+For a tessellation you transform in another tool, `--tessellation` also reads `exo`, `inp`, `mesh`, `off`, and `vtu`.
+
+A translation leaves every distance unchanged, and a uniform scale $s$ multiplies every distance by $s$.
+A non-uniform scale stretches distances by different amounts in different directions, so no single factor converts $H_h$ in the transformed frame back to the original frame.
 
 <details>
 <summary><code>hausdorff_diagrams.py</code></summary>

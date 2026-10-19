@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use super::{
     ErrorWrapper,
     io::{extension, invalid_input, read_segmentation, write_mesh},
@@ -190,7 +193,7 @@ fn read_voxels(args: &MeshArgs, quiet: bool) -> Result<Voxels<u8>, ErrorWrapper>
     }
 }
 
-fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+fn finish(mut mesh: Mesh<3>, mut args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     if let Some(MeshSmoothCommands::Smooth {
         remeshing,
         iterations,
@@ -198,7 +201,7 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
         pass_band,
         scale,
         hierarchical,
-    }) = args.smoothing
+    }) = args.smoothing.take()
     {
         apply_smoothing_method(
             &mut mesh,
@@ -216,7 +219,34 @@ fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWra
     if let Some(file) = &args.metrics {
         write_metrics(&mesh, file, quiet)?;
     }
-    write_mesh(&args.output, mesh, quiet)
+    write_mesh(&args.output, mesh, quiet)?;
+    write_transformed_tessellation(&args, quiet)
+}
+
+fn write_transformed_tessellation(args: &MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
+    let scale = [args.xscale, args.yscale, args.zscale];
+    let translate = [args.xtranslate, args.ytranslate, args.ztranslate];
+    if extension(&args.input) != Some("stl") || (scale == [1.0; 3] && translate == [0.0; 3]) {
+        return Ok(());
+    }
+    let output = Path::new(&args.output);
+    let stem = output
+        .file_stem()
+        .and_then(|stem| stem.to_str())
+        .ok_or_else(|| invalid_input(&args.output, extension(&args.output)))?;
+    let file = output.with_file_name(transformed_name(stem, scale, translate));
+    let tessellation = Tessellation::try_from(Path::new(&args.input))?;
+    write_mesh(
+        file.to_str().expect("the output path is valid UTF-8"),
+        scaled(Mesh::from(tessellation), scale, translate),
+        quiet,
+    )
+}
+
+fn transformed_name(stem: &str, scale: [f64; 3], translate: [f64; 3]) -> String {
+    let [sx, sy, sz] = scale;
+    let [tx, ty, tz] = translate;
+    format!("{stem}_scale_{sx}_{sy}_{sz}_translate_{tx}_{ty}_{tz}.stl")
 }
 
 /// Rejects flags that a tessellation (stl) input would otherwise silently ignore.

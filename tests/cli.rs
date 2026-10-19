@@ -1321,3 +1321,148 @@ fn hausdorff_tessellation_rejects_hexahedra() {
     ]);
     assert_tessellation_rejected(&tessellation, "hexahedra");
 }
+
+fn transformed(output: &Path, suffix: &str) -> PathBuf {
+    output.with_file_name(format!(
+        "{}_{suffix}.stl",
+        output.file_stem().unwrap().to_str().unwrap()
+    ))
+}
+
+fn off_bounds(path: &Path) -> [[f64; 2]; 3] {
+    let off = out("off");
+    run(&[
+        "convert",
+        "mesh",
+        "-i",
+        path.to_str().unwrap(),
+        "-o",
+        off.to_str().unwrap(),
+    ]);
+    let text = std::fs::read_to_string(off).unwrap();
+    let mut lines = text.lines().skip(1);
+    let count = lines
+        .next()
+        .unwrap()
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .parse::<usize>()
+        .unwrap();
+    let mut bounds = [[f64::INFINITY, f64::NEG_INFINITY]; 3];
+    lines.take(count).for_each(|line| {
+        line.split_whitespace()
+            .map(|value| value.parse::<f64>().unwrap())
+            .enumerate()
+            .for_each(|(axis, value)| {
+                bounds[axis][0] = bounds[axis][0].min(value);
+                bounds[axis][1] = bounds[axis][1].max(value);
+            })
+    });
+    bounds
+}
+
+#[test]
+fn mesh_writes_transformed_tessellation() {
+    let output = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("hausdorff_cube.stl").to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "--xscale",
+        "2",
+        "--ytranslate",
+        "1",
+    ]);
+    let tessellation = transformed(&output, "scale_2_1_1_translate_0_1_0");
+    assert!(tessellation.exists(), "{tessellation:?} was not written");
+    assert_eq!(
+        off_bounds(&tessellation),
+        [[0.0, 2.0], [1.0, 2.0], [0.0, 1.0]]
+    );
+}
+
+#[test]
+fn mesh_identity_writes_no_tessellation() {
+    let output = out("exo");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        input("hausdorff_cube.stl").to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    assert!(output.exists());
+    assert!(!transformed(&output, "scale_1_1_1_translate_0_0_0").exists());
+}
+
+fn transformed_hausdorff(flags: &[&str], suffix: &str) -> f64 {
+    let mesh = out("exo");
+    let mut args = vec![
+        "mesh",
+        "hex",
+        "-i",
+        input("hausdorff_cube.stl").to_str().unwrap(),
+        "-o",
+        mesh.to_str().unwrap(),
+    ]
+    .into_iter()
+    .map(str::to_string)
+    .collect::<Vec<_>>();
+    args.extend(flags.iter().map(|flag| flag.to_string()));
+    run(&args.iter().map(String::as_str).collect::<Vec<_>>());
+    let tessellation = if suffix.is_empty() {
+        input("hausdorff_cube.stl")
+    } else {
+        transformed(&mesh, suffix)
+    };
+    let output = out("csv");
+    run(&[
+        "hausdorff",
+        "-a",
+        mesh.to_str().unwrap(),
+        "-b",
+        tessellation.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    let prefix = output.with_extension("");
+    let summary = summary(Path::new(&format!(
+        "{}_A_to_B.csv",
+        prefix.to_str().unwrap()
+    )));
+    summary_value(&summary, "H_h")
+}
+
+#[test]
+fn hausdorff_on_transformed_tessellation() {
+    let base = transformed_hausdorff(&[], "");
+    assert!(base > 0.0);
+    let translated = transformed_hausdorff(
+        &[
+            "--xtranslate",
+            "3",
+            "--ytranslate",
+            "-1.5",
+            "--ztranslate",
+            "0.25",
+        ],
+        "scale_1_1_1_translate_3_-1.5_0.25",
+    );
+    assert!(
+        (translated - base).abs() < TOLERANCE,
+        "{translated} != {base}"
+    );
+    let scaled = transformed_hausdorff(
+        &["--xscale", "2", "--yscale", "2", "--zscale", "2"],
+        "scale_2_2_2_translate_0_0_0",
+    );
+    assert!(
+        (scaled - 2.0 * base).abs() < TOLERANCE,
+        "{scaled} != 2 * {base}"
+    );
+}
