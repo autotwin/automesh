@@ -138,6 +138,36 @@ A tessellation-to-mesh check alone would report 0 for a mesh that grew a feature
 The dimples give the same magnitudes as the spikes.
 The sign turns negative, because the moved point lies inside the other surface.
 
+**Mesh dimple output.**
+The command below runs the mesh dimple case on the $2 \times 2 \times 2$ hexahedral grid.
+
+```sh
+automesh hausdorff --mesh hausdorff/hausdorff_cube_hex8_dimple.inp --tessellation hausdorff/hausdorff_cube.stl --output hausdorff/dimple
+<!-- cmdrun automesh hausdorff --mesh hausdorff/hausdorff_cube_hex8_dimple.inp --tessellation hausdorff/hausdorff_cube.stl --output hausdorff/dimple | ansifilter -->
+```
+
+The mesh-to-tessellation file has one row per boundary node, 26 in all.
+The grid's 27th node, node 14, lies at the center of the grid and has no row.
+Row 22 holds node 23, the top-center node, moved down to $z = 0.7$.
+It lies 0.3 below the top face of $\mathcal{B}$, inside the cube, so its signed distance is $-0.3$.
+The other 25 nodes lie on the cube, at $s = 0$.
+
+```sh
+cat hausdorff/dimple_A_to_B.csv
+<!-- cmdrun cat hausdorff/dimple_A_to_B.csv -->
+```
+
+The tessellation-to-mesh file has one row per cube corner, 8 in all.
+Every corner is also a node of the mesh, so every signed distance is 0.
+
+```sh
+cat hausdorff/dimple_B_to_A.csv
+<!-- cmdrun cat hausdorff/dimple_B_to_A.csv -->
+```
+
+Both files report $H_h = 0.3$, from the dimple node alone.
+The `max |s|` lines hold $h_h$ for each direction: 0.3 and 0.
+
 **Points between the samples.**
 The center of the mesh's top face is not a node in the tessellation spike case.
 It lies $0.15 / \sqrt{0.34} \approx 0.257$ from the nearest face of the apex.
