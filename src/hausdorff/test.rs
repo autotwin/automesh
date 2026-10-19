@@ -297,9 +297,9 @@ fn zeroed_facet_normals_do_not_change_the_sign() {
 }
 
 #[test]
-fn tessellation_must_be_stl() {
-    assert!(read_tessellation("surface.off", true).is_err());
-    assert!(read_tessellation("surface.inp", true).is_err());
+fn tessellation_must_be_a_mesh_format() {
+    assert!(read_tessellation("surface.npy", true).is_err());
+    assert!(read_tessellation("surface.txt", true).is_err());
 }
 
 #[test]
@@ -324,4 +324,12 @@ fn mesh_must_hold_hexahedra_or_tetrahedra() {
         format!("{error:?}").contains("only hexahedra or only tetrahedra"),
         "{error:?}"
     );
+}
+
+#[test]
+fn vertices_skip_points_no_triangle_uses() {
+    let mut points = CUBE_POINTS.to_vec();
+    points.push([5.0, 5.0, 5.0]);
+    let surface = Surface::new(cube_triangles(), coordinates(&points));
+    assert_eq!(surface.vertices(), (0..8).collect::<Vec<_>>());
 }

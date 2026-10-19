@@ -71,6 +71,12 @@ impl Surface {
     pub fn points(&self) -> &[Point] {
         &self.points
     }
+    pub fn vertices(&self) -> Vec<usize> {
+        let mut vertices = self.triangles.concat();
+        vertices.sort_unstable();
+        vertices.dedup();
+        vertices
+    }
     pub fn check(&self, name: &str) -> Result<(), ErrorWrapper> {
         let open = self.mesh.boundary_edges();
         if let Some(&[a, b]) = open.first() {

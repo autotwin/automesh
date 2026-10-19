@@ -2,7 +2,7 @@
 
 The Hausdorff distance measures the worst-case gap between two surfaces.
 It is the largest distance from any point on one surface to the nearest point on the other.
-[`automesh hausdorff`](../cli/hausdorff.md) uses it to compare the surface of a finite element mesh with the tessellation (STL) it came from.
+[`automesh hausdorff`](../cli/hausdorff.md) uses it to compare the surface of a finite element mesh with the tessellation it came from, such as an STL file.
 The [Hausdorff](../cli/hausdorff.md) page of the CLI Reference covers the command's options and output files.
 
 Consider two closed and bounded continuous surfaces, $\mathcal{A}$ on the subject body and $\mathcal{B}$.
@@ -326,8 +326,11 @@ In an STL, the two copies of a vertex can differ only in the last bit.
 A surface that fails any check stops the command with an error.
 Fix the input upstream, then rerun.
 
-`automesh` checks the tessellation after it merges vertices with identical coordinates.
-A tessellation whose shared vertices differ by round-off therefore fails the closed check.
+An STL file stores the corners of each triangle separately.
+`automesh` merges corners with identical coordinates before it checks.
+An STL whose shared vertices differ by round-off therefore fails the closed check.
+The indexed formats, `exo`, `inp`, `mesh`, `off`, and `vtu`, store each vertex once and refer to it by index.
+Round-off cannot open a surface read from one of them.
 
 ### Inverted Elements
 
@@ -393,10 +396,10 @@ The file name on the right follows the rule proposed in [#802](https://github.co
 </figure>
 
 Today you must transform the tessellation yourself before you compare.
-Two open issues change this workflow:
+`--tessellation` reads `exo`, `inp`, `mesh`, `off`, and `vtu` as well as `stl`, so a tessellation you transform in another tool can come back in any of those formats.
+An open issue changes this workflow:
 
 * [#802](https://github.com/autotwin/automesh/issues/802) has `automesh mesh` write the transformed tessellation next to its output whenever an STL input meets non-default transform options. The file name records the transform, for example `bone_scale_0.001_0.001_0.001_translate_0_0_-12.5.stl`. You then pass that file to `--tessellation` directly.
-* [#801](https://github.com/autotwin/automesh/issues/801) lets `--tessellation` read `off`, `exo`, `inp`, `mesh`, and `vtu` as well as `stl`. A tessellation that you transform in another tool can then come back in any of those formats. The indexed formats also store each shared vertex once, so they cannot fail the closed check from round-off, as described under [Surface Checks](#surface-checks).
 
 <details>
 <summary><code>hausdorff_diagrams.py</code></summary>

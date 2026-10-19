@@ -1235,3 +1235,89 @@ fn hausdorff_summary_comments() {
     assert_eq!(summary_value(&b_to_a, "max |s|"), 0.0);
     assert!((summary_value(&b_to_a, "H_h") - SPIKE).abs() < TOLERANCE);
 }
+
+#[test]
+fn hausdorff_tessellation_formats() {
+    for extension in ["off", "exo", "inp", "mesh", "vtu"] {
+        let tessellation = out(extension);
+        run(&[
+            "convert",
+            "mesh",
+            "-i",
+            input("hausdorff_cube_spike.stl").to_str().unwrap(),
+            "-o",
+            tessellation.to_str().unwrap(),
+        ]);
+        let output = out("csv");
+        run(&[
+            "hausdorff",
+            "-a",
+            input("hausdorff_cube_tet6.inp").to_str().unwrap(),
+            "-b",
+            tessellation.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ]);
+        let prefix = output.with_extension("");
+        let prefix = prefix.to_str().unwrap();
+        let found = extreme(&signed_distances(Path::new(&format!(
+            "{prefix}_A_to_B.csv"
+        ))));
+        assert!(found.abs() < TOLERANCE, "{extension} A to B: {found} != 0");
+        let found = extreme(&signed_distances(Path::new(&format!(
+            "{prefix}_B_to_A.csv"
+        ))));
+        assert!(
+            (found - SPIKE).abs() < TOLERANCE,
+            "{extension} B to A: {found} != {SPIKE}"
+        );
+    }
+}
+
+fn assert_tessellation_rejected(tessellation: &Path, elements: &str) {
+    let result = Command::new(BIN)
+        .args([
+            "hausdorff",
+            "-a",
+            input("hausdorff_cube_hex1.inp").to_str().unwrap(),
+            "-b",
+            tessellation.to_str().unwrap(),
+            "-o",
+            out("csv").to_str().unwrap(),
+            "--quiet",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success(), "accepted {tessellation:?}");
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(
+        stderr.contains(&format!("holds {elements}; it must hold triangles only")),
+        "{stderr}"
+    );
+}
+
+#[test]
+fn hausdorff_tessellation_rejects_quadrilaterals() {
+    let tessellation = out("off");
+    std::fs::write(
+        &tessellation,
+        "OFF\n8 6 0\n0 0 0\n1 0 0\n1 1 0\n0 1 0\n0 0 1\n1 0 1\n1 1 1\n0 1 1\n\
+         4 0 3 2 1\n4 4 5 6 7\n4 0 1 5 4\n4 1 2 6 5\n4 2 3 7 6\n4 3 0 4 7\n",
+    )
+    .unwrap();
+    assert_tessellation_rejected(&tessellation, "quadrilaterals");
+}
+
+#[test]
+fn hausdorff_tessellation_rejects_hexahedra() {
+    let tessellation = out("exo");
+    run(&[
+        "convert",
+        "mesh",
+        "-i",
+        input("hausdorff_cube_hex1.inp").to_str().unwrap(),
+        "-o",
+        tessellation.to_str().unwrap(),
+    ]);
+    assert_tessellation_rejected(&tessellation, "hexahedra");
+}
