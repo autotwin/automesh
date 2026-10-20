@@ -1051,3 +1051,176 @@ fn mesh_help_names_the_inputs_each_mode_accepts() {
     assert!(tri.contains("Segmentation (npy | spn) input file"));
     assert!(!tri.contains("tessellation"));
 }
+
+/// A hex mesh of the unit sphere, snapped onto it so that improve starts on the target surface.
+fn snapped_sphere() -> PathBuf {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "5",
+        "--snap",
+    ]);
+    output
+}
+
+/// The worst minimum scaled Jacobian after improve, with optional extra args.
+fn improved_worst(input: &Path, extra: &[&str]) -> f64 {
+    let (target, output, metrics) = (sphere(), out("vtu"), out("csv"));
+    let mut args = vec![
+        "improve",
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-t",
+        target.to_str().unwrap(),
+        "--metrics",
+        metrics.to_str().unwrap(),
+    ];
+    args.extend(extra);
+    run(&args);
+    std::fs::read_to_string(&metrics)
+        .expect("metrics file was not created")
+        .lines()
+        .skip(1)
+        .map(|line| line.split(',').nth(1).unwrap().parse::<f64>().unwrap())
+        .fold(f64::INFINITY, f64::min)
+}
+
+#[test]
+fn improve_help_shows_the_sweeps_and_threshold_defaults() {
+    let text = help(&["improve"]);
+    assert!(text.contains("--sweeps <NUM>"));
+    assert!(text.contains("[default: 20]"));
+    assert!(text.contains("--threshold <SJ>"));
+    assert!(text.contains("[default: 1]"));
+}
+
+#[test]
+fn improve_rejects_zero_sweeps() {
+    let (input, target, output) = (sphere(), sphere(), out("vtu"));
+    let result = Command::new(BIN)
+        .args([
+            "improve",
+            "-i",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-t",
+            target.to_str().unwrap(),
+            "--sweeps",
+            "0",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("--sweeps <NUM>"));
+    assert!(!output.exists());
+}
+
+#[test]
+fn improve_with_one_sweep_stops_below_the_default() {
+    let input = snapped_sphere();
+    assert!(improved_worst(&input, &["--sweeps", "1"]) < improved_worst(&input, &[]));
+}
+
+/// The terminal output of improve on the given mesh and target, with optional extra args.
+fn improve_output(input: &Path, target: &Path, extra: &[&str]) -> String {
+    let output = out("vtu");
+    let result = Command::new(BIN)
+        .args([
+            "improve",
+            "-i",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-t",
+            target.to_str().unwrap(),
+        ])
+        .args(extra)
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(result.status.success(), "improve failed");
+    String::from_utf8_lossy(&result.stdout).into_owned()
+}
+
+#[test]
+fn improve_reports_a_used_up_sweep_budget() {
+    let text = improve_output(&snapped_sphere(), &sphere(), &["--sweeps", "1"]);
+    assert!(text.contains("The scaled Jacobian pass used all 1 sweeps without reaching 0.66."));
+}
+
+#[test]
+fn improve_reports_a_stall() {
+    let (mesh, surface) = (out("vtu"), out("stl"));
+    let segmentation = input("letter_f_3d.npy");
+    for (subcommand, output) in [("hex", &mesh), ("tri", &surface)] {
+        run(&[
+            "mesh",
+            subcommand,
+            "-i",
+            segmentation.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ]);
+    }
+    let text = improve_output(&mesh, &surface, &[]);
+    assert!(text.contains("The scaled Jacobian pass stalled after 1 sweeps short of 0.23."));
+}
+
+#[test]
+fn improve_stops_at_the_threshold() {
+    let input = snapped_sphere();
+    let text = improve_output(&input, &sphere(), &["--threshold", "0.6"]);
+    assert!(text.contains("reached the threshold 0.60"));
+    let worst = improved_worst(&input, &["--threshold", "0.6"]);
+    assert!(worst >= 0.6 && worst < improved_worst(&input, &[]));
+}
+
+#[test]
+fn improve_with_a_threshold_below_the_input_writes_it_unchanged() {
+    let (input, target, output) = (snapped_sphere(), sphere(), out("vtu"));
+    run(&[
+        "improve",
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-t",
+        target.to_str().unwrap(),
+        "--threshold",
+        "0.5",
+    ]);
+    assert_eq!(
+        std::fs::read(&input).unwrap(),
+        std::fs::read(&output).unwrap()
+    );
+}
+
+#[test]
+fn improve_rejects_a_threshold_above_one() {
+    let (input, target, output) = (sphere(), sphere(), out("vtu"));
+    let result = Command::new(BIN)
+        .args([
+            "improve",
+            "-i",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-t",
+            target.to_str().unwrap(),
+            "--threshold",
+            "1.5",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("1.5 is not between 0 and 1"));
+    assert!(!output.exists());
+}

@@ -14,6 +14,7 @@
   - [Defeature](cli/defeature.md)
   - [Diff](cli/diff.md)
   - [Extract](cli/extract.md)
+  - [Improve](cli/improve.md)
   - [Mesh](cli/mesh.md)
   - [Metrics](cli/metrics.md)
   - [Remesh](cli/remesh.md)
