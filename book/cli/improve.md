@@ -42,5 +42,3 @@ automesh improve -i sphere.vtu -o sphere_improved.vtu -t sphere_radius_1.stl --s
 |:----------:|:-----------------------------:|
 | 1          | 0.651                         |
 | 20 (default) | 0.660                       |
-
-More sweeps help on harder meshes, at a cost in time.
