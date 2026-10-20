@@ -1051,3 +1051,78 @@ fn mesh_help_names_the_inputs_each_mode_accepts() {
     assert!(tri.contains("Segmentation (npy | spn) input file"));
     assert!(!tri.contains("tessellation"));
 }
+
+/// A hex mesh of the unit sphere, snapped onto it so that improve starts on the target surface.
+fn snapped_sphere() -> PathBuf {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hex",
+        "-i",
+        sphere().to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "5",
+        "--snap",
+    ]);
+    output
+}
+
+/// The worst minimum scaled Jacobian after improve, with an optional `--sweeps`.
+fn improved_worst(input: &Path, sweeps: Option<&str>) -> f64 {
+    let (target, output, metrics) = (sphere(), out("vtu"), out("csv"));
+    let mut args = vec![
+        "improve",
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-t",
+        target.to_str().unwrap(),
+        "--metrics",
+        metrics.to_str().unwrap(),
+    ];
+    if let Some(sweeps) = sweeps {
+        args.extend(["--sweeps", sweeps]);
+    }
+    run(&args);
+    std::fs::read_to_string(&metrics)
+        .expect("metrics file was not created")
+        .lines()
+        .skip(1)
+        .map(|line| line.split(',').nth(1).unwrap().parse::<f64>().unwrap())
+        .fold(f64::INFINITY, f64::min)
+}
+
+#[test]
+fn improve_help_shows_the_sweeps_default() {
+    assert!(help(&["improve"]).contains("--sweeps <NUM>"));
+    assert!(help(&["improve"]).contains("[default: 20]"));
+}
+
+#[test]
+fn improve_with_zero_sweeps_writes_the_input_unchanged() {
+    let (input, output) = (snapped_sphere(), out("vtu"));
+    run(&[
+        "improve",
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-t",
+        sphere().to_str().unwrap(),
+        "--sweeps",
+        "0",
+    ]);
+    assert_eq!(
+        std::fs::read(&input).unwrap(),
+        std::fs::read(&output).unwrap()
+    );
+}
+
+#[test]
+fn improve_with_one_sweep_stops_below_the_default() {
+    let input = snapped_sphere();
+    assert!(improved_worst(&input, Some("1")) < improved_worst(&input, None));
+}

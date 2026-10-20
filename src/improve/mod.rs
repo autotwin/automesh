@@ -23,6 +23,10 @@ pub struct ImproveArgs {
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
+
+    /// Maximum number of minimizer sweeps at each quality threshold [default: 20]
+    #[arg(long, value_name = "NUM")]
+    pub sweeps: Option<usize>,
 }
 
 pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
@@ -33,7 +37,7 @@ pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         quiet,
         "   \x1b[1;96mImproving\x1b[0m the minimum scaled Jacobian"
     );
-    mesh.improve_scaled_jacobian(&target)?;
+    mesh.improve_scaled_jacobian(&target, args.sweeps)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     if let Some(file) = args.metrics {
         write_metrics(&mesh, &file, quiet)?;
