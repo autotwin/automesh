@@ -26,8 +26,7 @@ If the input already fits the target, as a mesh from `mesh hex --snap` does, the
 A soft-fit input starts off the target, so its first accepted mesh can be worse than the input.
 
 `--sweeps` sets the sweep budget for each level.
-The default is 20.
-On an input that fits the target, `--sweeps 0` runs no minimizer and writes the input mesh unchanged.
+The default is 20, and the smallest value is 1.
 
 ## Example
 
@@ -41,7 +40,6 @@ automesh improve -i sphere.vtu -o sphere_improved.vtu -t sphere_radius_1.stl --s
 
 | `--sweeps` | worst minimum scaled Jacobian |
 |:----------:|:-----------------------------:|
-| 0          | 0.520 (unchanged)             |
 | 1          | 0.651                         |
 | 20 (default) | 0.660                       |
 

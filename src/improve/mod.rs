@@ -4,7 +4,7 @@ use super::{
     metrics::write_metrics,
 };
 use conspire::geometry::mesh::Tessellation;
-use std::{path::Path, time::Instant};
+use std::{num::NonZeroUsize, path::Path, time::Instant};
 
 #[derive(clap::Args)]
 pub struct ImproveArgs {
@@ -26,7 +26,7 @@ pub struct ImproveArgs {
 
     /// Maximum number of minimizer sweeps at each quality threshold [default: 20]
     #[arg(long, value_name = "NUM")]
-    pub sweeps: Option<usize>,
+    pub sweeps: Option<NonZeroUsize>,
 }
 
 pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
@@ -37,7 +37,7 @@ pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         quiet,
         "   \x1b[1;96mImproving\x1b[0m the minimum scaled Jacobian"
     );
-    mesh.improve_scaled_jacobian(&target, args.sweeps)?;
+    mesh.improve_scaled_jacobian(&target, args.sweeps.map(NonZeroUsize::get))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     if let Some(file) = args.metrics {
         write_metrics(&mesh, &file, quiet)?;

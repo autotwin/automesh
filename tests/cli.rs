@@ -1102,23 +1102,25 @@ fn improve_help_shows_the_sweeps_default() {
 }
 
 #[test]
-fn improve_with_zero_sweeps_writes_the_input_unchanged() {
-    let (input, output) = (snapped_sphere(), out("vtu"));
-    run(&[
-        "improve",
-        "-i",
-        input.to_str().unwrap(),
-        "-o",
-        output.to_str().unwrap(),
-        "-t",
-        sphere().to_str().unwrap(),
-        "--sweeps",
-        "0",
-    ]);
-    assert_eq!(
-        std::fs::read(&input).unwrap(),
-        std::fs::read(&output).unwrap()
-    );
+fn improve_rejects_zero_sweeps() {
+    let (input, target, output) = (sphere(), sphere(), out("vtu"));
+    let result = Command::new(BIN)
+        .args([
+            "improve",
+            "-i",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-t",
+            target.to_str().unwrap(),
+            "--sweeps",
+            "0",
+        ])
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(!result.status.success());
+    assert!(String::from_utf8_lossy(&result.stderr).contains("--sweeps <NUM>"));
+    assert!(!output.exists());
 }
 
 #[test]
