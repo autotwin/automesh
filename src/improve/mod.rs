@@ -3,7 +3,10 @@ use super::{
     io::{read_mesh, write_mesh},
     metrics::write_metrics,
 };
-use conspire::geometry::mesh::{Stop, Tessellation};
+use conspire::{
+    geometry::mesh::{MeshError, Tessellation},
+    units::Dimensionless,
+};
 use std::{num::NonZeroUsize, path::Path, time::Instant};
 
 const SWEEPS: NonZeroUsize = NonZeroUsize::new(20).unwrap();
@@ -29,6 +32,21 @@ pub struct ImproveArgs {
     /// Maximum number of minimizer sweeps at each quality threshold
     #[arg(default_value_t = SWEEPS, long, value_name = "NUM")]
     pub sweeps: NonZeroUsize,
+
+    /// Minimum scaled Jacobian at which to stop, from 0 to 1
+    #[arg(default_value_t = 1.0, long, value_name = "SJ", value_parser = threshold)]
+    pub threshold: f64,
+}
+
+fn threshold(value: &str) -> Result<f64, String> {
+    let threshold = value
+        .parse::<f64>()
+        .map_err(|_| format!("{value} is not a number"))?;
+    if (0.0..=1.0).contains(&threshold) {
+        Ok(threshold)
+    } else {
+        Err(format!("{threshold} is not between 0 and 1"))
+    }
 }
 
 pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
@@ -39,29 +57,29 @@ pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         quiet,
         "   \x1b[1;96mImproving\x1b[0m the minimum scaled Jacobian"
     );
-    let stop = match mesh.improve_scaled_jacobian(&target, args.sweeps.get())? {
-        Stop::Budget { theta, sweeps } => format!(
-            "stopped at Θ = {:.2}: sweep budget ({sweeps} {}) used up",
-            theta.value(),
-            plural(sweeps)
-        ),
-        Stop::Stall { theta, sweeps } => format!(
-            "stopped at Θ = {:.2}: stalled after {sweeps} {}, energy decrease below 1e-6 relative",
-            theta.value(),
-            plural(sweeps)
-        ),
+    let stop = match mesh.improve_scaled_jacobian(
+        &target,
+        Dimensionless::of(args.threshold),
+        args.sweeps.get(),
+    ) {
+        Ok(()) => None,
+        Err(error @ (MeshError::Budget { .. } | MeshError::Stall { .. })) => Some(error),
+        Err(error) => return Err(error.to_string().into()),
     };
-    crate::echo!(
-        quiet,
-        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{stop}]\x1b[0m",
-        time.elapsed()
-    );
+    match stop {
+        None => crate::echo!(
+            quiet,
+            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[reached the threshold {:.2}]\x1b[0m",
+            time.elapsed(),
+            args.threshold
+        ),
+        Some(error) => {
+            crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+            crate::echo!(quiet, "     \x1b[1;93mStopped\x1b[0m {error}");
+        }
+    }
     if let Some(file) = args.metrics {
         write_metrics(&mesh, &file, quiet)?;
     }
     write_mesh(&args.output, mesh, quiet)
-}
-
-fn plural(sweeps: usize) -> &'static str {
-    if sweeps == 1 { "sweep" } else { "sweeps" }
 }
