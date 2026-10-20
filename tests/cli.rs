@@ -1128,3 +1128,49 @@ fn improve_with_one_sweep_stops_below_the_default() {
     let input = snapped_sphere();
     assert!(improved_worst(&input, Some("1")) < improved_worst(&input, None));
 }
+
+/// The terminal output of improve on the given mesh and target, with optional extra args.
+fn improve_output(input: &Path, target: &Path, extra: &[&str]) -> String {
+    let output = out("vtu");
+    let result = Command::new(BIN)
+        .args([
+            "improve",
+            "-i",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+            "-t",
+            target.to_str().unwrap(),
+        ])
+        .args(extra)
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(result.status.success(), "improve failed");
+    String::from_utf8_lossy(&result.stdout).into_owned()
+}
+
+#[test]
+fn improve_reports_a_used_up_sweep_budget() {
+    let text = improve_output(&snapped_sphere(), &sphere(), &["--sweeps", "1"]);
+    assert!(text.contains("stopped at Θ = 0.66: sweep budget (1 sweep) used up"));
+}
+
+#[test]
+fn improve_reports_a_stall() {
+    let (mesh, surface) = (out("vtu"), out("stl"));
+    let segmentation = input("letter_f_3d.npy");
+    for (subcommand, output) in [("hex", &mesh), ("tri", &surface)] {
+        run(&[
+            "mesh",
+            subcommand,
+            "-i",
+            segmentation.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ]);
+    }
+    let text = improve_output(&mesh, &surface, &[]);
+    assert!(text.contains(
+        "stopped at Θ = 0.23: stalled after 1 sweep, energy decrease below 1e-6 relative"
+    ));
+}
