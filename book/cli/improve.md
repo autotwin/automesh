@@ -44,5 +44,3 @@ automesh improve -i sphere.vtu -o sphere_improved.vtu -t sphere_radius_1.stl --s
 | 20 (default) | 0.660                       |
 
 More sweeps help on harder meshes, at a cost in time.
-On the adaptive bone mesh of [issue #768](https://github.com/autotwin/automesh/issues/768), 20 sweeps reach 0.470 in 10.7 s.
-50 sweeps reach 0.480 in 23.8 s.
