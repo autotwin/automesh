@@ -203,6 +203,16 @@ fn read_voxels(args: &MeshArgs, quiet: bool) -> Result<Voxels<u8>, ErrorWrapper>
     }
 }
 
+/// The refinement between creases that run close together asked for by
+/// `--proximity`.
+fn separation(args: &MeshArgs) -> SeparationSizing {
+    SeparationSizing {
+        radius: args.proximity.map(Length::meters),
+        scale: args.proximity_scale,
+        ..Default::default()
+    }
+}
+
 fn finish(mut mesh: Mesh<3>, args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     if let Some(MeshSmoothCommands::Smooth {
         remeshing,
@@ -363,11 +373,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
                 tolerance: args.tolerance.map(Length::meters),
                 ..Default::default()
             },
-            SeparationSizing {
-                radius: args.proximity.map(Length::meters),
-                scale: args.proximity_scale,
-                ..Default::default()
-            },
+            separation(&args),
             0,
         )?;
         octree.equilibrate(balancing, Pairing::Regular)?;
@@ -514,6 +520,7 @@ fn tetrahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
             Pairing::None,
             args.scale,
             args.tolerance.map(Length::meters),
+            separation(&args),
         )?
     };
     tessellation.trim(&mut mesh)?;
@@ -592,9 +599,15 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
                 balancing,
                 args.scale,
                 args.tolerance.map(Length::meters),
+                separation(&args),
             )
         } else {
-            tessellation.dual_background(balancing, args.scale, args.tolerance.map(Length::meters))
+            tessellation.dual_background(
+                balancing,
+                args.scale,
+                args.tolerance.map(Length::meters),
+                separation(&args),
+            )
         }
     }?;
     let (elements, nodes) = retained(&background, &classes);
@@ -765,5 +778,5 @@ fn scaled(mesh: Mesh<3>, scale: [f64; 3], translate: [f64; 3]) -> Mesh<3> {
             ])
         })
         .collect();
-    Mesh::from((connectivities.into_members(), coordinates))
+    Mesh::from((connectivities, coordinates))
 }
