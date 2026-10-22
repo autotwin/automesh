@@ -538,6 +538,104 @@ plateau: 0.613, 0.612, and 0.612 at 260, 270, and 280 iterations.  The adaptive
 value belongs to a spike: 0.367 at 10 iterations, 0.564 at 11, and 0.395 at 12.
 A small change in the iteration count would lose the adaptive result.
 
+### Remesh
+
+[`automesh remesh`](../../../cli/remesh.md) replaces the triangles of a surface
+with near-equilateral triangles of one target edge length.  The $n = 10$ marching
+cubes surface has 3,800 triangles.  Their edge lengths range from 0.071 to 0.141,
+and the worst angle is 30.0°.  This section remeshes the surface to the mean edge
+length of Octa-Loop level 4, 0.1178, the smooth control surface of the
+[Control Study](#control-study) below.
+
+Two runs follow.  The first remeshes the surface alone.  The second smooths the
+surface with 20 Taubin iterations, remeshes it, and smooths it again with 20
+iterations.  Every `automesh smooth` call uses its defaults: 20 iterations, a
+Taubin scale of 0.6307, and a pass band of 0.1.  The 20 remesh iterations are a
+test value.  They are not an optimum.
+
+In a trial outside `unit_sphere_remesh.py`, five orders of smoothing and
+remeshing used 20 iterations in every step.  Smoothing before and after the
+remesh gave the lowest radius RMS, defined below the figure: 0.00688, against
+0.00739 to 0.00903 for the other four.
+
+```sh
+automesh remesh -i unit_sphere_mc_n010.stl -o remesh.stl \
+  uniform --iterations 20 --size 0.1178
+automesh smooth -i unit_sphere_mc_n010.stl -o smooth.stl --iterations 20
+automesh remesh -i smooth.stl -o smooth_remesh.stl \
+  uniform --iterations 20 --size 0.1178
+automesh smooth -i smooth_remesh.stl -o smooth_remesh_smooth.stl --iterations 20
+```
+
+<figure id="fig-remesh">
+    <img src="unit_sphere_remesh.png" alt="the n = 10 marching cubes surface, the same surface remeshed, smoothed then remeshed then smoothed, and Octa-Loop level 4" />
+    <figcaption>The $n = 10$ marching cubes surface (left), after remeshing (second), after 20 Taubin smoothing iterations, remeshing, and 20 more iterations (third), and Octa-Loop level 4 (right).  The target edge length is 0.1178, the mean edge of Octa-Loop level 4.  The figure is produced by <code>unit_sphere_remesh.py</code>.</figcaption>
+</figure>
+
+| surface | triangles | edge length CoV $(\sigma/\mu)$ | minimum angle | vertex radius | radius RMS | $\max\lvert r - 1\rvert$ | maximum / RMS dihedral angle | area | volume |
+| :--- | ---: | ---: | ---: | :--- | ---: | ---: | ---: | ---: | ---: |
+| marching cubes, $n = 10$ | 3,800 | 0.262 | 30.0° | 0.955–1.050 | 0.02150 | 0.0500 | 70.5° / 24.9° | 13.720 | 4.148 |
+| remesh | 1,994 | 0.090 | 42.1° | 0.954–1.035 | 0.01779 | 0.0463 | 54.0° / 17.2° | 12.884 | 4.123 |
+| Taubin 20, remesh, Taubin 20 | 1,976 | 0.096 | 42.8° | 0.973–1.011 | 0.00688 | 0.0269 | 11.1° / 4.5° | 12.576 | 4.181 |
+| Octa-Loop level 4 | 2,048 | 0.142 | 45.0° | 0.998–1.003 | 0.00158 | 0.0034 | 4.7° / 4.0° | 12.521 | 4.162 |
+
+The exact sphere has area $4\pi \approx 12.566$ and volume $4\pi/3 \approx 4.189$.
+Every surface is closed.  The coefficient of variation (CoV) of the edge length
+is $\sigma/\mu$, the standard deviation of the edge lengths divided by their
+mean.  It is 0 when every edge has the same length.
+
+The radius $r$ of a vertex is its distance from the origin, so a vertex on the
+unit sphere has $r = 1$.  The radius RMS is the root mean square of $r - 1$ over
+the vertices.  It is the typical distance of a vertex from the unit sphere,
+whether the vertex lies inside or outside.  The dihedral angle of an edge is the
+angle between the normals of its two triangles.  It is 0° where the two
+triangles lie in one plane.  The table lists the maximum and the root mean
+square of the dihedral angle over the edges.
+
+**Remesh alone.**  Remeshing cuts the triangle count from 3,800 to 1,994.  It
+cuts the coefficient of variation of the edge length from 0.262 to 0.090.  It
+raises the worst angle from 30.0° to 42.1°.  **It does not round the steps.  The
+vertex radius still ranges from 0.954 to 1.035, against 0.955 to 1.050 before.**
+The radius RMS is 0.01779, against 0.02150 before, and the maximum dihedral angle
+is 54.0°, against 70.5°.  The area falls from 13.720 to 12.884, still 2.5% above
+$4\pi$.
+
+**Smooth, remesh, smooth.**  Twenty Taubin iterations before the remesh round the
+steps.  Twenty more after the remesh round what the remesh leaves.  The radius
+RMS falls to 0.00688, from 0.01779 for the remesh alone.  The largest $\lvert r
+- 1\rvert$ falls from 0.0463 to 0.0269.  The maximum dihedral angle falls from
+54.0° to 11.1°, and its RMS from 17.2° to 4.5°.  The area is 12.576, 0.08% above
+$4\pi$.  The volume is 4.181, 0.19% below $4\pi/3$.  The surface has 1,976
+triangles, a coefficient of variation of 0.096, and a worst angle of 42.8°.
+
+**Against Octa-Loop level 4.**  Octa-Loop level 4 has 2,048 triangles, a
+coefficient of variation of 0.142, a worst angle of 45.0°, a radius RMS of
+0.00158, a largest $\lvert r - 1\rvert$ of 0.0034, and dihedral angles of 4.7°
+at most and 4.0° RMS.  The smoothed and remeshed surface has the lower
+coefficient of variation, by 0.046.  Its worst angle is 2.2° smaller.  Its radius
+RMS is 4.4 times that of Octa-Loop level 4, its largest $\lvert r - 1\rvert$ is
+about 8 times, and its maximum dihedral angle is 2.4 times.  Its RMS dihedral
+angle is 0.5° higher.
+
+**Edge lengths.**  The $n = 10$ surface has four distinct edge lengths, shared
+among its 5,700 edges:
+
+* 0.0707 on 39.8% of the edges,
+* 0.1000 on 26.9%,
+* 0.1225 on 20.2%, and
+* 0.1414 on 13.1%.
+
+Remeshing spreads them over a range: 0.090 to 0.159 after remeshing, and 0.092
+to 0.155 after smoothing, remeshing, and smoothing.  The mean edge length is
+0.122 after remeshing and 0.121 after the three steps, against the target of
+0.1178.  The share of edges within 10% of the target is 20.2% for the marching
+cubes surface, 67.3% after remeshing, and 66.4% after the three steps.
+
+Octa-Loop level 4 has 57.0% of its edges within 10% of the target, below both
+remeshed surfaces.  It has a tail of short edges.  Its shortest edge is 0.045 and
+its 5th percentile is 0.083, against 0.092 and 0.100 for the smoothed and
+remeshed surface.  Its longest edge is 0.134, against 0.155.
+
 ### Control Study
 
 `automesh mesh hex`'s adaptive octree combines two refinement signals:
