@@ -123,13 +123,22 @@ pub struct MeshArgs {
     #[arg(long, short = 't', value_name = "TOL")]
     pub tolerance: Option<f64>,
 
-    /// Crease-to-crease distance below which narrow features (thin ribs,
-    /// walls, stair-steps) drive refinement [default: disabled]
-    #[arg(long, short = 'p', value_name = "RADIUS")]
-    pub proximity: Option<f64>,
+    /// Refines between creases that run close together (thin ribs, walls,
+    /// stair-steps) [default: disabled]
+    #[arg(action, long, short = 'p')]
+    pub proximity: bool,
+
+    /// Creases closer together than this are ignored as noise by proximity
+    #[arg(
+        long,
+        value_name = "DIST",
+        default_value_t = 0.0,
+        requires = "proximity"
+    )]
+    pub proximity_min: f64,
 
     /// Cells across a narrow feature caught by proximity [default: scale]
-    #[arg(long, value_name = "NUM")]
+    #[arg(long, value_name = "NUM", requires = "proximity")]
     pub proximity_scale: Option<f64>,
 
     /// Uses strong balancing instead of the default weak balancing
@@ -207,9 +216,8 @@ fn read_voxels(args: &MeshArgs, quiet: bool) -> Result<Voxels<u8>, ErrorWrapper>
 /// `--proximity`.
 fn separation(args: &MeshArgs) -> SeparationSizing {
     SeparationSizing {
-        radius: args.proximity.map(Length::meters),
+        minimum: args.proximity.then(|| Length::meters(args.proximity_min)),
         scale: args.proximity_scale,
-        ..Default::default()
     }
 }
 
