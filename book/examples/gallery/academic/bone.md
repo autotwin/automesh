@@ -133,8 +133,9 @@ clang 21.0.0.
 
 The first stages took about 52 seconds: 35 seconds for the octree, 5 for the
 dual mesh, and 12 for the interior mesh.  Then the projection step began.  It
-moves the boundary nodes onto the surface, and it guards the quality of the
-elements as it goes.  It starts with a quality bar of 0.01.  The first time the
+moves every node.  A gradient step moves all nodes to raise the elements below
+a quality bar.  A guarded step moves the boundary nodes toward the surface, and
+keeps a move only if the neighboring elements stay above the bar.  It starts with a quality bar of 0.01.  The first time the
 mesh meets it, the bar jumps to 0.53.  Each time the mesh meets the bar, it
 writes `finalMesh.vtk` and raises the bar by 0.01.  In our run the bar rose ten
 times.  The mesh written at the tenth step, after 293
@@ -474,9 +475,11 @@ figure comes from [`bone_render.py`](bone_render.py) with `--cut`, and
 
 A typical boundary element is fine.  The boundary median is about the same as
 the reference's.  Only the worst boundary elements are poor.  The reference
-holds its MSJ floor of 0.61 in both the boundary and the interior.  That is
-consistent with a fit that guards the quality of each element.  We have not
-confirmed this in the code of the paper.
+holds its MSJ floor of 0.61 in both the boundary and the interior.  The code
+confirms why.  In `ProjectToIsoSurface`, a gradient step moves every node,
+interior ones included, to raise the elements below the bar.  A guarded step
+moves the boundary nodes, and keeps a move only if the neighboring elements
+stay above the bar.
 
 ### What Did Not Help
 
@@ -648,9 +651,10 @@ this bone, the result is solid.
 **What it does not show.**  The study does not show that one method is the
 answer.  It shows what does not work, where the low elements sit, and how the
 reference works.  The reference method is a ratchet.  Its code raises a quality
-bar in steps of 0.01, up to 0.61 in our run.  It moves a boundary node only when
-the neighboring elements stay above the bar.  The hard MSJ floor of the reference is
-that bar.
+bar in steps of 0.01, up to 0.61 in our run.  A gradient step moves every node,
+interior ones included, to raise the elements below the bar.  A guarded step
+moves a boundary node only when the neighboring elements stay above the bar.
+The hard MSJ floor of the reference is that bar.
 
 The study did not try the alternatives.  Better initial fitting is one, and
 issue [autotwin/automesh#750](https://github.com/autotwin/automesh/issues/750)
@@ -665,8 +669,11 @@ the distribution, but it cannot promise an MSJ floor.
 touch the boundary, so a guard on the boundary fit targets them.  On the adaptive mesh,
 about half of the tail is interior transition elements: 606 of 1,117.  A guard
 on the boundary alone would leave them.  The section
-[Improvement](#improvement) shows that a guard on the interior nodes is not
-enough either.  The interior needs better transition templates.
+[Improvement](#improvement) shows that `improve`, which moves the interior
+nodes too, lifts the adaptive mesh only to 0.470.  The reference has the same
+kind of interior transition elements, and its code lifts them to 0.61.  The
+section [Comparison with the Reference](#comparison-with-the-reference)
+examines the difference.
 
 **The smallest version.**  A guarded smoother is the smallest step toward a
 ratchet.  It moves a node toward a better position.  It accepts the move only if
@@ -884,8 +891,9 @@ interior elements below 0.6 holds at 681 from 50 to 200 sweeps.  That count
 does not measure a limit.  The energy of `improve` is zero for every element
 above Θ, so `improve` never tries to lift an element that sits between Θ and
 0.6.  The MSJ floor is the measure that matters, and it gains 0.01 for each
-step in the budget.  The section [Transition Elements](#transition-elements)
-shows what holds it there.
+step in the budget.  The sections [Transition Elements](#transition-elements)
+and [Comparison with the Reference](#comparison-with-the-reference) examine
+what holds it there.
 
 ### Creases
 
@@ -959,7 +967,82 @@ above `improve` at 20 sweeps, and about 0.01 above `improve` at 200 sweeps,
 which reaches 0.490.  No patch reaches 0.6.
 
 SLSQP is a local method with finite-difference gradients, and the outer nodes
-of each patch stay fixed.  The result is the best found, not a proven bound.
+of each patch stay fixed.  The result is the best found for a patch, not a
+bound on the mesh.  The section
+[Comparison with the Reference](#comparison-with-the-reference) shows that
+moving every node from a different start lifts the same connectivity to 0.630.
+
+### Comparison with the Reference
+
+The reference reaches an MSJ floor of 0.610 on its adaptive mesh, and
+`improve` reaches 0.470 on ours.  Connectivity does not explain the gap.  The
+script [`bone_valence.py`](bone_valence.py) gives the same counts for both
+meshes.
+
+| | Tong 2024 | `automesh` adaptive |
+| --- | ---: | ---: |
+| interior edges of valence 3 | 19.3% | 18.6% |
+| interior edges of valence 4 | 65.0% | 66.5% |
+| interior edges of valence 5 | 14.6% | 13.6% |
+| interior edges of valence 6 or 7 | 1.1% | 1.3% |
+| interior elements with three edges of valence 7 | 4 | 16 |
+| their MSJ | 0.610 to 0.611 | 0.470 to 0.474 |
+
+The reference also builds its adaptive mesh from an octree, with explicit
+transition templates.  Its worst pattern matches ours.  Four of its interior
+elements have the edge valences 3, 3, 3, 4, 5, 5, 5, 5, 5, 7, 7, 7, as do the
+worst elements of our mesh.  The reference lifts those four to 0.610 and
+0.611.
+
+The valence of a node, the number of elements that share it, does not explain
+the gap either.  The reference has 36 interior elements at a node shared by 16
+elements, and all 36 reach 0.610.  Our mesh has 78 such elements, and 34 of
+them stay below 0.6.
+
+The reference does not start from better elements.  Its templates, as built
+and before any node motion, have an MSJ floor of 0.433 and 6,397 interior
+elements below 0.6.  Its projection step lifts the floor to 0.564, and its
+ratchet lifts it to 0.610.  Both methods move every node, and both stop at a
+ceiling.  `improve` on the reference's final mesh stays at 0.610 for 20 and 50
+sweeps, and the reference's own code never reaches 0.62.
+
+**Optimizer swap.**  The reference can resume at its projection step from an
+interior mesh with no buffer layer.  The script
+[`bone_tong_swap.py`](bone_tong_swap.py) strips the buffer layer of our
+snapped adaptive mesh and hands the 5,327-element core to that step.  The
+reference adds its own buffer layer of 3,940 elements, the same count as
+`automesh`, so the result has our 9,267 elements and our connectivity.  The
+same step, run on its own core, serves as a control.
+
+| core | optimizer | MSJ floor | elements below 0.6 |
+| --- | --- | ---: | ---: |
+| Tong 2024 | Tong 2024 | 0.610 | 0 |
+| `automesh` adaptive | `automesh improve` | 0.470 | 1,082 |
+| `automesh` adaptive | Tong 2024 | 0.640 | 0 |
+| `automesh` adaptive | Tong 2024, then `automesh improve` | 0.630 | 0 |
+
+The control reproduces the floor of 0.610.  On our connectivity, the
+optimizer of the reference reaches 0.640 about 3 minutes into the run.  At
+that point, the median boundary node lies 0.000002 from the tessellation, and
+the worst lies 0.049 from it.  The script then moves every boundary node onto
+the tessellation.  The MSJ floor falls to 0.601, with no element below 0.6.
+`automesh improve` takes that mesh to 0.630 in 5 s, with every boundary node
+within 0.0000004 of the tessellation.  The volume is 1.17% under the
+tessellation, against 1.34% for `improve` alone and 2.62% for the reference.
+
+The run is not deterministic, because the projection step calls an unseeded
+`rand()`, and it never exits on its own.  A later snapshot of the same run
+reached 0.650, but with boundary nodes up to 0.243 off the tessellation.
+Moving those onto it inverts elements, so that snapshot does not count.
+
+The gap lies in where `improve` starts, not in the connectivity.  From the
+geometry that the buffer and fit of `conspire` produce, `improve` stops at
+0.470.  From the geometry that the reference's projection step produces, on
+the same connectivity, `improve` reaches 0.630.  The local optimum of
+[Transition Elements](#transition-elements) is consistent with this.  A patch
+with its outer nodes fixed did not leave the basin it started in.  The
+reference's step moves every node, with 1,000 gradient iterations between
+checks of its bar.
 
 ### Findings
 
@@ -970,14 +1053,15 @@ success.  `improve` is a ratchet rather than that smoother, and it raises the
 MSJ floor from 0.315 to 0.620 in 25 s.
 
 On the adaptive mesh, the ratchet is not enough.  The MSJ floor stops between
-0.470 and 0.490, for budgets of 20 to 200 sweeps.  The worst elements are
-interior transition elements, each with three edges of valence 3 and at least
-one of valence 7.  A direct local optimization of the minimum, with up to 804
-free nodes, reaches 0.492 to 0.501 and no higher.  Strong balancing gives the
-same mesh, so it does not remove these elements.  The evidence points to the
-connectivity of the dual at the size transitions, which holds node motion to an
-MSJ floor near 0.5.  Raising it toward 0.6 would need different transitions,
-such as dedicated templates, rather than more node motion.
+0.470 and 0.490, for budgets of 20 to 200 sweeps.  A direct local optimization
+of the minimum, with up to 804 free nodes, reaches 0.492 to 0.501 and no
+higher.  Strong balancing gives the same mesh.  The reference has the same
+transition connectivity and reaches 0.610, so connectivity is not the cause.
+The optimizer of the reference, run on our connectivity, reaches 0.640, and
+`improve` from there reaches 0.630 with every boundary node on the
+tessellation.  The limit is the starting geometry that the buffer and fit of
+`conspire` hand to `improve`.  A better start, not a new template, is what the
+adaptive mesh needs.
 
 ## Reproducibility
 
@@ -1088,6 +1172,22 @@ automesh improve \
     -o adaptive_strong_improved.vtu \
     -t bone_frame.stl \
     --metrics adaptive_strong_improved.csv
+
+# the optimizer swap; needs the hovey/HybridOctree_Hex fork, folder
+# HybridOctree_Hex_v1.0, built with `int progress = 3;` in Main.cpp so that it
+# resumes at the projection step; model.raw, octree.vtk, and dualFullHex.vtk
+# come from the run in Reproducing the Baseline
+uv run --with numpy --with meshio python bone_tong_swap.py core \
+    adaptive_snap.vtu dualHex.vtk
+./HexGen    # never exits; stop it once bestQualityMesh.vtk reaches 0.64
+uv run --with numpy --with meshio --with trimesh --with rtree --with scipy \
+    python bone_tong_swap.py project bestQualityMesh.vtk bone_frame.stl \
+    adaptive_swapped.vtu
+automesh improve \
+    -i adaptive_swapped.vtu \
+    -o adaptive_swapped_improved.vtu \
+    -t bone_frame.stl \
+    --metrics adaptive_swapped_improved.csv
 
 # the Hausdorff figure for the improved meshes
 for mesh in uniform_improved adaptive_improved; do
