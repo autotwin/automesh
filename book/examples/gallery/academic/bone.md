@@ -301,7 +301,7 @@ numbers come from `automesh` 0.4.7.
 | maximum skew | 0.725 | 0.694 | 0.717 |
 | maximum element volume | 39.64 | 6.64 | 18.96 |
 | total volume | 28,395 | 29,236 | 29,235 |
-| volume error against the surface | −2.62% | +0.26% | +0.26% |
+| volume error against the tessellation | −2.62% | +0.26% | +0.26% |
 
 The `automesh` meshes are valid.  No element is inverted.  The bulk of each
 distribution is as good as the reference, or better.  The median is higher.
@@ -388,7 +388,7 @@ distance can miss the middle of a face, where no sample falls.
 The `automesh` uniform mesh, painted by Minimum Scaled Jacobian
 on the same 0 to 1 scale and in the same four views as the reference.  The
 elements are close to one size over the whole bone.  A few dark elements, with
-values as low as 0.28, sit scattered over the surface.  The figure comes
+values as low as 0.28, sit scattered over the tessellation.  The figure comes
 from [`bone_render.py`](bone_render.py), and
 [`bone_render_quad.py`](bone_render_quad.py) composes it.
 
@@ -788,7 +788,7 @@ without `--snap`.
 | elements above ratio 10 | 34 | 0 | 2 | 0 | 0 |
 | maximum skew | 0.725 | 0.760 | 0.663 | 0.751 | 0.753 |
 | total volume | 28,395 | 28,892 | 28,892 | 28,767 | 28,767 |
-| volume error against the surface | −2.62% | −0.92% | −0.92% | −1.34% | −1.34% |
+| volume error against the tessellation | −2.62% | −0.92% | −0.92% | −1.34% | −1.34% |
 | `improve` time | | | 25.0 s | | 9.9 s |
 
 **The uniform mesh beats the reference MSJ floor.**  `improve` lifts the worst element
@@ -806,13 +806,13 @@ boundary node, up from 656 of 1,048 before.  On the uniform mesh before `improve
 [Comparison](#comparison) uses the soft fit.  With this build, the soft
 uniform mesh has its worst element at 0.310, and the snapped one at 0.315.  The
 soft adaptive mesh has 0.276, and the snapped one 0.263.  Snapping puts every
-boundary node on the surface.  The soft fit leaves them up to 0.108 units away
-on the uniform mesh, and 0.206 units on the adaptive mesh.  The surface
+boundary node on the tessellation.  The soft fit leaves them up to 0.108 units away
+on the uniform mesh, and 0.206 units on the adaptive mesh.  The tessellation
 encloses 29,159.3.  The soft uniform mesh has 29,244, 0.29% over it, and the
 snapped one has 28,892, 0.92% under it.  The soft adaptive mesh has 29,216,
 0.19% over, and the snapped one 28,767, 1.34% under.  With its nodes on the
-surface, a snapped mesh behaves like the reference.  The flat faces between
-the nodes cut inside the surface, and the mesh loses volume.
+tessellation, a snapped mesh behaves like the reference.  The flat faces between
+the nodes cut inside the tessellation, and the mesh loses volume.
 
 **Surface fidelity.**  `automesh hausdorff` compares the improved meshes with
 the reference, as in [Comparison](#comparison).  The samples and signs are the
