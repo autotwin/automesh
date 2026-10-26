@@ -253,7 +253,8 @@ necks.
 ## Meshing with `automesh`
 
 `automesh` meshes the same surface, `bone_tri_cleaned.stl`, with two commands.
-The first builds a uniform lattice.  The second builds an adaptive octree.
+The first, uniform, lays a lattice of one element size.  The second,
+adaptive, refines an octree.
 Both put the mesh in the frame of the reference, so that lengths and volumes
 compare directly.  The scale and translate options do this.  The scale is
 $100 / 0.947288 = 105.5645168$, where 0.947288 is the longest side of the
@@ -262,27 +263,32 @@ bone in the units of the STL.  The translation centers the bone in the
 $0.01563025 \times 105.5645168 = 1.65$.
 
 ```sh
-automesh mesh hex -i bone_tri_cleaned.stl -o bone_uniform.vtu \
+automesh mesh hex \
+    -i bone_tri_cleaned.stl \
+    -o bone_uniform.vtu \
     --uniform 0.01563025 \
     --xscale 105.5645168 --yscale 105.5645168 --zscale 105.5645168 \
     --xtranslate -3.0485977 --ytranslate -2.8101274 --ztranslate -2.7887506 \
     --metrics bone_uniform_metrics.csv
 
-automesh mesh hex -i bone_tri_cleaned.stl -o bone_octree.vtu --scale 7 \
+automesh mesh hex \
+    -i bone_tri_cleaned.stl \
+    -o bone_adaptive.vtu \
+    --scale 7 \
     --xscale 105.5645168 --yscale 105.5645168 --zscale 105.5645168 \
     --xtranslate -3.0485977 --ytranslate -2.8101274 --ztranslate -2.7887506 \
-    --metrics bone_octree_metrics.csv
+    --metrics bone_adaptive_metrics.csv
 ```
 
-The lattice gives 8,379 elements and 10,271 nodes in about 2 seconds.  The
-octree gives 9,267 elements and 11,381 nodes in about 1.5 seconds.  Both are
+The uniform mesh has 8,379 elements and 10,271 nodes, made in about 2
+seconds.  The adaptive mesh has 9,267 elements and 11,381 nodes, made in about 1.5 seconds.  Both are
 close to the size of the reference.  The `--metrics` option writes the
 quality of every element, in the same four measures as before.  These
 numbers come from `automesh` 0.4.7.
 
 ### Comparison
 
-| | Tong 2024 | `automesh` uniform lattice | `automesh` adaptive octree |
+| | Tong 2024 | `automesh` uniform | `automesh` adaptive |
 | --- | ---: | ---: | ---: |
 | nodes | 10,356 | 10,271 | 11,381 |
 | elements | 8,619 | 8,379 | 9,267 |
@@ -301,20 +307,20 @@ distribution is as good as the reference, or better.  The median is higher.
 The aspect ratio is far lower, with no element above 10.  The skew is close.
 
 The worst case is the difference.  The reference has no element below 0.61.
-The lattice has a worst element at 0.275, and the octree at 0.304.  The
-lattice has 191 elements below 0.6, and the octree has 1,117.
+The uniform mesh has a worst element at 0.275, and the adaptive mesh at 0.304.
+The uniform mesh has 191 elements below 0.6, and the adaptive mesh has 1,117.
 
-The reference is also graded, where the lattice is not.  Its element volumes
-reach 39.64, while the lattice tops out at 6.64.  The
-octree grades, and reaches 18.96.
+The reference is also graded, where the uniform mesh is not.  Its element
+volumes reach 39.64, while the uniform mesh tops out at 6.64.  The adaptive
+mesh grades, and reaches 18.96.
 
 <figure>
 
-![bone_automesh_msj.png](bone_automesh_msj.png)
+![bone_uniform_msj.png](bone_uniform_msj.png)
 
 <figcaption>
 
-The `automesh` uniform-lattice mesh, painted by Minimum Scaled Jacobian
+The `automesh` uniform mesh, painted by Minimum Scaled Jacobian
 on the same 0 to 1 scale and in the same four views as the reference.  The
 elements are close to one size over the whole bone.  A few dark elements, with
 values as low as 0.28, sit scattered over the surface.  The figure comes
@@ -326,13 +332,13 @@ from [`bone_render.py`](bone_render.py), and
 
 <figure>
 
-![bone_octree_msj.png](bone_octree_msj.png)
+![bone_adaptive_msj.png](bone_adaptive_msj.png)
 
 <figcaption>
 
-The `automesh` adaptive-octree mesh, painted by Minimum Scaled Jacobian
-on the same scale and in the same four views.  Unlike the lattice, the octree
-grades.  The elements are fine on the shaft and at the necks, and coarse on the
+The `automesh` adaptive mesh, painted by Minimum Scaled Jacobian
+on the same scale and in the same four views.  Unlike the uniform mesh, the
+adaptive mesh grades.  The elements are fine on the shaft and at the necks, and coarse on the
 lobes, as in the reference.  Several dark elements sit at the necks, where the
 element size changes.  The view shows only the boundary.  Of the 1,117
 elements below 0.6, 606 are interior, and they do not appear here.  The cut
@@ -349,10 +355,10 @@ scripts.
 <figcaption>
 
 Element quality for the reference (solid, orange), the `automesh`
-uniform lattice (dashed, blue), and the `automesh` adaptive octree (dotted,
+uniform mesh (dashed, blue), and the `automesh` adaptive mesh (dotted,
 green).  The panels match the earlier figure.  The reference has a hard floor
 at 0.61 in Minimum Scaled Jacobian, and the `automesh` curves have a tail
-toward 0.3.  The lattice's tail is thin, and the octree's is fatter.  The
+toward 0.3.  The uniform tail is thin, and the adaptive tail is fatter.  The
 `automesh` aspect ratios stay below about 6.5, where the reference reaches 21.
 The figure comes from
 [`bone_quality_histograms.py`](bone_quality_histograms.py).
@@ -370,14 +376,14 @@ element that touches the boundary has exactly one boundary face.
 | | boundary elements | interior median | interior worst | boundary median | boundary worst |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Tong 2024 | 37.1% | 0.809 | 0.610 | 0.773 | 0.610 |
-| `automesh` uniform lattice | 41.6% | 0.983 | 0.575 | 0.795 | 0.275 |
-| `automesh` adaptive octree | 42.5% | 0.858 | 0.388 | 0.768 | 0.304 |
+| `automesh` uniform | 41.6% | 0.983 | 0.575 | 0.795 | 0.275 |
+| `automesh` adaptive | 42.5% | 0.858 | 0.388 | 0.768 | 0.304 |
 
-On the lattice, the interior is nearly ideal, with a median of 0.983.  Of the
+On the uniform mesh, the interior is nearly ideal, with a median of 0.983.  Of the
 191 elements below 0.6, 185 (97%) touch the boundary.  All 34 elements below
 0.5 do.  The low elements are a boundary-fit problem.
 
-On the octree, the tail has a second source.  Of the 1,117 elements below 0.6,
+On the adaptive mesh, the tail has a second source.  Of the 1,117 elements below 0.6,
 511 touch the boundary, and 606 are interior.  The transition elements in the
 interior add poor elements of their own.
 
@@ -388,11 +394,11 @@ interior add poor elements of their own.
 <figcaption>
 
 A cut through the middle of the bone, at $y \approx 50$, for the
-`automesh` uniform lattice (left) and adaptive octree (right).  Both use the
+`automesh` uniform mesh (left) and adaptive mesh (right).  Both use the
 same 0 to 1 scale.  An element that crosses the plane stays whole, so the cut
-edge is ragged.  On the lattice, the interior is a regular grid of elements
+edge is ragged.  On the uniform mesh, the interior is a regular grid of elements
 near 1.0.  The low values form a thin ring at the boundary, with a few dark
-elements in it.  On the octree, the interior grades from coarse elements in the
+elements in it.  On the adaptive mesh, the interior grades from coarse elements in the
 lobes to fine elements in the shaft.  The transitions at the necks hold teal
 and green elements, and the boundary has a ring of low values as well.  The
 figure comes from [`bone_render.py`](bone_render.py) with `--cut`, and
@@ -417,19 +423,19 @@ above 0.31.
 
 | lever | runs | result |
 | --- | ---: | --- |
-| octree scale, 4 to 10 | 6 | worst element 0.19 to 0.30, with 10% to 13% of elements below 0.6 |
+| adaptive scale, 4 to 10 | 6 | worst element 0.19 to 0.30, with 10% to 13% of elements below 0.6 |
 | weak or strong balancing, soft or snapped fit | 4 | worst element 0.298 to 0.305 |
 | curvature tolerance | 15 | 4,413 to 181,175 elements, and the worst element still 0.19 to 0.30 |
 | uniform spacing, 1.2 to 2.2 | 11 | worst element 0.16 to 0.29, with 1.5% to 5.2% of elements below 0.6 |
-| smoothing, lattice case | 10 | worst element up to 0.36, but 3.8% to 12.7% of elements fall below 0.6, and the volume changes by 1% to 49% |
-| smoothing, octree case | 10 | worst element falls to 0.14 or below, five runs invert an element, and the volume changes by 1% to 54% |
+| smoothing, uniform case | 10 | worst element up to 0.36, but 3.8% to 12.7% of elements fall below 0.6, and the volume changes by 1% to 49% |
+| smoothing, adaptive case | 10 | worst element falls to 0.14 or below, five runs invert an element, and the volume changes by 1% to 54% |
 
 The worst element rests on a handful of boundary elements, so it is noisy.  On
-the lattice it moves between 0.16 and 0.29 as the spacing changes.  The count
+the uniform mesh it moves between 0.16 and 0.29 as the spacing changes.  The count
 below 0.6 is steadier.
 
 Smoothing does not close the gap.  It moves boundary nodes off the surface,
-which is why the volume shrinks.  On the lattice, a few iterations lift the
+which is why the volume shrinks.  On the uniform mesh, a few iterations lift the
 worst element, but they raise the number of elements below 0.6.
 
 <details>
@@ -445,17 +451,17 @@ the STL, which are 105.5645168 times smaller than the frame of the reference.
 FRAME=(--xscale 105.5645168 --yscale 105.5645168 --zscale 105.5645168
        --xtranslate -3.0485977 --ytranslate -2.8101274 --ztranslate -2.7887506)
 
-#  1. octree: scale 4
+#  1. adaptive: scale 4
 automesh mesh hex -i bone_tri_cleaned.stl -o run01.vtu --scale 4 "${FRAME[@]}" --metrics run01.csv
-#  2. octree: scale 5
+#  2. adaptive: scale 5
 automesh mesh hex -i bone_tri_cleaned.stl -o run02.vtu --scale 5 "${FRAME[@]}" --metrics run02.csv
-#  3. octree: scale 6
+#  3. adaptive: scale 6
 automesh mesh hex -i bone_tri_cleaned.stl -o run03.vtu --scale 6 "${FRAME[@]}" --metrics run03.csv
-#  4. octree: scale 7
+#  4. adaptive: scale 7
 automesh mesh hex -i bone_tri_cleaned.stl -o run04.vtu --scale 7 "${FRAME[@]}" --metrics run04.csv
-#  5. octree: scale 8
+#  5. adaptive: scale 8
 automesh mesh hex -i bone_tri_cleaned.stl -o run05.vtu --scale 8 "${FRAME[@]}" --metrics run05.csv
-#  6. octree: scale 10
+#  6. adaptive: scale 10
 automesh mesh hex -i bone_tri_cleaned.stl -o run06.vtu --scale 10 "${FRAME[@]}" --metrics run06.csv
 #  7. balance: scale 7, soft, weak
 automesh mesh hex -i bone_tri_cleaned.stl -o run07.vtu --scale 7 "${FRAME[@]}" --metrics run07.csv
@@ -590,8 +596,8 @@ could raise the floor without being a ratchet.  A quality guard is the one
 approach we know of that gives a floor by construction.  Better fitting improves
 the distribution, but it cannot promise a floor.
 
-**Two guards may be needed.**  On the lattice, 97% of the elements below 0.6
-touch the boundary, so a guard on the boundary fit targets them.  On the octree,
+**Two guards may be needed.**  On the uniform mesh, 97% of the elements below 0.6
+touch the boundary, so a guard on the boundary fit targets them.  On the adaptive mesh,
 about half of the tail is interior transition elements: 606 of 1,117.  A guard
 on the boundary alone would leave them.  The interior needs the same guard, or
 better transition templates.
@@ -603,13 +609,177 @@ repeats.  The smoothing of `automesh` has no guard today.  That is why it
 inverts elements and shrinks the volume.  A guard, together with keeping the
 boundary nodes on the surface, would fix both faults.
 
-**A test we have not run.**  A prototype on the lattice mesh would show how far a
+**A test we have not run.**  A prototype on the uniform mesh would show how far a
 guard goes.  It would use the acceptance rule of the reference, and the same
 steps of 0.01 in the bar.  It would report how high the worst element climbs,
 and how many elements stay below 0.6.  If the floor rises toward 0.6, a guard is
 enough.  If it stalls near 0.4, the fit needs more.  The issue
 [autotwin/automesh#768](https://github.com/autotwin/automesh/issues/768)
 tracks this, with the bone as the benchmark.
+
+## Improvement
+
+> **Status.**  This section uses code that is not released.  `automesh
+> improve` is in draft
+> [autotwin/automesh#800](https://github.com/autotwin/automesh/pull/800).  Its
+> `--sweeps` and `--threshold` options are in draft
+> [autotwin/automesh#811](https://github.com/autotwin/automesh/pull/811).
+> Both build against the `msj` branch of `conspire`, at commit `7dd723c6`.
+> That branch holds
+> [mrbuche/conspire.rs#272](https://github.com/mrbuche/conspire.rs/pull/272)
+> and [mrbuche/conspire.rs#274](https://github.com/mrbuche/conspire.rs/pull/274).
+> It reaches `conspire` `main` only when
+> [mrbuche/conspire.rs#251](https://github.com/mrbuche/conspire.rs/pull/251)
+> merges.
+
+`automesh improve` raises the minimum scaled Jacobian of a finished mesh.  It
+is a ratchet, like the reference.  It sets a bar Θ at the next multiple of
+0.01 above the worst element.  It then minimizes an energy that penalizes each
+element below Θ.  Every node is free to move.  A constraint holds each boundary node within 0.001 of its
+local element size from the surface.  When the worst element reaches Θ and the
+constraint holds, `improve` keeps that mesh and raises Θ by 0.01.  The run ends
+in one of three ways.  Θ reaches `--threshold`.  The pass at one Θ uses all
+`--sweeps` sweeps.  Or the energy stops falling.  In every case, the output is
+the last mesh that met its Θ.
+
+Three changes to `conspire` shape this result.  They were proposed on
+[autotwin/automesh#768](https://github.com/autotwin/automesh/issues/768) and
+merged in #272 and #274.  First, the pass checks Θ before its stall test, so it
+keeps a run that has met Θ.  Second, the energy counts only the shortfall
+below Θ.  Before, each element above Θ added a constant term, and the sum of
+those terms swamped the relative stall test.  Third, the sweep budget is now
+the `--sweeps` option.  It was fixed at 20.
+
+### Commands
+
+`improve` needs a snapped mesh.  A soft fit leaves the boundary off the surface
+by more than the constraint allows, so Θ starts at 0.  The two commands of the
+section [Meshing with `automesh`](#meshing-with-automesh) therefore gain
+`--snap`.  `improve` also needs the surface in the frame of the mesh.  The
+script [`bone_frame.py`](bone_frame.py) scales and translates
+`bone_tri_cleaned.stl` the same way, and writes `bone_frame.stl`.
+
+```sh
+FRAME=(--xscale 105.5645168 --yscale 105.5645168 --zscale 105.5645168
+    --xtranslate -3.0485977 --ytranslate -2.8101274 --ztranslate -2.7887506)
+
+automesh mesh hex \
+    -i bone_tri_cleaned.stl \
+    -o uniform_snap.vtu \
+    --uniform 0.01563025 \
+    "${FRAME[@]}" \
+    --snap \
+    --metrics uniform_snap.csv
+
+automesh mesh hex \
+    -i bone_tri_cleaned.stl \
+    -o adaptive_snap.vtu \
+    --scale 7 \
+    "${FRAME[@]}" \
+    --snap \
+    --metrics adaptive_snap.csv
+
+uv run --with numpy --with meshio python bone_frame.py
+
+automesh improve \
+    -i uniform_snap.vtu \
+    -o uniform_improved.vtu \
+    -t bone_frame.stl \
+    --metrics uniform_improved.csv
+
+automesh improve \
+    -i adaptive_snap.vtu \
+    -o adaptive_improved.vtu \
+    -t bone_frame.stl \
+    --metrics adaptive_improved.csv
+```
+
+The default budget is 20 sweeps, and the default threshold is 1.  Neither run
+reaches 1, so each prints why it stopped.  The uniform run prints "The scaled
+Jacobian pass used all 20 sweeps without reaching 0.63."  The adaptive run
+prints the same message with 0.48.  Both still write the improved mesh.
+
+### Results
+
+The table compares the snapped meshes before and after `improve`, at the
+default 20 sweeps.  All four runs use the build named in the status note.  The
+section [Comparison](#comparison) holds the numbers from `automesh` 0.4.7,
+without `--snap`.
+
+| | Tong 2024 | uniform, snap | uniform, improved | adaptive, snap | adaptive, improved |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| elements | 8,619 | 8,379 | 8,379 | 9,267 | 9,267 |
+| **minimum scaled Jacobian** | **0.610** | **0.315** | **0.620** | **0.263** | **0.470** |
+| 5th percentile | 0.610 | 0.649 | 0.6505 | 0.539 | 0.534 |
+| median | 0.791 | 0.898 | 0.897 | 0.815 | 0.815 |
+| elements below 0.6 | 0 | 139 | 0 | 1,048 | 1,082 |
+| maximum aspect ratio | 21.25 | 5.05 | 11.21 | 5.19 | 4.80 |
+| elements above ratio 10 | 34 | 0 | 2 | 0 | 0 |
+| maximum skew | 0.725 | 0.760 | 0.663 | 0.751 | 0.753 |
+| total volume | 28,395 | 28,892 | 28,892 | 28,767 | 28,767 |
+| `improve` time | | | 25.0 s | | 9.9 s |
+
+**The uniform mesh beats the reference floor.**  `improve` lifts the worst element
+from 0.315 to 0.620, against 0.610 for Tong 2024.  No element remains below
+0.6, down from 139.  The median falls from 0.898 to 0.897.  The total volume
+changes by less than 1 unit.  The cost is aspect ratio.  The worst ratio rises
+from 5.05 to 11.21, and 2 elements pass 10.  The reference has 34 above 10.
+
+**The adaptive mesh does not reach the floor.**  `improve` lifts its worst element
+from 0.263 to 0.470.  The count below 0.6 rises from 1,048 to 1,082.  After `improve`, 682 of the 1,082 touch no
+boundary node, up from 656 of 1,048 before.  On the uniform mesh before `improve`,
+5 of 139 were interior.
+
+**Snapping moves the floor by about 0.01 and cuts the volume.**  The table in
+[Comparison](#comparison) uses the soft fit.  With this build, the soft
+uniform mesh has its worst element at 0.310, and the snapped one at 0.315.  The
+soft adaptive mesh has 0.276, and the snapped one 0.263.  Snapping puts every
+boundary node on the surface.  The soft fit leaves them up to 0.108 units away
+on the uniform mesh, and 0.206 units on the adaptive mesh.  The total volume of
+the uniform mesh
+falls from 29,244 to 28,892.  That moves it from 3.0% to 1.7% above the
+reference.
+
+### Sweep Budget
+
+More sweeps do not change the uniform mesh.  At 50 sweeps, every metric in the
+table matches the run at 20 sweeps to four decimal places.  The run takes
+32.6 s instead of 25.0 s.
+
+On the adaptive mesh, the floor rises 0.01 from 20 to 50 sweeps, and 0.01 more at
+200.  The time grows eightfold over that range.
+
+| sweeps | minimum scaled Jacobian | elements below 0.6 | interior | time |
+| ---: | ---: | ---: | ---: | ---: |
+| 20 | 0.470 | 1,082 | 682 | 9.9 s |
+| 50 | 0.480 | 1,080 | 681 | 24.6 s |
+| 200 | 0.490 | 1,079 | 681 | 82.9 s |
+
+Every adaptive run ends on the sweep budget, not on a stall.  The count of
+interior elements below 0.6 holds at 681 from 50 to 200 sweeps.  The budget is
+not what limits the adaptive mesh.  The interior transition elements do.
+
+### Creases
+
+The minimizers of `conspire` treat an edge of the surface as a crease when its
+two triangles turn more than 30°.  The bone surface has 8 such edges out of
+18,132, and the sharpest turns 46°.  Of the 1,082 adaptive elements below 0.6
+after `improve`, 29 have their centroid within 3 units of a crease.  Creases
+do not explain the tail.
+
+### Findings
+
+On the uniform mesh, `improve` closes the gap that
+[What This Means](#what-this-means) describes.  That section proposed a
+guarded smoother as a test, with a floor rising toward 0.6 as the sign of
+success.  `improve` is a ratchet rather than that smoother, and it raises the
+floor from 0.315 to 0.620 in 25 s.
+
+On the adaptive mesh, the ratchet is not enough.  The floor stops between 0.47 and
+0.49, and 681 interior transition elements stay below 0.6 at every budget.
+`improve` moves every node, interior ones included, so these elements are
+within its reach.  Node motion alone does not lift them.  We expect the limit
+to be the shape of the transition templates, but we have not tested that.
 
 ## Reproducibility
 
@@ -653,38 +823,38 @@ for view in top front side iso; do
 done
 uv run --with pillow bone_render_quad.py bone_uniform_top.png \
     bone_uniform_front.png bone_uniform_side.png bone_uniform_iso.png \
-    bone_automesh_msj.png
+    bone_uniform_msj.png
 
 for view in top front side iso; do
     $PVPYTHON --force-offscreen-rendering bone_render.py \
-        bone_octree.vtu bone_octree_$view.png --view $view \
-        --metrics bone_octree_metrics.csv
+        bone_adaptive.vtu bone_adaptive_$view.png --view $view \
+        --metrics bone_adaptive_metrics.csv
 done
-uv run --with pillow bone_render_quad.py bone_octree_top.png \
-    bone_octree_front.png bone_octree_side.png bone_octree_iso.png \
-    bone_octree_msj.png
+uv run --with pillow bone_render_quad.py bone_adaptive_top.png \
+    bone_adaptive_front.png bone_adaptive_side.png bone_adaptive_iso.png \
+    bone_adaptive_msj.png
 
 # a cut through both meshes, side by side
-for mesh in uniform octree; do
+for mesh in uniform adaptive; do
     $PVPYTHON --force-offscreen-rendering bone_render.py \
         bone_$mesh.vtu bone_cut_$mesh.png --view front --cut \
         --metrics bone_${mesh}_metrics.csv
 done
 uv run --with pillow bone_render_quad.py bone_cut_uniform.png \
-    bone_cut_octree.png bone_cut_msj.png --columns 2 \
-    --label "automesh, uniform lattice" --label "automesh, adaptive octree"
+    bone_cut_adaptive.png bone_cut_msj.png --columns 2 \
+    --label "automesh, uniform" --label "automesh, adaptive"
 
 # the overlay histograms
 uv run --with numpy --with matplotlib bone_quality_histograms.py \
     bone_quality_comparison.svg \
     --mesh bone_reference_metrics.csv "Tong 2024" \
-    --mesh bone_uniform_metrics.csv "automesh, uniform lattice" \
-    --mesh bone_octree_metrics.csv "automesh, adaptive octree"
+    --mesh bone_uniform_metrics.csv "automesh, uniform" \
+    --mesh bone_adaptive_metrics.csv "automesh, adaptive"
 
 # where the low elements are
 python3 bone_tail.py bone.inp bone_reference_metrics.csv
 python3 bone_tail.py bone_uniform.vtu bone_uniform_metrics.csv
-python3 bone_tail.py bone_octree.vtu bone_octree_metrics.csv
+python3 bone_tail.py bone_adaptive.vtu bone_adaptive_metrics.csv
 
 # the sweep of 56 runs, about two minutes
 python3 bone_sweep.py bone_sweep.tsv

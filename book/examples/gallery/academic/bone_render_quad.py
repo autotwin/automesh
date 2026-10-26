@@ -15,8 +15,8 @@ uv run --with pillow bone_render_quad.py \
     bone_top.png bone_front.png bone_side.png bone_iso.png bone_reference_msj.png
 
 uv run --with pillow bone_render_quad.py bone_cut_uniform.png \
-    bone_cut_octree.png bone_cut_msj.png --columns 2 \
-    --label "automesh, uniform lattice" --label "automesh, adaptive octree"
+    bone_cut_adaptive.png bone_cut_msj.png --columns 2 \
+    --label "automesh, uniform" --label "automesh, adaptive"
 
 Output
 ------

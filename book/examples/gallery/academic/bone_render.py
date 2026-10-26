@@ -40,14 +40,14 @@ uv run --with pillow bone_render_quad.py bone_msj_top.png bone_msj_front.png \
     bone_msj_side.png bone_msj_iso.png bone_reference_msj.png
 
 # a cut through two meshes, side by side
-for mesh in uniform octree; do
+for mesh in uniform adaptive; do
     $PVPYTHON --force-offscreen-rendering bone_render.py \
         bone_$mesh.vtu bone_cut_$mesh.png --view front --cut \
         --metrics bone_${mesh}_metrics.csv
 done
 uv run --with pillow bone_render_quad.py bone_cut_uniform.png \
-    bone_cut_octree.png bone_cut_msj.png --columns 2 \
-    --label "automesh, uniform lattice" --label "automesh, adaptive octree"
+    bone_cut_adaptive.png bone_cut_msj.png --columns 2 \
+    --label "automesh, uniform" --label "automesh, adaptive"
 
 The cut
 -------

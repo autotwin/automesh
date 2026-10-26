@@ -27,7 +27,7 @@ uv run --with numpy --with matplotlib bone_quality_histograms.py \
     bone_quality_comparison.svg \
     --mesh bone_reference_metrics.csv "Tong 2024" \
     --mesh bone_uniform_metrics.csv "automesh, uniform" \
-    --mesh bone_octree_metrics.csv "automesh, octree"
+    --mesh bone_adaptive_metrics.csv "automesh, adaptive"
 
 Output
 ------

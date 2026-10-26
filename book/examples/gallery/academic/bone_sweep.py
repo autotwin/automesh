@@ -14,7 +14,7 @@ conversion.
 
 The sweeps cover these levers.
 
-    octree     the octree refinement scale, --scale
+    adaptive   the octree refinement scale, --scale
     balance    weak or strong balancing, and soft or snapped fit
     tolerance  the curvature tolerance, --tolerance
     uniform    a uniform lattice of a given spacing, --uniform
@@ -62,7 +62,7 @@ def runs_build():
     """Returns the (lever, label, flags) triples of every sweep."""
     runs = []
     for scale in (4, 5, 6, 7, 8, 10):
-        runs.append(("octree", f"scale {scale}", ["--scale", str(scale)]))
+        runs.append(("adaptive", f"scale {scale}", ["--scale", str(scale)]))
     for fit, fit_flags in (("soft", []), ("snap", ["--snap"])):
         for balance, balance_flags in (("weak", []), ("strong", ["--strong"])):
             runs.append(("balance", f"scale 7, {fit}, {balance}",
