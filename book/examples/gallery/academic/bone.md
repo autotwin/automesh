@@ -301,6 +301,7 @@ numbers come from `automesh` 0.4.7.
 | maximum skew | 0.725 | 0.694 | 0.717 |
 | maximum element volume | 39.64 | 6.64 | 18.96 |
 | total volume | 28,395 | 29,236 | 29,235 |
+| volume error against the surface | −2.62% | +0.26% | +0.26% |
 
 The `automesh` meshes are valid.  No element is inverted.  The bulk of each
 distribution is as good as the reference, or better.  The median is higher.
@@ -313,6 +314,70 @@ The uniform mesh has 191 elements below 0.6, and the adaptive mesh has 1,117.
 The reference is also graded, where the uniform mesh is not.  Its element
 volumes reach 39.64, while the uniform mesh tops out at 6.64.  The adaptive
 mesh grades, and reaches 18.96.
+
+The baseline for volume is the tessellation, not the reference.  In the frame of
+the reference, `bone_tri_cleaned.stl` encloses 29,159.3.  The script
+[`bone_frame.py`](bone_frame.py) writes the tessellation in that frame and prints
+the volume.  The reference falls 2.62% short of the tessellation.  Each `automesh`
+mesh is 0.26% over it.
+
+**Surface fidelity.**  The command `automesh hausdorff` measures signed
+distances between the boundary of a mesh and the tessellation.  It is in draft
+[autotwin/automesh#803](https://github.com/autotwin/automesh/pull/803) and is
+not released.  The distances are sampled.  From the mesh to the tessellation, the
+samples are the boundary nodes.  From the tessellation to the mesh, they are the
+6,046 vertices of the tessellation.  A negative distance lies inside the other
+surface, and a positive one outside.  Lengths are in the units of the frame,
+where the bone is 100 long.
+
+| | Tong 2024 | `automesh` uniform | `automesh` adaptive |
+| --- | ---: | ---: | ---: |
+| node to tessellation, median | 0.0000 | 0.043 | 0.014 |
+| tessellation to mesh, median | 0.075 | 0.006 | 0.007 |
+| **sampled Hausdorff distance** | **0.551** | **0.245** | **0.289** |
+
+<figure>
+
+![bone_hausdorff_histograms.svg](bone_hausdorff_histograms.svg)
+
+<figcaption>
+
+Signed distances between each mesh and the bone tessellation, for the reference
+(solid, orange), the `automesh` uniform mesh (dashed, blue), and the
+`automesh` adaptive mesh (dotted, green).  The left panel measures from the
+boundary nodes of each mesh to the tessellation (A → B).  It shows where the nodes
+sit.  The right panel measures from the 6,046 tessellation vertices to the boundary
+of each mesh (B → A).  It shows where the faces sit.  The y axis is the share
+of samples on a log scale, because the meshes have 3,202, 3,490, and 3,942
+boundary nodes.  The reference's nodes form one spike at 0, while 92% of the
+tessellation vertices lie outside its faces, out to 0.551.  Of the `automesh`
+boundary nodes, 92% on the uniform mesh and 80% on the adaptive one lie outside
+the tessellation.  95% of the tessellation vertices lie within 0.028 of the uniform faces and
+within 0.083 of the adaptive faces.  The legend gives the sampled Hausdorff distance $H_h$ of each
+mesh.  The figure comes from
+[`bone_hausdorff_histograms.py`](bone_hausdorff_histograms.py).
+
+</figcaption>
+</figure>
+
+The reference puts every boundary node on the tessellation.  The worst node lies
+0.000009 from it.  The flat faces between the nodes cut inside the tessellation,
+though.  Of the tessellation vertices, 92% lie outside the reference mesh, by a
+median of 0.075.  That is the 2.62% the reference lacks in volume.
+
+The `automesh` meshes err the other way at the nodes.  On the uniform mesh,
+92% of the boundary nodes lie outside the tessellation, by a median of 0.043.  Its
+faces stay within a median of 0.006 of the tessellation vertices, and 57% of those
+vertices lie outside it.  The nodes bulge out and the faces sag in.  The two
+cancel to within 0.26% of the volume.  The adaptive mesh
+has the smaller median node error, 0.014, against 0.043.  Its 95th percentile
+is larger, 0.157 against 0.100, and its boundary edges reach 4.05, against
+2.85.
+
+By the sampled Hausdorff distance, the reference is 0.551, the uniform mesh
+0.245, and the adaptive mesh 0.289.  Both `automesh` meshes follow the tessellation
+more closely than the reference, by a factor of 1.9 to 2.2.  The sampled
+distance can miss the middle of a face, where no sample falls.
 
 <figure>
 
@@ -599,8 +664,9 @@ the distribution, but it cannot promise an MSJ floor.
 **Two guards may be needed.**  On the uniform mesh, 97% of the elements below 0.6
 touch the boundary, so a guard on the boundary fit targets them.  On the adaptive mesh,
 about half of the tail is interior transition elements: 606 of 1,117.  A guard
-on the boundary alone would leave them.  The interior needs the same guard, or
-better transition templates.
+on the boundary alone would leave them.  The section
+[Improvement](#improvement) shows that a guard on the interior nodes is not
+enough either.  The interior needs better transition templates.
 
 **The smallest version.**  A guarded smoother is the smallest step toward a
 ratchet.  It moves a node toward a better position.  It accepts the move only if
@@ -722,6 +788,7 @@ without `--snap`.
 | elements above ratio 10 | 34 | 0 | 2 | 0 | 0 |
 | maximum skew | 0.725 | 0.760 | 0.663 | 0.751 | 0.753 |
 | total volume | 28,395 | 28,892 | 28,892 | 28,767 | 28,767 |
+| volume error against the surface | −2.62% | −0.92% | −0.92% | −1.34% | −1.34% |
 | `improve` time | | | 25.0 s | | 9.9 s |
 
 **The uniform mesh beats the reference MSJ floor.**  `improve` lifts the worst element
@@ -735,15 +802,67 @@ from 0.263 to 0.470.  The count below 0.6 rises from 1,048 to 1,082.  After `imp
 boundary node, up from 656 of 1,048 before.  On the uniform mesh before `improve`,
 5 of 139 were interior.
 
-**Snapping moves the MSJ floor by about 0.01 and cuts the volume.**  The table in
+**Snapping moves the MSJ floor by about 0.01 and loses volume.**  The table in
 [Comparison](#comparison) uses the soft fit.  With this build, the soft
 uniform mesh has its worst element at 0.310, and the snapped one at 0.315.  The
 soft adaptive mesh has 0.276, and the snapped one 0.263.  Snapping puts every
 boundary node on the surface.  The soft fit leaves them up to 0.108 units away
-on the uniform mesh, and 0.206 units on the adaptive mesh.  The total volume of
-the uniform mesh
-falls from 29,244 to 28,892.  That moves it from 3.0% to 1.7% above the
-reference.
+on the uniform mesh, and 0.206 units on the adaptive mesh.  The surface
+encloses 29,159.3.  The soft uniform mesh has 29,244, 0.29% over it, and the
+snapped one has 28,892, 0.92% under it.  The soft adaptive mesh has 29,216,
+0.19% over, and the snapped one 28,767, 1.34% under.  With its nodes on the
+surface, a snapped mesh behaves like the reference.  The flat faces between
+the nodes cut inside the surface, and the mesh loses volume.
+
+**Surface fidelity.**  `automesh hausdorff` compares the improved meshes with
+the reference, as in [Comparison](#comparison).  The samples and signs are the
+same there and here.
+
+| | Tong 2024 | uniform, improved | adaptive, improved |
+| --- | ---: | ---: | ---: |
+| node to tessellation, maximum | 0.0000087 | 0.0000003 | 0.0000003 |
+| tessellation to mesh, median | 0.075 | 0.046 | 0.043 |
+| **sampled Hausdorff distance** | **0.551** | **0.115** | **0.188** |
+
+<figure>
+
+![bone_hausdorff_improved.svg](bone_hausdorff_improved.svg)
+
+<figcaption>
+
+Signed distances between each mesh and the bone tessellation, for the reference
+(solid, orange), the improved `automesh` uniform mesh (dashed, blue), and the
+improved `automesh` adaptive mesh (dotted, green).  The panels match the
+earlier signed-distance figure.  In the left panel, all three meshes form one
+spike at 0, because every boundary node lies on the tessellation.  In the right
+panel, 92% to 93% of the tessellation vertices lie outside each mesh.  The
+reference's tail reaches 0.551, the adaptive mesh's 0.188, and the uniform
+mesh's 0.115.  The figure comes from
+[`bone_hausdorff_histograms.py`](bone_hausdorff_histograms.py).
+
+</figcaption>
+</figure>
+
+All three meshes now put their nodes on the tessellation.  The worst node of the
+reference lies 0.0000087 from it, and the worst node of each improved mesh
+0.0000003.  The difference lies in the faces.  For each mesh, 92% to 93% of
+the tessellation vertices lie outside it, so all three lose volume, as the table in
+[Results](#results) shows.
+
+The improved meshes cut less deeply than the reference.  The median distance
+from a tessellation vertex to the mesh is 0.046 on the uniform mesh and 0.043 on
+the adaptive mesh, against 0.075 on the reference.  The sampled Hausdorff
+distance is 0.115 on the uniform mesh and 0.188 on the adaptive mesh, against
+0.551.  The order follows the longest boundary edges: 2.58 on the uniform
+mesh, 3.69 on the adaptive mesh, and 4.60 on the reference.  A longer chord
+across a curved surface sags further from it.
+
+Against the soft uniform mesh of [Comparison](#comparison), from `automesh`
+0.4.7, the improved uniform mesh trades volume for fidelity.  The soft mesh
+holds the volume to +0.26%, with its nodes up to 0.245 outside the tessellation.
+The improved mesh loses 0.92% of the volume, with its nodes on the tessellation and
+its faces up to 0.115 inside it.  Its sampled Hausdorff distance falls from
+0.245 to 0.115.
 
 ### Sweep Budget
 
@@ -761,8 +880,12 @@ On the adaptive mesh, the MSJ floor rises 0.01 from 20 to 50 sweeps, and 0.01 mo
 | 200 | 0.490 | 1,079 | 681 | 82.9 s |
 
 Every adaptive run ends on the sweep budget, not on a stall.  The count of
-interior elements below 0.6 holds at 681 from 50 to 200 sweeps.  The budget is
-not what limits the adaptive mesh.  The interior transition elements do.
+interior elements below 0.6 holds at 681 from 50 to 200 sweeps.  That count
+does not measure a limit.  The energy of `improve` is zero for every element
+above Θ, so `improve` never tries to lift an element that sits between Θ and
+0.6.  The MSJ floor is the measure that matters, and it gains 0.01 for each
+step in the budget.  The section [Transition Elements](#transition-elements)
+shows what holds it there.
 
 ### Creases
 
@@ -772,6 +895,72 @@ two triangles turn more than 30°.  The bone surface has 8 such edges out of
 after `improve`, 29 have their centroid within 3 units of a crease.  Creases
 do not explain the tail.
 
+### Balancing
+
+The adaptive mesh on this page uses weak balancing, the default of `automesh
+mesh hex`.  Weak balancing limits the level difference to 1 between octree
+cells that share a face.  Strong balancing, under `--strong`, also limits it
+between cells that share an edge or a vertex.  The uniform mesh builds no
+octree, so balancing does not apply to it.
+
+On the bone, `--strong` gives the same mesh as weak balancing.  Both have 9,267
+elements and 11,381 nodes.  Both have the same count of interior edges at each
+valence, from 3 to 7.  Their sorted MSJ values differ by at most 0.0015, and
+both have 1,048 elements below 0.6 after the snap.  After `improve`, the strong
+mesh reaches the same MSJ floor as the weak one: 0.470 at 20 sweeps and 0.480
+at 50.  Strong balancing does not change the result.
+
+### Transition Elements
+
+The adaptive mesh is the dual of the octree.  Where all cells have one size,
+the dual is a regular grid, and every interior edge is shared by 4 elements.
+The number of elements around an edge is its valence.  Where the cell size
+changes, the dual has edges of valence 3, 5, 6, or 7.  The connectivity there
+is fixed by the octree.  `improve` moves nodes, but it cannot change which
+elements share an edge.
+
+The script [`bone_valence.py`](bone_valence.py) sorts the interior elements of
+the improved adaptive mesh, at 20 sweeps, by MSJ.
+
+| MSJ | interior elements | with an edge of valence other than 4 |
+| --- | ---: | ---: |
+| below 0.5 | 142 | 142 |
+| 0.5 to 0.6 | 540 | 540 |
+| 0.6 to 0.8 | 1,474 | 1,474 |
+| 0.8 and above | 3,171 | 1,881 |
+
+Every interior element below 0.8 touches an irregular edge.  An interior
+element whose 12 edges all have valence 4 always reaches 0.8 or more.
+
+The 10 worst interior elements all sit at 0.470 or 0.471.  Each has three edges
+of valence 3 and at least one of valence 7.  Five of the ten have three edges
+of valence 7.  The mesh has 16 interior elements with three edges of valence 7,
+and all 16 sit between 0.470 and 0.474, at the MSJ floor.  Before `improve`,
+the same 16 range from 0.370 to 0.456.
+
+**Local optimum.**  The script
+[`bone_local_optimum.py`](bone_local_optimum.py) tests whether node motion can
+lift these elements further.  It takes the 10 worst interior elements that
+share no node as seeds.  For each seed, it frees the interior nodes within 1 to
+4 rings of elements, and holds every other node fixed.  It then maximizes the
+lowest corner scaled Jacobian of the patch directly, with SLSQP.  Each ring
+starts from the best result of the ring before.
+
+| seeds | MSJ before | ring 1, 8 free nodes | ring 4, 392 to 804 free nodes |
+| --- | ---: | ---: | ---: |
+| 8 seeds with an edge of valence 7 | 0.470 to 0.472 | 0.497 to 0.504 | 0.494 to 0.501 |
+| seed 834, highest valence 5 | 0.472 | 0.536 | 0.497 |
+| seed 1412, highest valence 6 | 0.472 | 0.627 | 0.492 |
+
+With only its own 8 nodes free, an element with a valence-7 edge rises from
+0.470 to about 0.50.  The two seeds without one rise to 0.536 and 0.627.  At
+ring 4, all ten patches stop between 0.492 and 0.501, those two included.  The best local optimum is about 0.03
+above `improve` at 20 sweeps, and about 0.01 above `improve` at 200 sweeps,
+which reaches 0.490.  No patch reaches 0.6.
+
+SLSQP is a local method with finite-difference gradients, and the outer nodes
+of each patch stay fixed.  The result is the best found, not a proven bound.
+
 ### Findings
 
 On the uniform mesh, `improve` closes the gap that
@@ -780,11 +969,15 @@ guarded smoother as a test, with an MSJ floor rising toward 0.6 as the sign of
 success.  `improve` is a ratchet rather than that smoother, and it raises the
 MSJ floor from 0.315 to 0.620 in 25 s.
 
-On the adaptive mesh, the ratchet is not enough.  The MSJ floor stops between 0.47 and
-0.49, and 681 interior transition elements stay below 0.6 at every budget.
-`improve` moves every node, interior ones included, so these elements are
-within its reach.  Node motion alone does not lift them.  We expect the limit
-to be the shape of the transition templates, but we have not tested that.
+On the adaptive mesh, the ratchet is not enough.  The MSJ floor stops between
+0.470 and 0.490, for budgets of 20 to 200 sweeps.  The worst elements are
+interior transition elements, each with three edges of valence 3 and at least
+one of valence 7.  A direct local optimization of the minimum, with up to 804
+free nodes, reaches 0.492 to 0.501 and no higher.  Strong balancing gives the
+same mesh, so it does not remove these elements.  The evidence points to the
+connectivity of the dual at the size transitions, which holds node motion to an
+MSJ floor near 0.5.  Raising it toward 0.6 would need different transitions,
+such as dedicated templates, rather than more node motion.
 
 ## Reproducibility
 
@@ -860,6 +1053,51 @@ uv run --with numpy --with matplotlib bone_quality_histograms.py \
 python3 bone_tail.py bone.inp bone_reference_metrics.csv
 python3 bone_tail.py bone_uniform.vtu bone_uniform_metrics.csv
 python3 bone_tail.py bone_adaptive.vtu bone_adaptive_metrics.csv
+
+# the volume of the surface and the Hausdorff table, from the meshes of the
+# section Meshing with automesh; automesh hausdorff is in draft PR #803
+uv run --with numpy --with meshio python bone_frame.py
+for mesh in bone.inp bone_uniform.vtu bone_adaptive.vtu; do
+    automesh hausdorff -a $mesh -b bone_frame.stl -o hausdorff_${mesh%.*}
+done
+# each run writes hausdorff_<mesh>_A_to_B.csv and hausdorff_<mesh>_B_to_A.csv
+uv run --with numpy --with pandas --with matplotlib bone_hausdorff_histograms.py \
+    bone_hausdorff_histograms.svg \
+    --mesh hausdorff_bone "Tong 2024" \
+    --mesh hausdorff_bone_uniform "automesh, uniform" \
+    --mesh hausdorff_bone_adaptive "automesh, adaptive"
+
+# the Improvement section: the commands there, then the edge valences and the
+# local optimum of ten seeds, about 30 minutes
+uv run --with numpy --with pandas --with meshio python bone_valence.py \
+    adaptive_improved.vtu adaptive_improved.csv
+uv run --with numpy --with scipy --with pandas --with meshio \
+    python bone_local_optimum.py adaptive_improved.vtu adaptive_improved.csv 10
+
+# the same adaptive mesh under strong balancing
+automesh mesh hex \
+    -i bone_tri_cleaned.stl \
+    -o adaptive_strong.vtu \
+    --scale 7 \
+    "${FRAME[@]}" \
+    --snap \
+    --strong \
+    --metrics adaptive_strong.csv
+automesh improve \
+    -i adaptive_strong.vtu \
+    -o adaptive_strong_improved.vtu \
+    -t bone_frame.stl \
+    --metrics adaptive_strong_improved.csv
+
+# the Hausdorff figure for the improved meshes
+for mesh in uniform_improved adaptive_improved; do
+    automesh hausdorff -a $mesh.vtu -b bone_frame.stl -o hausdorff_$mesh
+done
+uv run --with numpy --with pandas --with matplotlib bone_hausdorff_histograms.py \
+    bone_hausdorff_improved.svg \
+    --mesh hausdorff_bone "Tong 2024" \
+    --mesh hausdorff_uniform_improved "automesh, uniform, improved" \
+    --mesh hausdorff_adaptive_improved "automesh, adaptive, improved"
 
 # the sweep of 56 runs, about two minutes
 python3 bone_sweep.py bone_sweep.tsv
