@@ -970,7 +970,8 @@ SLSQP is a local method with finite-difference gradients, and the outer nodes
 of each patch stay fixed.  The result is the best found for a patch, not a
 bound on the mesh.  The section
 [Comparison with the Reference](#comparison-with-the-reference) shows that
-moving every node from a different start lifts the same connectivity to 0.630.
+moving every node with a different minimizer lifts the same connectivity to
+0.610 and beyond.
 
 ### Comparison with the Reference
 
@@ -1035,14 +1036,50 @@ The run is not deterministic, because the projection step calls an unseeded
 reached 0.650, but with boundary nodes up to 0.243 off the tessellation.
 Moving those onto it inverts elements, so that snapshot does not count.
 
-The gap lies in where `improve` starts, not in the connectivity.  From the
-geometry that the buffer and fit of `conspire` produce, `improve` stops at
-0.470.  From the geometry that the reference's projection step produces, on
-the same connectivity, `improve` reaches 0.630.  The local optimum of
-[Transition Elements](#transition-elements) is consistent with this.  A patch
-with its outer nodes fixed did not leave the basin it started in.  The
-reference's step moves every node, with 1,000 gradient iterations between
-checks of its bar.
+**Ablations of the reference.**  Each run switches off one part of the
+reference's projection step, on our connectivity.  The runs are deterministic.
+
+| variant | MSJ floor |
+| --- | ---: |
+| the full step | 0.640 |
+| starting from our snapped adaptive mesh, not the reference's own buffer layer | 0.640 |
+| no random guarded smoothing | 0.640 |
+| no gradient step on the core nodes | 0.401 |
+| boundary nodes projected onto tangent planes after every step | 0.640 |
+| only the lowest sample point of each element pushed | 0.640 |
+| the bar starting just above the worst element, not at 0.5 | 0.640 |
+
+Started from the exact mesh that `improve` receives, the reference's step
+still reaches 0.640, so its buffer layer is not the cause.  Its random
+smoothing runs only before the bar first rises, and removing it leaves the
+plateau at 0.640.  The gradient step on the core nodes is the part that
+matters.  Without it, the run stops at 0.401.  The last three rows make the
+reference behave like `improve`, and none of them changes the plateau.
+
+**Ablations of `improve`.**  Each run changes one part of `improve`, on a
+local build of the `msj` branch, from our snapped adaptive mesh.
+
+| variant | MSJ floor | elements below 0.6 |
+| --- | ---: | ---: |
+| as released on `msj` | 0.470 | 1,082 |
+| no area weight on the energy of each element | 0.470 | 1,082 |
+| penalty ρ held at 100, not doubled at each rise of Θ | 0.560 | 1,158 |
+| ρ held at 100, and fixed-step gradient descent in place of L-BFGS | 0.610 | 0 |
+
+`improve` doubles the penalty ρ on the boundary planes each time Θ rises.
+From Θ = 0.27 to 0.47 it rises at most 21 times, so ρ grows from 100 to
+as much as 2 × 10⁸.  Holding ρ at 100 lifts the MSJ floor from 0.470 to 0.560 in 12 s.
+Swapping L-BFGS for 200 fixed steps of gradient descent per sweep, with a
+step of 0.0003, lifts it to 0.610 in 52 s, with no element below 0.6.  Every
+boundary node stays within 0.0002 of the tessellation.  On the uniform mesh,
+the same two changes give 0.66 in place of 0.62, but the worst aspect ratio
+rises from 11.2 to 15.6.
+
+The gap lies in the minimizer of `improve`, not in its start and not in the
+connectivity.  The doubling of ρ costs 0.09, and L-BFGS costs 0.05 more.
+These are experiment builds.  The patches to the reference and to `conspire`
+are on
+[autotwin/automesh#768](https://github.com/autotwin/automesh/issues/768).
 
 ### Findings
 
@@ -1059,9 +1096,10 @@ higher.  Strong balancing gives the same mesh.  The reference has the same
 transition connectivity and reaches 0.610, so connectivity is not the cause.
 The optimizer of the reference, run on our connectivity, reaches 0.640, and
 `improve` from there reaches 0.630 with every boundary node on the
-tessellation.  The limit is the starting geometry that the buffer and fit of
-`conspire` hand to `improve`.  A better start, not a new template, is what the
-adaptive mesh needs.
+tessellation.  The limit is the minimizer of `improve`.  Holding its boundary
+penalty ρ constant, in place of doubling it, lifts the MSJ floor to 0.560, and
+fixed-step gradient descent in place of L-BFGS lifts it to 0.610 with no
+element below 0.6.
 
 ## Reproducibility
 
