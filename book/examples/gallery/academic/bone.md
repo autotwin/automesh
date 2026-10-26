@@ -162,7 +162,7 @@ file with the published mesh.
 The two meshes have the same nodes and the same elements, with the same
 connectivity, in the same order.  The octree and the dual mesh reproduce
 exactly.  Other settings would give a different octree, and so different
-connectivity.  The floor of 0.61 reproduces, and the median and the 5th
+connectivity.  The MSJ floor of 0.61 reproduces, and the median and the 5th
 percentile agree to three digits.
 
 The node positions do not match exactly.  None of the 3,202 boundary nodes
@@ -174,7 +174,7 @@ more outliers than the published mesh.
 We think the reason is the random step in the projection.  The code calls
 `rand()` and never seeds it.  The generator differs between platforms.  For
 example, `RAND_MAX` is 2,147,483,647 on macOS, and the compiler warns about it.
-We did not test this.  We reproduced the octree, the connectivity, the quality
+We did not test this.  We reproduced the octree, the connectivity, the MSJ
 floor, and the shape of the quality distribution.  We did not reproduce the
 exact position of every node.
 
@@ -187,7 +187,7 @@ automesh metrics -i bone.inp -o bone_reference_metrics.csv
 ```
 
 The CSV has one row per element, in the order of the mesh.  ParaView paints the
-elements by the Minimum Scaled Jacobian column.
+elements by the Minimum Scaled Jacobian (MSJ) column.
 
 <figure>
 
@@ -238,7 +238,7 @@ style of the [RVE](rve.md) histograms.
 
 The paper's title promises Jacobian control, and the mesh shows it.  No
 element falls below a scaled Jacobian of 0.61.  The values pile up at that
-floor, where 2,196 elements (about a quarter) sit at or below 0.62.  They pile
+MSJ floor, where 2,196 elements (about a quarter) sit at or below 0.62.  They pile
 up again at 1.0, where 1,277 elements sit at or above 0.99.  The median is
 0.791.
 
@@ -356,8 +356,8 @@ scripts.
 
 Element quality for the reference (solid, orange), the `automesh`
 uniform mesh (dashed, blue), and the `automesh` adaptive mesh (dotted,
-green).  The panels match the earlier figure.  The reference has a hard floor
-at 0.61 in Minimum Scaled Jacobian, and the `automesh` curves have a tail
+green).  The panels match the earlier figure.  The reference has a hard MSJ
+floor at 0.61, and the `automesh` curves have a tail
 toward 0.3.  The uniform tail is thin, and the adaptive tail is fatter.  The
 `automesh` aspect ratios stay below about 6.5, where the reference reaches 21.
 The figure comes from
@@ -409,7 +409,7 @@ figure comes from [`bone_render.py`](bone_render.py) with `--cut`, and
 
 A typical boundary element is fine.  The boundary median is about the same as
 the reference's.  Only the worst boundary elements are poor.  The reference
-holds its floor of 0.61 in both the boundary and the interior.  That is
+holds its MSJ floor of 0.61 in both the boundary and the interior.  That is
 consistent with a fit that guards the quality of each element.  We have not
 confirmed this in the code of the paper.
 
@@ -584,7 +584,7 @@ this bone, the result is solid.
 answer.  It shows what does not work, where the low elements sit, and how the
 reference works.  The reference method is a ratchet.  Its code raises a quality
 bar in steps of 0.01, up to 0.61 in our run.  It moves a boundary node only when
-the neighboring elements stay above the bar.  The hard floor of the reference is
+the neighboring elements stay above the bar.  The hard MSJ floor of the reference is
 that bar.
 
 The study did not try the alternatives.  Better initial fitting is one, and
@@ -592,9 +592,9 @@ issue [autotwin/automesh#750](https://github.com/autotwin/automesh/issues/750)
 holds the results of Protais, Cherchi, and Livesu.  The smooth fit oracle in
 [`conspire` PR #186](https://github.com/mrbuche/conspire.rs/pull/186) is
 another.  Local topology repair of the worst elements is a third.  Any of them
-could raise the floor without being a ratchet.  A quality guard is the one
-approach we know of that gives a floor by construction.  Better fitting improves
-the distribution, but it cannot promise a floor.
+could raise the MSJ floor without being a ratchet.  A quality guard is the one
+approach we know of that gives an MSJ floor by construction.  Better fitting improves
+the distribution, but it cannot promise an MSJ floor.
 
 **Two guards may be needed.**  On the uniform mesh, 97% of the elements below 0.6
 touch the boundary, so a guard on the boundary fit targets them.  On the adaptive mesh,
@@ -612,7 +612,7 @@ boundary nodes on the surface, would fix both faults.
 **A test we have not run.**  A prototype on the uniform mesh would show how far a
 guard goes.  It would use the acceptance rule of the reference, and the same
 steps of 0.01 in the bar.  It would report how high the worst element climbs,
-and how many elements stay below 0.6.  If the floor rises toward 0.6, a guard is
+and how many elements stay below 0.6.  If the MSJ floor rises toward 0.6, a guard is
 enough.  If it stalls near 0.4, the fit needs more.  The issue
 [autotwin/automesh#768](https://github.com/autotwin/automesh/issues/768)
 tracks this, with the bone as the benchmark.
@@ -655,8 +655,8 @@ the `--sweeps` option.  It was fixed at 20.
 `improve` does not need a snapped mesh.  A soft fit leaves the boundary off the
 surface by more than the constraint allows.  `improve` then holds Θ at 0 and
 pulls the boundary onto the surface first.  It starts the ratchet once the
-boundary fits.  From the soft fit, the uniform floor reaches 0.610 and the
-adaptive floor 0.470, at 20 sweeps.  From a snapped mesh, the floors are 0.620
+boundary fits.  From the soft fit, the uniform MSJ floor reaches 0.610 and the
+adaptive MSJ floor 0.470, at 20 sweeps.  From a snapped mesh, the MSJ floors are 0.620
 and 0.470.  The two commands of the section
 [Meshing with `automesh`](#meshing-with-automesh) gain `--snap` for that 0.010
 on the uniform mesh.  `improve` also needs the surface in the frame of the
@@ -724,18 +724,18 @@ without `--snap`.
 | total volume | 28,395 | 28,892 | 28,892 | 28,767 | 28,767 |
 | `improve` time | | | 25.0 s | | 9.9 s |
 
-**The uniform mesh beats the reference floor.**  `improve` lifts the worst element
+**The uniform mesh beats the reference MSJ floor.**  `improve` lifts the worst element
 from 0.315 to 0.620, against 0.610 for Tong 2024.  No element remains below
 0.6, down from 139.  The median falls from 0.898 to 0.897.  The total volume
 changes by less than 1 unit.  The cost is aspect ratio.  The worst ratio rises
 from 5.05 to 11.21, and 2 elements pass 10.  The reference has 34 above 10.
 
-**The adaptive mesh does not reach the floor.**  `improve` lifts its worst element
+**The adaptive mesh does not reach the MSJ floor.**  `improve` lifts its worst element
 from 0.263 to 0.470.  The count below 0.6 rises from 1,048 to 1,082.  After `improve`, 682 of the 1,082 touch no
 boundary node, up from 656 of 1,048 before.  On the uniform mesh before `improve`,
 5 of 139 were interior.
 
-**Snapping moves the floor by about 0.01 and cuts the volume.**  The table in
+**Snapping moves the MSJ floor by about 0.01 and cuts the volume.**  The table in
 [Comparison](#comparison) uses the soft fit.  With this build, the soft
 uniform mesh has its worst element at 0.310, and the snapped one at 0.315.  The
 soft adaptive mesh has 0.276, and the snapped one 0.263.  Snapping puts every
@@ -751,7 +751,7 @@ More sweeps do not change the uniform mesh.  At 50 sweeps, every metric in the
 table matches the run at 20 sweeps to four decimal places.  The run takes
 32.6 s instead of 25.0 s.
 
-On the adaptive mesh, the floor rises 0.01 from 20 to 50 sweeps, and 0.01 more at
+On the adaptive mesh, the MSJ floor rises 0.01 from 20 to 50 sweeps, and 0.01 more at
 200.  The time grows eightfold over that range.
 
 | sweeps | minimum scaled Jacobian | elements below 0.6 | interior | time |
@@ -776,11 +776,11 @@ do not explain the tail.
 
 On the uniform mesh, `improve` closes the gap that
 [What This Means](#what-this-means) describes.  That section proposed a
-guarded smoother as a test, with a floor rising toward 0.6 as the sign of
+guarded smoother as a test, with an MSJ floor rising toward 0.6 as the sign of
 success.  `improve` is a ratchet rather than that smoother, and it raises the
-floor from 0.315 to 0.620 in 25 s.
+MSJ floor from 0.315 to 0.620 in 25 s.
 
-On the adaptive mesh, the ratchet is not enough.  The floor stops between 0.47 and
+On the adaptive mesh, the ratchet is not enough.  The MSJ floor stops between 0.47 and
 0.49, and 681 interior transition elements stay below 0.6 at every budget.
 `improve` moves every node, interior ones included, so these elements are
 within its reach.  Node motion alone does not lift them.  We expect the limit
