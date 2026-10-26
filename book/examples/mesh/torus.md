@@ -35,13 +35,16 @@ itself.  Two passes of morphological opening (erosion then dilation, with a
 6-connected structuring element) remove them while leaving the ring's
 connectivity and overall shape unchanged:
 
+<details>
+<summary><code>torus.py</code></summary>
+
 ```python
 <!-- cmdrun cat torus.py -->
 ```
 
-```sh
+</details>
+
 <!-- cmdrun python torus.py > /dev/null -->
-```
 
 ## Chained: `mesh hex smooth`
 
@@ -50,10 +53,15 @@ an intermediate file. With chaining, it's one command and no intermediate
 file — `smooth` runs immediately on the mesh `mesh hex` just built, in
 memory:
 
+<details open>
+<summary>The chained <code>mesh hex smooth</code> command and output</summary>
+
 ```sh
 automesh mesh hex -r 0 -i torus.npy -o torus_smooth.inp smooth
 <!-- cmdrun automesh mesh hex -r 0 -i torus.npy -o torus_smooth.inp smooth | ansifilter -->
 ```
+
+</details>
 
 > **Remark:** `-r 0` (removing void) must come *before* `-i`/`-o` here, not
 > after.  `-r` accepts a variable number of IDs, so if it were the last flag
@@ -63,20 +71,32 @@ automesh mesh hex -r 0 -i torus.npy -o torus_smooth.inp smooth
 
 For comparison, the unsmoothed mesh:
 
+<details open>
+<summary>The unsmoothed <code>mesh hex</code> command and output</summary>
+
 ```sh
 automesh mesh hex -r 0 -i torus.npy -o torus_raw.inp
 <!-- cmdrun automesh mesh hex -r 0 -i torus.npy -o torus_raw.inp | ansifilter -->
 ```
 
+</details>
+
+<figure>
+
 raw (3,552 elements) | smoothed (3,552 elements)
 :---: | :---:
 ![torus_raw.png](torus_raw.png) | ![torus_smooth.png](torus_smooth.png)
 
-Figure: The same 3,552-element hexahedral mesh before (left) and after
+<figcaption>
+
+The same 3,552-element hexahedral mesh before (left) and after
 (right) 20 iterations of Taubin smoothing, chained directly onto meshing.
 Smoothing does not change the element or node count — it only relocates
 nodes — so the voxel "staircasing" on the left becomes a smoothed
 torus on the right.
+
+</figcaption>
+</figure>
 
 ## Smoothing's Effect on Element Quality
 
@@ -106,13 +126,23 @@ line, but running it always fails on this torus, exactly as documented in
 [Mesh](../../cli/mesh.md#mesh-hex-smooth) — `remesh` requires triangular
 connectivity, and a hex mesh has none:
 
+<details open>
+<summary>The <code>mesh hex smooth remesh</code> command</summary>
+
 ```sh
 automesh mesh hex -r 0 -i torus.npy -o torus_bad.inp smooth remesh
 ```
 
+</details>
+
+<details open>
+<summary>The error message</summary>
+
 ```sh
 Error: connectivity contains a non-triangular block.
 ```
+
+</details>
 
 Remeshing after smoothing is only meaningful for `mesh tri` (a triangular
 isosurface, not a hex volume) — see the [Stanford bunny](../remesh/bunny.md)
@@ -124,6 +154,11 @@ The figures on this page are produced by the following script, which reads
 the segmentation directly (for the raw voxel view) and the smoothed `.inp`
 mesh (extracting its exterior quad faces for the smoothed view):
 
+<details>
+<summary><code>torus_figures.py</code></summary>
+
 ```python
 <!-- cmdrun cat torus_figures.py -->
 ```
+
+</details>

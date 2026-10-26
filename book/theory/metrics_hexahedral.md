@@ -33,9 +33,16 @@ Typically, mesh quality requirements specify $\hat{J}_{\min} > 0.3$ for acceptab
 
 * Knupp *et al.*[^Knupp_2006] (page 92) indicate an acceptable range of `[0.5, 1.0]`, though in practice, minimum values as low as `0.2` and `0.3` are often used.
 
+<figure>
+
 ![](img/metrics_msj.png)
 
-Figure. Illustration of minimum scaled Jacobian[^Hovey_2023] with acceptable range `[0.3, 1.0]`.
+<figcaption>
+
+Illustration of minimum scaled Jacobian[^Hovey_2023] with acceptable range `[0.3, 1.0]`.
+
+</figcaption>
+</figure>
 
 ## Maximum Skew
 
@@ -54,6 +61,8 @@ Inspired by Figure 2 of Livesu *et al.*[^Livesu_2021] reproduced here below
 
 we examine several unit test singleton elements and their metrics.
 
+<figure>
+
 valence | singleton | ${\rm ER}_{\max}$ | $\hat{J}_{\min}$ | ${\rm skew_{\max}}$ | volume
 :---: | :---: | :---: | :---: | :---: | :---:
 3           | ![](img/single_valence_03.png)        | 1.000000e0 (1.000)    | 8.660253e-1 (0.866)   | 5.000002e-1 (0.500)   | 8.660250e-1 (0.866)
@@ -65,7 +74,12 @@ valence | singleton | ${\rm ER}_{\max}$ | $\hat{J}_{\min}$ | ${\rm skew_{\max}}$
 ...         | ...                                   | ...                   | ...                   | ...                   | ...
 10          | ![](img/single_valence_10.png)        | 1.000000e0 (1.000)    | 5.877851e-1 (0.588)   | 8.090171e-1 (0.809)   |  5.877850e-1 (0.588)
 
-Figure: Hexahedral metrics.  Leading values are from `automesh`.  Values in parenthesis are results from [HexaLab](https://www.hexalab.net).[^Hexalab_2023] Items with ** indicate where `automesh` and Cubit agree, but HexaLab disagrees.  Cubit uses the term *Aspect Ratio* for Edge Ratio for hexahedral elements.  All values were also verified with Cubit.
+<figcaption>
+
+Hexahedral metrics.  Leading values are from `automesh`.  Values in parenthesis are results from [HexaLab](https://www.hexalab.net).[^Hexalab_2023] Items with ** indicate where `automesh` and Cubit agree, but HexaLab disagrees.  Cubit uses the term *Aspect Ratio* for Edge Ratio for hexahedral elements.  All values were also verified with Cubit.
+
+</figcaption>
+</figure>
 
 The connectivity for all elements:
 
@@ -171,13 +185,15 @@ The local numbering scheme for nodes of a hexahedral element:
 node | connected nodes
 :---: | :---:
 0 | 1, 3, 4
-1 | 0, 2, 5
-2 | 1, 3, 6
+1 | 2, 0, 5
+2 | 3, 1, 6
 3 | 0, 2, 7
-4 | 0, 5, 7
-5 | 1, 4, 6
-6 | 2, 5, 7
-7 | 3, 4, 6
+4 | 7, 5, 0
+5 | 4, 6, 1
+6 | 5, 7, 2
+7 | 6, 4, 3
+
+Note that we **order** the connected nodes to preserve the right-hand rule convention.
 
 ### Faces
 
@@ -397,13 +413,27 @@ $$\mathbf{v} := \mathbf{b} - \mathbf{e} \tag{10}$$
 $$\mathbf{w} := \mathbf{c} - \mathbf{e} \tag{11}$$
 
 
+<figure>
+
 ![nodal_scaled_jacobian_general_hex](img/nodal_scaled_jacobian_general_hex.svg)
 
-Figure: A general hexahedral element in $\real^3$.
+<figcaption>
+
+A general hexahedral element in $\real^3$.
+
+</figcaption>
+</figure>
+
+<figure>
 
 ![nodal_scaled_jacobian_points_hex](img/nodal_scaled_jacobian_points_hex.svg)
 
-Figure: A dextral, orthogonal local reference frame $(x, y, z)$ created from three nodes $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ that share edge connectivity with common node $\mathbf{e}$.  The location of $\mathbf{e}^{*}$ is the location of $\mathbf{e}$ that creates a scaled Jacobian of unity.
+<figcaption>
+
+A dextral, orthogonal local reference frame $(x, y, z)$ created from three nodes $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ that share edge connectivity with common node $\mathbf{e}$.  The location of $\mathbf{e}^{*}$ is the location of $\mathbf{e}$ that creates a scaled Jacobian of unity.
+
+</figcaption>
+</figure>
 
 The current scaled Jacobian $\hat{J}$ is defined by the current location of $\mathbf{e}$, holding positions of $\mathbf{a}, \mathbf{b}$, $\mathbf{c}$ constant:
 
@@ -442,9 +472,16 @@ Subtracting Eq. (18) from Eq. (17) and solving,
 
 $$2 (u^*)^2 = (\mathbf{b} - \mathbf{a}) \cdot (\mathbf{b} - \mathbf{a}) - (\mathbf{c} - \mathbf{b})\cdot (\mathbf{c} - \mathbf{b}) + (\mathbf{a} - \mathbf{c}) \cdot (\mathbf{a} - \mathbf{c}) \tag{20}$$
 
+<figure>
+
 ![nodal_scaled_jacobian_vectors_hex](img/nodal_scaled_jacobian_vectors_hex.svg)
 
-Figure: Vectors $\mathbf{r}$, $\mathbf{s}$, and $\mathbf{t}$ that sequentially connect points $\mathbf{a}$, $\mathbf{b}$ and $\mathbf{c}$.
+<figcaption>
+
+Vectors $\mathbf{r}$, $\mathbf{s}$, and $\mathbf{t}$ that sequentially connect points $\mathbf{a}$, $\mathbf{b}$ and $\mathbf{c}$.
+
+</figcaption>
+</figure>
 
 Before proceeding, we can further simplify the expressions of these equations by defining
 edge vectors that connect each of the points $\mathbf{a}$, $\mathbf{b}$, and $\mathbf{c}$ that circle the path on $\triangle ABC$.  Let

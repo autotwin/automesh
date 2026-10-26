@@ -26,6 +26,7 @@ uv.lock
 # ignore input/output files by default
 *.csv
 *.e
+*.e.*
 *.exo
 *.g
 *.inp

@@ -7,28 +7,42 @@ properties of the whole material.
 
 This example uses a unit cube of bulk material.  Three spherical pores sit in
 the interior. [Cubit](https://cubit.sandia.gov) creates the geometry and the
-tetrahedral comparison meshes; see [Reference](#reference) for the journal file
+tetrahedral comparison meshes; see [References](#references) for the journal file
 and [Downloads](#downloads) for the files themselves.
+
+<figure>
 
 ![rve_geometry.png](rve_geometry.png)
 
-Figure: The RVE geometry.  Left: the solid unit cube.  Right: the same model
+<figcaption>
+
+The RVE geometry.  Left: the solid unit cube.  Right: the same model
 cut at the plane $x = y$, which exposes all three pores.  The pores have radii
 `R/10`, `R/20`, and `R/30`, and only the middle one sits at the origin.  Their
 centers are collinear and all lie on the cut plane, so each pore is sliced
 through its center and appears as an exact circle.  The figure is produced by
 [`rve_geometry_figure.py`](rve_geometry_figure.py).
 
+</figcaption>
+</figure>
+
 Cubit creates the tessellated surface `comparison.stl`, illustrated below.
+
+<figure>
 
 ![comparison.png](comparison.png)
 
-Figure: The `comparison.stl` surface, as exported by Cubit.  Left: the full
+<figcaption>
+
+The `comparison.stl` surface, as exported by Cubit.  Left: the full
 surface triangulation.  Right: the interior pore surfaces on their own, drawn
 inside a wireframe of the cube.  The journal exports the STL before meshing, so
 this is the geometry faceting rather than a mesh.  The six planar cube faces
 need only two triangles each, which puts 3,264 of the total 3,276 facets on
 the three pores.  The figure is produced by [`rve_figures.py`](rve_figures.py).
+
+</figcaption>
+</figure>
 
 ## Motivation
 
@@ -71,9 +85,13 @@ cut through the pore centers, so the interior adaptivity is visible.
 
 <a id="metrics-figure"></a>
 
+<figure>
+
 ![rve_mesh_msj.png](rve_mesh_msj.png)
 
-Figure: The tet4 and `automesh` hex meshes, painted by Minimum Scaled Jacobian
+<figcaption>
+
+The tet4 and `automesh` hex meshes, painted by Minimum Scaled Jacobian
 on a fixed 0 to 1 scale, so the two are comparable by color.  Top row: each
 mesh whole, seen from outside.  Middle row: each mesh cut at the plane
 $x = y$.  The three pore centers are collinear and all lie on that plane, so
@@ -86,6 +104,9 @@ and holds near 1.0 through the bulk.  The figure is produced by
 [`rve_mesh_figure.py`](rve_mesh_figure.py), following the style of the
 [autotwin/quality](https://github.com/autotwin/quality) mesh renders.
 
+</figcaption>
+</figure>
+
 `automesh` computes the same four quality measures for both meshes:
 
 ```sh
@@ -93,15 +114,22 @@ automesh metrics -i tetrahedra_4.exo -o tet4_metrics.csv
 automesh metrics -i hexahedra.exo -o hex_metrics.csv
 ```
 
+<figure>
+
 ![rve_quality_histograms.svg](rve_quality_histograms.svg)
 
-Figure: Element quality for the tet4 mesh (solid) and the `automesh` hex mesh
+<figcaption>
+
+Element quality for the tet4 mesh (solid) and the `automesh` hex mesh
 (dashed).  Minimum Scaled Jacobian top left, Maximum Aspect Ratio top right,
 Maximum Skew bottom left, Element Volume bottom right.  Counts use a log scale.
 The figure is produced by
 [`rve_quality_histograms.py`](rve_quality_histograms.py), which follows the
 style of the [autotwin/quality](https://github.com/autotwin/quality)
 histograms.
+
+</figcaption>
+</figure>
 
 The hex mesh concentrates near the ideal on two of the four measures.  Its
 scaled Jacobian piles up at 1.0, and its skew piles up at 0.0, whereas the
@@ -110,7 +138,7 @@ tighter aspect ratio, topping out near 3 while the hex mesh reaches about 4.5.
 Element volume separates the two most clearly.  The hex mesh carries a long
 tail of larger elements, which is the adaptive coarsening away from the pores.
 
-# Reference
+# References
 
 ## Cubit
 

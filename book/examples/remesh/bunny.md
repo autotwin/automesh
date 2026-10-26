@@ -26,9 +26,14 @@ once with the [`obj_to_binary_stl.py` helper](#helper-obj-to-binary-stl) (shown
 at the end of this page), producing `stanford_bunny.stl`.  All commands on this
 page use that converted file.
 
+<details open>
+<summary>The OBJ to STL conversion command</summary>
+
 ```sh
 python obj_to_binary_stl.py stanford-bunny.obj stanford_bunny.stl
 ```
+
+</details>
 
 Alternatively, skip the conversion step and download the same file pre-converted:
 
@@ -74,10 +79,15 @@ preserved through remeshing.
 The target edge length sets the triangle size.  A smaller `--size` produces more,
 smaller triangles; a larger `--size` produces fewer, larger triangles.
 
+<details open>
+<summary>The uniform <code>remesh</code> commands</summary>
+
 ```sh
 automesh remesh -i stanford_bunny.stl -o bunny_uniform_fine.stl   uniform -s 0.004 -n 20
 automesh remesh -i stanford_bunny.stl -o bunny_uniform_coarse.stl uniform -s 0.006 -n 20
 ```
+
+</details>
 
 | fine, `-s 0.004` (7,715 facets) | coarse, `-s 0.006` (3,528 facets) |
 | :---: | :---: |
@@ -91,10 +101,15 @@ edges so much, so reaching a coarse target from a dense input takes several
 passes.  At the same target `-s 0.006`, five iterations barely coarsen the
 69,451-triangle input, while twenty iterations reach the target:
 
+<details open>
+<summary>The iteration <code>remesh</code> commands</summary>
+
 ```sh
 automesh remesh -i stanford_bunny.stl -o bunny_iter_n5.stl        uniform -s 0.006 -n 5
 automesh remesh -i stanford_bunny.stl -o bunny_uniform_coarse.stl uniform -s 0.006 -n 20
 ```
+
+</details>
 
 | `-n 5` (29,826 facets) | `-n 20` (3,528 facets) |
 | :---: | :---: |
@@ -116,10 +131,15 @@ A wide edge-length spread (`--minimum 0.002 --maximum 0.040`) with a low
 `--tolerance` accentuates this: only the highest-curvature regions are refined to
 the minimum, while everything smooth relaxes toward the maximum.
 
+<details open>
+<summary>The uniform and adaptive <code>remesh</code> commands</summary>
+
 ```sh
 automesh remesh -i stanford_bunny.stl -o bunny_compare_uniform.stl uniform  -s 0.0036 -n 20
 automesh remesh -i stanford_bunny.stl -o bunny_adaptive.stl        adaptive --minimum 0.002 --maximum 0.040 -n 25 -t 0.02
 ```
+
+</details>
 
 | uniform (9,541 facets) | adaptive (9,698 facets) |
 | :---: | :---: |
@@ -146,11 +166,16 @@ Its effect on the facet count is **not monotonic** — and this is the part that
 easy to get backwards.  Sweeping the tolerance at fixed
 `--minimum 0.002 --maximum 0.040 -n 25` gives a U-shaped curve:
 
+<details open>
+<summary>The three tolerance <code>remesh</code> commands</summary>
+
 ```sh
 automesh remesh -i stanford_bunny.stl -o bunny_tol_tight.stl adaptive --minimum 0.002 --maximum 0.040 -n 25 -t 0.0002
 automesh remesh -i stanford_bunny.stl -o bunny_tol_mid.stl   adaptive --minimum 0.002 --maximum 0.040 -n 25 -t 0.002
 automesh remesh -i stanford_bunny.stl -o bunny_tol_loose.stl adaptive --minimum 0.002 --maximum 0.040 -n 25 -t 0.02
 ```
+
+</details>
 
 ![bunny_tolerance.png](bunny_tolerance.png)
 
@@ -188,10 +213,15 @@ facets); a large gradation allows a rapid transition, keeping the refinement
 localized to the features (fewer facets).  Using the same baseline as above
 (`--minimum 0.002 --maximum 0.040 -n 25 -t 0.02`):
 
+<details open>
+<summary>The two gradation <code>remesh</code> commands</summary>
+
 ```sh
 automesh remesh -i stanford_bunny.stl -o bunny_adapt_grad_lo.stl adaptive --minimum 0.002 --maximum 0.040 -n 25 -t 0.02 -g 0.1
 automesh remesh -i stanford_bunny.stl -o bunny_adapt_grad_hi.stl adaptive --minimum 0.002 --maximum 0.040 -n 25 -t 0.02 -g 0.9
 ```
+
+</details>
 
 | `-g 0.1` — gradual (22,086 facets) | `-g 0.9` — sharp (7,016 facets) |
 | :---: | :---: |
@@ -213,9 +243,14 @@ The figures on this page are produced by the following script, which reads each
 STL surface and renders it with a matched camera (remapping the bunny's `+y`
 up-axis so it stands upright).
 
+<details>
+<summary><code>remesh_bunny_figures.py</code></summary>
+
 ```python
 <!-- cmdrun cat remesh_bunny_figures.py -->
 ```
+
+</details>
 
 ## Tolerance study script
 
@@ -223,18 +258,28 @@ The [tolerance sweep](#adaptive-curvature-tolerance---tolerance) plot is produce
 by the following script, which remeshes the bunny at several `--tolerance` values
 and records the facet count:
 
+<details>
+<summary><code>remesh_bunny_tolerance.py</code></summary>
+
 ```python
 <!-- cmdrun cat remesh_bunny_tolerance.py -->
 ```
+
+</details>
 
 ## Helper: OBJ to binary STL
 
 The Stanford bunny is distributed as an OBJ, but `remesh` reads STL, not OBJ.
 This helper converts the downloaded OBJ to the `stanford_bunny.stl` used above:
 
+<details>
+<summary><code>obj_to_binary_stl.py</code></summary>
+
 ```python
 <!-- cmdrun cat obj_to_binary_stl.py -->
 ```
+
+</details>
 
 ## References
 

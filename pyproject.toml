@@ -18,7 +18,7 @@ classifiers = [
 description = "automesh"
 dynamic = ["version"]
 name = "automesh"
-requires-python = ">=3.10,<3.15"
+requires-python = ">=3.11"
 readme = "README.md"
 
 [project.urls]

@@ -108,6 +108,11 @@ tessellation.
 
 ### `quadtree_plot.py`
 
+<details>
+<summary><code>quadtree_plot.py</code></summary>
+
 ```python
 <!-- cmdrun cat code/quadtree_plot.py -->
 ```
+
+</details>

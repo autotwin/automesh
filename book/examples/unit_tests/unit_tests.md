@@ -10,9 +10,14 @@ The Python code used to generate the figures on this page is included
 
 **Remark:** We use the convention `np` when importing `numpy` as follows:
 
+<details>
+<summary>The NumPy import</summary>
+
 ```python
 import numpy as np
 ```
+
+</details>
 
 ### Single
 
@@ -20,6 +25,9 @@ The minimum working example (MWE) is a single voxel, used to create a single
 mesh consisting of one block consisting of a single element.  The NumPy input
 [single.npy](https://github.com/autotwin/automesh/raw/main/tests/input/single.npy)
 contains the following segmentation:
+
+<details open>
+<summary>The <code>single.npy</code> segmentation</summary>
 
 ```python
 segmentation = np.array(
@@ -31,6 +39,8 @@ segmentation = np.array(
     dtype=np.uint8,
 )
 ```
+
+</details>
 
 where the segmentation `11` denotes block `11` in the finite element mesh.
 
@@ -44,30 +54,47 @@ where the segmentation `11` denotes block `11` in the finite element mesh.
 Equivalently, the [single.spn](https://raw.githubusercontent.com/autotwin/automesh/main/tests/input/single.spn) contains a
 single integer:
 
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
+
 ```sh
 11   #  x:1  y:1  z:1
 ```
 
+</details>
+
 The resulting finite element mesh is visualized is shown in the following
 figure:
 
+<figure>
+
 ![single.png](single.png)
 
-Figure: The `single.png` visualization, (left) lattice node numbers, (right)
+<figcaption>
+
+The `single.png` visualization, (left) lattice node numbers, (right)
 mesh node numbers.  Lattice node numbers appear in gray, with `(x, y, z)`
 indices in parenthesis.  The right-hand rule is used.  Lattice coordinates
 start at `(0, 0, 0)`, and proceed along the `x-axis`, then
 the `y-axis`, and then the `z-axis`.
 
+</figcaption>
+</figure>
+
 The finite element mesh local node numbering map to the following global node
 numbers identically,
 $S_{\rm{local}} = \{1, 2, 4, 3, 5, 6, 8, 7\}$ and $S_{\rm{local}} = S_{\rm{global}}$:
+
+<details open>
+<summary>The local-to-global node map</summary>
 
 ```bash
 [1, 2, 4, 3, 5, 6, 8, 7]
 ->
 [1, 2, 4, 3, 5, 6, 8, 7]
 ```
+
+</details>
 
 which is a special case not typically observed, as shown in more complex
 examples below.
@@ -83,33 +110,60 @@ meshes.
 
 ### Double X
 
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
+
 ```sh
 11   #  x:1  y:1  z:1
 11   #    2    1    1
 ```
 
+</details>
+
 where the segmentation `11` denotes block `11` in the finite element mesh.
+
+<figure>
 
 ![double_x.png](double_x.png)
 
-Figure: Mesh composed of a single block with two elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with two elements, propagating along
 the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ### Double Y
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 11   #  x:1  y:1  z:1
 11   #    1    2    1
 ```
 
+</details>
+
 where the segmentation `11` denotes block `11` in the finite element mesh.
+
+<figure>
 
 ![double_y.png](double_y.png)
 
-Figure: Mesh composed of a single block with two elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with two elements, propagating along
 the `y-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Triple
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 11   #  x:1  y:1  z:1
@@ -117,14 +171,26 @@ the `y-axis`, (left) lattice node numbers, (right) mesh node numbers.
 11   #    3    1    1
 ```
 
+</details>
+
 where the segmentation `11` denotes block `11` in the finite element mesh.
+
+<figure>
 
 ![triple_x.png](triple_x.png)
 
-Figure: Mesh composed of a single block with three elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with three elements, propagating along
 the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Quadruple
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 11   #  x:1  y:1  z:1
@@ -133,14 +199,26 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 11   #    4    1    1
 ```
 
+</details>
+
 where the segmentation `11` denotes block `11` in the finite element mesh.
+
+<figure>
 
 ![quadruple_x.png](quadruple_x.png)
 
-Figure: Mesh composed of a single block with four elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with four elements, propagating along
 the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Quadruple with Voids
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 99   #  x:1  y:1  z:1
@@ -149,15 +227,27 @@ the `x-axis`, (left) lattice node numbers, (right) mesh node numbers.
 99   #    4    1    1
 ```
 
+</details>
+
 where the segmentation `99` denotes block `99` in the finite element mesh, and segmentation `0` is excluded from the mesh.
+
+<figure>
 
 ![quadruple_2_voids_x.png](quadruple_2_voids_x.png)
 
-Figure: Mesh composed of a single block with two elements, propagating along
+<figcaption>
+
+Mesh composed of a single block with two elements, propagating along
 the `x-axis` and two voids, (left) lattice node numbers, (right) mesh node
 numbers.
 
+</figcaption>
+</figure>
+
 ## Quadruple with Two Blocks
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 100  #  x:1  y:1  z:1
@@ -166,16 +256,28 @@ numbers.
 100  #    4    1    1
 ```
 
+</details>
+
 where the segmentation `100` and `101` denotes block `100` and `101`,
 respectively in the finite element mesh.
 
+<figure>
+
 ![quadruple_2_blocks.png](quadruple_2_blocks.png)
 
-Figure: Mesh composed of two blocks with two elements elements each,
+<figcaption>
+
+Mesh composed of two blocks with two elements elements each,
 propagating along the `x-axis`, (left) lattice node numbers, (right) mesh
 node numbers.
 
+</figcaption>
+</figure>
+
 ## Quadruple with Two Blocks and Void
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 102  #  x:1  y:1  z:1
@@ -184,16 +286,28 @@ node numbers.
 102  #    4    1    1
 ```
 
+</details>
+
 where the segmentation `102` and `103` denotes block `102` and `103`,
 respectively, in the finite element mesh, and segmentation `0` is excluded from the mesh.
 
+<figure>
+
 ![quadruple_2_blocks_void.png](quadruple_2_blocks_void.png)
 
-Figure: Mesh composed of one block with two elements, a second block with one
+<figcaption>
+
+Mesh composed of one block with two elements, a second block with one
 element, and a void, propagating along the `x-axis`, (left) lattice node
 numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Cube
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 11   #  x:1  y:1  z:1
@@ -206,14 +320,26 @@ numbers, (right) mesh node numbers.
 11   #  _ 2  _ 2  _ 2
 ```
 
+</details>
+
 where the segmentation `11` denotes block `11` in the finite element mesh.
+
+<figure>
 
 ![cube.png](cube.png)
 
-Figure: Mesh composed of one block with eight elements, (left) lattice node
+<figcaption>
+
+Mesh composed of one block with eight elements, (left) lattice node
 numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Cube with Multi Blocks and Void
+
+<details open>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 82   #  x:1  y:1  z:1
@@ -226,17 +352,29 @@ numbers, (right) mesh node numbers.
 44   #  _ 2  _ 2  _ 2
 ```
 
+</details>
+
 where the segmentation `82`, `2`, `31` and `44` denotes block `82`, `2`, `31`
 and `44`, respectively, in the finite element mesh, and segmentation `0` will
 be included from the finite element mesh.
 
+<figure>
+
 ![cube_multi.png](cube_multi.png)
 
-Figure: Mesh composed of four blocks (block `82` has one element, block `2`
+<figcaption>
+
+Mesh composed of four blocks (block `82` has one element, block `2`
 has three elements, block `31` has one element, and block `44` has one
 element), (left) lattice node numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Cube with Inclusion
+
+<details>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 11   #  x:1  y:1  z:1
@@ -268,12 +406,24 @@ element), (left) lattice node numbers, (right) mesh node numbers.
 11   #  _ 3  _ 3  _ 3
 ````
 
+</details>
+
+<figure>
+
 ![cube_with_inclusion.png](cube_with_inclusion.png)
 
-Figure: Mesh composed of 26 voxels of (block `11`) and one voxel inslusion
+<figcaption>
+
+Mesh composed of 26 voxels of (block `11`) and one voxel inslusion
 (block `88`), (left) lattice node numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Bracket
+
+<details>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 1   #  x:1  y:1  z:1
@@ -294,14 +444,26 @@ Figure: Mesh composed of 26 voxels of (block `11`) and one voxel inslusion
 0   #  _ 4  _ 4    1
 ```
 
+</details>
+
 where the segmentation `1` denotes block `1` in the finite element mesh,
 and segmentation `0` is excluded from the mesh.
 
+<figure>
+
 ![bracket.png](bracket.png)
 
-Figure: Mesh composed of a L-shaped bracket in the `xy` plane.
+<figcaption>
+
+Mesh composed of a L-shaped bracket in the `xy` plane.
+
+</figcaption>
+</figure>
 
 ## Letter F
+
+<details>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 11   #  x:1  y:1  z:1
@@ -321,14 +483,26 @@ Figure: Mesh composed of a L-shaped bracket in the `xy` plane.
 11   #  _ 3  _ 5  _ 1
 ```
 
+</details>
+
 where the segmentation `11` denotes block `11` in the finite element mesh.
+
+<figure>
 
 ![letter_f.png](letter_f.png)
 
-Figure: Mesh composed of a single block with eight elements, (left) lattice
+<figcaption>
+
+Mesh composed of a single block with eight elements, (left) lattice
 node numbers, (right) mesh node numbers.
 
+</figcaption>
+</figure>
+
 ## Letter F in 3D
+
+<details>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 1    #  x:1  y:1  z:1
@@ -393,23 +567,42 @@ node numbers, (right) mesh node numbers.
 1    #  _ 4  _ 5  _ 3
 ```
 
+</details>
+
 which corresponds to `--nelx 4`, `--nely 5`, and `--nelz  3` in the
 [command line interface](../../cli.md).
 
+<figure>
+
 ![letter_f_3d.png](letter_f_3d.png)
 
-Figure: Mesh composed of a single block with thirty-nine elements, (left)
+<figcaption>
+
+Mesh composed of a single block with thirty-nine elements, (left)
 lattice node numbers, (right) mesh node numbers.
+
+</figcaption>
+</figure>
 
 The shape of the solid segmentation is more easily seen without the
 lattice and element nodes, and with decreased opacity, as shown below:
 
+<figure>
+
 ![letter_f_3d_alt.png](letter_f_3d_alt.png)
 
-Figure: Mesh composed of a single block with thirty-nine elements, shown
+<figcaption>
+
+Mesh composed of a single block with thirty-nine elements, shown
 with decreased opacity and without lattice and element node numbers.
 
+</figcaption>
+</figure>
+
 ## Sparse
+
+<details>
+<summary>The <code>.spn</code> segmentation</summary>
 
 ```sh
 0    #  x:1  y:1  z:1
@@ -539,15 +732,31 @@ with decreased opacity and without lattice and element node numbers.
 1    #  _ 5  _ 5  _ 5
 ```
 
+</details>
+
 where the segmentation `1` denotes block `1` and segmentation `2` denotes block `2` in the finite eelement mesh (with segmentation `0` excluded).
+
+<figure>
 
 ![sparse.png](sparse.png)
 
-Figure: Sparse mesh composed of two materials at random voxel locations.
+<figcaption>
+
+Sparse mesh composed of two materials at random voxel locations.
+
+</figcaption>
+</figure>
+
+<figure>
 
 ![sparse_alt.png](sparse_alt.png)
 
-Figure: Sparse mesh composed of two materials at random voxel locations, shown with decreased opactity and without lattice and element node numbers.
+<figcaption>
+
+Sparse mesh composed of two materials at random voxel locations, shown with decreased opactity and without lattice and element node numbers.
+
+</figcaption>
+</figure>
 
 ## Source
 
@@ -560,24 +769,44 @@ The figures were created with the following Python files:
 
 ### `examples_data.py`
 
+<details>
+<summary><code>examples_data.py</code></summary>
+
 ```python
 <!-- cmdrun cat examples_data.py -->
 ```
 
+</details>
+
 ### `examples_figures.py`
+
+<details>
+<summary><code>examples_figures.py</code></summary>
 
 ```python
 <!-- cmdrun cat examples_figures.py -->
 ```
 
+</details>
+
 ### `examples_test.py`
+
+<details>
+<summary><code>examples_test.py</code></summary>
 
 ```python
 <!-- cmdrun cat examples_test.py -->
 ```
 
+</details>
+
 ### `examples_types.py`
+
+<details>
+<summary><code>examples_types.py</code></summary>
 
 ```python
 <!-- cmdrun cat examples_types.py -->
 ```
+
+</details>

@@ -3,16 +3,23 @@
 The bone is a closed surface of 12,088 triangles.  A long, slender shaft
 joins a pair of rounded lobes at each end.  The model comes from the
 hybrid-octree meshing work of Tong, Halilaj, and Zhang
-[[1]](#reference), which meshes it with all-hexahedral elements.
+[[1]](#references), which meshes it with all-hexahedral elements.
+
+<figure>
 
 ![bone_surface.png](bone_surface.png)
 
-Figure: The bone surface, 12,088 triangles, in the top, front, side, and
+<figcaption>
+
+The bone surface, 12,088 triangles, in the top, front, side, and
 isometric views.  The triangles are close to uniform.  The longest edge is
 about twice the shortest.  ParaView 5.10.1 makes the renders from
 `bone_tri_cleaned.stl` (see [Downloads](#downloads)).  They come from
 [`bone_render.py`](bone_render.py), and
 [`bone_render_quad.py`](bone_render_quad.py) composes them.
+
+</figcaption>
+</figure>
 
 The Tong 2024 is the baseline in this book.  This page records the baseline: the settings that
 produced it, its size, and its element quality.  Then it meshes the same
@@ -27,7 +34,7 @@ lengths and volumes below use that scale.
 
 ## The Baseline Settings
 
-The code, `HybridOctree_Hex` v1.0 [[1]](#reference), ships with the settings
+The code, `HybridOctree_Hex` v1.0 [[1]](#references), ships with the settings
 below.  Four are constants in `Initialization.h`: `C_THRES`, `H_THRES`,
 `CELL_DETECT`, and `VOXEL_SIZE`.  The curvature formula and the level of the
 deepest rung are fixed inside `HexGen.cpp`.  The published mesh comes from these
@@ -182,9 +189,13 @@ automesh metrics -i bone.inp -o bone_reference_metrics.csv
 The CSV has one row per element, in the order of the mesh.  ParaView paints the
 elements by the Minimum Scaled Jacobian column.
 
+<figure>
+
 ![bone_reference_msj.png](bone_reference_msj.png)
 
-Figure: The reference bone mesh from the Tong 2024 baseline, painted by Minimum
+<figcaption>
+
+The reference bone mesh from the Tong 2024 baseline, painted by Minimum
 Scaled Jacobian on a fixed 0 to 1 scale.  The four panels show the top, front,
 side, and isometric views.  The mesh's own values run from 0.61 to 1.0, so no
 element reaches the dark end of the scale.  The elements are smallest on the
@@ -193,19 +204,29 @@ ParaView 5.10.1 makes the renders.  They come from
 [`bone_render.py`](bone_render.py), and
 [`bone_render_quad.py`](bone_render_quad.py) composes them.
 
+</figcaption>
+</figure>
+
 ## Quality Metrics
 
 `automesh` computes four measures for each element: Minimum Scaled Jacobian,
-Maximum Aspect Ratio, Maximum Skew, and Element Volume [[3]](#reference).
+Maximum Aspect Ratio, Maximum Skew, and Element Volume [[3]](#references).
+
+<figure>
 
 ![bone_quality_histograms.svg](bone_quality_histograms.svg)
 
-Figure: Element quality for the reference bone mesh, all 8,619 elements.
+<figcaption>
+
+Element quality for the reference bone mesh, all 8,619 elements.
 Minimum Scaled Jacobian is at top left, Maximum Aspect Ratio at top right,
 Maximum Skew at bottom left, and Element Volume at bottom right.  Counts use a
 log scale, and the aspect ratio uses a log axis as well.  The figure comes from
 [`bone_quality_histograms.py`](bone_quality_histograms.py), which follows the
 style of the [RVE](rve.md) histograms.
+
+</figcaption>
+</figure>
 
 | measure | extreme | value |
 | --- | --- | ---: |
@@ -287,18 +308,29 @@ The reference is also graded, where the lattice is not.  Its element volumes
 reach 39.64, while the lattice tops out at 6.64.  The
 octree grades, and reaches 18.96.
 
+<figure>
+
 ![bone_automesh_msj.png](bone_automesh_msj.png)
 
-Figure: The `automesh` uniform-lattice mesh, painted by Minimum Scaled Jacobian
+<figcaption>
+
+The `automesh` uniform-lattice mesh, painted by Minimum Scaled Jacobian
 on the same 0 to 1 scale and in the same four views as the reference.  The
 elements are close to one size over the whole bone.  A few dark elements, with
 values as low as 0.28, sit scattered over the surface.  The figure comes
 from [`bone_render.py`](bone_render.py), and
 [`bone_render_quad.py`](bone_render_quad.py) composes it.
 
+</figcaption>
+</figure>
+
+<figure>
+
 ![bone_octree_msj.png](bone_octree_msj.png)
 
-Figure: The `automesh` adaptive-octree mesh, painted by Minimum Scaled Jacobian
+<figcaption>
+
+The `automesh` adaptive-octree mesh, painted by Minimum Scaled Jacobian
 on the same scale and in the same four views.  Unlike the lattice, the octree
 grades.  The elements are fine on the shaft and at the necks, and coarse on the
 lobes, as in the reference.  Several dark elements sit at the necks, where the
@@ -307,9 +339,16 @@ elements below 0.6, 606 are interior, and they do not appear here.  The cut
 view in the next section shows them.  The figure comes from the same two
 scripts.
 
+</figcaption>
+</figure>
+
+<figure>
+
 ![bone_quality_comparison.svg](bone_quality_comparison.svg)
 
-Figure: Element quality for the reference (solid, orange), the `automesh`
+<figcaption>
+
+Element quality for the reference (solid, orange), the `automesh`
 uniform lattice (dashed, blue), and the `automesh` adaptive octree (dotted,
 green).  The panels match the earlier figure.  The reference has a hard floor
 at 0.61 in Minimum Scaled Jacobian, and the `automesh` curves have a tail
@@ -317,6 +356,9 @@ toward 0.3.  The lattice's tail is thin, and the octree's is fatter.  The
 `automesh` aspect ratios stay below about 6.5, where the reference reaches 21.
 The figure comes from
 [`bone_quality_histograms.py`](bone_quality_histograms.py).
+
+</figcaption>
+</figure>
 
 ### Where the Low Elements Are
 
@@ -339,9 +381,13 @@ On the octree, the tail has a second source.  Of the 1,117 elements below 0.6,
 511 touch the boundary, and 606 are interior.  The transition elements in the
 interior add poor elements of their own.
 
+<figure>
+
 ![bone_cut_msj.png](bone_cut_msj.png)
 
-Figure: A cut through the middle of the bone, at $y \approx 50$, for the
+<figcaption>
+
+A cut through the middle of the bone, at $y \approx 50$, for the
 `automesh` uniform lattice (left) and adaptive octree (right).  Both use the
 same 0 to 1 scale.  An element that crosses the plane stays whole, so the cut
 edge is ragged.  On the lattice, the interior is a regular grid of elements
@@ -351,6 +397,9 @@ lobes to fine elements in the shaft.  The transitions at the necks hold teal
 and green elements, and the boundary has a ring of low values as well.  The
 figure comes from [`bone_render.py`](bone_render.py) with `--cut`, and
 [`bone_render_quad.py`](bone_render_quad.py) composes it.
+
+</figcaption>
+</figure>
 
 A typical boundary element is fine.  The boundary median is about the same as
 the reference's.  Only the worst boundary elements are poor.  The reference
@@ -562,10 +611,13 @@ enough.  If it stalls near 0.4, the fit needs more.  The issue
 [autotwin/automesh#768](https://github.com/autotwin/automesh/issues/768)
 tracks this, with the bone as the benchmark.
 
-## Reproduce
+## Reproducibility
 
 The inputs are not committed.  See [Downloads](#downloads) to get them.  From
 this directory:
+
+<details>
+<summary>The commands that regenerate the figures and tables follow:</summary>
 
 ```sh
 PVPYTHON=/Applications/ParaView-5.10.1.app/Contents/bin/pvpython
@@ -643,9 +695,11 @@ cp path/to/bone/finalMesh.vtk reproduced_bone.vtk
 python3 bone_baseline_compare.py reproduced_bone.vtk bone.vtk
 ```
 
+</details>
+
 The histogram commands print the extremes in the tables above.
 
-## Reference
+## References
 
 1. Hua Tong, Eni Halilaj, and Yongjie Jessica Zhang.  "HybridOctree_Hex:
    Hybrid octree-based adaptive all-hexahedral mesh generation with Jacobian

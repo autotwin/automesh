@@ -5,9 +5,16 @@
 We examine the most basic type of smoothing, Laplace smoothing, $\lambda = 0.3$,
 without hierarchical control, with the **Double X** example.
 
+<figure>
+
 ![../unit_tests/double_x.png](../unit_tests/double_x.png)
 
-Figure: The **Double X** two-element example.
+<figcaption>
+
+The **Double X** two-element example.
+
+</figcaption>
+</figure>
 
 Table. The *neighborhoods table*. A node, with its neighbors, is considered a single neighborhood.  The table has twelve neighborhoods.
 
@@ -69,9 +76,16 @@ node | `x` | `y` | `z`
 11 | 1.0 | 0.925 | 0.925
 12 | 1.9 | 0.9 | 0.9
 
+<figure>
+
 ![free_laplace_iter_1.png](free_laplace_iter_1.png)
 
-Figure: Two element test problem (left) original configuration, (right) subject to one iteration of Laplace smoothing.
+<figcaption>
+
+Two element test problem (left) original configuration, (right) subject to one iteration of Laplace smoothing.
+
+</figcaption>
+</figure>
 
 ### Iteration `2`
 
@@ -90,14 +104,28 @@ node | `x` | `y` | `z`
 11 | 1.0  | 0.8575 | 0.8575
 12 | 1.81 | 0.8225 | 0.8225
 
+<figure>
+
 ![free_laplace_iter_2.png](free_laplace_iter_2.png)
 
-Figure: Two element test problem (left) original configuration, (right) subject to two iterations of Laplace smoothing.
+<figcaption>
+
+Two element test problem (left) original configuration, (right) subject to two iterations of Laplace smoothing.
+
+</figcaption>
+</figure>
 
 ### Iteration `100`
 
 A known drawback of Laplace smoothing is that it can fail to preserve volumes.  In the limit, volumes get reduced to a point, as illustrated in the figure below.
 
+<figure>
+
 ![free_laplace_iter_100.gif](free_laplace_iter_100.gif)
 
-Figure: Two element test problem (left) original configuration, (right) subject to `[1, 2, 3, 4, 5, 10, 20, 30, 100` iterations of Laplace smoothing.  Animation created with [Ezgif](https://ezgif.com/).
+<figcaption>
+
+Two element test problem (left) original configuration, (right) subject to `[1, 2, 3, 4, 5, 10, 20, 30, 100` iterations of Laplace smoothing.  Animation created with [Ezgif](https://ezgif.com/).
+
+</figcaption>
+</figure>

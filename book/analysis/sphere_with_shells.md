@@ -18,9 +18,16 @@ We use the model to explore answers to the following questions:
 
 Given three concentric spheres of radius 10, 11, and 12 cm, as shown in the figure below,
 
+<figure>
+
 ![spheres_cont_dim](fig/spheres_cont_dim.png)
 
-Figure: Schematic cross-section of three concentric spheres of radius 10, 11, and 12 cm.  Grid spacing is 1 cm.
+<figcaption>
+
+Schematic cross-section of three concentric spheres of radius 10, 11, and 12 cm.  Grid spacing is 1 cm.
+
+</figcaption>
+</figure>
 
 ### Find
 
@@ -40,20 +47,39 @@ vox/cm | element side length (cm) | `nelx` | # voxels | segmentation | file size
 
 The Python code used to generate the figures is included [below](#source).
 
+<figure>
+
 ![spheres_cont](fig/spheres_cont.png)
 
-Figure: Sphere segmentations (left) `spheres_resolution_1.npy` and (right) `spheres_resolution_2.npy` shown in the voxel domain.
+<figcaption>
+
+Sphere segmentations (left) `spheres_resolution_1.npy` and (right) `spheres_resolution_2.npy` shown in the voxel domain.
 Because plotting large domains with [*Matplotlib*](https://matplotlib.org)
 is slow, only the first two resolutions are shown.
 
+</figcaption>
+</figure>
+
+<figure>
+
 ![spheres_cont_cut](fig/spheres_cont_cut.png)
 
-Figure: Sphere segmentations with cutting plane of (left) `spheres_resolution_1.npy` and (right) `spheres_resolution_2.npy`.
+<figcaption>
+
+Sphere segmentations with cutting plane of (left) `spheres_resolution_1.npy` and (right) `spheres_resolution_2.npy`.
+
+</figcaption>
+</figure>
 
 ## Source
 
 ### `spheres_cont.py`
 
+<details>
+<summary><code>spheres_cont.py</code></summary>
+
 ```python
 <!-- cmdrun cat sphere_with_shells/spheres_cont.py -->
 ```
+
+</details>

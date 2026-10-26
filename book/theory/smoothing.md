@@ -12,9 +12,16 @@ Consider a subject node with position $\boldsymbol{p} = \boldsymbol{p}(x, y, z) 
 
 For concreteness, consider a node with four neighbors, shown in the figure below.
 
+<figure>
+
 ![node_p_q](../fig/node_p_q.png)
 
-Figure: The subject node $\boldsymbol{p}$ with edge connections (dotted lines) to neighbor nodes $\boldsymbol{q}_{i}$ with $i \in [1, n]$ (without loss of generality, the specific example of $n=4$ is shown).  The average position of all neighbors of $\boldsymbol{p}$ is denoted $\bar{\boldsymbol{q}}$, and the gap $\Delta \boldsymbol{p}$ (dashed line) originates at $\boldsymbol{p}$ and terminates at $\bar{\boldsymbol{q}}$.
+<figcaption>
+
+The subject node $\boldsymbol{p}$ with edge connections (dotted lines) to neighbor nodes $\boldsymbol{q}_{i}$ with $i \in [1, n]$ (without loss of generality, the specific example of $n=4$ is shown).  The average position of all neighbors of $\boldsymbol{p}$ is denoted $\bar{\boldsymbol{q}}$, and the gap $\Delta \boldsymbol{p}$ (dashed line) originates at $\boldsymbol{p}$ and terminates at $\bar{\boldsymbol{q}}$.
+
+</figcaption>
+</figure>
 
 Define $\bar{\boldsymbol{q}}$ as the average position of all $\boldsymbol{q}_i$ neighbors of $\boldsymbol{p}$,
 
@@ -77,9 +84,16 @@ $k$ | $\bar{\boldsymbol{q}}^{(k)}$ | $\boldsymbol{p}^{(k)}$ | $\Delta\boldsymbol
 9 | 0.5 | 0.540353607 | -0.040353607 | -0.012106082
 10 | 0.5 | 0.528247525 | -0.028247525 | -0.008474257
 
+<figure>
+
 ![laplace_smoothing.png](../fig/laplace_smoothing.png)
 
-Figure: Convergence of position $\boldsymbol{p}$ toward $0.5$ as a function of iteration $k$.
+<figcaption>
+
+Convergence of position $\boldsymbol{p}$ toward $0.5$ as a function of iteration $k$.
+
+</figcaption>
+</figure>
 
 ## Taubin Smoothing
 
@@ -196,9 +210,16 @@ Hierarchical control redefines a node's neighborhood according to the following 
 
 The following figure shows this concept:
 
+<figure>
+
 ![hierarchy_sets_refactored](../fig/hierarchy_sets_refactored.png)
 
-Figure: Classification of nodes into categories of interior nodes $\mathbb{A}$, boundary nodes $\mathbb{B}$, and prescribed nodes $\mathbb{C}$.  Hierarchical relationship: An interior node's smoothing neighbors are nodes of any category, a boundary node's smoothing neighbors are other boundary nodes or other prescribed nodes, and prescribed nodes have no smoothing neighbors.
+<figcaption>
+
+Classification of nodes into categories of interior nodes $\mathbb{A}$, boundary nodes $\mathbb{B}$, and prescribed nodes $\mathbb{C}$.  Hierarchical relationship: An interior node's smoothing neighbors are nodes of any category, a boundary node's smoothing neighbors are other boundary nodes or other prescribed nodes, and prescribed nodes have no smoothing neighbors.
+
+</figcaption>
+</figure>
 
 ### Relationship to a `SideSet`
 

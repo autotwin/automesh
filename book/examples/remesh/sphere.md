@@ -49,9 +49,14 @@ length of the input, which regularizes the surface at its existing resolution:
 the triangles become more uniform in size and shape while the facet count stays
 close to the input.
 
+<details open>
+<summary>The default <code>remesh</code> command</summary>
+
 ```sh
 automesh remesh -i sphere_radius_1.stl -o sphere_default.stl
 ```
+
+</details>
 
 | base (1,088 facets) | default (948 facets) |
 | :---: | :---: |
@@ -67,10 +72,15 @@ tighter, bell-shaped distribution centered near the mean edge length.
 A larger target edge length produces fewer, larger triangles; a smaller target
 edge length produces many more, smaller triangles.
 
+<details open>
+<summary>The coarse and fine <code>remesh</code> commands</summary>
+
 ```sh
 automesh remesh -i sphere_radius_1.stl -o sphere_uniform_coarse.stl uniform -s 0.35
 automesh remesh -i sphere_radius_1.stl -o sphere_uniform_fine.stl   uniform -s 0.08
 ```
+
+</details>
 
 | base (1,088 facets) | coarse, `-s 0.35` (440 facets) | fine, `-s 0.08` (4,744 facets) |
 | :---: | :---: | :---: |
@@ -82,6 +92,9 @@ More iterations make the triangles more uniform, but with strongly diminishing
 returns.  The sphere is remeshed at the default target edge length for a range of
 `--iterations` values, one output per value:
 
+<details open>
+<summary>The six <code>remesh</code> commands, one per iteration count</summary>
+
 ```sh
 automesh remesh -i sphere_radius_1.stl -o sphere_n1.stl   uniform -n 1
 automesh remesh -i sphere_radius_1.stl -o sphere_n5.stl   uniform -n 5
@@ -90,6 +103,8 @@ automesh remesh -i sphere_radius_1.stl -o sphere_n20.stl  uniform -n 20
 automesh remesh -i sphere_radius_1.stl -o sphere_n50.stl  uniform -n 50
 automesh remesh -i sphere_radius_1.stl -o sphere_n100.stl uniform -n 100
 ```
+
+</details>
 
 Measuring the edge-length *coefficient of variation* of each result
 (CoV $= \text{std} / \text{mean}$, smaller is more uniform) gives:
@@ -124,10 +139,15 @@ page.
 
 ## Uniform vs. adaptive
 
+<details>
+<summary>The uniform and adaptive <code>remesh</code> commands</summary>
+
 ```sh
 automesh remesh -i sphere_radius_1.stl -o sphere_uniform.stl  uniform  -s 0.18
 automesh remesh -i sphere_radius_1.stl -o sphere_adaptive.stl adaptive --minimum 0.05 --maximum 0.30
 ```
+
+</details>
 
 | uniform, `-s 0.18` (910 facets) | adaptive, `0.05–0.30` (458 facets) |
 | :---: | :---: |
@@ -146,9 +166,14 @@ automesh remesh -i sphere_radius_1.stl -o sphere_adaptive.stl adaptive --minimum
 The figures on this page are produced by the following script, which reads each
 STL surface and renders it with a matched camera.
 
+<details>
+<summary><code>remesh_figures.py</code></summary>
+
 ```python
 <!-- cmdrun cat remesh_figures.py -->
 ```
+
+</details>
 
 ## Iteration study script
 
@@ -156,6 +181,11 @@ The [effect-of-iterations](#effect-of-the-number-of-iterations) table and plot
 are produced by the following script, which remeshes the sphere at several
 `--iterations` values and measures the edge-length coefficient of variation:
 
+<details>
+<summary><code>remesh_iterations.py</code></summary>
+
 ```python
 <!-- cmdrun cat remesh_iterations.py -->
 ```
+
+</details>
