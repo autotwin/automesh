@@ -652,10 +652,15 @@ the `--sweeps` option.  It was fixed at 20.
 
 ### Commands
 
-`improve` needs a snapped mesh.  A soft fit leaves the boundary off the surface
-by more than the constraint allows, so Θ starts at 0.  The two commands of the
-section [Meshing with `automesh`](#meshing-with-automesh) therefore gain
-`--snap`.  `improve` also needs the surface in the frame of the mesh.  The
+`improve` does not need a snapped mesh.  A soft fit leaves the boundary off the
+surface by more than the constraint allows.  `improve` then holds Θ at 0 and
+pulls the boundary onto the surface first.  It starts the ratchet once the
+boundary fits.  From the soft fit, the uniform floor reaches 0.610 and the
+adaptive floor 0.470, at 20 sweeps.  From a snapped mesh, the floors are 0.620
+and 0.470.  The two commands of the section
+[Meshing with `automesh`](#meshing-with-automesh) gain `--snap` for that 0.010
+on the uniform mesh.  `improve` also needs the surface in the frame of the
+mesh.  The
 script [`bone_frame.py`](bone_frame.py) scales and translates
 `bone_tri_cleaned.stl` the same way, and writes `bone_frame.stl`.
 
