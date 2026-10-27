@@ -51,7 +51,7 @@ pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         let time = Instant::now();
         crate::echo!(
             quiet,
-            "   \x1b[1;96mSnapping\x1b[0m the boundary onto the target"
+            "    \x1b[1;96mSnapping\x1b[0m the boundary onto the target"
         );
         mesh.inflate(&target, Freedom::Shell, Fitting::Snap)?;
         crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
