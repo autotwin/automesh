@@ -4,7 +4,7 @@ use super::{
     metrics::write_metrics,
 };
 use conspire::{
-    geometry::mesh::{MeshError, Tessellation},
+    geometry::mesh::{Fitting, Freedom, MeshError, Tessellation},
     units::Dimensionless,
 };
 use std::{path::Path, time::Instant};
@@ -34,6 +34,11 @@ pub struct ImproveArgs {
     #[arg(default_value_t = DEFAULT_SWEEPS, long, value_name = "NUM")]
     pub sweeps: usize,
 
+    /// Snaps the boundary onto the target first, which a boundary that is
+    /// not already on the target (a soft fit) requires
+    #[arg(action, long)]
+    pub snap: bool,
+
     /// Quality metrics output file (csv | npy)
     #[arg(long, value_name = "FILE")]
     pub metrics: Option<String>,
@@ -42,6 +47,15 @@ pub struct ImproveArgs {
 pub fn improve(args: ImproveArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mut mesh = read_mesh(&args.input, quiet)?;
     let target = Tessellation::try_from(Path::new(&args.target))?;
+    if args.snap {
+        let time = Instant::now();
+        crate::echo!(
+            quiet,
+            "    \x1b[1;96mSnapping\x1b[0m the boundary onto the target"
+        );
+        mesh.inflate(&target, Freedom::Shell, Fitting::Snap)?;
+        crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
+    }
     let time = Instant::now();
     crate::echo!(
         quiet,
