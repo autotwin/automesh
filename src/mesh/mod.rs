@@ -705,5 +705,5 @@ fn scaled(mesh: Mesh<3>, scale: [f64; 3], translate: [f64; 3]) -> Mesh<3> {
             ])
         })
         .collect();
-    Mesh::from((connectivities.into_members(), coordinates))
+    Mesh::from((connectivities, coordinates))
 }
