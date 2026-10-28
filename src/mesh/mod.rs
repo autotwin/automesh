@@ -568,9 +568,9 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
             Balancing::Weak(args.levels)
         };
         if polyhedral {
-            tessellation.octree_background(balancing, args.scale)
+            tessellation.octree_background(balancing, args.scale, None)
         } else {
-            tessellation.dual_background(balancing, args.scale)
+            tessellation.dual_background(balancing, args.scale, None)
         }
     }?;
     let (elements, nodes) = retained(&background, &classes);
@@ -712,5 +712,5 @@ fn scaled(mesh: Mesh<3>, scale: [f64; 3], translate: [f64; 3]) -> Mesh<3> {
             ])
         })
         .collect();
-    Mesh::from((connectivities.into_members(), coordinates))
+    Mesh::from((connectivities.into_blocks(), coordinates))
 }

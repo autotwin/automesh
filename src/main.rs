@@ -9,6 +9,7 @@ mod defeature;
 mod diff;
 mod error;
 mod extract;
+mod hausdorff;
 mod io;
 mod log;
 mod mesh;
@@ -23,6 +24,7 @@ use defeature::defeature;
 use diff::diff;
 use error::ErrorWrapper;
 use extract::extract;
+use hausdorff::{HausdorffArgs, hausdorff};
 use mesh::{Element, MeshSubcommand};
 use metrics::{MetricsArgs, metrics};
 use partition::{PartitionArgs, partition};
@@ -184,6 +186,10 @@ enum Commands {
         zmax: usize,
     },
 
+    /// Signed distances between a mesh surface and a tessellation surface
+    #[command(after_help = "Documentation: https://autotwin.github.io/automesh/cli/hausdorff.html")]
+    Hausdorff(HausdorffArgs),
+
     /// Creates a finite element mesh from a segmentation
     Mesh {
         #[command(subcommand)]
@@ -282,6 +288,7 @@ fn main() -> Result<(), ErrorWrapper> {
             MeshSubcommand::Tet(args) => mesh::mesh(Element::Tetrahedra, args, quiet),
             MeshSubcommand::Tri(args) => mesh::mesh(Element::Triangles, args, quiet),
         },
+        Some(Commands::Hausdorff(args)) => hausdorff(args, quiet),
         Some(Commands::Metrics(args)) => metrics(args, quiet),
         Some(Commands::Partition(args)) => partition(args, quiet),
         Some(Commands::Remesh {

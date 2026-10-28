@@ -991,3 +991,247 @@ fn mesh_stl_rejects_segmentation_flags() {
         assert_stl_rejects(element, &["-x", "3"]);
     }
 }
+
+const SPIKE: f64 = 0.3;
+const TOLERANCE: f64 = 1e-12;
+
+fn signed_distances(path: &Path) -> Vec<f64> {
+    std::fs::read_to_string(path)
+        .expect("distance file was not created")
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .skip(1)
+        .map(|row| row.rsplit(',').next().unwrap().trim().parse().unwrap())
+        .collect()
+}
+
+fn extreme(distances: &[f64]) -> f64 {
+    distances.iter().copied().fold(
+        0.0,
+        |extreme, s| if s.abs() > extreme.abs() { s } else { extreme },
+    )
+}
+
+fn assert_hausdorff(mesh: &str, tessellation: &str, a_to_b: f64, b_to_a: f64) {
+    let output = out("csv");
+    run(&[
+        "hausdorff",
+        "-a",
+        input(mesh).to_str().unwrap(),
+        "-b",
+        input(tessellation).to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    let prefix = output.with_extension("");
+    let prefix = prefix.to_str().unwrap();
+    let found = extreme(&signed_distances(Path::new(&format!(
+        "{prefix}_A_to_B.csv"
+    ))));
+    assert!(
+        (found - a_to_b).abs() < TOLERANCE,
+        "A to B: {found} != {a_to_b}"
+    );
+    let found = extreme(&signed_distances(Path::new(&format!(
+        "{prefix}_B_to_A.csv"
+    ))));
+    assert!(
+        (found - b_to_a).abs() < TOLERANCE,
+        "B to A: {found} != {b_to_a}"
+    );
+}
+
+#[test]
+fn hausdorff_tessellation_spike() {
+    assert_hausdorff(
+        "hausdorff_cube_hex1.inp",
+        "hausdorff_cube_spike.stl",
+        0.0,
+        SPIKE,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet6.inp",
+        "hausdorff_cube_spike.stl",
+        0.0,
+        SPIKE,
+    );
+}
+
+#[test]
+fn hausdorff_tessellation_dimple() {
+    assert_hausdorff(
+        "hausdorff_cube_hex1.inp",
+        "hausdorff_cube_dimple.stl",
+        0.0,
+        -SPIKE,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet6.inp",
+        "hausdorff_cube_dimple.stl",
+        0.0,
+        -SPIKE,
+    );
+}
+
+#[test]
+fn hausdorff_mesh_spike() {
+    assert_hausdorff(
+        "hausdorff_cube_hex8_spike.inp",
+        "hausdorff_cube.stl",
+        SPIKE,
+        0.0,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet48_spike.inp",
+        "hausdorff_cube.stl",
+        SPIKE,
+        0.0,
+    );
+}
+
+#[test]
+fn hausdorff_mesh_dimple() {
+    assert_hausdorff(
+        "hausdorff_cube_hex8_dimple.inp",
+        "hausdorff_cube.stl",
+        -SPIKE,
+        0.0,
+    );
+    assert_hausdorff(
+        "hausdorff_cube_tet48_dimple.inp",
+        "hausdorff_cube.stl",
+        -SPIKE,
+        0.0,
+    );
+}
+
+#[test]
+fn hausdorff_reference_node_labels() {
+    let mesh = out("inp");
+    let original = std::fs::read_to_string(input("hausdorff_cube_hex1.inp")).unwrap();
+    let mut labelled = String::new();
+    let mut section = "";
+    for line in original.lines() {
+        if line.starts_with('*') {
+            section = if line.starts_with("*Node") {
+                "node"
+            } else if line.starts_with("*Element") {
+                "element"
+            } else {
+                ""
+            };
+            labelled.push_str(line);
+        } else {
+            let fields = line.split(", ").collect::<Vec<_>>();
+            labelled.push_str(&match section {
+                "node" => format!(
+                    "{}, {}",
+                    100 + fields[0].parse::<usize>().unwrap(),
+                    fields[1..].join(", ")
+                ),
+                "element" => format!(
+                    "{}, {}",
+                    fields[0],
+                    fields[1..]
+                        .iter()
+                        .map(|node| (100 + node.parse::<usize>().unwrap()).to_string())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                ),
+                _ => line.to_string(),
+            });
+        }
+        labelled.push('\n');
+    }
+    std::fs::write(&mesh, labelled).unwrap();
+    let output = out("csv");
+    run(&[
+        "hausdorff",
+        "-a",
+        mesh.to_str().unwrap(),
+        "-b",
+        input("hausdorff_cube.stl").to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    let prefix = output.with_extension("");
+    let rows = std::fs::read_to_string(format!("{}_A_to_B.csv", prefix.to_str().unwrap()))
+        .expect("distance file was not created");
+    let mut lines = rows.lines().filter(|line| !line.starts_with('#'));
+    assert_eq!(
+        lines.next(),
+        Some("node,reference node,x,y,z,signed distance")
+    );
+    let references = lines
+        .map(|row| row.split(',').nth(1).unwrap().parse::<usize>().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(references, (101..=108).collect::<Vec<_>>());
+}
+
+fn summary(path: &Path) -> Vec<(String, String)> {
+    std::fs::read_to_string(path)
+        .expect("distance file was not created")
+        .lines()
+        .map_while(|line| line.strip_prefix("# "))
+        .map(|line| {
+            let (key, value) = line.split_once(" = ").unwrap();
+            (key.to_string(), value.to_string())
+        })
+        .collect()
+}
+
+fn summary_value(summary: &[(String, String)], key: &str) -> f64 {
+    summary
+        .iter()
+        .find(|(found, _)| found == key)
+        .unwrap_or_else(|| panic!("no {key} in the summary"))
+        .1
+        .split_whitespace()
+        .next()
+        .unwrap()
+        .parse()
+        .unwrap()
+}
+
+#[test]
+fn hausdorff_summary_comments() {
+    let output = out("csv");
+    run(&[
+        "hausdorff",
+        "-a",
+        input("hausdorff_cube_hex8_spike.inp").to_str().unwrap(),
+        "-b",
+        input("hausdorff_cube.stl").to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    let prefix = output.with_extension("");
+    let prefix = prefix.to_str().unwrap();
+    let a_to_b = summary(Path::new(&format!("{prefix}_A_to_B.csv")));
+    let keys = a_to_b
+        .iter()
+        .map(|(key, _)| key.as_str())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        keys,
+        [
+            "direction",
+            "samples",
+            "max |s|",
+            "mean |s|",
+            "rms |s|",
+            "H_h"
+        ]
+    );
+    assert_eq!(a_to_b[0].1, "A to B (mesh to tessellation)");
+    assert_eq!(a_to_b[1].1, "26");
+    assert!((summary_value(&a_to_b, "max |s|") - SPIKE).abs() < TOLERANCE);
+    assert!((summary_value(&a_to_b, "mean |s|") - SPIKE / 26.0).abs() < TOLERANCE);
+    assert!((summary_value(&a_to_b, "rms |s|") - SPIKE / 26.0_f64.sqrt()).abs() < TOLERANCE);
+    assert!((summary_value(&a_to_b, "H_h") - SPIKE).abs() < TOLERANCE);
+    let b_to_a = summary(Path::new(&format!("{prefix}_B_to_A.csv")));
+    assert_eq!(b_to_a[0].1, "B to A (tessellation to mesh)");
+    assert_eq!(b_to_a[1].1, "8");
+    assert_eq!(summary_value(&b_to_a, "max |s|"), 0.0);
+    assert!((summary_value(&b_to_a, "H_h") - SPIKE).abs() < TOLERANCE);
+}

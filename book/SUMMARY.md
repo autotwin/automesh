@@ -14,6 +14,7 @@
   - [Defeature](cli/defeature.md)
   - [Diff](cli/diff.md)
   - [Extract](cli/extract.md)
+  - [Hausdorff](cli/hausdorff.md)
   - [Mesh](cli/mesh.md)
   - [Metrics](cli/metrics.md)
   - [Remesh](cli/remesh.md)
@@ -71,6 +72,7 @@
 - [Hexahedral Metrics](theory/metrics_hexahedral.md)
 - [Tetrahedral Metrics](theory/metrics_tetrahedral.md)
 - [Triangular Metrics](theory/metrics_triangular.md)
+- [Hausdorff Distance](theory/hausdorff.md)
 
 # Contributing
 
