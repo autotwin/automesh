@@ -55,8 +55,7 @@ automesh mesh tet --help
 ```
 
 `mesh tet` shares its options with `mesh hex`, so `--help` lists options that
-apply to other subcommands.  Passing `--marching` without `--uniform` fails at
-the command line.  Passing `--levels` fails with
+apply to other subcommands.  Passing `--levels` fails with
 `Dualization requires 2:1 balancing, so levels applies to mesh poly only.`
 
 ## Mesh Tri

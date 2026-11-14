@@ -132,6 +132,38 @@ fn mesh_hexdom_to_vtu() {
     assert_nonempty(&output);
 }
 
+/// Size of the vtu a cut path writes for the sphere, with an optional `--tolerance`.
+fn cut_size(element: &str, tolerance: Option<&str>) -> u64 {
+    let (input, output) = (sphere(), out("vtu"));
+    let mut args = vec![
+        "mesh",
+        element,
+        "-i",
+        input.to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+        "-s",
+        "5",
+    ];
+    if let Some(tolerance) = tolerance {
+        args.extend(["-t", tolerance]);
+    }
+    run(&args);
+    std::fs::metadata(&output)
+        .expect("output file was not created")
+        .len()
+}
+
+#[test]
+fn mesh_hexdom_tolerance_refines() {
+    assert!(cut_size("hexdom", Some("0.001")) > cut_size("hexdom", None));
+}
+
+#[test]
+fn mesh_poly_tolerance_refines() {
+    assert!(cut_size("poly", Some("0.001")) > cut_size("poly", None));
+}
+
 #[test]
 fn mesh_tet_to_vtu() {
     let output = out("vtu");
@@ -201,83 +233,6 @@ fn mesh_hex_uniform_to_exo() {
 }
 
 #[test]
-fn mesh_hex_uniform_inflated_to_vtu() {
-    let output = out("vtu");
-    run(&[
-        "mesh",
-        "hex",
-        "-i",
-        sphere().to_str().unwrap(),
-        "-o",
-        output.to_str().unwrap(),
-        "--uniform",
-        "0.35",
-        "--inflate",
-    ]);
-    assert_nonempty(&output);
-}
-
-#[test]
-fn mesh_hex_uniform_inflated_and_snapped_to_vtu() {
-    let output = out("vtu");
-    run(&[
-        "mesh",
-        "hex",
-        "-i",
-        sphere().to_str().unwrap(),
-        "-o",
-        output.to_str().unwrap(),
-        "--uniform",
-        "0.35",
-        "--inflate",
-        "--snap",
-    ]);
-    assert_nonempty(&output);
-}
-
-#[test]
-fn mesh_hex_uniform_marching_to_vtu() {
-    let output = out("vtu");
-    run(&[
-        "mesh",
-        "hex",
-        "-i",
-        sphere().to_str().unwrap(),
-        "-o",
-        output.to_str().unwrap(),
-        "--uniform",
-        "0.35",
-        "--marching",
-    ]);
-    assert_nonempty(&output);
-}
-
-#[test]
-fn mesh_marching_conflicts_are_rejected() {
-    for extra in [
-        &["--uniform", "0.35", "--marching", "--inflate"][..],
-        &["--uniform", "0.35", "--marching", "--snap"][..],
-        &["--marching"][..],
-    ] {
-        let output = out("vtu");
-        let status = Command::new(BIN)
-            .args([
-                "mesh",
-                "hex",
-                "-i",
-                sphere().to_str().unwrap(),
-                "-o",
-                output.to_str().unwrap(),
-            ])
-            .args(extra)
-            .arg("--quiet")
-            .status()
-            .expect("failed to spawn automesh");
-        assert!(!status.success(), "accepted {extra:?}");
-    }
-}
-
-#[test]
 fn mesh_hex_uniform_pyramids_snapped_to_vtu() {
     let output = out("vtu");
     run(&[
@@ -312,50 +267,6 @@ fn mesh_hex_adaptive_pyramids_to_vtu() {
         "0.3",
     ]);
     assert_nonempty(&output);
-}
-
-#[test]
-fn mesh_pyramids_conflicts_with_marching_and_inflate() {
-    for flag in ["--marching", "--inflate"] {
-        let output = out("vtu");
-        let status = Command::new(BIN)
-            .args([
-                "mesh",
-                "hex",
-                "-i",
-                sphere().to_str().unwrap(),
-                "-o",
-                output.to_str().unwrap(),
-                "--uniform",
-                "0.2",
-                "--pyramids",
-                "0.3",
-                flag,
-            ])
-            .arg("--quiet")
-            .status()
-            .expect("failed to spawn automesh");
-        assert!(!status.success(), "pyramids accepted {flag}");
-    }
-}
-
-#[test]
-fn mesh_inflate_requires_uniform() {
-    let output = out("vtu");
-    let status = Command::new(BIN)
-        .args([
-            "mesh",
-            "hex",
-            "-i",
-            sphere().to_str().unwrap(),
-            "-o",
-            output.to_str().unwrap(),
-            "--inflate",
-        ])
-        .arg("--quiet")
-        .status()
-        .expect("failed to spawn automesh");
-    assert!(!status.success(), "inflation accepted an octree background");
 }
 
 #[test]
@@ -990,4 +901,70 @@ fn mesh_stl_rejects_segmentation_flags() {
         assert_stl_rejects(element, &["-d", "5"]);
         assert_stl_rejects(element, &["-x", "3"]);
     }
+}
+
+/// The help printed for the given args.
+fn help(args: &[&str]) -> String {
+    let result = Command::new(BIN)
+        .args(args)
+        .arg("--help")
+        .output()
+        .expect("failed to spawn automesh");
+    assert!(result.status.success(), "help failed: automesh {args:?}");
+    String::from_utf8(result.stdout).expect("help is not utf-8")
+}
+
+/// The description of the input option, which is on the same or the next line of the help.
+fn input_help(args: &[&str]) -> String {
+    let text = help(args);
+    let start = text.find("-i, --input <FILE>").expect("no input option");
+    let mut lines = text[start..].lines();
+    let description = lines.next().unwrap().split("<FILE>").nth(1).unwrap().trim();
+    if description.is_empty() {
+        lines.next().unwrap().trim().to_string()
+    } else {
+        description.to_string()
+    }
+}
+
+#[test]
+fn help_says_mesh_is_made_from_a_tessellation_too() {
+    assert!(
+        help(&[]).contains("Creates a finite element mesh from a segmentation or tessellation")
+    );
+}
+
+#[test]
+fn help_lists_mesh_among_the_mesh_inputs() {
+    for args in [
+        &["convert", "mesh"][..],
+        &["metrics"],
+        &["remesh"],
+        &["segment"],
+        &["smooth"],
+    ] {
+        assert!(
+            input_help(args).contains("(exo | inp | mesh | off | stl | vtu)"),
+            "automesh {args:?}"
+        );
+    }
+    assert!(
+        help(&["convert", "mesh"]).contains(
+            "(exo | inp | mesh | off | stl | vtu) -> (exo | inp | mesh | off | stl | vtu)"
+        )
+    );
+}
+
+#[test]
+fn mesh_help_names_the_inputs_each_mode_accepts() {
+    let hex = input_help(&["mesh", "hex"]);
+    assert!(hex.contains("Segmentation (npy | spn) or tessellation (stl)"));
+    for mode in ["hexdom", "poly", "tet"] {
+        let text = input_help(&["mesh", mode]);
+        assert!(text.contains("Tessellation (stl) input file"), "{mode}");
+        assert!(!text.contains("Segmentation"), "{mode}");
+    }
+    let tri = input_help(&["mesh", "tri"]);
+    assert!(tri.contains("Segmentation (npy | spn) input file"));
+    assert!(!tri.contains("tessellation"));
 }

@@ -11,7 +11,7 @@ use std::{
 
 #[derive(clap::Args)]
 pub struct MetricsArgs {
-    /// Mesh input file (exo | inp | off | stl | vtu)
+    /// Mesh input file (exo | inp | mesh | off | stl | vtu)
     #[arg(long, short, value_name = "FILE")]
     pub input: String,
 
@@ -32,7 +32,7 @@ fn flatten(metric: Vec<Vec<f64>>) -> Vec<f64> {
 pub fn write_metrics(mesh: &Mesh<3>, file: &str, quiet: bool) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mMetrics\x1b[0m {file}");
     let time = Instant::now();
-    let maximum_edge_ratios = flatten(mesh.maximum_edge_ratios());
+    let maximum_edge_ratios = flatten(mesh.edge_ratios());
     let minimum_scaled_jacobians = flatten(mesh.minimum_scaled_jacobians());
     let maximum_skews = flatten(mesh.maximum_skews());
     let volumes = flatten(mesh.volumes());

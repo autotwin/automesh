@@ -5,14 +5,12 @@ use super::{
     remesh::apply_remesh_subcommand,
     smooth::{MeshSmoothCommands, apply_smoothing_method},
 };
-use clap::Subcommand;
+use clap::{Command, Subcommand};
 use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::{Gradient, MarchingCubes, Voxels},
-        mesh::{
-            Class, Connectivity, Finish, Fitting, Freedom, Marching, Mesh, Placement, Tessellation,
-        },
+        mesh::{Class, Connectivity, Fitting, Mesh, Tessellation},
         ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
         segmentation::Segmentation,
     },
@@ -33,6 +31,24 @@ pub enum MeshSubcommand {
     Tet(MeshArgs),
     /// Creates all-triangular isosurface(s) from a segmentation
     Tri(MeshArgs),
+}
+
+/// Narrows the input help, shared by the mesh subcommands, to the inputs each one accepts.
+pub fn input_help(command: Command) -> Command {
+    command.mut_subcommand("mesh", |mesh| {
+        ["hexdom", "poly", "tet"]
+            .into_iter()
+            .fold(mesh, |mesh, name| {
+                mesh.mut_subcommand(name, |subcommand| {
+                    subcommand.mut_arg("input", |input| input.help("Tessellation (stl) input file"))
+                })
+            })
+            .mut_subcommand("tri", |subcommand| {
+                subcommand.mut_arg("input", |input| {
+                    input.help("Segmentation (npy | spn) input file")
+                })
+            })
+    })
 }
 
 #[derive(clap::Args)]
@@ -123,14 +139,6 @@ pub struct MeshArgs {
     #[arg(action, long)]
     pub strong: bool,
 
-    /// Cuts the uniform lattice with marching cubes and inflates it onto the surface (stl)
-    #[arg(action, long, requires = "uniform")]
-    pub inflate: bool,
-
-    /// Cuts the uniform lattice with marching cubes, leaving the boundary as cut (stl)
-    #[arg(action, conflicts_with = "inflate", long, requires = "uniform")]
-    pub marching: bool,
-
     /// Snaps the buffer layer onto the surface instead of a soft fit
     #[arg(action, long)]
     pub snap: bool,
@@ -138,7 +146,7 @@ pub struct MeshArgs {
     /// Replaces shell hexahedra below this minimum scaled Jacobian along
     /// features with pyramids and refits, snapping both fits under --snap
     /// [default: disabled]
-    #[arg(conflicts_with_all = ["inflate", "marching"], long, value_name = "MSJ")]
+    #[arg(long, value_name = "MSJ")]
     pub pyramids: Option<f64>,
 
     /// Level difference allowed between neighboring octree cells (poly)
@@ -316,9 +324,6 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mut time = Instant::now();
     let tessellation = Tessellation::try_from(Path::new(&args.input))?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
-    if args.inflate || args.marching {
-        return marching_hex(args, tessellation, quiet);
-    }
     let fitting = if args.snap {
         Fitting::Snap
     } else {
@@ -385,76 +390,6 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
         time.elapsed(),
         mesh.number_of_elements(),
         mesh.number_of_nodes()
-    );
-    finish(mesh, args, quiet)
-}
-
-/// Cuts a uniform lattice with marching cubes along a tessellation.
-///
-/// The lattice is cut along the surface and split into hexahedra. Under
-/// `--inflate` every node is then fitted onto the surface, and the boundary is
-/// snapped onto it under `--snap`. Under `--marching` the boundary is left as
-/// cut. No buffer layer is inserted, so the element count is set by the
-/// lattice alone.
-///
-/// Each lattice cell is split into eight hexahedra, so the lattice is laid at
-/// twice the requested element size.
-fn marching_hex(
-    args: MeshArgs,
-    tessellation: Tessellation,
-    quiet: bool,
-) -> Result<(), ErrorWrapper> {
-    if args.marching && args.snap {
-        return Err(ErrorWrapper::from(
-            "Snapping applies to an inflated mesh, not one left as cut",
-        ));
-    }
-    let size = args
-        .uniform
-        .expect("marching cubes requires a uniform element size");
-    crate::echo!(quiet, "     \x1b[1;96mMeshing\x1b[0m hexahedra uniformly");
-    let mut time = Instant::now();
-    let mut mesh = tessellation.marching_hex(
-        Length::meters(size * 2.0),
-        Marching {
-            placement: Placement::Crossing(0.2),
-            finish: Finish::Cut,
-        },
-    )?;
-    crate::echo!(
-        quiet,
-        "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
-        time.elapsed(),
-        mesh.number_of_elements(),
-        mesh.number_of_nodes()
-    );
-    if args.inflate {
-        crate::echo!(
-            quiet,
-            "   \x1b[1;96mInflating\x1b[0m hexahedra onto geometry"
-        );
-        time = Instant::now();
-        mesh.inflate(
-            &tessellation,
-            Freedom::Whole,
-            if args.snap {
-                Fitting::Snap
-            } else {
-                Fitting::Soft
-            },
-        )?;
-        crate::echo!(
-            quiet,
-            "        \x1b[1;92mDone\x1b[0m {:?} \x1b[2m[{} elements, {} nodes]\x1b[0m",
-            time.elapsed(),
-            mesh.number_of_elements(),
-            mesh.number_of_nodes()
-        );
-    }
-    let mesh = scaled(
-        mesh,
-        [args.xscale, args.yscale, args.zscale],
-        [args.xtranslate, args.ytranslate, args.ztranslate],
     );
     finish(mesh, args, quiet)
 }
@@ -567,10 +502,11 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
         } else {
             Balancing::Weak(args.levels)
         };
+        let tolerance = args.tolerance.map(Length::meters);
         if polyhedral {
-            tessellation.octree_background(balancing, args.scale)
+            tessellation.octree_background(balancing, args.scale, tolerance)
         } else {
-            tessellation.dual_background(balancing, args.scale)
+            tessellation.dual_background(balancing, args.scale, tolerance)
         }
     }?;
     let (elements, nodes) = retained(&background, &classes);
@@ -712,5 +648,5 @@ fn scaled(mesh: Mesh<3>, scale: [f64; 3], translate: [f64; 3]) -> Mesh<3> {
             ])
         })
         .collect();
-    Mesh::from((connectivities.into_members(), coordinates))
+    Mesh::from((connectivities.into_blocks(), coordinates))
 }
