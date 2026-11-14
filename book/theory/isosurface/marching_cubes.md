@@ -51,8 +51,6 @@ The [unit sphere](../../examples/gallery/academic/unit_sphere.md) does not creat
   Every output vertex therefore sits at the midpoint of a grid edge.
 * Degenerate triangles are not output.
 
-`mesh hex --marching` and `--inflate` use the same extraction on a uniform lattice cut by a tessellation.
-
 ## Advantages
 
 * Simple implementation; uses only interpolation between voxel corners.
