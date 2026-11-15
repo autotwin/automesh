@@ -895,6 +895,11 @@ fn mesh_tet_stl_rejects_levels() {
 }
 
 #[test]
+fn mesh_tet_stl_rejects_weak() {
+    assert_stl_rejects("tet", &["--weak"]);
+}
+
+#[test]
 fn mesh_stl_rejects_segmentation_flags() {
     for element in ["hex", "tet", "hexdom", "poly"] {
         assert_stl_rejects(element, &["-r", "1", "2"]);

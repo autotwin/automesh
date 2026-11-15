@@ -247,6 +247,11 @@ fn reject_ignored(args: &MeshArgs, element: &Element) -> Result<(), ErrorWrapper
             "Dualization requires 2:1 balancing, so levels applies to mesh poly only",
         ));
     }
+    if matches!(element, Element::Tetrahedra) && args.weak {
+        return Err(ErrorWrapper::from(
+            "Tetrahedra require strong balancing, so --weak applies to mesh hex, hexdom, and poly only",
+        ));
+    }
     Ok(())
 }
 
