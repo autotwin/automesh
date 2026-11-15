@@ -40,7 +40,7 @@ Cutting the pipeline the other way: stages 1–3 produce the interior of the mes
 
 > **The input surface is not validated.**  `automesh` performs no up-front check for holes, non-manifold edges, or inconsistent orientation.  A defective surface will either produce a poor mesh or fail late, during buffering, with a `non-manifold boundary` error.  Verify the surface before meshing.
 
-> **Consider `--strong` for quality-critical work.**  The balancing rule chosen during equilibration determines the guaranteed interior mesh quality.  The default is *weak* balancing; passing `--strong` raises the guaranteed minimum scaled Jacobian of every interior element from $\approx 0.246$ to $\approx 0.258$, at the cost of a larger mesh.  See [Balancing](hex_from_surface/equilibration.md#balancing).
+> **Strong balancing is the default.**  The balancing rule chosen during equilibration determines the guaranteed interior mesh quality.  The default is *strong* balancing, which guarantees a minimum scaled Jacobian of $\approx 0.258$ for every interior element; passing `--weak` lowers that guarantee to $\approx 0.246$ in exchange for a smaller mesh.  See [Balancing](hex_from_surface/equilibration.md#balancing).
 
 ## Template Quality
 
@@ -65,7 +65,7 @@ The interior quality lower bound under strong balancing is therefore
 
 $$\min \text{MSJ} \;\geq\; \frac{1}{\sqrt{15}} \approx 0.258.$$
 
-Under **weak balancing** — the default in `automesh` — two additional configurations become reachable, both below $1/\sqrt{15}$:
+Under **weak balancing** — selected with `--weak` — two additional configurations become reachable, both below $1/\sqrt{15}$:
 
 | Minimum scaled Jacobian | Closed form |
 | --- | --- |
@@ -78,13 +78,13 @@ $$\min \text{MSJ} \;\geq\; \sqrt{\tfrac{2}{33}} \approx 0.246.$$
 
 These two configurations arise only on topologically complex inputs.  Simple convex shapes such as a sphere attain $1/\sqrt{15}$ under either balancing rule, so the difference between the two bounds becomes visible only on demanding geometry.
 
-The difference has a structural explanation.  Weak balancing admits a [fifth edge template](hex_from_surface/dualization.md) that strong balancing rules out; the four-template set under `--strong` is exactly the set illustrated in [Dualization](hex_from_surface/dualization.md).  The measured catalogs and the template inventory agree: the extra template, and the two extra quality values, appear together.
+The difference has a structural explanation.  Weak balancing admits a [fifth edge template](hex_from_surface/dualization.md) that strong balancing rules out; the four-template set under strong balancing (the default) is exactly the set illustrated in [Dualization](hex_from_surface/dualization.md).  The measured catalogs and the template inventory agree: the extra template, and the two extra quality values, appear together.
 
 Two practical consequences follow.
 
 **Any element below the lower bound came from the boundary.**  Trimming and buffering are the only stages that deform geometry, so sub-bound quality in a finished mesh is always attributable to them.  The interior is never the culprit, and no amount of octree refinement will fix a boundary problem.
 
-**The bound is a choice, not a constant.**  Passing [`--strong`](hex_from_surface/equilibration.md#balancing) removes the two sub-$1/\sqrt{15}$ configurations from the catalog outright.  This is the only control `automesh` currently offers over interior quality — nothing downstream optimizes it — so it is worth setting deliberately rather than accepting the default.
+**The bound is a choice, not a constant.**  Strong balancing, the default, removes the two sub-$1/\sqrt{15}$ configurations from the catalog outright.  This is the only control `automesh` currently offers over interior quality — nothing downstream optimizes it — and [`--weak`](hex_from_surface/equilibration.md#balancing) gives it up for a smaller mesh.
 
 ## Quality Assessment and Improvement
 

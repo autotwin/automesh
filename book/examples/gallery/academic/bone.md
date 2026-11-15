@@ -458,13 +458,13 @@ automesh mesh hex -i bone_tri_cleaned.stl -o run05.vtu --scale 8 "${FRAME[@]}" -
 #  6. octree: scale 10
 automesh mesh hex -i bone_tri_cleaned.stl -o run06.vtu --scale 10 "${FRAME[@]}" --metrics run06.csv
 #  7. balance: scale 7, soft, weak
-automesh mesh hex -i bone_tri_cleaned.stl -o run07.vtu --scale 7 "${FRAME[@]}" --metrics run07.csv
+automesh mesh hex -i bone_tri_cleaned.stl -o run07.vtu --scale 7 --weak "${FRAME[@]}" --metrics run07.csv
 #  8. balance: scale 7, soft, strong
-automesh mesh hex -i bone_tri_cleaned.stl -o run08.vtu --scale 7 --strong "${FRAME[@]}" --metrics run08.csv
+automesh mesh hex -i bone_tri_cleaned.stl -o run08.vtu --scale 7 "${FRAME[@]}" --metrics run08.csv
 #  9. balance: scale 7, snap, weak
-automesh mesh hex -i bone_tri_cleaned.stl -o run09.vtu --scale 7 --snap "${FRAME[@]}" --metrics run09.csv
+automesh mesh hex -i bone_tri_cleaned.stl -o run09.vtu --scale 7 --snap --weak "${FRAME[@]}" --metrics run09.csv
 # 10. balance: scale 7, snap, strong
-automesh mesh hex -i bone_tri_cleaned.stl -o run10.vtu --scale 7 --snap --strong "${FRAME[@]}" --metrics run10.csv
+automesh mesh hex -i bone_tri_cleaned.stl -o run10.vtu --scale 7 --snap "${FRAME[@]}" --metrics run10.csv
 # 11. tolerance: scale 5, tolerance 1
 automesh mesh hex -i bone_tri_cleaned.stl -o run11.vtu --scale 5 --tolerance 0.00947288 "${FRAME[@]}" --metrics run11.csv
 # 12. tolerance: scale 5, tolerance 0.3

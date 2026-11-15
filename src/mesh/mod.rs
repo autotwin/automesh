@@ -135,9 +135,9 @@ pub struct MeshArgs {
     #[arg(long, short = 't', value_name = "TOL")]
     pub tolerance: Option<f64>,
 
-    /// Uses strong balancing instead of the default weak balancing
+    /// Uses weak balancing instead of the default strong balancing
     #[arg(action, long)]
-    pub strong: bool,
+    pub weak: bool,
 
     /// Snaps the buffer layer onto the surface instead of a soft fit
     #[arg(action, long)]
@@ -247,6 +247,11 @@ fn reject_ignored(args: &MeshArgs, element: &Element) -> Result<(), ErrorWrapper
             "Dualization requires 2:1 balancing, so levels applies to mesh poly only",
         ));
     }
+    if matches!(element, Element::Tetrahedra) && args.weak {
+        return Err(ErrorWrapper::from(
+            "Tetrahedra require strong balancing, so --weak applies to mesh hex, hexdom, and poly only",
+        ));
+    }
     Ok(())
 }
 
@@ -343,10 +348,10 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     let mut mesh = if let Some(spacing) = args.uniform {
         tessellation.lattice_background(Length::meters(spacing))?.0
     } else {
-        let balancing = if args.strong {
-            Balancing::Strong(1)
-        } else {
+        let balancing = if args.weak {
             Balancing::Weak(1)
+        } else {
+            Balancing::Strong(1)
         };
         let mut octree = Octree::<u16, usize>::from_features(
             &tessellation,
@@ -497,10 +502,10 @@ fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrappe
     let (background, classes) = if let Some(spacing) = args.uniform {
         tessellation.lattice_background(Length::meters(spacing))
     } else {
-        let balancing = if args.strong {
-            Balancing::Strong(args.levels)
-        } else {
+        let balancing = if args.weak {
             Balancing::Weak(args.levels)
+        } else {
+            Balancing::Strong(args.levels)
         };
         let tolerance = args.tolerance.map(Length::meters);
         if polyhedral {
