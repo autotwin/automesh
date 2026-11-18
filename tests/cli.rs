@@ -216,6 +216,98 @@ fn mesh_tet_rejects_a_segmentation_input() {
     assert!(!status.success(), "tet meshing accepted a segmentation");
 }
 
+/// The faces of a unit cube, wound outward or, when reversed, inward, as an ASCII stl.
+fn cube_stl(reversed: bool) -> PathBuf {
+    let corners = [
+        [0, 0, 0],
+        [1, 0, 0],
+        [1, 1, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+        [1, 0, 1],
+        [1, 1, 1],
+        [0, 1, 1],
+    ];
+    let quads = [
+        [0, 1, 5, 4],
+        [1, 2, 6, 5],
+        [2, 3, 7, 6],
+        [3, 0, 4, 7],
+        [0, 3, 2, 1],
+        [4, 5, 6, 7],
+    ];
+    let mut stl = String::from("solid cube\n");
+    for [a, b, c, d] in quads {
+        for [x, y, z] in [[a, b, c], [a, c, d]] {
+            let [x, y, z] = if reversed { [x, z, y] } else { [x, y, z] };
+            let [p, q, r] = [x, y, z].map(|corner| corners[corner].map(|i| i as f64));
+            let (u, v) = (
+                [q[0] - p[0], q[1] - p[1], q[2] - p[2]],
+                [r[0] - p[0], r[1] - p[1], r[2] - p[2]],
+            );
+            let normal = [
+                u[1] * v[2] - u[2] * v[1],
+                u[2] * v[0] - u[0] * v[2],
+                u[0] * v[1] - u[1] * v[0],
+            ];
+            stl += &format!(
+                "facet normal {} {} {}\nouter loop\n",
+                normal[0], normal[1], normal[2]
+            );
+            for [i, j, k] in [p, q, r] {
+                stl += &format!("vertex {i} {j} {k}\n");
+            }
+            stl += "endloop\nendfacet\n";
+        }
+    }
+    stl += "endsolid cube\n";
+    let path = out("stl");
+    std::fs::write(&path, stl).expect("failed to write the cube");
+    path
+}
+
+#[test]
+fn mesh_rejects_a_tessellation_wound_inward() {
+    let inward = cube_stl(true);
+    for subcommand in ["hex", "hexdom", "poly", "tet"] {
+        let output = Command::new(BIN)
+            .args([
+                "mesh",
+                subcommand,
+                "-i",
+                inward.to_str().unwrap(),
+                "-o",
+                out("vtu").to_str().unwrap(),
+            ])
+            .arg("--quiet")
+            .output()
+            .expect("failed to spawn automesh");
+        assert!(
+            !output.status.success(),
+            "mesh {subcommand} accepted a tessellation wound inward"
+        );
+        let message = String::from_utf8_lossy(&output.stderr);
+        assert!(
+            message.contains("inward-wound shells: 1"),
+            "mesh {subcommand} did not say why: {message}"
+        );
+    }
+}
+
+#[test]
+fn mesh_accepts_the_same_tessellation_wound_outward() {
+    let output = out("vtu");
+    run(&[
+        "mesh",
+        "hexdom",
+        "-i",
+        cube_stl(false).to_str().unwrap(),
+        "-o",
+        output.to_str().unwrap(),
+    ]);
+    assert_nonempty(&output);
+}
+
 #[test]
 fn mesh_hex_uniform_to_exo() {
     let output = out("exo");

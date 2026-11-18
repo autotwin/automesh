@@ -10,7 +10,7 @@ use conspire::{
     geometry::{
         Coordinate, Coordinates,
         grid::{Gradient, MarchingCubes, Voxels},
-        mesh::{Class, Connectivity, Fitting, Mesh, Tessellation},
+        mesh::{Class, Connectivity, Fitting, Mesh, Tessellation, Watertight},
         ntree::{Balance, Balancing, CurvatureSizing, Dualization, Octree, Pairing},
         segmentation::Segmentation,
     },
@@ -317,6 +317,43 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
     finish(mesh, args, quiet)
 }
 
+/// Reads a tessellation (stl) input and checks that it bounds a volume.
+///
+/// Sizing the octree casts rays inward from the surface, which only means something for a
+/// surface that is closed, manifold, free of self-intersections, and wound outward. Any other
+/// input is refused here with what is wrong with it, rather than meshing slowly or wrongly.
+fn read_watertight(input: &str) -> Result<Watertight, ErrorWrapper> {
+    Watertight::new(Tessellation::try_from(Path::new(input))?).map_err(|defects| {
+        let found: Vec<String> = [
+            (defects.boundary_edges.len(), "open boundary edges"),
+            (
+                defects.non_manifold_edges.len(),
+                "edges shared by more than two faces",
+            ),
+            (defects.non_manifold_vertices.len(), "pinched vertices"),
+            (
+                defects.inconsistent_edges.len(),
+                "edges whose faces disagree on orientation",
+            ),
+            (defects.self_intersections.len(), "crossing face pairs"),
+            (defects.inward_shells.len(), "inward-wound shells"),
+        ]
+        .into_iter()
+        .filter(|&(count, _)| count > 0)
+        .map(|(count, what)| format!("{what}: {count}"))
+        .collect();
+        let hint = if defects.inward_shells.is_empty() {
+            ""
+        } else {
+            "; reverse the winding of the faces of an inward-wound shell"
+        };
+        ErrorWrapper::from(format!(
+            "{input} does not bound a volume ({}){hint}",
+            found.join(", ")
+        ))
+    })
+}
+
 /// Meshes a tessellation (stl) input into an all-hexahedral mesh.
 ///
 /// A background mesh of the enclosed volume is built first — the dual of an
@@ -327,7 +364,7 @@ pub fn mesh(element: Element, args: MeshArgs, quiet: bool) -> Result<(), ErrorWr
 fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
     let mut time = Instant::now();
-    let tessellation = Tessellation::try_from(Path::new(&args.input))?;
+    let tessellation = read_watertight(&args.input)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     let fitting = if args.snap {
         Fitting::Snap
@@ -409,7 +446,7 @@ fn hexahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
 fn tetrahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
     let mut time = Instant::now();
-    let tessellation = Tessellation::try_from(Path::new(&args.input))?;
+    let tessellation = read_watertight(&args.input)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     let fitting = if args.snap {
         Fitting::Snap
@@ -474,7 +511,7 @@ fn tetrahedralize(args: MeshArgs, quiet: bool) -> Result<(), ErrorWrapper> {
 fn cut(args: MeshArgs, element: &Element, quiet: bool) -> Result<(), ErrorWrapper> {
     crate::echo!(quiet, "     \x1b[1;96mReading\x1b[0m {}", args.input);
     let mut time = Instant::now();
-    let tessellation = Tessellation::try_from(Path::new(&args.input))?;
+    let tessellation = read_watertight(&args.input)?;
     crate::echo!(quiet, "        \x1b[1;92mDone\x1b[0m {:?}", time.elapsed());
     let polyhedral = matches!(element, Element::Polyhedra);
     if polyhedral && args.uniform.is_some() {

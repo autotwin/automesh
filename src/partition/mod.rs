@@ -3,7 +3,7 @@ use super::{
     io::{extension, invalid_output, read_mesh, write_exodus, write_mesh_threads},
 };
 use clap::{Args, ValueEnum};
-use conspire::geometry::mesh::{Mesh, Partition};
+use conspire::geometry::mesh::{Decomposition, Mesh};
 use std::{sync::Mutex, thread, thread::available_parallelism, time::Instant};
 
 /// Parsed by clap, so a misspelled method fails before any work starts.
@@ -54,7 +54,7 @@ impl PartitionOptions {
     }
 
     /// Partitions the mesh, reporting the method and number of parts.
-    pub fn split(&self, mesh: &Mesh<3>, quiet: bool) -> Result<Partition, ErrorWrapper> {
+    pub fn split(&self, mesh: &Mesh<3>, quiet: bool) -> Result<Decomposition, ErrorWrapper> {
         let time = Instant::now();
         let partition = match self.method {
             PartitionMethod::Box => {
@@ -70,7 +70,7 @@ impl PartitionOptions {
                 if divisions.contains(&0) {
                     return Err(ErrorWrapper::from("Divisions must be positive"));
                 }
-                mesh.partition_box([divisions[0], divisions[1], divisions[2]])
+                mesh.decomposition_box([divisions[0], divisions[1], divisions[2]])
             }
             method => {
                 if self.divisions.is_some() {
@@ -88,8 +88,8 @@ impl PartitionOptions {
                     )));
                 }
                 match method {
-                    PartitionMethod::Rib => mesh.partition_rib(parts),
-                    _ => mesh.partition_rcb(parts),
+                    PartitionMethod::Rib => mesh.decomposition_rib(parts),
+                    _ => mesh.decomposition_rcb(parts),
                 }
             }
         };
