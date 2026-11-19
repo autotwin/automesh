@@ -22,7 +22,11 @@ A brief description of each metric follows.
 
 ## Minimum Scaled Jacobian
 
-* $\hat{J}_{\min}$ evaluates the determinant of the Jacobian matrix at each of the corners nodes, normalized by the corresponding edge lengths, and returns the minimum value of those evaluations.
+* $\hat{J}_{\min}$ evaluates the determinant of the Jacobian matrix at nine points: the eight corner nodes and the body center.
+* At each point, the determinant is normalized by the corresponding edge lengths.
+* The metric returns the minimum of the nine evaluations.
+* Verdict[^Knupp_2006] (Section 7.11) defines the scaled Jacobian over these nine points.
+* The body center catches a hexahedron that is positive at all eight corners but inverted at its center.
 * Interpretation
   * **$\hat{J}_{\min} = 1.0$**: Perfect rectangular element
   * **$\hat{J}_{\min} > 0$**: Element is valid (positive Jacobian)
@@ -226,7 +230,7 @@ face | nodes
 
 ## $\hat{J}_{\min}$ Formulation
 
-For a hexahedral element with eight nodes, the scaled Jacobian at each node is computed as:
+For a hexahedral element with eight nodes, the scaled Jacobian at each corner node is computed as:
 
 $$J_{\text{scaled}} := \hat{J} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|}
 \tag{1}
@@ -238,12 +242,44 @@ where:
 * $\mathbf{n} = \mathbf{u} \times \mathbf{v}$ is the cross product of the first two edge vectors, and
 * $\|\cdot\|$ denotes the Euclidean norm.
 
-The minimum scaled Jacobian for the element is:
+Verdict[^Knupp_2006] adds a ninth point, the body center, to the eight corners.
+The center uses the three principal axes $\mathbf{X}_1$, $\mathbf{X}_2$, and $\mathbf{X}_3$ of the element.
+Each axis sums the four parallel edges of the element:
 
 $$
-\hat{J}_{\text{min}} := \min \{\hat{J}^{(i)}\}_{i=0}^{7}
+\mathbf{X}_1 = (\mathbf{x}_1 - \mathbf{x}_0) + (\mathbf{x}_2 - \mathbf{x}_3) + (\mathbf{x}_5 - \mathbf{x}_4) + (\mathbf{x}_6 - \mathbf{x}_7)
+\tag{2a}
+$$
+
+$$
+\mathbf{X}_2 = (\mathbf{x}_3 - \mathbf{x}_0) + (\mathbf{x}_2 - \mathbf{x}_1) + (\mathbf{x}_7 - \mathbf{x}_4) + (\mathbf{x}_6 - \mathbf{x}_5)
+\tag{2b}
+$$
+
+$$
+\mathbf{X}_3 = (\mathbf{x}_4 - \mathbf{x}_0) + (\mathbf{x}_5 - \mathbf{x}_1) + (\mathbf{x}_6 - \mathbf{x}_2) + (\mathbf{x}_7 - \mathbf{x}_3)
+\tag{2c}
+$$
+
+The scaled Jacobian at the center is:
+
+$$
+\hat{J}^{(8)} = \operatorname{clamp}\left( \frac{(\mathbf{X}_1 \times \mathbf{X}_2) \cdot \mathbf{X}_3}{\|\mathbf{X}_1\| \; \|\mathbf{X}_2\| \; \|\mathbf{X}_3\|}, -1, 1 \right)
+\tag{2d}
+$$
+
+Eq. (2d) equals zero when any axis has zero length.
+The clamp to $[-1, 1]$ removes round-off that would push the ratio past unity.
+
+The minimum scaled Jacobian for the element is the minimum over the eight corners and the center:
+
+$$
+\hat{J}_{\text{min}} := \min \{\hat{J}^{(i)}\}_{i=0}^{8}
 \tag{2}
 $$
+
+The element volume is $\mathbf{X}_1 \cdot (\mathbf{X}_2 \times \mathbf{X}_3) / 64$.
+The `volume` metric and the center term share the same triple product.
 
 ### Node Numbering Convention
 
@@ -298,14 +334,16 @@ where $\mathbf{x}_i$ is the position of node $i$.
       - Compute scaled Jacobian:
         $$\hat{J}^{(i)} = \frac{\mathbf{n} \cdot \mathbf{w}}{\|\mathbf{u}\| \; \|\mathbf{v}\| \; \|\mathbf{w}\|} \tag{7}$$
    
-   c. Take minimum over all 8 nodes:
-      $$\hat{J}_{\min} = \min \{\hat{J}^{(i)}\}_{i=0}^{7} \tag{8}$$
+   c. Compute the principal axes $\mathbf{X}_1$, $\mathbf{X}_2$, $\mathbf{X}_3$ of Eqs. (2a)–(2c), and the center scaled Jacobian $\hat{J}^{(8)}$ of Eq. (2d)
+
+   d. Take minimum over the 8 corner nodes and the body center:
+      $$\hat{J}_{\min} = \min \{\hat{J}^{(i)}\}_{i=0}^{8} \tag{8}$$
 
 2. **Return** the vector of minimum scaled Jacobians, one per element
 
 ### Implementation
 
-This prototypical Rust implementation calculates the MSJ by evaluating the Jacobian at each of the eight corners using the edges connected to that corner.
+This prototypical Rust implementation calculates the MSJ by evaluating the Jacobian at each of the eight corners using the edges connected to that corner, and at the body center using the principal axes.
 
 ```rust
 struct Vector3 {
@@ -331,12 +369,25 @@ impl Vector3 {
         }
     }
 
+    fn add(a: &Vector3, b: &Vector3) -> Vector3 {
+        Vector3 { x: a.x + b.x, y: a.y + b.y, z: a.z + b.z }
+    }
+
     fn norm(&self) -> f64 {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
     }
 }
 
-/// Calculates the Minimum Scaled Jacobian for a hexahedron.
+/// Sums four edge vectors, each given as a (start, end) node pair.
+fn principal_axis(nodes: &[Vector3; 8], edges: [(usize, usize); 4]) -> Vector3 {
+    edges
+        .iter()
+        .map(|&(a, b)| Vector3::sub(&nodes[b], &nodes[a]))
+        .fold(Vector3 { x: 0.0, y: 0.0, z: 0.0 }, |acc, e| Vector3::add(&acc, &e))
+}
+
+/// Calculates the Minimum Scaled Jacobian for a hexahedron:
+/// the minimum over the 8 corners and the body center.
 /// nodes: An array of 8 points ordered by standard FEM convention.
 pub fn min_scaled_jacobian(nodes: &[Vector3; 8]) -> f64 {
     // Define the three edges meeting at each of the 8 corners
@@ -381,13 +432,54 @@ pub fn min_scaled_jacobian(nodes: &[Vector3; 8]) -> f64 {
         }
     }
 
-    min_sj
+    // Body center: scaled Jacobian of the three principal axes, Eqs. (2a)-(2d)
+    let x1 = principal_axis(nodes, [(0, 1), (3, 2), (4, 5), (7, 6)]);
+    let x2 = principal_axis(nodes, [(0, 3), (1, 2), (4, 7), (5, 6)]);
+    let x3 = principal_axis(nodes, [(0, 4), (1, 5), (2, 6), (3, 7)]);
+    let lengths = x1.norm() * x2.norm() * x3.norm();
+    let center = if lengths > EPSILON {
+        (Vector3::dot(&Vector3::cross(&x1, &x2), &x3) / lengths).clamp(-1.0, 1.0)
+    } else {
+        0.0
+    };
+
+    min_sj.min(center)
 }
 ```
 
 ### Implementation Notes
 
-The implementation evaluates all 8 nodes of each element and returns the minimum value. This ensures that element distortion at any corner is captured, as poor quality at a single node can affect finite element solution accuracy.
+The implementation evaluates all 8 corner nodes and the body center of each element, and returns the minimum of the nine values.
+Poor quality at a single corner can affect finite element solution accuracy, so the minimum captures it.
+The center term catches elements that the eight corners alone report as valid.
+`conspire` applies the body center to the minimum Jacobian as well.
+`automesh metrics` does not report the minimum Jacobian.
+
+### Body Center Test
+
+The hexahedron below has a positive scaled Jacobian at all eight corners.
+Its body center is inverted.
+This test is `inverted_at_center_though_positive_at_every_corner` in `conspire`.
+
+node | $x$ | $y$ | $z$
+:---: | ---: | ---: | ---:
+0 | -0.45 | 0.10 | -0.49
+1 | 0.41 | 0.09 | 0.10
+2 | 1.75 | -0.46 | 0.23
+3 | 0.76 | 0.39 | -0.14
+4 | 0.83 | 0.47 | 1.53
+5 | 1.18 | 1.68 | 1.01
+6 | 0.39 | 0.74 | 0.93
+7 | 0.13 | -0.12 | 1.95
+
+Relative to the eight-corner baseline, the nine-point metric changes $\hat{J}_{\min}$ from $+0.140$ to $-0.99998$.
+The nine-point metric flags the element as inverted.
+The eight-corner metric reports it as valid.
+
+For well-shaped meshes, the center term does not change $\hat{J}_{\min}$.
+Across 16 meshes with 306,416 hexahedra (bone, bunny, and bottle, each as a reference, a start, and an improved result), the nine-point value equals the eight-corner value for every hexahedron.
+A unit cube gives $\hat{J}_{\min} = 1$ under both.
+The comparison is recorded in [issue #820](https://github.com/autotwin/automesh/issues/820).
 
 ## Node-based $\hat{J}_{\min}$ Refinement
 
