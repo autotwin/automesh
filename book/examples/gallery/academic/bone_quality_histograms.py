@@ -39,6 +39,7 @@ import matplotlib
 matplotlib.use("svg")
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.ticker import FixedLocator, FuncFormatter, NullFormatter
 
 # The first series stays orange, the second blue, and the third green.
 SERIES = [
@@ -76,6 +77,10 @@ def panel_plot(*, ax, series, title, log_x=False):
         lo = max(lo, 1e-3)
         bins = np.logspace(np.log10(lo), np.log10(hi), 41)
         ax.set_xscale("log")
+        ticks = [t for t in (2, 4, 6, 8, 10, 20, 30) if lo <= t <= hi]
+        ax.xaxis.set_major_locator(FixedLocator(ticks))
+        ax.xaxis.set_major_formatter(FuncFormatter(lambda t, _: f"{t:g}"))
+        ax.xaxis.set_minor_formatter(NullFormatter())
     else:
         bins = np.linspace(lo, hi, 41)
     # Unfilled outlines with alpha on the line, so crossing outlines blend.
@@ -117,6 +122,7 @@ def main():
                         metavar=("CSV", "LABEL"),
                         help="an `automesh metrics` CSV and its legend label; "
                              "give it one to three times")
+    parser.add_argument("--title", help="a figure title above the legend")
     args = parser.parse_args()
     if len(args.mesh) > len(SERIES):
         parser.error(f"at most {len(SERIES)} meshes")
@@ -129,9 +135,13 @@ def main():
         panel_plot(ax=ax, series=[(label, m[key]) for label, m in meshes],
                    title=title, log_x=(key == "maximum edge ratio"))
 
+    top = 1.0
+    if args.title:
+        fig.suptitle(args.title, color=INK, fontsize=13, y=0.995)
+        top = 0.955
     handles, labels = axes.flat[0].get_legend_handles_labels()
     fig.legend(handles, labels, loc="upper center", ncol=len(labels),
-               frameon=False, fontsize=9, bbox_to_anchor=(0.5, 1.0))
+               frameon=False, fontsize=9, bbox_to_anchor=(0.5, top))
     fig.tight_layout(rect=[0, 0, 1, 0.93])
     fig.savefig(args.out_svg, facecolor=SURFACE)
     for label, metrics in meshes:

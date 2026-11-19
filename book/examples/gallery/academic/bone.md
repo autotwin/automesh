@@ -274,11 +274,17 @@ automesh mesh hex -i bone_tri_cleaned.stl -o bone_octree.vtu --scale 7 \
     --metrics bone_octree_metrics.csv
 ```
 
-The lattice gives 8,379 elements and 10,271 nodes in about 2 seconds.  The
-octree gives 9,267 elements and 11,381 nodes in about 1.5 seconds.  Both are
+The lattice gives 8,379 elements and 10,271 nodes in about 2.6 seconds.  The
+octree gives 9,267 elements and 11,381 nodes in about 10 seconds.  Both are
 close to the size of the reference.  The `--metrics` option writes the
-quality of every element, in the same four measures as before.  These
-numbers come from `automesh` 0.4.7.
+quality of every element, in the same four measures as before.
+
+These numbers come from `automesh` 0.5.1 at commit `407e5bd`, built against
+`conspire` at commit `45c2b857`.  That `conspire` is newer than its latest
+release, 0.8.0.  A build against `conspire` 0.8.0 gives 193 and 1,110
+elements below 0.6.  This page reported 191 and 1,117 before, from `automesh`
+0.4.7.
+[Reproducibility](#reproducibility) shows how to build the same binary.
 
 ### Comparison
 
@@ -286,27 +292,28 @@ numbers come from `automesh` 0.4.7.
 | --- | ---: | ---: | ---: |
 | nodes | 10,356 | 10,271 | 11,381 |
 | elements | 8,619 | 8,379 | 9,267 |
-| **minimum scaled Jacobian** | **0.610** | **0.275** | **0.304** |
-| 5th percentile | 0.610 | 0.644 | 0.531 |
-| median | 0.791 | 0.884 | 0.809 |
-| elements below 0.6 | 0 | 191 (2.3%) | 1,117 (12.1%) |
-| maximum aspect ratio | 21.25 | 6.08 | 6.46 |
+| **minimum scaled Jacobian** | **0.610** | **0.311** | **0.278** |
+| 5th percentile | 0.610 | 0.647 | 0.539 |
+| median | 0.791 | 0.898 | 0.815 |
+| elements below 0.6 | 0 | 141 (1.7%) | 1,054 (11.4%) |
+| maximum aspect ratio | 21.25 | 4.98 | 5.36 |
 | elements above ratio 10 | 34 | 0 | 0 |
-| maximum skew | 0.725 | 0.694 | 0.717 |
-| maximum element volume | 39.64 | 6.64 | 18.96 |
-| total volume | 28,395 | 29,236 | 29,235 |
+| maximum skew | 0.725 | 0.767 | 0.751 |
+| maximum element volume | 39.64 | 5.62 | 21.76 |
+| total volume | 28,395 | 29,244 | 29,216 |
 
 The `automesh` meshes are valid.  No element is inverted.  The bulk of each
 distribution is as good as the reference, or better.  The median is higher.
-The aspect ratio is far lower, with no element above 10.  The skew is close.
+The aspect ratio is far lower, with no element above 10.  The maximum skew is
+higher, at 0.767 and 0.751 against 0.725.
 
 The worst case is the difference.  The reference has no element below 0.61.
-The lattice has a worst element at 0.275, and the octree at 0.304.  The
-lattice has 191 elements below 0.6, and the octree has 1,117.
+The lattice has a worst element at 0.311, and the octree at 0.278.  The
+lattice has 141 elements below 0.6, and the octree has 1,054.
 
 The reference is also graded, where the lattice is not.  Its element volumes
-reach 39.64, while the lattice tops out at 6.64.  The
-octree grades, and reaches 18.96.
+reach 39.64, while the lattice tops out at 5.62.  The
+octree grades, and reaches 21.76.
 
 <figure>
 
@@ -316,8 +323,9 @@ octree grades, and reaches 18.96.
 
 The `automesh` uniform-lattice mesh, painted by Minimum Scaled Jacobian
 on the same 0 to 1 scale and in the same four views as the reference.  The
-elements are close to one size over the whole bone.  A few dark elements, with
-values as low as 0.28, sit scattered over the surface.  The figure comes
+elements are close to one size over the whole bone.  On the shaft, they form a
+regular grid of values near 1.0.  The 20 elements below 0.5, with values as low
+as 0.31, sit at the necks and on the lobes.  The figure comes
 from [`bone_render.py`](bone_render.py), and
 [`bone_render_quad.py`](bone_render_quad.py) composes it.
 
@@ -334,8 +342,8 @@ The `automesh` adaptive-octree mesh, painted by Minimum Scaled Jacobian
 on the same scale and in the same four views.  Unlike the lattice, the octree
 grades.  The elements are fine on the shaft and at the necks, and coarse on the
 lobes, as in the reference.  Several dark elements sit at the necks, where the
-element size changes.  The view shows only the boundary.  Of the 1,117
-elements below 0.6, 606 are interior, and they do not appear here.  The cut
+element size changes.  The view shows only the boundary.  Of the 1,054
+elements below 0.6, 663 are interior, and they do not appear here.  The cut
 view in the next section shows them.  The figure comes from the same two
 scripts.
 
@@ -353,7 +361,7 @@ uniform lattice (dashed, blue), and the `automesh` adaptive octree (dotted,
 green).  The panels match the earlier figure.  The reference has a hard floor
 at 0.61 in Minimum Scaled Jacobian, and the `automesh` curves have a tail
 toward 0.3.  The lattice's tail is thin, and the octree's is fatter.  The
-`automesh` aspect ratios stay below about 6.5, where the reference reaches 21.
+`automesh` aspect ratios stay below about 5.4, where the reference reaches 21.
 The figure comes from
 [`bone_quality_histograms.py`](bone_quality_histograms.py).
 
@@ -370,16 +378,16 @@ element that touches the boundary has exactly one boundary face.
 | | boundary elements | interior median | interior worst | boundary median | boundary worst |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Tong 2024 | 37.1% | 0.809 | 0.610 | 0.773 | 0.610 |
-| `automesh` uniform lattice | 41.6% | 0.983 | 0.575 | 0.795 | 0.275 |
-| `automesh` adaptive octree | 42.5% | 0.858 | 0.388 | 0.768 | 0.304 |
+| `automesh` uniform lattice | 41.6% | 0.982 | 0.580 | 0.814 | 0.311 |
+| `automesh` adaptive octree | 42.5% | 0.859 | 0.370 | 0.781 | 0.278 |
 
-On the lattice, the interior is nearly ideal, with a median of 0.983.  Of the
-191 elements below 0.6, 185 (97%) touch the boundary.  All 34 elements below
+On the lattice, the interior is nearly ideal, with a median of 0.982.  Of the
+141 elements below 0.6, 134 (95%) touch the boundary.  All 20 elements below
 0.5 do.  The low elements are a boundary-fit problem.
 
-On the octree, the tail has a second source.  Of the 1,117 elements below 0.6,
-511 touch the boundary, and 606 are interior.  The transition elements in the
-interior add poor elements of their own.
+On the octree, the tail has a second source.  Of the 1,054 elements below 0.6,
+391 touch the boundary, and 663 are interior.  The transition elements in the
+interior add poor elements of their own, and they are now the larger source.
 
 <figure>
 
@@ -401,8 +409,8 @@ figure comes from [`bone_render.py`](bone_render.py) with `--cut`, and
 </figcaption>
 </figure>
 
-A typical boundary element is fine.  The boundary median is about the same as
-the reference's.  Only the worst boundary elements are poor.  The reference
+A typical boundary element is fine.  The boundary medians, 0.814 on the
+lattice and 0.781 on the octree, sit above the reference's 0.773.  Only the worst boundary elements are poor.  The reference
 holds its floor of 0.61 in both the boundary and the interior.  That is
 consistent with a fit that guards the quality of each element.  We have not
 confirmed this in the code of the paper.
@@ -411,21 +419,21 @@ confirmed this in the code of the paper.
 
 The script [`bone_sweep.py`](bone_sweep.py) runs 56 configurations of
 `automesh mesh hex` on the bone.  All 56 runs finished, and none failed.  The
-whole sweep took under two minutes, about 1 minute and 48 seconds, with four
-runs in parallel.  No configuration without smoothing raises the worst element
-above 0.31.
+whole sweep took about 4 minutes, with four runs in parallel.  The best
+configuration without smoothing reaches a worst element of 0.362, at a uniform
+spacing of 1.4.
 
 | lever | runs | result |
 | --- | ---: | --- |
-| octree scale, 4 to 10 | 6 | worst element 0.19 to 0.30, with 10% to 13% of elements below 0.6 |
-| weak or strong balancing, soft or snapped fit | 4 | worst element 0.298 to 0.305 |
-| curvature tolerance | 15 | 4,413 to 181,175 elements, and the worst element still 0.19 to 0.30 |
-| uniform spacing, 1.2 to 2.2 | 11 | worst element 0.16 to 0.29, with 1.5% to 5.2% of elements below 0.6 |
-| smoothing, lattice case | 10 | worst element up to 0.36, but 3.8% to 12.7% of elements fall below 0.6, and the volume changes by 1% to 49% |
-| smoothing, octree case | 10 | worst element falls to 0.14 or below, five runs invert an element, and the volume changes by 1% to 54% |
+| octree scale, 4 to 10 | 6 | worst element 0.25 to 0.36, with 10% to 12% of elements below 0.6 |
+| weak or strong balancing, soft or snapped fit | 4 | worst element 0.264 to 0.278 |
+| curvature tolerance | 15 | 4,413 to 181,175 elements, and the worst element still 0.16 to 0.36 |
+| uniform spacing, 1.2 to 2.2 | 11 | worst element 0.26 to 0.36, with 0.9% to 3.9% of elements below 0.6 |
+| smoothing, lattice case | 10 | worst element up to 0.356, but 4.6% to 13.1% of elements fall below 0.6, and the volume changes by 1% to 49% |
+| smoothing, octree case | 10 | worst element falls to 0.154 or below, five runs invert an element, and the volume changes by 1% to 51% |
 
 The worst element rests on a handful of boundary elements, so it is noisy.  On
-the lattice it moves between 0.16 and 0.29 as the spacing changes.  The count
+the lattice it moves between 0.26 and 0.36 as the spacing changes.  The count
 below 0.6 is steadier.
 
 Smoothing does not close the gap.  It moves boundary nodes off the surface,
@@ -569,7 +577,7 @@ the reference holds 0.61.  The gap sits in the elements on the boundary.
 
 **What the study shows.**  None of the levers that set the size, the scale, the
 balancing, the fit, the tolerance, or the spacing raises the worst element above
-about 0.31.  Smoothing lifts it to 0.36 at most.  It also costs volume and
+0.362.  Smoothing does no better, at 0.356 at most.  It also costs volume and
 raises the count of elements below 0.6.  These levers change how many elements
 the mesh has.  They do not change how bad the worst boundary elements are.  For
 this bone, the result is solid.
@@ -590,9 +598,9 @@ could raise the floor without being a ratchet.  A quality guard is the one
 approach we know of that gives a floor by construction.  Better fitting improves
 the distribution, but it cannot promise a floor.
 
-**Two guards may be needed.**  On the lattice, 97% of the elements below 0.6
+**Two guards may be needed.**  On the lattice, 95% of the elements below 0.6
 touch the boundary, so a guard on the boundary fit targets them.  On the octree,
-about half of the tail is interior transition elements: 606 of 1,117.  A guard
+most of the tail is interior transition elements: 663 of 1,054, or 63%.  A guard
 on the boundary alone would leave them.  The interior needs the same guard, or
 better transition templates.
 
@@ -612,6 +620,31 @@ enough.  If it stalls near 0.4, the fit needs more.  The issue
 tracks this, with the bone as the benchmark.
 
 ## Reproducibility
+
+The numbers on this page need a `conspire` newer than its latest release, 0.8.0.
+Build `automesh` against `conspire` at commit `45c2b857`, from two clones side
+by side:
+
+```sh
+git clone https://github.com/autotwin/automesh.git
+git clone https://github.com/mrbuche/conspire.rs.git
+git -C automesh checkout 407e5bd
+git -C conspire.rs checkout 45c2b857
+```
+
+Then point the `automesh` build at the `conspire` clone, in
+`automesh/.cargo/config.toml`:
+
+```toml
+[patch.crates-io]
+conspire = { path = "../conspire.rs" }
+```
+
+That `conspire` adds a third argument to `octree_background` and
+`dual_background`.  In `automesh/src/mesh/mod.rs`, pass `None` as the third
+argument of both calls.  Then run `cargo build --release` in `automesh`.  The
+binary is `automesh/target/release/automesh`.  Put its directory first on your
+`PATH`, so that the commands below and `bone_sweep.py` use it.
 
 The inputs are not committed.  See [Downloads](#downloads) to get them.  From
 this directory:
@@ -686,7 +719,7 @@ python3 bone_tail.py bone.inp bone_reference_metrics.csv
 python3 bone_tail.py bone_uniform.vtu bone_uniform_metrics.csv
 python3 bone_tail.py bone_octree.vtu bone_octree_metrics.csv
 
-# the sweep of 56 runs, about two minutes
+# the sweep of 56 runs, about four minutes
 python3 bone_sweep.py bone_sweep.tsv
 
 # compare the reproduced baseline with the published mesh, after the run in

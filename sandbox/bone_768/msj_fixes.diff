@@ -1,0 +1,63 @@
+--- a/src/geometry/mesh/quality/improve/msj/mod.rs
++++ b/src/geometry/mesh/quality/improve/msj/mod.rs
+@@ -138,7 +138,8 @@
+         let mut best: Option<Coordinates<3>> = None;
+         let mut first = true;
+         'ratchet: loop {
+-            for _ in 0..SWEEPS {
++            let mut stalled = false;
++            for sweep in 0..=SWEEPS {
+                 energy.refresh(&surface, &current);
+                 let quality = energy.quality(&current);
+                 let gap = energy.gap(&current);
+@@ -155,6 +156,9 @@
+                     energy.rho *= 2.0;
+                     continue 'ratchet;
+                 }
++                if stalled || sweep == SWEEPS {
++                    break;
++                }
+                 let descent = solver((FIRST * energy.typical()).value())
+                     .descend(
+                         |x| Ok(energy.evaluate(x, None)),
+@@ -175,7 +179,7 @@
+                 current = descent.solution;
+                 energy.settle(&current);
+                 if decrease < STALL {
+-                    break;
++                    stalled = true;
+                 }
+             }
+             break;
+@@ -402,7 +406,7 @@
+             .into();
+             scatter(&POINTS[j], &g, &mut slopes)
+         }
+-        (lowest_j / scale, slopes)
++        (lowest_j / scale - theta * scale * scale, slopes)
+     } else if lowest_sj <= theta {
+         let area = scale * scale;
+         if derivative {
+@@ -423,9 +427,9 @@
+                 .collect();
+             scatter(&POINTS[s], &g, &mut slopes)
+         }
+-        (lowest_sj * area, slopes)
++        ((lowest_sj - theta) * area, slopes)
+     } else {
+-        (theta * scale * scale, slopes)
++        (Quantity::default(), slopes)
+     }
+ }
+ 
+--- a/src/geometry/mesh/quality/improve/msj/test.rs
++++ b/src/geometry/mesh/quality/improve/msj/test.rs
+@@ -96,7 +96,7 @@
+ #[test]
+ fn rectified_branch_is_flat() {
+     let (value, slope) = terms(Quantity::new(0.1), Quantity::new(1.0), &typed(&UNIT), true);
+-    assert_eq!(value.value(), 0.1);
++    assert_eq!(value.value(), 0.0);
+     assert!(
+         slope
+             .iter()

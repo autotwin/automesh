@@ -24,7 +24,7 @@ Example
 -------
 cd ~/autotwin/automesh/book/examples/gallery/academic
 # bone_tri_cleaned.stl is not committed; see the Downloads section of bone.md
-python3 bone_sweep.py bone_sweep.tsv              # every lever, about 2 minutes
+python3 bone_sweep.py bone_sweep.tsv              # every lever, about 4 minutes
 python3 bone_sweep.py bone_sweep.tsv uniform      # one lever
 
 Output
