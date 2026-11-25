@@ -477,8 +477,10 @@ The nine-point metric flags the element as inverted.
 The eight-corner metric reports it as valid.
 
 For well-shaped meshes, the center term does not change $\hat{J}_{\min}$.
-Across 16 meshes with 306,416 hexahedra (bone, bunny, and bottle, each as a reference, a start, and an improved result), the nine-point value equals the eight-corner value for every hexahedron.
-A unit cube gives $\hat{J}_{\min} = 1$ under both.
+Across 16 meshes with 306,416 hexahedra, the nine-point value equals the eight-corner value for every hexahedron.
+The meshes are a unit cube and 15 meshes of the bone, bunny, and bottle models.
+Each model has a reference mesh, a strong-balance start, a weak-balance start, and the improved result of each start.
+The unit cube gives $\hat{J}_{\min} = 1$ under both definitions.
 The comparison is recorded in [issue #820](https://github.com/autotwin/automesh/issues/820).
 
 ## Node-based $\hat{J}_{\min}$ Refinement
